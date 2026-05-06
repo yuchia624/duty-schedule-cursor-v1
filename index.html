@@ -137,6 +137,14 @@
   .shift-select {
     width: 58px; padding: 4px 6px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 12px; background:#fff;
   }
+  .person-cell.shift-early {
+    background: #f0fdf4;
+    border-left: 3px solid #16a34a;
+  }
+  .person-cell.shift-late {
+    background: #eff6ff;
+    border-left: 3px solid #2563eb;
+  }
   .shift-time { display:none; }
   .timeline { overflow: hidden; }
   .shift-band {
@@ -940,6 +948,7 @@
     <div class="toolbar">
       <div class="search-wrap"><input id="timelineFlightSearch" type="text" placeholder="搜尋航班" /></div>
       <button id="clearTimelineSearch">清除搜尋</button>
+      <button id="toggleShiftViewBtn">顯示：全部</button>
       <button id="zoomOut">時間縮小</button>
       <button id="zoomIn">時間放大</button>
       <button id="saveBtn">儲存到瀏覽器</button>
@@ -975,6 +984,33 @@ const SHIFT_DEFS = {
   "IV": ["16:00","00:30"],
   "IW": ["16:30","01:00"]
 };
+function getShiftType(shiftKey) {
+  const def = SHIFT_DEFS[shiftKey];
+  if (!def) return '';
+  const start = tStrToMin(def[0]);
+  if (start === null) return '';
+  return start < 12 * 60 ? 'early' : 'late';
+}
+function getShiftViewLabel(mode) {
+  if (mode === 'early') return '早班';
+  if (mode === 'late') return '晚班';
+  return '全部';
+}
+function updateShiftViewButtonLabel() {
+  const btn = document.getElementById('toggleShiftViewBtn');
+  if (!btn) return;
+  btn.textContent = `顯示：${getShiftViewLabel(activeShiftView)}`;
+}
+function personMatchesShiftView(person) {
+  if (activeShiftView === 'all') return true;
+  return getShiftType(person.shift || '') === activeShiftView;
+}
+function getViewStartMin() {
+  return activeShiftView === 'late' ? 12 * 60 : START_MIN;
+}
+function getViewEndMin() {
+  return activeShiftView === 'late' ? (24 * 60 + 5 * 60) : END_MIN;
+}
 function tStrToMin(s) {
   const m = /^([0-1]?\d|2[0-4]):([0-5]\d)$/.exec(String(s).trim());
   if (!m) return null;
@@ -989,6 +1025,8 @@ const START_MIN = 3 * 60;
 const END_MIN = 24 * 60;
 let pxPerMinute = 1.4;
 let activePaletteTab = 'byRole';
+let activeShiftView = localStorage.getItem('duty_shift_view') || 'all';
+if (!['all', 'early', 'late'].includes(activeShiftView)) activeShiftView = 'all';
 
 let customTemplates = JSON.parse(localStorage.getItem('custom_duty_templates') || '[]');
 let staffDirectory = JSON.parse(localStorage.getItem('duty_staff_directory') || '[]');
@@ -1434,7 +1472,7 @@ function overlaps(aStart, aEnd, bStart, bEnd) { return aStart < bEnd && aEnd > b
 function confirmConflict(personIndex, itemUid, start, end) { return true; }
 function safeRoleClass(role) { return 'role-' + role.replace(/[^\w\u4e00-\u9fff-]/g, ''); }
 function applyRoleClass(el, role) { el.classList.add(safeRoleClass(role)); }
-function timeToLeft(mins) { return (mins - START_MIN) * pxPerMinute; }
+function timeToLeft(mins) { return (mins - getViewStartMin()) * pxPerMinute; }
 function durationToWidth(start, end) { return Math.max((end - start) * pxPerMinute, 50); }
 function saveLocal() {
   localStorage.setItem('duty_schedule', JSON.stringify(schedule));
@@ -1581,18 +1619,20 @@ function renderFlightEditor() {
 }
 
 function renderTimeHeader() {
+  const viewStart = getViewStartMin();
+  const viewEnd = getViewEndMin();
   const times = document.getElementById('times');
   times.innerHTML = '';
-  times.style.width = ((END_MIN - START_MIN) * pxPerMinute) + 'px';
-  for (let m = START_MIN; m <= END_MIN; m += 60) {
+  times.style.width = ((viewEnd - viewStart) * pxPerMinute) + 'px';
+  for (let m = viewStart; m <= viewEnd; m += 60) {
     const el = document.createElement('div');
     el.className = 'time-label';
-    el.style.left = ((m - START_MIN) * pxPerMinute) + 'px';
+    el.style.left = ((m - viewStart) * pxPerMinute) + 'px';
     el.textContent = minutesToTime(m % 1440);
     times.appendChild(el);
   }
   document.documentElement.style.setProperty('--px-per-minute', pxPerMinute);
-  document.documentElement.style.setProperty('--timeline-width', ((END_MIN - START_MIN) * pxPerMinute) + 'px');
+  document.documentElement.style.setProperty('--timeline-width', ((viewEnd - viewStart) * pxPerMinute) + 'px');
 }
 
 function selectBlock(uid) {
@@ -1603,12 +1643,14 @@ function selectBlock(uid) {
 function getDisplayRows() {
   const normalized = normalizeFlightSearch(timelineFlightSearch);
   if (!normalized) {
-    return people.map((p, idx) => ({ person: p, originalIndex: idx, matchedRow: false }));
+    return people
+      .map((p, idx) => ({ person: p, originalIndex: idx, matchedRow: false }))
+      .filter(row => personMatchesShiftView(row.person));
   }
   const matchedPersonIdx = [...new Set(schedule.filter(s => s.flight === normalized).map(s => s.personIndex))];
   const topRows = matchedPersonIdx.map(idx => ({ person: people[idx], originalIndex: idx, matchedRow: true }));
   const restRows = people.map((p, idx) => idx).filter(idx => !matchedPersonIdx.includes(idx)).map(idx => ({ person: people[idx], originalIndex: idx, matchedRow: false }));
-  return [...topRows, ...restRows];
+  return [...topRows, ...restRows].filter(row => personMatchesShiftView(row.person));
 }
 
 function createBlockEl(item, normalizedSearch) {
@@ -1676,6 +1718,8 @@ function renderRows() {
     const displayNameHtml = showFullName
       ? `<span class="person-short-name">${rowInfo.person.name}</span><span class="person-full-name">${fullName}</span>`
       : `${rowInfo.person.name}`;
+    const shiftType = getShiftType(shift);
+    if (shiftType) left.classList.add(`shift-${shiftType}`);
     left.innerHTML = `<div class="person-main"><span class="drag-icon">⋮⋮</span><span class="badge">${rowInfo.person.level}</span><div class="person-meta"><span class="person-name">${displayNameHtml}</span></div></div><div class="shift-row"><select class="shift-select"><option value="">班別</option>${Object.keys(SHIFT_DEFS).map(k => `<option value="${k}" ${shift===k?'selected':''}>${k}</option>`).join('')}</select></div>${pendingRest}`;
     left.addEventListener('dragstart', e => {
       e.dataTransfer.setData('text/person-row', rowInfo.originalIndex);
@@ -1728,7 +1772,7 @@ function renderRows() {
       if (tpl.role === '休') {
         const rect = timeline.getBoundingClientRect();
         const x = e.clientX - rect.left;
-        const mins = snap5(START_MIN + Math.max(0, x / pxPerMinute));
+        const mins = snap5(getViewStartMin() + Math.max(0, x / pxPerMinute));
         start = mins;
         end = mins + tpl.duration;
         flight = tpl.id + '_' + blockSeq;
@@ -1756,8 +1800,8 @@ function renderRows() {
       let startMin = s1;
       let endMin = s2;
       if (endMin !== null && startMin !== null && endMin <= startMin) endMin += 24 * 60;
-      const visibleStart = Math.max(startMin, START_MIN);
-      const visibleEnd = Math.min(endMin, END_MIN);
+      const visibleStart = Math.max(startMin, getViewStartMin());
+      const visibleEnd = Math.min(endMin, getViewEndMin());
       if (visibleEnd > visibleStart) {
         const band = document.createElement('div');
         band.className = 'shift-band';
@@ -1805,7 +1849,7 @@ function startMoveBlock(e, item) {
     if (item.role === '休') {
       const targetTimeline = document.querySelector(`.timeline[data-original-index="${item.personIndex}"]`) || originTimeline;
       const rect = targetTimeline.getBoundingClientRect();
-      const raw = START_MIN + ((ev.clientX - rect.left) / pxPerMinute);
+      const raw = getViewStartMin() + ((ev.clientX - rect.left) / pxPerMinute);
       const snapped = snap5(raw);
       const duration = originalEnd - originalStart;
       item.start = snapped;
@@ -1943,6 +1987,15 @@ document.getElementById('clearTimelineSearch').addEventListener('click', () => {
 document.getElementById('toggleEditorBtn').addEventListener('click', () => {
   setEditorExpanded(!editorExpanded);
 });
+document.getElementById('toggleShiftViewBtn').addEventListener('click', () => {
+  if (activeShiftView === 'all') activeShiftView = 'early';
+  else if (activeShiftView === 'early') activeShiftView = 'late';
+  else activeShiftView = 'all';
+  localStorage.setItem('duty_shift_view', activeShiftView);
+  updateShiftViewButtonLabel();
+  renderTimeHeader();
+  renderRows();
+});
 
 document.getElementById('importExcelBtn').addEventListener('click', () => {
   document.getElementById('excelImportInput').click();
@@ -2079,6 +2132,7 @@ syncScheduleWindows();
 renderTimeHeader();
 renderPalette();
 renderRows();
+updateShiftViewButtonLabel();
 renderFlightEditor();
 setEditorExpanded(false);
 forceFixFlightEditorToggle();
