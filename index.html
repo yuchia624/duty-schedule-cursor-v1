@@ -68,16 +68,16 @@
   .toolbar .search-wrap { width:260px; }
   .board {
     position: relative;
-    min-width: calc(200px + var(--timeline-width));
+    min-width: calc(240px + var(--timeline-width));
     overflow: visible;
-    background: linear-gradient(to right,transparent 0,transparent 219px,#cfd6e4 219px,#cfd6e4 220px),linear-gradient(to bottom,#fff,#fff);
+    background: linear-gradient(to right,transparent 0,transparent 239px,#cfd6e4 239px,#cfd6e4 240px),linear-gradient(to bottom,#fff,#fff);
   }
   .header {
     position: sticky;
     top: 60px;
     z-index: 100;
     display: grid;
-    grid-template-columns: 200px var(--timeline-width);
+    grid-template-columns: 240px var(--timeline-width);
     background: #fff;
     border-bottom: 1px solid var(--line);
     box-shadow: 0 1px 0 rgba(0,0,0,0.04);
@@ -104,15 +104,17 @@
                       repeating-linear-gradient(to right,#f3f4f6 0,#f3f4f6 1px,transparent 1px,transparent calc(30 * var(--px-per-minute) * 1px));
   }
   .time-label { position:absolute; top:10px; transform:translateX(-50%); font-size:12px; color:#4b5563; font-weight:700; }
-  .row { display:grid; grid-template-columns:220px var(--timeline-width); height:var(--row-height); border-bottom:1px solid var(--line); background:#fff; }
+  .row { display:grid; grid-template-columns:240px var(--timeline-width); height:var(--row-height); border-bottom:1px solid var(--line); background:#fff; }
   .person-cell {
-    position: sticky; left: 0; z-index: 5; border-right:1px solid var(--line); padding:6px 10px; display:flex;
-    align-items:center; gap:8px; overflow:hidden; cursor:grab; background:#fff;
+    position: sticky; left: 0; z-index: 5; border-right:1px solid var(--line); padding:5px 8px; display:flex;
+    align-items:center; gap:6px; overflow:hidden; cursor:grab; background:#fff;
   }
   .person-cell.dragging { opacity:.5; } .person-cell.over { background:#eef6ff; }
   .drag-icon { color:#9ca3af; font-size:16px; flex:0 0 auto; }
   .badge { min-width:28px; padding:3px 6px; border-radius:999px; background:#eef2ff; color:#4338ca; font-size:12px; text-align:center; font-weight:800; }
-  .person-name { font-weight:800; white-space:nowrap; }
+  .person-name { font-weight:800; white-space:nowrap; display:inline-flex; align-items:center; gap:5px; min-width:0; }
+  .person-short-name { color:#4338ca; font-weight:900; }
+  .person-full-name { color:#0f172a; font-weight:800; }
   .timeline {
     position:relative; width:var(--timeline-width); height:100%;
     background-image:repeating-linear-gradient(to right,#eceff5 0,#eceff5 1px,transparent 1px,transparent calc(60 * var(--px-per-minute) * 1px)),
@@ -128,9 +130,10 @@
   .block.dimmed { opacity:.18; }
   .row.flight-match-top .person-cell { background:#fffbea; }
 
-  .person-main { display:flex; align-items:center; gap:8px; min-width:0; }
-  .person-meta { display:flex; flex-direction:column; min-width:0; line-height:1.1; }
-  .shift-row { display:flex; align-items:center; gap:6px; margin-left:auto; flex:0 0 auto; }
+  .person-main { display:flex; align-items:center; gap:6px; min-width:0; flex:1 1 0; overflow:hidden; }
+  .person-meta { display:flex; flex-direction:column; min-width:0; line-height:1.1; flex:1 1 0; overflow:hidden; }
+  .person-name { overflow:hidden; text-overflow:ellipsis; max-width:100%; }
+  .shift-row { display:flex; align-items:center; gap:5px; margin-left:4px; flex:0 0 auto; flex-shrink:0; }
   .shift-select {
     width: 58px; padding: 4px 6px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 12px; background:#fff;
   }
@@ -320,8 +323,8 @@
 
   .pending-rest {
     display:inline-flex; align-items:center; justify-content:center;
-    margin-left:6px; padding:2px 6px; border-radius:999px;
-    background:#fff7ed; color:#c2410c; font-size:11px; font-weight:800;
+    margin-left:2px; padding:1px 3px; border-radius:999px;
+    background:#fff7ed; color:#c2410c; font-size:9px; font-weight:800;
     border:1px solid #fed7aa; flex:0 0 auto;
   }
   .role-休 { background:#f3f4f6; }
@@ -470,28 +473,28 @@
 
   /* ===== 修正：人員欄與時間線對齊、往下滑時固定時間軸 ===== */
   .board {
-    min-width: calc(220px + var(--timeline-width));
+    min-width: calc(240px + var(--timeline-width));
   }
   .header {
-    grid-template-columns: 220px var(--timeline-width) !important;
+    grid-template-columns: 240px var(--timeline-width) !important;
     position: sticky !important;
     top: 54px !important;
     z-index: 500 !important;
   }
   .name-col {
-    width: 220px;
-    min-width: 220px;
+    width: 240px;
+    min-width: 240px;
     z-index: 520 !important;
   }
   .times {
     z-index: 510 !important;
   }
   .row {
-    grid-template-columns: 220px var(--timeline-width) !important;
+    grid-template-columns: 240px var(--timeline-width) !important;
   }
   .person-cell {
-    width: 220px;
-    min-width: 220px;
+    width: 240px;
+    min-width: 240px;
     z-index: 100 !important;
   }
   .control-panel {
@@ -592,8 +595,8 @@
     padding: 5px 8px;
   }
   .pending-rest {
-    font-size: 10px;
-    padding: 1px 5px;
+    font-size: 8px;
+    padding: 1px 3px;
   }
   .shift-select {
     width: 58px;
@@ -642,8 +645,10 @@
         <option value="休">只看 休</option>
       </select>
       <button id="importExcelBtn">匯入 Excel</button>
+      <button id="importStaffDbBtn">匯入人員資料庫</button>
       <span id="cloudStatus" class="cloud-status">雲端連線中</span>
       <input id="excelImportInput" type="file" accept=".xlsx,.xls" style="display:none" />
+      <input id="staffDbImportInput" type="file" accept=".xlsx,.xls" style="display:none" />
       <button id="resetBtn">清空目前排班</button>
       <button id="exportBtn">匯出 CSV</button>
     </div>
@@ -986,6 +991,7 @@ let pxPerMinute = 1.4;
 let activePaletteTab = 'byRole';
 
 let customTemplates = JSON.parse(localStorage.getItem('custom_duty_templates') || '[]');
+let staffDirectory = JSON.parse(localStorage.getItem('duty_staff_directory') || '[]');
 
 function normalizeHHMM(value) {
   const s = String(value || '').trim();
@@ -1004,6 +1010,9 @@ function hhmmToMinutes(value) {
 }
 function saveCustomTemplates() {
   localStorage.setItem('custom_duty_templates', JSON.stringify(customTemplates));
+}
+function saveStaffDirectory() {
+  localStorage.setItem('duty_staff_directory', JSON.stringify(staffDirectory));
 }
 function createCustomTemplate(name, startHHMM, duration) {
   const start = hhmmToMinutes(startHHMM);
@@ -1028,8 +1037,9 @@ function createCustomTemplate(name, startHHMM, duration) {
 
 let timelineFlightSearch = '';
 initialPeople.forEach(p => { if (!('shift' in p)) p.shift = ''; });
+initialPeople.forEach(p => { if (!('code' in p)) p.code = p.name; });
 let people = JSON.parse(localStorage.getItem('duty_people_order') || 'null') || initialPeople;
-people = people.map(p => ({...p, shift: p.shift || ''}));
+people = people.map(p => ({...p, code: p.code || p.name, shift: p.shift || ''}));
 let schedule = JSON.parse(localStorage.getItem('duty_schedule') || '[]');
 let flightDefs = JSON.parse(localStorage.getItem('duty_flight_defs') || 'null') || initialFlightDefs;
 let selectedBlockId = null;
@@ -1072,7 +1082,7 @@ function getCloudState() {
 function applyCloudState(data) {
   if (!data) return;
   applyingRemote = true;
-  people = Array.isArray(data.people) ? data.people.map(p => ({...p, shift:p.shift || ''})) : people;
+  people = Array.isArray(data.people) ? data.people.map(p => ({...p, code: p.code || p.name, shift:p.shift || ''})) : people;
   schedule = Array.isArray(data.schedule) ? data.schedule : [];
   flightDefs = Array.isArray(data.flightDefs) ? data.flightDefs : flightDefs;
   customTemplates = Array.isArray(data.customTemplates) ? data.customTemplates : customTemplates;
@@ -1233,14 +1243,67 @@ function buildFlightDefsFromRows(rows) {
   return out;
 }
 function buildPeopleFromRows(rows) {
+  const pick = (row, keys) => {
+    for (const key of keys) {
+      if (row[key] !== undefined && row[key] !== null && String(row[key]).trim() !== '') return String(row[key]).trim();
+    }
+    return '';
+  };
   return rows
-    .filter(row => row['姓名'])
-    .map(row => ({
-      name: String(row['姓名']).trim(),
-      level: String(row['戰力'] ?? '').trim(),
-      shift: String(row['班別'] ?? '').trim()
-    }))
+    .map(row => {
+      const code = pick(row, ['代號', '代碼', '員編', '工號', '編號', 'Code', 'code']);
+      const name = pick(row, ['姓名', '全名', '名字', 'Name', 'name']) || code;
+      return {
+        name,
+        code: code || name,
+        level: pick(row, ['戰力', '等級', 'Level', 'level']),
+        shift: pick(row, ['班別', '班次', 'Shift', 'shift'])
+      };
+    })
     .filter(p => p.name && p.name !== 'undefined' && p.name !== 'null');
+}
+function buildStaffDirectoryFromRows(rows) {
+  const pick = (row, keys) => {
+    for (const key of keys) {
+      if (row[key] !== undefined && row[key] !== null && String(row[key]).trim() !== '') return String(row[key]).trim();
+    }
+    return '';
+  };
+  return rows.map(row => {
+    const code = pick(row, ['代號', '代碼', '員編', '工號', '編號', 'Code', 'code']);
+    const fullName = pick(row, ['姓名', '全名', '名字', 'Name', 'name']);
+    const level = pick(row, ['戰力', '等級', 'Level', 'level']);
+    return { code: code || fullName, fullName, level };
+  }).filter(x => x.code || x.fullName);
+}
+function normalizeText(v) {
+  return String(v || '').trim().toLowerCase().replace(/\s+/g, '');
+}
+function resolveFullName(person) {
+  if (!staffDirectory.length || !person) return '';
+  const nameKey = normalizeText(person.name);
+  const codeKey = normalizeText(person.code || person.name);
+  const found = staffDirectory.find(x => normalizeText(x.code) === codeKey || normalizeText(x.fullName) === nameKey || normalizeText(x.code) === nameKey);
+  return found ? (found.fullName || '') : '';
+}
+function mergePeopleWithStaffDirectory(list) {
+  if (!Array.isArray(list) || !list.length || !staffDirectory.length) return list;
+  return list.map(p => {
+    const codeKey = normalizeText(p.code || p.name);
+    const nameKey = normalizeText(p.name);
+    const found = staffDirectory.find(x =>
+      normalizeText(x.code) === codeKey ||
+      normalizeText(x.fullName) === nameKey ||
+      normalizeText(x.code) === nameKey
+    );
+    if (!found) return p;
+    return {
+      ...p,
+      code: found.code || p.code || p.name,
+      name: found.fullName || p.name,
+      level: p.level || found.level || ''
+    };
+  });
 }
 
 function renderAssignmentTableFromFlightDefs() {
@@ -1291,7 +1354,7 @@ function renderAssignmentTableFromFlightDefs() {
 
 function rebuildAfterExcelImport(newFlightDefs, newPeople) {
   flightDefs = newFlightDefs;
-  people = newPeople;
+  people = newPeople.map(p => ({ ...p, code: p.code || p.name, shift: p.shift || '' }));
   renderAssignmentTableFromFlightDefs();
   schedule = [];
   selectedBlockId = null;
@@ -1378,6 +1441,7 @@ function saveLocal() {
   localStorage.setItem('duty_people_order', JSON.stringify(people));
   localStorage.setItem('duty_flight_defs', JSON.stringify(flightDefs));
   saveCustomTemplates();
+  saveStaffDirectory();
   scheduleCloudSave();
 }
 function clearHoverStates() { document.querySelectorAll('.person-cell').forEach(el => el.classList.remove('over', 'dragging')); }
@@ -1607,7 +1671,12 @@ function renderRows() {
     const shift = rowInfo.person.shift || '';
     const shiftTimes = "";
     const pendingRest = hasRestForPerson(rowInfo.originalIndex) ? '' : '<span class="pending-rest">待排休</span>';
-    left.innerHTML = `<div class="person-main"><span class="drag-icon">⋮⋮</span><span class="badge">${rowInfo.person.level}</span><div class="person-meta"><span class="person-name">${rowInfo.person.name}</span></div>${pendingRest}</div><div class="shift-row"><select class="shift-select"><option value="">班別</option>${Object.keys(SHIFT_DEFS).map(k => `<option value="${k}" ${shift===k?'selected':''}>${k}</option>`).join('')}</select></div>`;
+    const fullName = resolveFullName(rowInfo.person);
+    const showFullName = fullName && fullName !== rowInfo.person.name;
+    const displayNameHtml = showFullName
+      ? `<span class="person-short-name">${rowInfo.person.name}</span><span class="person-full-name">${fullName}</span>`
+      : `${rowInfo.person.name}`;
+    left.innerHTML = `<div class="person-main"><span class="drag-icon">⋮⋮</span><span class="badge">${rowInfo.person.level}</span><div class="person-meta"><span class="person-name">${displayNameHtml}</span></div></div><div class="shift-row"><select class="shift-select"><option value="">班別</option>${Object.keys(SHIFT_DEFS).map(k => `<option value="${k}" ${shift===k?'selected':''}>${k}</option>`).join('')}</select></div>${pendingRest}`;
     left.addEventListener('dragstart', e => {
       e.dataTransfer.setData('text/person-row', rowInfo.originalIndex);
       left.classList.add('dragging');
@@ -1808,16 +1877,15 @@ function syncAssignmentTableFromSchedule() {
   mappedCells.forEach(cell => {
     const flight = cell.dataset.flight;
     const role = cell.dataset.role;
-    const names = schedule
-      .filter(item => item.flight === flight && item.role === role)
-      .map(item => people[item.personIndex] ? people[item.personIndex].name : '')
+    const matchedItems = schedule.filter(item => item.flight === flight && item.role === role);
+    const codes = matchedItems
+      .map(item => (people[item.personIndex] ? (people[item.personIndex].code || people[item.personIndex].name) : ''))
       .filter(Boolean);
-    cell.textContent = names.join(' ');
-    if (names.length) {
+    cell.textContent = codes.join(' ');
+    if (codes.length) {
       cell.classList.add('assignment-clickable');
       cell.onclick = () => {
-        const name = names[0];
-        const index = people.findIndex(p => p.name === name);
+        const index = matchedItems[0] ? matchedItems[0].personIndex : -1;
         if (index === -1) return;
         const row = document.querySelector(`.person-cell[data-original-index="${index}"]`)?.closest('.row');
         if (row) {
@@ -1879,6 +1947,9 @@ document.getElementById('toggleEditorBtn').addEventListener('click', () => {
 document.getElementById('importExcelBtn').addEventListener('click', () => {
   document.getElementById('excelImportInput').click();
 });
+document.getElementById('importStaffDbBtn').addEventListener('click', () => {
+  document.getElementById('staffDbImportInput').click();
+});
 document.getElementById('excelImportInput').addEventListener('change', async (e) => {
   const file = e.target.files && e.target.files[0];
   if (!file) return;
@@ -1890,10 +1961,10 @@ document.getElementById('excelImportInput').addEventListener('change', async (e)
   const workbook = XLSX.read(buffer, { type: 'array' });
 
   const flightSheetName = workbook.SheetNames.find(n => n.toLowerCase() === 'flights') || workbook.SheetNames[0];
-  const staffSheetName = workbook.SheetNames.find(n => n.toLowerCase() === 'staff');
+  const staffSheetName = workbook.SheetNames.find(n => /staff|人員|名單|戰力|代號/i.test(String(n)));
 
   if (!flightSheetName || !staffSheetName) {
-    alert('Excel 需要包含 Flights 和 Staff 兩個工作表。');
+    alert('Excel 需要包含 Flights 和 Staff（或人員）工作表。');
     return;
   }
 
@@ -1901,7 +1972,7 @@ document.getElementById('excelImportInput').addEventListener('change', async (e)
   const staffRows = XLSX.utils.sheet_to_json(workbook.Sheets[staffSheetName], { defval: '' });
 
   const newFlightDefs = buildFlightDefsFromRows(flightRows);
-  const newPeople = buildPeopleFromRows(staffRows);
+  const newPeople = mergePeopleWithStaffDirectory(buildPeopleFromRows(staffRows));
 
   if (!newFlightDefs.length) {
     alert('Flights 工作表沒有可讀取的航班資料。');
@@ -1916,6 +1987,33 @@ document.getElementById('excelImportInput').addEventListener('change', async (e)
 
   rebuildAfterExcelImport(newFlightDefs, newPeople);
   alert('Excel 匯入完成，已依新規則產生 duty 區塊，並同步到雲端。');
+  e.target.value = '';
+});
+document.getElementById('staffDbImportInput').addEventListener('change', async (e) => {
+  const file = e.target.files && e.target.files[0];
+  if (!file) return;
+  if (typeof XLSX === 'undefined') {
+    alert('Excel 讀取套件尚未載入。請確認網路連線後重新整理頁面。');
+    return;
+  }
+  const buffer = await file.arrayBuffer();
+  const workbook = XLSX.read(buffer, { type: 'array' });
+  const sheetName = workbook.SheetNames.find(n => /staff|人員|名單|戰力|代號/i.test(String(n))) || workbook.SheetNames[0];
+  if (!sheetName) {
+    alert('找不到可讀取的人員資料工作表。');
+    return;
+  }
+  const rows = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], { defval: '' });
+  const directory = buildStaffDirectoryFromRows(rows);
+  if (!directory.length) {
+    alert('人員資料庫沒有可讀取資料，請確認含有「代號」與「姓名」。');
+    return;
+  }
+  staffDirectory = directory;
+  saveStaffDirectory();
+  renderRows();
+  scheduleCloudSave();
+  alert(`人員資料庫已更新，共 ${directory.length} 筆。`);
   e.target.value = '';
 });
 
