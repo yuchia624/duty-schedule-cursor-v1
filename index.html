@@ -1099,6 +1099,7 @@ let cloudReady = false;
 let applyingRemote = false;
 let cloudSaveTimer = null;
 let lastCloudJson = '';
+const CLOUD_DOC_ID = 'cursor-v1-main';
 
 function setCloudStatus(text, mode='') {
   const el = document.getElementById('cloudStatus');
@@ -1176,7 +1177,7 @@ function initFirebaseSync() {
     }
     if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
     db = firebase.firestore();
-    scheduleDocRef = db.collection('dutySchedules').doc('main');
+    scheduleDocRef = db.collection('dutySchedules').doc(CLOUD_DOC_ID);
 
     scheduleDocRef.onSnapshot((doc) => {
       if (!doc.exists) {
@@ -1641,16 +1642,17 @@ function selectBlock(uid) {
 }
 
 function getDisplayRows() {
+  const allRows = people.map((p, idx) => ({ person: p, originalIndex: idx, matchedRow: false }));
   const normalized = normalizeFlightSearch(timelineFlightSearch);
   if (!normalized) {
-    return people
-      .map((p, idx) => ({ person: p, originalIndex: idx, matchedRow: false }))
-      .filter(row => personMatchesShiftView(row.person));
+    const filteredRows = allRows.filter(row => personMatchesShiftView(row.person));
+    return (activeShiftView !== 'all' && filteredRows.length === 0) ? allRows : filteredRows;
   }
   const matchedPersonIdx = [...new Set(schedule.filter(s => s.flight === normalized).map(s => s.personIndex))];
   const topRows = matchedPersonIdx.map(idx => ({ person: people[idx], originalIndex: idx, matchedRow: true }));
   const restRows = people.map((p, idx) => idx).filter(idx => !matchedPersonIdx.includes(idx)).map(idx => ({ person: people[idx], originalIndex: idx, matchedRow: false }));
-  return [...topRows, ...restRows].filter(row => personMatchesShiftView(row.person));
+  const filteredRows = [...topRows, ...restRows].filter(row => personMatchesShiftView(row.person));
+  return (activeShiftView !== 'all' && filteredRows.length === 0) ? [...topRows, ...restRows] : filteredRows;
 }
 
 function createBlockEl(item, normalizedSearch) {
