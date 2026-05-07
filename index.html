@@ -1341,18 +1341,16 @@ function resolveFullName(person) {
   const found = staffDirectory.find(x => normalizeText(x.code) === codeKey || normalizeText(x.fullName) === nameKey || normalizeText(x.code) === nameKey);
   return found ? (found.fullName || '') : '';
 }
-function renderNameWithCode(code, fullName) {
-  const shortCode = String(code || '').trim();
-  const longName = String(fullName || '').trim();
-  if (!longName) return shortCode;
-  if (!shortCode || shortCode === longName) return longName;
-  const idx = longName.indexOf(shortCode);
-  if (idx >= 0) {
-    const before = longName.slice(0, idx);
-    const after = longName.slice(idx + shortCode.length);
-    return `${before}<span class="person-short-name">${shortCode}</span>${after}`;
-  }
-  return `<span class="person-short-name">${shortCode}</span><span class="person-full-name">${longName}</span>`;
+function resolveLevel(person) {
+  if (!staffDirectory.length || !person) return '';
+  const nameKey = normalizeText(person.name);
+  const codeKey = normalizeText(person.code || person.name);
+  const found = staffDirectory.find(x =>
+    normalizeText(x.code) === codeKey ||
+    normalizeText(x.fullName) === nameKey ||
+    normalizeText(x.code) === nameKey
+  );
+  return found ? (found.level || '') : '';
 }
 function mergePeopleWithStaffDirectory(list) {
   if (!Array.isArray(list) || !list.length || !staffDirectory.length) return list;
@@ -1752,11 +1750,12 @@ function renderRows() {
     const shift = rowInfo.person.shift || '';
     const shiftTimes = "";
     const pendingRest = hasRestForPerson(rowInfo.originalIndex) ? '' : '<span class="pending-rest">待排休</span>';
-    const fullName = resolveFullName(rowInfo.person) || rowInfo.person.name;
-    const displayNameHtml = renderNameWithCode(rowInfo.person.code || rowInfo.person.name, fullName);
+    const resolvedName = resolveFullName(rowInfo.person);
+    const displayName = resolvedName || rowInfo.person.name || rowInfo.person.code || '';
+    const displayLevel = rowInfo.person.level || resolveLevel(rowInfo.person) || '';
     const shiftType = getShiftType(shift);
     if (shiftType) left.classList.add(`shift-${shiftType}`);
-    left.innerHTML = `<div class="person-main"><span class="drag-icon">⋮⋮</span><span class="badge">${rowInfo.person.level}</span><div class="person-meta"><span class="person-name">${displayNameHtml}</span></div></div><div class="shift-row"><select class="shift-select"><option value="">班別</option>${Object.keys(SHIFT_DEFS).map(k => `<option value="${k}" ${shift===k?'selected':''}>${k}</option>`).join('')}</select></div>${pendingRest}`;
+    left.innerHTML = `<div class="person-main"><span class="drag-icon">⋮⋮</span><span class="badge">${displayLevel}</span><div class="person-meta"><span class="person-name">${displayName}</span></div></div><div class="shift-row"><select class="shift-select"><option value="">班別</option>${Object.keys(SHIFT_DEFS).map(k => `<option value="${k}" ${shift===k?'selected':''}>${k}</option>`).join('')}</select></div>${pendingRest}`;
     left.addEventListener('dragstart', e => {
       e.dataTransfer.setData('text/person-row', rowInfo.originalIndex);
       left.classList.add('dragging');
