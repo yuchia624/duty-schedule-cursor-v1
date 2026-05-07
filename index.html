@@ -1025,11 +1025,20 @@ const START_MIN = 3 * 60;
 const END_MIN = 24 * 60;
 let pxPerMinute = 1.4;
 let activePaletteTab = 'byRole';
-let activeShiftView = localStorage.getItem('duty_shift_view') || 'all';
+const LS_PREFIX = 'cursor_v1';
+const LS_KEYS = {
+  shiftView: `${LS_PREFIX}_shift_view`,
+  customTemplates: `${LS_PREFIX}_custom_duty_templates`,
+  staffDirectory: `${LS_PREFIX}_staff_directory`,
+  peopleOrder: `${LS_PREFIX}_people_order`,
+  schedule: `${LS_PREFIX}_schedule`,
+  flightDefs: `${LS_PREFIX}_flight_defs`
+};
+let activeShiftView = localStorage.getItem(LS_KEYS.shiftView) || 'all';
 if (!['all', 'early', 'late'].includes(activeShiftView)) activeShiftView = 'all';
 
-let customTemplates = JSON.parse(localStorage.getItem('custom_duty_templates') || '[]');
-let staffDirectory = JSON.parse(localStorage.getItem('duty_staff_directory') || '[]');
+let customTemplates = JSON.parse(localStorage.getItem(LS_KEYS.customTemplates) || '[]');
+let staffDirectory = JSON.parse(localStorage.getItem(LS_KEYS.staffDirectory) || '[]');
 
 function normalizeHHMM(value) {
   const s = String(value || '').trim();
@@ -1047,10 +1056,10 @@ function hhmmToMinutes(value) {
   return hh * 60 + mm;
 }
 function saveCustomTemplates() {
-  localStorage.setItem('custom_duty_templates', JSON.stringify(customTemplates));
+  localStorage.setItem(LS_KEYS.customTemplates, JSON.stringify(customTemplates));
 }
 function saveStaffDirectory() {
-  localStorage.setItem('duty_staff_directory', JSON.stringify(staffDirectory));
+  localStorage.setItem(LS_KEYS.staffDirectory, JSON.stringify(staffDirectory));
 }
 function createCustomTemplate(name, startHHMM, duration) {
   const start = hhmmToMinutes(startHHMM);
@@ -1076,10 +1085,10 @@ function createCustomTemplate(name, startHHMM, duration) {
 let timelineFlightSearch = '';
 initialPeople.forEach(p => { if (!('shift' in p)) p.shift = ''; });
 initialPeople.forEach(p => { if (!('code' in p)) p.code = p.name; });
-let people = JSON.parse(localStorage.getItem('duty_people_order') || 'null') || initialPeople;
+let people = JSON.parse(localStorage.getItem(LS_KEYS.peopleOrder) || 'null') || initialPeople;
 people = people.map(p => ({...p, code: p.code || p.name, shift: p.shift || ''}));
-let schedule = JSON.parse(localStorage.getItem('duty_schedule') || '[]');
-let flightDefs = JSON.parse(localStorage.getItem('duty_flight_defs') || 'null') || initialFlightDefs;
+let schedule = JSON.parse(localStorage.getItem(LS_KEYS.schedule) || '[]');
+let flightDefs = JSON.parse(localStorage.getItem(LS_KEYS.flightDefs) || 'null') || initialFlightDefs;
 let selectedBlockId = null;
 let blockSeq = schedule.length ? Math.max(...schedule.map(x => x.uid || 0)) + 1 : 1;
 let editorExpanded = false;
@@ -1129,9 +1138,9 @@ function applyCloudState(data) {
   blockSeq = schedule.length ? Math.max(...schedule.map(x => Number(x.uid) || 0)) + 1 : 1;
   templates = [...buildTemplates(), ...createRestTemplates(), ...customTemplates];
 
-  localStorage.setItem('duty_schedule', JSON.stringify(schedule));
-  localStorage.setItem('duty_people_order', JSON.stringify(people));
-  localStorage.setItem('duty_flight_defs', JSON.stringify(flightDefs));
+  localStorage.setItem(LS_KEYS.schedule, JSON.stringify(schedule));
+  localStorage.setItem(LS_KEYS.peopleOrder, JSON.stringify(people));
+  localStorage.setItem(LS_KEYS.flightDefs, JSON.stringify(flightDefs));
   saveCustomTemplates();
 
   if (typeof renderTimeHeader === 'function') renderTimeHeader();
@@ -1476,9 +1485,9 @@ function applyRoleClass(el, role) { el.classList.add(safeRoleClass(role)); }
 function timeToLeft(mins) { return (mins - getViewStartMin()) * pxPerMinute; }
 function durationToWidth(start, end) { return Math.max((end - start) * pxPerMinute, 50); }
 function saveLocal() {
-  localStorage.setItem('duty_schedule', JSON.stringify(schedule));
-  localStorage.setItem('duty_people_order', JSON.stringify(people));
-  localStorage.setItem('duty_flight_defs', JSON.stringify(flightDefs));
+  localStorage.setItem(LS_KEYS.schedule, JSON.stringify(schedule));
+  localStorage.setItem(LS_KEYS.peopleOrder, JSON.stringify(people));
+  localStorage.setItem(LS_KEYS.flightDefs, JSON.stringify(flightDefs));
   saveCustomTemplates();
   saveStaffDirectory();
   scheduleCloudSave();
@@ -1993,7 +2002,7 @@ document.getElementById('toggleShiftViewBtn').addEventListener('click', () => {
   if (activeShiftView === 'all') activeShiftView = 'early';
   else if (activeShiftView === 'early') activeShiftView = 'late';
   else activeShiftView = 'all';
-  localStorage.setItem('duty_shift_view', activeShiftView);
+  localStorage.setItem(LS_KEYS.shiftView, activeShiftView);
   updateShiftViewButtonLabel();
   renderTimeHeader();
   renderRows();
