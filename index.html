@@ -147,6 +147,15 @@
   }
   .shift-time { display:none; }
   .timeline { overflow: hidden; }
+  .shift-empty-reminder {
+    padding: 22px 16px;
+    color: #475569;
+    font-size: 16px;
+    font-weight: 700;
+    text-align: center;
+    border-bottom: 1px solid var(--line);
+    background: #ffffff;
+  }
   .shift-band {
     position: absolute;
     top: 0;
@@ -1655,13 +1664,13 @@ function getDisplayRows() {
   const normalized = normalizeFlightSearch(timelineFlightSearch);
   if (!normalized) {
     const filteredRows = allRows.filter(row => personMatchesShiftView(row.person));
-    return (activeShiftView !== 'all' && filteredRows.length === 0) ? allRows : filteredRows;
+    return filteredRows;
   }
   const matchedPersonIdx = [...new Set(schedule.filter(s => s.flight === normalized).map(s => s.personIndex))];
   const topRows = matchedPersonIdx.map(idx => ({ person: people[idx], originalIndex: idx, matchedRow: true }));
   const restRows = people.map((p, idx) => idx).filter(idx => !matchedPersonIdx.includes(idx)).map(idx => ({ person: people[idx], originalIndex: idx, matchedRow: false }));
   const filteredRows = [...topRows, ...restRows].filter(row => personMatchesShiftView(row.person));
-  return (activeShiftView !== 'all' && filteredRows.length === 0) ? [...topRows, ...restRows] : filteredRows;
+  return filteredRows;
 }
 
 function createBlockEl(item, normalizedSearch) {
@@ -1711,6 +1720,14 @@ function renderRows() {
   rows.innerHTML = '';
   const displayRows = getDisplayRows();
   const normalized = normalizeFlightSearch(timelineFlightSearch);
+  if (!displayRows.length && activeShiftView === 'late') {
+    const reminder = document.createElement('div');
+    reminder.className = 'shift-empty-reminder';
+    reminder.textContent = '無晚班上班人員';
+    rows.appendChild(reminder);
+    syncAssignmentTableFromSchedule();
+    return;
+  }
 
   displayRows.forEach((rowInfo) => {
     const row = document.createElement('div');
