@@ -957,7 +957,7 @@
     <div class="toolbar">
       <div class="search-wrap"><input id="timelineFlightSearch" type="text" placeholder="搜尋航班" /></div>
       <button id="clearTimelineSearch">清除搜尋</button>
-      <button id="toggleShiftViewBtn">顯示：全部</button>
+      <button id="toggleShiftViewBtn">顯示：早班</button>
       <button id="zoomOut">時間縮小</button>
       <button id="zoomIn">時間放大</button>
       <button id="saveBtn">儲存到瀏覽器</button>
@@ -1002,8 +1002,7 @@ function getShiftType(shiftKey) {
 }
 function getShiftViewLabel(mode) {
   if (mode === 'early') return '早班';
-  if (mode === 'late') return '晚班';
-  return '全部';
+  return '晚班';
 }
 function updateShiftViewButtonLabel() {
   const btn = document.getElementById('toggleShiftViewBtn');
@@ -1011,7 +1010,6 @@ function updateShiftViewButtonLabel() {
   btn.textContent = `顯示：${getShiftViewLabel(activeShiftView)}`;
 }
 function personMatchesShiftView(person) {
-  if (activeShiftView === 'all') return true;
   return getShiftType(person.shift || '') === activeShiftView;
 }
 function getViewStartMin() {
@@ -1043,8 +1041,8 @@ const LS_KEYS = {
   schedule: `${LS_PREFIX}_schedule`,
   flightDefs: `${LS_PREFIX}_flight_defs`
 };
-let activeShiftView = localStorage.getItem(LS_KEYS.shiftView) || 'all';
-if (!['all', 'early', 'late'].includes(activeShiftView)) activeShiftView = 'all';
+let activeShiftView = localStorage.getItem(LS_KEYS.shiftView) || 'early';
+if (!['early', 'late'].includes(activeShiftView)) activeShiftView = 'early';
 
 let customTemplates = JSON.parse(localStorage.getItem(LS_KEYS.customTemplates) || '[]');
 let staffDirectory = JSON.parse(localStorage.getItem(LS_KEYS.staffDirectory) || '[]');
@@ -2016,9 +2014,7 @@ document.getElementById('toggleEditorBtn').addEventListener('click', () => {
   setEditorExpanded(!editorExpanded);
 });
 document.getElementById('toggleShiftViewBtn').addEventListener('click', () => {
-  if (activeShiftView === 'all') activeShiftView = 'early';
-  else if (activeShiftView === 'early') activeShiftView = 'late';
-  else activeShiftView = 'all';
+  activeShiftView = activeShiftView === 'early' ? 'late' : 'early';
   localStorage.setItem(LS_KEYS.shiftView, activeShiftView);
   updateShiftViewButtonLabel();
   renderTimeHeader();
