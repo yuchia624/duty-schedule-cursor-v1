@@ -2785,7 +2785,6 @@ function rebuildTemplates() {
 function buildTemplates() {
   const out = [];
   flightDefs.forEach(f => {
-    const base = adjustedMinutes(f);
     const ext = Number(f.extension || 0);
     if (f.type === 'DEP') {
       const std = depStdMinutes(f);
@@ -2802,8 +2801,9 @@ function buildTemplates() {
         out.push({ id: `${f.flight}_${role}_${f.type}`, label: `${f.flight} ${role}`, compactLabel: compactDutyLabel(f.flight, role), flight: f.flight, role, flightType: f.type, start, end });
       }
     } else {
-      const start = Math.max(0, base - 15);
-      const end = base + 30 + ext;
+      const anchor = getArrSortMinutes(f);
+      const start = Math.max(0, anchor - 15);
+      const end = anchor + 30 + ext;
       ['接機RC','接機C'].forEach(role => {
         out.push({ id: `${f.flight}_${role}_${f.type}`, label: `${f.flight} ${role}`, compactLabel: compactDutyLabel(f.flight, role), flight: f.flight, role, flightType: f.type, start, end });
       });
@@ -3227,6 +3227,10 @@ function buildEditorRowArr(f) {
       etaInput.value = normalized;
     }
     renderAssignmentTableFromFlightDefs();
+    rebuildTemplates();
+    syncScheduleWindows();
+    renderPalette();
+    renderRows();
     markUnsynced();
   };
   etaInput.addEventListener('change', commitEta);
