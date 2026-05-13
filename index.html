@@ -1241,6 +1241,41 @@
     color: #9a3412;
     font-size: 12px;
   }
+  .overtime-item-meta {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-top: 4px;
+  }
+  .overtime-hours-input {
+    width: 52px;
+    padding: 2px 4px;
+    border: 1px solid #fdba74;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 700;
+    color: #9a3412;
+    background: #fff;
+  }
+  .overtime-hours-tag {
+    font-size: 10px;
+    color: #9a3412;
+    font-weight: 700;
+  }
+  .overtime-reset-btn {
+    border: 0;
+    background: transparent;
+    color: #2563eb;
+    font-size: 10px;
+    font-weight: 700;
+    cursor: pointer;
+    padding: 0;
+  }
+  .overtime-reset-btn:disabled {
+    color: #94a3b8;
+    cursor: default;
+  }
   .overtime-empty {
     font-size: 12px;
     color: #6b7280;
@@ -1992,8 +2027,32 @@ function getItemOvertimeRanges(item, person) {
   return ranges.filter(r => r.otEnd > r.otStart);
 }
 function minutesToHoursText(mins) {
-  const halfHours = Math.round(mins / 30);
+  if (mins <= 0) return '0.0';
+  const halfHours = Math.max(1, Math.round(mins / 30));
   return (halfHours / 2).toFixed(1);
+}
+function getOvertimeRecordKey(personIndex, otStart, otEnd, dutyLabel) {
+  return `${personIndex}_${otStart}_${otEnd}_${dutyLabel}`;
+}
+function normalizeManualOvertimeHours(value) {
+  const n = Number(value);
+  if (Number.isNaN(n) || n <= 0) return null;
+  return (Math.round(n * 2) / 2).toFixed(1);
+}
+function getOvertimeHoursText(minutes, overrideKey) {
+  const manual = overtimeHourOverrides[overrideKey];
+  if (manual != null && manual !== '') return normalizeManualOvertimeHours(manual) || minutesToHoursText(minutes);
+  return minutesToHoursText(minutes);
+}
+function saveOvertimeOverrides() {
+  localStorage.setItem(dayStorageKeys(selectedDate).overtimeOverrides, JSON.stringify(overtimeHourOverrides));
+}
+function setOvertimeHourOverride(key, value) {
+  const normalized = normalizeManualOvertimeHours(value);
+  if (normalized == null) delete overtimeHourOverrides[key];
+  else overtimeHourOverrides[key] = normalized;
+  saveOvertimeOverrides();
+  markUnsynced();
 }
 function collectOvertimeRecords() {
   const records = [];
@@ -2004,6 +2063,7 @@ function collectOvertimeRecords() {
     const dutyLabel = getDutyDisplayLabel(item);
     getItemOvertimeRanges(item, person).forEach(r => {
       const minutes = r.otEnd - r.otStart;
+      const overrideKey = getOvertimeRecordKey(item.personIndex, r.otStart, r.otEnd, dutyLabel);
       records.push({
         personIndex: item.personIndex,
         name: resolveFullName(person) || person.name || person.code || '',
@@ -2012,8 +2072,10 @@ function collectOvertimeRecords() {
         otStart: r.otStart,
         otEnd: r.otEnd,
         minutes,
-        hoursText: minutesToHoursText(minutes),
-        dutyLabel
+        hoursText: getOvertimeHoursText(minutes, overrideKey),
+        dutyLabel,
+        overrideKey,
+        isManual: overtimeHourOverrides[overrideKey] != null && overtimeHourOverrides[overrideKey] !== ''
       });
     });
   });
@@ -2050,7 +2112,39 @@ function renderOvertimePanel() {
   records.forEach(rec => {
     const item = document.createElement('div');
     item.className = 'overtime-item';
-    item.innerHTML = `<strong>${escapeHtml(rec.name)}</strong>（${escapeHtml(rec.shift || '無班別')}）<br>${minutesToTime(rec.otStart)}–${minutesToTime(rec.otEnd)}・${rec.hoursText} 小時・${escapeHtml(rec.dutyLabel)}`;
+    item.innerHTML = `
+      <strong>${escapeHtml(rec.name)}</strong>（${escapeHtml(rec.shift || '無班別')}）<br>
+      ${minutesToTime(rec.otStart)}–${minutesToTime(rec.otEnd)}・${escapeHtml(rec.dutyLabel)}
+      <div class="overtime-item-meta">
+        <span class="overtime-hours-tag">時數</span>
+        <input type="number" class="overtime-hours-input" step="0.5" min="0.5" value="${rec.hoursText}" aria-label="加班時數" />
+        <span class="overtime-hours-tag">小時</span>
+        <span class="overtime-hours-tag">${rec.isManual ? '手動' : '自動'}</span>
+        <button type="button" class="overtime-reset-btn" ${rec.isManual ? '' : 'disabled'}>重設</button>
+      </div>
+    `;
+    const hoursInput = item.querySelector('.overtime-hours-input');
+    const resetBtn = item.querySelector('.overtime-reset-btn');
+    const commitHours = () => {
+      const autoText = minutesToHoursText(rec.minutes);
+      const next = normalizeManualOvertimeHours(hoursInput.value);
+      if (next == null || next === autoText) {
+        delete overtimeHourOverrides[rec.overrideKey];
+        saveOvertimeOverrides();
+      } else {
+        setOvertimeHourOverride(rec.overrideKey, next);
+      }
+      renderOvertimePanel();
+      markUnsynced();
+    };
+    hoursInput.addEventListener('change', commitHours);
+    hoursInput.addEventListener('blur', commitHours);
+    resetBtn?.addEventListener('click', () => {
+      delete overtimeHourOverrides[rec.overrideKey];
+      saveOvertimeOverrides();
+      renderOvertimePanel();
+      markUnsynced();
+    });
     listEl.appendChild(item);
   });
 }
@@ -2141,7 +2235,8 @@ function dayStorageKeys(dateStr) {
     flightDefs: `${LS_PREFIX}_day_${d}_flight_defs`,
     customTemplates: `${LS_PREFIX}_day_${d}_custom_templates`,
     deletedCustomTemplates: `${LS_PREFIX}_day_${d}_deleted_custom_templates`,
-    flightsImported: `${LS_PREFIX}_day_${d}_flights_imported`
+    flightsImported: `${LS_PREFIX}_day_${d}_flights_imported`,
+    overtimeOverrides: `${LS_PREFIX}_day_${d}_overtime_overrides`
   };
 }
 let selectedDate = localStorage.getItem(LS_KEYS_GLOBAL.selectedDate) || getLocalDateISO();
@@ -2275,6 +2370,8 @@ if (!Array.isArray(flightDefs)) flightDefs = [];
 let flightsImported = localStorage.getItem(_dayK0.flightsImported) === '1';
 if (!flightsImported) flightDefs = [];
 normalizeFlightDefsInPlace();
+let overtimeHourOverrides = JSON.parse(localStorage.getItem(_dayK0.overtimeOverrides) || '{}');
+if (!overtimeHourOverrides || typeof overtimeHourOverrides !== 'object') overtimeHourOverrides = {};
 let selectedBlockId = null;
 let blockSeq = schedule.length ? Math.max(...schedule.map(x => x.uid || 0)) + 1 : 1;
 let editorExpanded = false;
@@ -2309,6 +2406,7 @@ function getCloudState() {
     schedule,
     flightDefs: flightsImported ? flightDefs : [],
     customTemplates,
+    overtimeHourOverrides,
     flightsImported,
     updatedAtLocal: new Date().toISOString()
   };
@@ -2326,6 +2424,9 @@ function applyCloudState(data) {
   flightDefs = flightsImported && Array.isArray(data.flightDefs) ? data.flightDefs : [];
   normalizeFlightDefsInPlace();
   customTemplates = Array.isArray(data.customTemplates) ? data.customTemplates : customTemplates;
+  overtimeHourOverrides = data.overtimeHourOverrides && typeof data.overtimeHourOverrides === 'object'
+    ? data.overtimeHourOverrides
+    : {};
   selectedBlockId = null;
   blockSeq = schedule.length ? Math.max(...schedule.map(x => Number(x.uid) || 0)) + 1 : 1;
   rebuildTemplates();
@@ -2336,6 +2437,7 @@ function applyCloudState(data) {
   localStorage.setItem(k.flightDefs, JSON.stringify(flightDefs));
   localStorage.setItem(k.flightsImported, flightsImported ? '1' : '0');
   saveCustomTemplates();
+  saveOvertimeOverrides();
 
   if (typeof renderTimeHeader === 'function') renderTimeHeader();
   if (typeof renderAssignmentTableFromFlightDefs === 'function') renderAssignmentTableFromFlightDefs();
@@ -2343,6 +2445,7 @@ function applyCloudState(data) {
   if (typeof renderPalette === 'function') renderPalette();
   if (typeof renderRows === 'function') renderRows();
   if (typeof syncAssignmentTableFromSchedule === 'function') syncAssignmentTableFromSchedule();
+  if (typeof renderOvertimePanel === 'function') renderOvertimePanel();
 
   applyingRemote = false;
 }
@@ -2453,6 +2556,7 @@ function attachFirebaseForSelectedDate() {
         schedule: data.schedule,
         flightDefs: data.flightDefs,
         customTemplates: data.customTemplates,
+        overtimeHourOverrides: data.overtimeHourOverrides,
         flightsImported: data.flightsImported === true,
         updatedAtLocal: data.updatedAtLocal
       };
@@ -2844,6 +2948,8 @@ function loadDayDataFromLocalStorage(dateStr) {
   if (!Array.isArray(flightDefs)) flightDefs = [];
   if (!flightsImported) flightDefs = [];
   normalizeFlightDefsInPlace();
+  overtimeHourOverrides = JSON.parse(localStorage.getItem(k.overtimeOverrides) || '{}');
+  if (!overtimeHourOverrides || typeof overtimeHourOverrides !== 'object') overtimeHourOverrides = {};
   customTemplates = JSON.parse(localStorage.getItem(k.customTemplates) || '[]');
   deletedCustomTemplates = JSON.parse(localStorage.getItem(k.deletedCustomTemplates) || '[]');
   selectedBlockId = null;
@@ -3005,6 +3111,7 @@ function switchScheduleDate(newDate) {
   renderPalette();
   renderRows();
   if (typeof syncAssignmentTableFromSchedule === 'function') syncAssignmentTableFromSchedule();
+  renderOvertimePanel();
   updateShiftViewButtonLabel();
   attachFirebaseForSelectedDate();
 }
@@ -3037,6 +3144,7 @@ function saveLocal() {
   localStorage.setItem(k.flightDefs, JSON.stringify(flightsImported ? flightDefs : []));
   localStorage.setItem(k.flightsImported, flightsImported ? '1' : '0');
   saveCustomTemplates();
+  saveOvertimeOverrides();
   saveStaffDirectory();
 }
 function clearHoverStates() { document.querySelectorAll('.person-cell').forEach(el => el.classList.remove('over', 'dragging')); }
