@@ -1062,10 +1062,23 @@
     gap: 0;
   }
   .duty-chip:hover {
-    background: #eef2f7;
     box-shadow: 0 4px 10px rgba(15,23,42,0.08);
     transform: translateY(-1px);
   }
+  .duty-chip.role-RC { background: #e0f2fe; }
+  .duty-chip.role-BG { background: #dcfce7; }
+  .duty-chip.role-ABG { background: #fef3c7; }
+  .duty-chip.role-接機RC { background: #ede9fe; }
+  .duty-chip.role-接機C { background: #fde2e8; }
+  .duty-chip.role-PPT { background: #ffe4e6; }
+  .duty-chip.role-休:not(.rest-chip-30):not(.rest-chip-60) { background: #f3f4f6; }
+  .duty-chip.role-RC:hover { background: #dbeafe; }
+  .duty-chip.role-BG:hover { background: #bbf7d0; }
+  .duty-chip.role-ABG:hover { background: #fde68a; }
+  .duty-chip.role-接機RC:hover { background: #ddd6fe; }
+  .duty-chip.role-接機C:hover { background: #fbcfe8; }
+  .duty-chip.role-PPT:hover { background: #fecdd3; }
+  .duty-chip.role-休:not(.rest-chip-30):not(.rest-chip-60):hover { background: #e5e7eb; }
   .duty-chip strong {
     font-size: 14px;
     font-weight: 800;
