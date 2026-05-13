@@ -130,6 +130,42 @@
   .sidebar.sidebar-editor-open .overtime-panel {
     display: none !important;
   }
+  .sidebar.sidebar-overtime-open .panel-title,
+  .sidebar.sidebar-overtime-open .controls,
+  .sidebar.sidebar-overtime-open .custom-duty-box,
+  .sidebar.sidebar-overtime-open .palette-tabs,
+  .sidebar.sidebar-overtime-open .palette-view,
+  .sidebar.sidebar-overtime-open .flight-editor {
+    display: none !important;
+  }
+  .sidebar.sidebar-overtime-open .overtime-panel {
+    flex: 1 1 auto;
+    max-height: none;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border-top: 0;
+    padding-top: 8px;
+  }
+  .sidebar.sidebar-overtime-open .overtime-topbar {
+    flex: 0 0 auto;
+  }
+  .sidebar.sidebar-overtime-open .overtime-body {
+    display: flex !important;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: hidden;
+  }
+  .sidebar.sidebar-overtime-open .overtime-list {
+    flex: 1 1 auto;
+    max-height: none;
+    overflow-y: auto;
+  }
+  .sidebar.sidebar-overtime-open .overtime-export-btn {
+    flex: 0 0 auto;
+  }
   .sidebar.sidebar-editor-open .flight-editor {
     flex: 1 1 auto;
     max-height: none;
@@ -1191,8 +1227,11 @@
   .overtime-panel {
     border-top: 1px solid var(--line);
     padding: 8px 12px 10px;
-    overflow: auto;
+    overflow: hidden;
     flex: 0 0 auto;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
     background: #fff;
     max-height: 28vh;
   }
@@ -1220,6 +1259,13 @@
     margin-left: 6px;
   }
   .overtime-body.hidden { display: none; }
+  .overtime-body {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: hidden;
+  }
   .overtime-list {
     display: flex;
     flex-direction: column;
@@ -2087,9 +2133,12 @@ function setOvertimeExpanded(expanded) {
   const panel = document.getElementById('overtimePanel');
   const body = document.getElementById('overtimeBody');
   const btn = document.getElementById('toggleOvertimeBtn');
+  const sidebar = document.querySelector('.sidebar');
   if (!panel || !body || !btn) return;
+  if (expanded && editorExpanded) setEditorExpanded(false);
   panel.classList.toggle('collapsed', !expanded);
   body.classList.toggle('hidden', !expanded);
+  sidebar?.classList.toggle('sidebar-overtime-open', expanded);
   btn.textContent = expanded ? '收合' : '展開';
 }
 function renderOvertimePanel() {
@@ -3718,6 +3767,7 @@ function setEditorExpanded(expanded) {
   const body = document.getElementById('editorBody');
   const btn = document.getElementById('toggleEditorBtn');
   const sidebar = document.querySelector('.sidebar');
+  if (expanded && overtimeExpanded) setOvertimeExpanded(false);
   panel.classList.toggle('collapsed', !expanded);
   body.classList.toggle('hidden', !expanded);
   sidebar?.classList.toggle('sidebar-editor-open', expanded);
@@ -3988,6 +4038,7 @@ renderOvertimePanel();
 updateShiftViewButtonLabel();
 renderFlightEditor();
 setEditorExpanded(false);
+setOvertimeExpanded(false);
 initScheduleDatePicker();
 if (!flightsImported) {
   const _kSan = dayStorageKeys(selectedDate);
