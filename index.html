@@ -12,6 +12,7 @@
     --sidebar-width: 420px;
     --header-height: 44px;
     --row-height: 46px;
+    --name-col-width: 240px;
     --px-per-minute: 1.4;
     --timeline-width: 1764px;
     --bg: #f5f7fb;
@@ -25,6 +26,202 @@
     border-right:1px solid var(--line); background:#fff; display:flex; flex-direction:column; min-width:420px;
     position: sticky; top: 0; height: 100vh; overflow: hidden;
   }
+  .sidebar .panel-title {
+    padding: 10px 12px 4px;
+    font-size: 16px;
+    flex: 0 0 auto;
+  }
+  .sidebar .controls {
+    padding: 0 12px 6px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 5px;
+    flex: 0 0 auto;
+  }
+  .sidebar .controls input,
+  .sidebar .controls select,
+  .sidebar .controls button {
+    padding: 5px 8px;
+    font-size: 11px;
+    min-height: 30px;
+    border-radius: 7px;
+  }
+  .sidebar .controls #roleFilter,
+  .sidebar .controls #cloudStatus,
+  .sidebar .controls .sidebar-search-wrap {
+    grid-column: 1 / -1;
+  }
+  .sidebar .sidebar-search-wrap {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 5px;
+    align-items: center;
+  }
+  .sidebar .sidebar-search-wrap input {
+    width: 100%;
+    min-width: 0;
+  }
+  .sidebar .sidebar-search-wrap button {
+    width: auto;
+    min-width: 52px;
+    padding: 5px 10px;
+    white-space: nowrap;
+  }
+  .sidebar #cloudStatus {
+    padding: 3px 8px;
+    font-size: 10px;
+    min-height: 0;
+  }
+  .sidebar .custom-duty-box {
+    margin: 4px 12px 6px;
+    padding: 6px 8px;
+    flex: 0 0 auto;
+  }
+  .sidebar .custom-duty-title {
+    font-size: 11px;
+    margin-bottom: 4px;
+  }
+  .sidebar .custom-duty-grid {
+    gap: 5px;
+  }
+  .sidebar .custom-duty-grid input,
+  .sidebar .custom-duty-grid button {
+    padding: 5px 6px;
+    font-size: 11px;
+    min-height: 28px;
+  }
+  .sidebar .palette-tabs {
+    flex: 0 0 auto;
+    padding: 6px 10px 0;
+    gap: 5px;
+  }
+  .sidebar .tab-btn {
+    padding: 5px 9px;
+    font-size: 11px;
+  }
+  .sidebar .palette-view {
+    flex: 1 1 auto;
+    min-height: 0;
+    max-height: none;
+    overflow: auto;
+    padding: 8px 10px 10px;
+  }
+  .sidebar .flight-editor {
+    flex: 0 0 auto;
+    max-height: none;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    min-height: 0;
+  }
+  .sidebar .flight-editor.collapsed {
+    flex: 0 0 auto;
+    max-height: 54px;
+    overflow: hidden;
+    padding-bottom: 8px;
+    border-top: 1px solid var(--line);
+    padding-top: 8px;
+  }
+  .sidebar.sidebar-editor-open .panel-title,
+  .sidebar.sidebar-editor-open .controls,
+  .sidebar.sidebar-editor-open .custom-duty-box,
+  .sidebar.sidebar-editor-open .palette-tabs,
+  .sidebar.sidebar-editor-open .palette-view,
+  .sidebar.sidebar-editor-open .overtime-panel {
+    display: none !important;
+  }
+  .sidebar.sidebar-editor-open .flight-editor {
+    flex: 1 1 auto;
+    max-height: none;
+    min-height: 0;
+    border-top: 0;
+    padding-top: 0;
+  }
+  .sidebar.sidebar-editor-open .flight-editor #flightEditorDep,
+  .sidebar.sidebar-editor-open .flight-editor #flightEditorArr {
+    max-height: none;
+    flex: 1 1 auto;
+  }
+  .flight-editor .editor-body {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: hidden;
+  }
+  .flight-editor .editor-topbar,
+  .flight-editor .editor-sub,
+  .flight-editor .editor-controls,
+  .flight-editor .editor-tabs {
+    flex: 0 0 auto;
+  }
+  .flight-editor .editor-flight-section {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: hidden;
+  }
+  .flight-editor .editor-flight-section .editor-head {
+    flex: 0 0 auto;
+    background: #fff;
+    z-index: 2;
+  }
+  .flight-editor #flightEditorDep,
+  .flight-editor #flightEditorArr {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+  .flight-editor .editor-head.dep-editor-head,
+  .flight-editor .editor-row.dep-editor-row {
+    grid-template-columns: 62px 38px 54px 64px 80px 52px;
+    gap: 5px;
+    padding: 4px 3px;
+    font-size: 11px;
+  }
+  .flight-editor .editor-head.arr-editor-head,
+  .flight-editor .editor-row.arr-editor-row {
+    grid-template-columns: 62px 54px 80px;
+    gap: 5px;
+    padding: 4px 3px;
+    font-size: 11px;
+  }
+  .flight-editor .editor-head {
+    font-size: 11px;
+    padding-top: 3px;
+    padding-bottom: 3px;
+  }
+  .flight-editor .editor-group-title {
+    margin: 8px 2px 4px;
+    font-size: 11px;
+    flex: 0 0 auto;
+  }
+  .flight-editor .editor-row strong {
+    font-size: 12px;
+    font-weight: 800;
+  }
+  .flight-editor .editor-row .mini {
+    font-size: 11px;
+  }
+  .flight-editor .editor-row input {
+    width: 100%;
+    padding: 4px 5px;
+    font-size: 11px;
+    min-height: 28px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    background: #fff;
+  }
+  .flight-editor .editor-controls input {
+    padding: 6px 8px;
+    font-size: 12px;
+  }
+  .flight-editor .editor-tab-btn {
+    padding: 5px 10px;
+    font-size: 11px;
+  }
   .panel-title { font-weight:800; padding:16px 16px 8px; font-size:20px; }
   .panel-sub { color:#6b7280; padding:0 16px 12px; font-size:13px; line-height:1.5; }
   .controls { padding:0 16px 10px; display:grid; gap:8px; }
@@ -33,10 +230,10 @@
   }
   .controls button,.toolbar button,.tab-btn,.collapse-btn { cursor:pointer; font-weight:700; }
   .hint { color:#6b7280; font-size:12px; padding:4px 16px 10px; line-height:1.5; }
-  .palette-tabs { display:flex; gap:8px; padding:10px 12px 0; border-top:1px solid var(--line); background:#fff; flex: 0 0 auto; }
+  .palette-tabs { display:flex; flex-wrap:wrap; gap:8px; padding:10px 12px 0; border-top:1px solid var(--line); background:#fff; flex: 0 0 auto; }
   .tab-btn { border:1px solid #cfd6e4; background:#fff; border-radius:999px; padding:8px 12px; font-size:13px; }
   .tab-btn.active { background:#111827; color:#fff; border-color:#111827; }
-  .palette-view { overflow:auto; padding:10px 12px 16px; max-height:28vh; flex: 0 0 auto; }
+  .palette-view { overflow:auto; padding:10px 12px 16px; flex:1 1 auto; min-height:0; }
   .group-title { margin:12px 4px 8px; font-weight:800; font-size:13px; color:#374151; }
   .timeline-list-title { margin:4px 4px 10px; font-size:12px; color:#6b7280; font-weight:700; }
   .duty-chip {
@@ -47,17 +244,25 @@
   .duty-chip small,.mini,.editor-sub,.panel-sub,.empty-msg { color:#6b7280; }
   .empty-msg { font-size:13px; padding:6px 4px 2px; }
   .role-RC { background:#e0f2fe; } .role-BG { background:#dcfce7; } .role-ABG { background:#fef3c7; } .role-接機RC { background:#ede9fe; } .role-接機C { background:#fde2e8; } .role-PPT { background:#ffe4e6; }
-  .flight-editor { border-top:1px solid var(--line); padding:8px 12px 12px; overflow:auto; flex:1 1 auto; min-height:0; }
+  .flight-editor { border-top:1px solid var(--line); padding:8px 12px 12px; overflow:auto; flex:0 0 auto; min-height:0; }
   .flight-editor.collapsed { flex:0 0 auto; overflow:hidden; padding-bottom:8px; }
   .editor-topbar { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:8px; }
   .editor-title { font-weight:800; font-size:15px; margin:0 4px 0 0; }
   .editor-sub { font-size:12px; margin:0 4px 10px; }
   .collapse-btn { border:1px solid #cfd6e4; background:#fff; border-radius:999px; padding:6px 10px; font-size:12px; }
   .editor-body.hidden { display:none; }
-  .editor-controls { display:grid; grid-template-columns:1fr 120px; gap:8px; padding:0 4px 10px; }
+  .editor-controls { display:grid; grid-template-columns:1fr; gap:8px; padding:0 4px 6px; }
+  .editor-tabs { display:flex; gap:6px; padding:0 4px 8px; flex-wrap:wrap; }
+  .editor-tab-btn {
+    border:1px solid #cfd6e4; background:#fff; border-radius:999px;
+    padding:5px 10px; font-size:11px; font-weight:700; cursor:pointer;
+  }
+  .editor-tab-btn.active { background:#111827; color:#fff; border-color:#111827; }
+  .editor-flight-section[hidden] { display:none !important; }
   .editor-group-title { margin:12px 4px 6px; font-size:12px; font-weight:800; color:#6b7280; }
-  .editor-head,.editor-row { display:grid; grid-template-columns:74px 52px 80px 78px 78px 64px; gap:6px; align-items:center; padding:6px; }
-  .editor-head { font-size:12px; color:#6b7280; font-weight:700; padding-top:4px; padding-bottom:4px; }
+  .editor-head.dep-editor-head,.editor-row.dep-editor-row { display:grid; grid-template-columns:62px 38px 54px 64px 80px 52px; gap:5px; align-items:center; padding:4px 3px; font-size:11px; }
+  .editor-head.arr-editor-head,.editor-row.arr-editor-row { display:grid; grid-template-columns:62px 54px 80px; gap:5px; align-items:center; padding:4px 3px; font-size:11px; }
+  .editor-head { font-size:11px; color:#6b7280; font-weight:700; padding-top:3px; padding-bottom:3px; }
   .editor-row:hover { background:#f8fafc; border-radius:8px; }
   .workspace { overflow: auto; position: relative; height: 100vh; isolation: isolate; padding-top: 56px; }
   .toolbar {
@@ -66,18 +271,79 @@
     width:100%; box-sizing:border-box;
   }
   .toolbar .search-wrap { width:260px; }
+  .toolbar .schedule-date-wrap { display:inline-flex; align-items:center; gap:6px; margin-left:8px; position:relative; }
+  .toolbar .schedule-date-wrap label { font-size:12px; font-weight:700; color:#475569; white-space:nowrap; }
+  .schedule-date-picker { position:relative; }
+  .schedule-date-trigger {
+    display:inline-flex; align-items:center; gap:5px; padding:0; border:0; border-radius:0;
+    background:transparent; font-size:12px; font-weight:600; color:#111827; cursor:pointer;
+    line-height:1.2;
+  }
+  .schedule-date-trigger:hover .schedule-date-value { color:#2563eb; text-decoration:underline; }
+  .schedule-date-trigger:hover .schedule-date-icon { color:#2563eb; }
+  .schedule-date-value { white-space:nowrap; }
+  .schedule-date-icon {
+    display:inline-flex; align-items:center; justify-content:center; width:15px; height:15px;
+    color:#64748b; flex:0 0 auto;
+  }
+  .schedule-date-icon svg { display:block; width:15px; height:15px; }
+  .toolbar .schedule-date-trigger {
+    width:auto; padding:0; border:0; border-radius:0; background:transparent; font-size:12px;
+    box-shadow:none;
+  }
+  .schedule-date-panel {
+    position:absolute; top:calc(100% + 6px); right:0; z-index:700; width:280px;
+    border:1px solid #d1d5db; border-radius:12px; background:#fff; box-shadow:0 10px 28px rgba(15,23,42,.12);
+    padding:10px 10px 8px;
+  }
+  .schedule-date-panel.hidden { display:none; }
+  .schedule-date-panel-head {
+    display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; padding:0 2px;
+  }
+  .schedule-date-month-label { font-size:13px; font-weight:800; color:#111827; }
+  .schedule-date-nav {
+    width:28px; height:28px; border:0; border-radius:8px; background:transparent;
+    color:#475569; font-size:14px; cursor:pointer; line-height:1;
+  }
+  .schedule-date-nav:hover { background:#f1f5f9; }
+  .schedule-date-weekdays {
+    display:grid; grid-template-columns:repeat(7,1fr); gap:2px; margin-bottom:4px;
+    font-size:11px; font-weight:700; color:#64748b; text-align:center;
+  }
+  .schedule-date-grid {
+    display:grid; grid-template-columns:repeat(7,1fr); gap:2px;
+  }
+  .schedule-date-day {
+    height:32px; border:0; border-radius:8px; background:transparent; font-size:12px;
+    color:#111827; cursor:pointer;
+  }
+  .schedule-date-day.other-month { color:#cbd5e1; }
+  .schedule-date-day.today { color:#2563eb; font-weight:800; }
+  .schedule-date-day.pending { background:#2563eb; color:#fff; font-weight:800; }
+  .schedule-date-day.pending.today { box-shadow:none; }
+  .schedule-date-panel-foot {
+    display:flex; align-items:center; justify-content:space-between; gap:8px;
+    margin-top:8px; padding-top:8px; border-top:1px solid #e5e7eb;
+  }
+  .schedule-date-panel-foot button {
+    border:0; background:transparent; color:#2563eb; font-size:12px; font-weight:700; cursor:pointer; padding:4px 6px;
+  }
+  .schedule-date-panel-foot .schedule-date-confirm-btn {
+    padding:4px 12px; border-radius:8px; background:#2563eb; color:#fff;
+  }
+  .schedule-date-panel-foot .schedule-date-confirm-btn:hover { background:#1d4ed8; }
   .board {
     position: relative;
-    min-width: calc(240px + var(--timeline-width));
+    min-width: calc(var(--name-col-width) + var(--timeline-width));
     overflow: visible;
-    background: linear-gradient(to right,transparent 0,transparent 239px,#cfd6e4 239px,#cfd6e4 240px),linear-gradient(to bottom,#fff,#fff);
+    background: linear-gradient(to right,transparent 0,transparent calc(var(--name-col-width) - 1px),#cfd6e4 calc(var(--name-col-width) - 1px),#cfd6e4 var(--name-col-width)),linear-gradient(to bottom,#fff,#fff);
   }
   .header {
     position: sticky;
     top: 60px;
     z-index: 100;
     display: grid;
-    grid-template-columns: 240px var(--timeline-width);
+    grid-template-columns: var(--name-col-width) var(--timeline-width);
     background: #fff;
     border-bottom: 1px solid var(--line);
     box-shadow: 0 1px 0 rgba(0,0,0,0.04);
@@ -100,42 +366,366 @@
     height: var(--header-height);
     width: var(--timeline-width);
     background: #fff;
-    background-image: repeating-linear-gradient(to right,#e5e7eb 0,#e5e7eb 1px,transparent 1px,transparent calc(60 * var(--px-per-minute) * 1px)),
-                      repeating-linear-gradient(to right,#f3f4f6 0,#f3f4f6 1px,transparent 1px,transparent calc(30 * var(--px-per-minute) * 1px));
+    background-image: repeating-linear-gradient(to right,rgba(15,23,42,0.10) 0,rgba(15,23,42,0.10) 1px,transparent 1px,transparent calc(60 * var(--px-per-minute) * 1px)),
+                      repeating-linear-gradient(to right,rgba(15,23,42,0.05) 0,rgba(15,23,42,0.05) 1px,transparent 1px,transparent calc(30 * var(--px-per-minute) * 1px));
   }
   .time-label { position:absolute; top:10px; transform:translateX(-50%); font-size:12px; color:#4b5563; font-weight:700; }
-  .row { display:grid; grid-template-columns:240px var(--timeline-width); height:var(--row-height); border-bottom:1px solid var(--line); background:#fff; }
+  .row { display:grid; grid-template-columns:var(--name-col-width) var(--timeline-width); height:var(--row-height); border-bottom:1px solid var(--line); background:#fff; position:relative; }
   .person-cell {
-    position: sticky; left: 0; z-index: 5; border-right:1px solid var(--line); padding:5px 8px; display:flex;
-    align-items:center; gap:6px; overflow:hidden; cursor:grab; background:#fff;
+    position: sticky; left: 0; z-index: 5; border-right:1px solid var(--line); padding:4px 6px; display:flex;
+    flex-direction:column; align-items:stretch; gap:3px; overflow:hidden; cursor:grab; background:#fff;
   }
+  .person-cell-top {
+    display:flex; align-items:center; gap:4px; min-width:0;
+  }
+  .person-cell-bottom {
+    display:flex; align-items:center; gap:6px; min-width:0; padding-left:18px;
+  }
+  .person-rollcall-fields {
+    display:flex; align-items:center; gap:5px; flex:1 1 auto; min-width:0; margin-left:auto;
+  }
+  .person-shift-label {
+    flex:0 0 auto; min-width:36px; padding:2px 6px; border-radius:8px;
+    font-size:11px; font-weight:800; background:#f1f5f9; color:#334155; text-align:center; white-space:nowrap;
+  }
+  .person-shift-label.is-adjusted { background:#fef3c7; color:#92400e; }
+  .board:not(.roll-call-mode) .person-cell-top .pending-rest {
+    margin-left:0; padding:2px 7px; border-radius:999px; font-size:10px; font-weight:800; line-height:1.15;
+    background:#fff7ed; color:#c2410c; border:1px solid #fed7aa;
+    display:inline-flex; align-items:center; justify-content:center;
+  }
+  .person-seq {
+    flex:0 0 14px; font-size:10px; font-weight:800; color:#94a3b8; text-align:center; line-height:1;
+  }
+  .person-radio-input {
+    flex:1 1 auto; min-width:0; width:0; max-width:56px; padding:2px 4px;
+    border:1px solid #d1d5db; border-radius:6px; font-size:11px; background:#fff;
+  }
+  .person-ircs-input {
+    flex:1 1 auto; min-width:0; width:0; max-width:56px; padding:2px 4px;
+    border:1px solid #d1d5db; border-radius:6px; font-size:11px; background:#fff;
+  }
+  .adjusted-shift-select, .next-shift-select {
+    width:48px; padding:2px 4px; border:1px solid #d1d5db; border-radius:8px; font-size:11px; background:#fff;
+  }
+  .person-rollcall-check {
+    display:inline-flex; align-items:center; gap:2px; font-size:10px; font-weight:700; color:#64748b; white-space:nowrap;
+  }
+  .person-rollcall-check input { width:12px; height:12px; margin:0; }
+  .person-cell.on-duty-by-radio:not(.clocked-out) { background:#f0fdf4; }
+  .person-cell.clocked-out { opacity:.55; }
+  .board.roll-call-mode {
+    --name-col-width: 558px;
+    --row-height: 46px;
+    --rollcall-body: 14px;
+    --rollcall-grid: 28px 16px 44px 68px 48px 46px 50px 50px 50px 50px 42px;
+  }
+  .board:not(.roll-call-mode) {
+    --name-col-width: 278px;
+    --row-height: 46px;
+    --normal-grid: 36px 44px 76px 88px;
+  }
+  .normal-grid {
+    display: grid !important;
+    grid-template-columns: var(--normal-grid);
+    gap: 6px;
+    align-items: center;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    padding: 5px 8px !important;
+  }
+  .board:not(.roll-call-mode) .name-col.normal-grid {
+    height: var(--header-height);
+    font-size: 12px;
+    font-weight: 700;
+    color: #64748b;
+    align-content: center;
+    display: grid !important;
+    padding: 5px 8px !important;
+    box-sizing: border-box;
+  }
+  .board:not(.roll-call-mode) .person-cell.normal-grid {
+    cursor: grab;
+    display: grid !important;
+    padding: 5px 8px !important;
+    box-sizing: border-box;
+  }
+  .normal-grid .rc-col {
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    box-sizing: border-box;
+  }
+  .normal-grid .rc-col.rc-seq {
+    min-width: 36px;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    gap: 2px;
+    line-height: 1;
+  }
+  .normal-grid .rc-col.rc-level {
+    min-width: 44px;
+    justify-content: center;
+  }
+  .normal-grid .rc-col.rc-seq .person-seq { font-size: 13px; font-weight: 800; color: #94a3b8; line-height: 1; flex: 0 0 auto; }
+  .normal-grid .rc-col.rc-seq .drag-icon { font-size: 11px; color: #9ca3af; line-height: 1; flex: 0 0 auto; }
+  .normal-grid .rc-col.rc-name {
+    width: 76px;
+    max-width: 76px;
+    min-width: 76px;
+    justify-content: flex-start;
+    overflow: hidden;
+  }
+  .normal-grid .rc-col.rc-shift {
+    justify-content: flex-start;
+    min-width: 0;
+    overflow: hidden;
+  }
+  .normal-grid .rc-h {
+    font-size: 12px;
+    font-weight: 700;
+    color: #64748b;
+    text-align: center;
+    width: 100%;
+    white-space: nowrap;
+    line-height: 1.2;
+  }
+  .normal-grid .rc-col.rc-name .rc-h,
+  .normal-grid .rc-col.rc-shift .rc-h { text-align: left; }
+  .board:not(.roll-call-mode) .normal-grid .person-name {
+    display: block;
+    width: 100%;
+    font-size: 17px;
+    font-weight: 800;
+    line-height: 1.15;
+    letter-spacing: 0;
+    text-align: left;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .board:not(.roll-call-mode) .normal-grid .normal-shift-tail {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    min-width: 0;
+    flex-wrap: nowrap;
+  }
+  .board:not(.roll-call-mode) .normal-grid .person-shift-label {
+    min-width: 36px;
+    padding: 2px 6px;
+    border-radius: 8px;
+    font-size: 11px;
+    line-height: 1.15;
+    background: #fff;
+    border: 1px solid #d1d5db;
+    color: #334155;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+  }
+  .board:not(.roll-call-mode) .normal-grid .person-shift-label.is-adjusted {
+    background: #fef3c7;
+    color: #92400e;
+    border-color: #fcd34d;
+  }
+  .board:not(.roll-call-mode) .normal-grid .pending-rest {
+    margin-left: 0;
+    padding: 1px 4px;
+    border-radius: 999px;
+    font-size: 8px;
+    font-weight: 800;
+    line-height: 1.1;
+    background: #fff7ed;
+    color: #c2410c;
+    border: 1px solid #fed7aa;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+  }
+  .rollcall-grid {
+    display:grid !important;
+    grid-template-columns:var(--rollcall-grid);
+    gap:5px;
+    align-items:center;
+    width:100%;
+    box-sizing:border-box;
+    padding:5px 8px !important;
+  }
+  .board .name-col.rollcall-grid {
+    font-size:11px !important;
+    font-weight:700;
+    color:#64748b;
+    height:var(--header-height);
+    align-content:center;
+    overflow:hidden;
+    background:#fff;
+  }
+  .rollcall-grid .rc-col {
+    min-width:0;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    box-sizing:border-box;
+  }
+  .rollcall-grid .rc-col.rc-name,
+  .rollcall-grid .rc-col.rc-shift { justify-content:flex-start; }
+  .rollcall-grid .rc-h {
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+    text-align:center;
+    width:100%;
+    font-size:11px;
+    line-height:1.2;
+  }
+  .rollcall-grid .rc-col.rc-name .rc-h,
+  .rollcall-grid .rc-col.rc-shift .rc-h { text-align:left; }
+  .rollcall-grid .rc-col.rc-out {
+    justify-content:center;
+    padding:0;
+    overflow:hidden;
+  }
+  .board .person-cell.rollcall-grid {
+    font-size:var(--rollcall-body);
+    line-height:1.2;
+    cursor:grab;
+    overflow:hidden;
+  }
+  .board .person-cell.rollcall-grid.shift-early,
+  .board .person-cell.rollcall-grid.shift-late { border-left:0; }
+  .board .person-cell.rollcall-grid.shift-early { background:#f0fdf4; box-shadow:inset 3px 0 0 #16a34a; }
+  .board .person-cell.rollcall-grid.shift-late { background:#eff6ff; box-shadow:inset 3px 0 0 #2563eb; }
+  .board .person-cell.rollcall-grid.on-duty-by-radio:not(.clocked-out) { background:#f0fdf4; }
+  .rollcall-grid .rc-col .badge,
+  .rollcall-grid .rc-col .person-name,
+  .rollcall-grid .rc-col .person-seq,
+  .rollcall-grid .rc-col .person-shift-label,
+  .rollcall-grid .rc-col .adjusted-shift-select,
+  .rollcall-grid .rc-col .next-shift-select,
+  .rollcall-grid .rc-col .person-radio-input,
+  .rollcall-grid .rc-col .person-ircs-input {
+    font-size:inherit;
+    line-height:1.2;
+  }
+  .rollcall-grid .rc-col .badge {
+    width:44px; min-width:44px; padding:2px 4px;
+  }
+  .rollcall-grid .rc-col .person-name {
+    font-weight:800; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; width:100%;
+  }
+  .rollcall-grid .rc-col .person-seq {
+    font-weight:800; color:#94a3b8;
+  }
+  .rollcall-grid .rc-col .person-shift-label {
+    width:auto; min-width:36px; flex:0 0 auto; padding:2px 6px; box-sizing:border-box; font-weight:800;
+    border-radius:8px; background:#f1f5f9; color:#334155; text-align:center;
+  }
+  .rollcall-grid .rc-col .pending-rest {
+    width:auto; flex:0 0 auto; max-width:100%; overflow:hidden; white-space:nowrap;
+    margin-left:0; padding:2px 7px; border-radius:999px; font-size:10px; font-weight:800; line-height:1.15;
+    background:#fff7ed; color:#c2410c; border:1px solid #fed7aa;
+    display:inline-flex; align-items:center; justify-content:center;
+  }
+  .rollcall-grid .rc-col .rest-cell { display:block; width:100%; min-height:1px; }
+  .rollcall-grid .rc-col .adjusted-shift-select,
+  .rollcall-grid .rc-col .next-shift-select {
+    width:100%; min-width:0; height:28px; padding:2px 6px; box-sizing:border-box;
+    border:1px solid #d1d5db; border-radius:8px; font-size:11px; background:#fff;
+  }
+  .rollcall-grid .rc-col .person-radio-input,
+  .rollcall-grid .rc-col .person-ircs-input {
+    width:100%; min-width:0; height:28px; padding:2px 6px; box-sizing:border-box;
+    border:1px solid #d1d5db; border-radius:8px; font-size:11px; background:#fff;
+  }
+  .rollcall-grid .rc-col .person-rollcall-check {
+    display:flex; align-items:center; justify-content:center; width:100%; margin:0; padding:0;
+  }
+  .rollcall-grid .rc-col .person-rollcall-check input { width:14px; height:14px; margin:0; }
+  .rollcall-grid .rc-col .drag-icon { font-size:14px; line-height:1; }
+  #toggleRollCallBtn.active { background:#dbeafe; border-color:#2563eb; color:#1d4ed8; }
   .person-cell.dragging { opacity:.5; } .person-cell.over { background:#eef6ff; }
   .drag-icon { color:#9ca3af; font-size:16px; flex:0 0 auto; }
-  .badge { min-width:28px; padding:3px 6px; border-radius:999px; background:#eef2ff; color:#4338ca; font-size:12px; text-align:center; font-weight:800; }
+  .badge {
+    flex: 0 0 auto;
+    box-sizing: border-box;
+    width: 44px;
+    min-width: 44px;
+    padding: 3px 4px;
+    border-radius: 999px;
+    background: #eef2ff;
+    color: #4338ca;
+    font-size: 12px;
+    font-weight: 800;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    line-height: 1.15;
+  }
   .person-name { font-weight:800; white-space:nowrap; display:inline-flex; align-items:center; gap:5px; min-width:0; }
   .person-short-name { color:#4338ca; font-weight:900; }
   .person-full-name { color:#0f172a; font-weight:800; }
   .timeline {
     position:relative; width:var(--timeline-width); height:100%;
-    background-image:repeating-linear-gradient(to right,#eceff5 0,#eceff5 1px,transparent 1px,transparent calc(60 * var(--px-per-minute) * 1px)),
-                     repeating-linear-gradient(to right,#f6f7fb 0,#f6f7fb 1px,transparent 1px,transparent calc(30 * var(--px-per-minute) * 1px));
+    background-color:#e8ecf0;
+  }
+  .timeline::after {
+    content:'';
+    position:absolute;
+    inset:0;
+    pointer-events:none;
+    z-index:2;
+    background-image:repeating-linear-gradient(to right,rgba(15,23,42,0.10) 0,rgba(15,23,42,0.10) 1px,transparent 1px,transparent calc(60 * var(--px-per-minute) * 1px)),
+                     repeating-linear-gradient(to right,rgba(15,23,42,0.05) 0,rgba(15,23,42,0.05) 1px,transparent 1px,transparent calc(30 * var(--px-per-minute) * 1px));
   }
   .timeline.drag-over { background-color:#f0f9ff; }
   .block {
     position:absolute; top:5px; height:calc(var(--row-height) - 10px); border-radius:10px; border:1px solid rgba(0,0,0,.08);
-    display:flex; align-items:center; padding:0 10px; gap:8px; cursor:move; user-select:none; box-shadow:0 1px 2px rgba(0,0,0,.08); overflow:hidden;
+    display:flex; align-items:center; padding:0 10px; gap:8px; cursor:move; user-select:none; box-shadow:0 1px 2px rgba(0,0,0,.08); overflow:visible;
   }
   .block .label { white-space:nowrap; font-size:16px; font-weight:900; letter-spacing:.2px; }
   .block.selected { outline:2px solid #111827; }
   .block.dimmed { opacity:.18; }
+  .block.block-overtime {
+    outline: 2px solid #ea580c;
+    box-shadow: 0 1px 2px rgba(0,0,0,.08), inset 0 0 0 1px #fed7aa;
+  }
+  .block-overtime-badge {
+    position: absolute;
+    top: 3px;
+    right: 24px;
+    font-size: 9px;
+    font-weight: 800;
+    color: #9a3412;
+    background: #ffedd5;
+    border: 1px solid #fdba74;
+    border-radius: 4px;
+    padding: 0 4px;
+    line-height: 14px;
+    pointer-events: none;
+  }
   .row.flight-match-top .person-cell { background:#fffbea; }
 
-  .person-main { display:flex; align-items:center; gap:6px; min-width:0; flex:1 1 0; overflow:hidden; }
-  .person-meta { display:flex; flex-direction:column; min-width:0; line-height:1.1; flex:1 1 0; overflow:hidden; }
+  .person-cell-tail {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    flex: 0 0 auto;
+    flex-shrink: 0;
+    margin-left: auto;
+  }
+  .person-cell-top .person-cell-tail { margin-left:auto; }
+  .person-main { display:flex; align-items:center; gap:6px; min-width:0; flex:1 1 auto; overflow:hidden; }
+  .person-meta { display:flex; flex-direction:column; min-width:0; line-height:1.1; flex:1 1 auto; overflow:hidden; }
   .person-name { overflow:hidden; text-overflow:ellipsis; max-width:100%; }
-  .shift-row { display:flex; align-items:center; gap:5px; margin-left:4px; flex:0 0 auto; flex-shrink:0; }
+  .shift-row { display:flex; align-items:center; gap:5px; margin-left:0; flex:0 0 auto; flex-shrink:0; }
   .shift-select {
-    width: 58px; padding: 4px 6px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 12px; background:#fff;
+    width: 50px; padding: 2px 4px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 11px; background:#fff;
   }
   .person-cell.shift-early {
     background: #f0fdf4;
@@ -162,13 +752,13 @@
     bottom: 0;
     height: auto;
     border-radius: 0;
-    background: rgba(156,163,175,0.18);
+    background-color: #ffffff;
     border: 0;
     z-index: 1;
     pointer-events: none;
   }
   .shift-band-label { display:none; }
-  .block { z-index: 2; }
+  .block { z-index: 3; }
 
   .block-delete-btn {
     position: absolute;
@@ -184,15 +774,20 @@
     font-weight: 900;
     line-height: 18px;
     cursor: pointer;
-    display: none;
-    z-index: 20;
+    display: flex;
     align-items: center;
     justify-content: center;
     box-shadow: 0 2px 6px rgba(0,0,0,.16);
+    z-index: 20;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity .12s ease;
   }
-  .block.selected .block-delete-btn,
   .block:hover .block-delete-btn {
-    display: flex;
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
   }
 
 
@@ -251,14 +846,60 @@
     position: sticky; top: 60px; z-index: 30;
   }
   .assign-meta { font-size:12px; color:#475569; margin-top:4px; line-height:1.5; }
-  table.assignment-table { width:100%; border-collapse: collapse; font-size: 13px; }
+  table.assignment-table { width:100%; border-collapse: collapse; font-size: 13px; table-layout: auto; }
   .assignment-table th, .assignment-table td {
-    border:1px solid #e5e7eb; padding:6px 8px; text-align:center; white-space:nowrap;
+    border:1px solid #e5e7eb; padding:8px 10px; text-align:center; vertical-align:middle;
+    line-height:1.4; white-space:nowrap;
   }
-  .assignment-table th { background:#f8fafc; position: sticky; top: 118px; z-index: 40; }
+  .assignment-table td[data-role],
+  .assignment-table th:nth-child(n+4):not(:last-child) {
+    min-width:48px;
+  }
+  .assignment-table td[data-role] {
+    font-size:14px;
+    font-weight:700;
+    line-height:1.35;
+    white-space:normal;
+    word-break:keep-all;
+    padding:8px 6px;
+  }
+  .assignment-table th { background:#f8fafc; position: sticky; top: 100px; z-index: 40; }
   .memo-cell { text-align:left !important; white-space:normal !important; min-width:120px; }
   .assignment-clickable { cursor: pointer; background: #fffdfa; }
   .assignment-clickable:hover { background: #fff3bf; }
+  .row.person-locate-flash {
+    z-index: 6;
+    box-shadow: inset 0 0 0 2px #f59e0b;
+  }
+  .person-cell.person-locate-flash,
+  .row.person-locate-flash .person-cell {
+    background: #fde68a !important;
+    box-shadow: inset 0 0 0 2px #f59e0b !important;
+    z-index: 40 !important;
+  }
+  .board .person-cell.rollcall-grid.person-locate-flash,
+  .board .person-cell.rollcall-grid.shift-early.person-locate-flash,
+  .board .person-cell.rollcall-grid.shift-late.person-locate-flash,
+  .person-cell.shift-early.person-locate-flash,
+  .person-cell.shift-late.person-locate-flash,
+  .row.flight-match-top .person-cell.person-locate-flash {
+    background: #fde68a !important;
+    box-shadow: inset 0 0 0 2px #f59e0b !important;
+  }
+  .row.person-locate-flash .timeline {
+    background-color: rgba(253, 230, 138, 0.55) !important;
+  }
+  .row.person-locate-flash .timeline::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgba(251, 191, 36, 0.28);
+    pointer-events: none;
+    z-index: 25;
+  }
+  .row.person-locate-flash .shift-band {
+    background-color: #fef3c7 !important;
+  }
 
 
   body { padding-top: 0; }
@@ -335,7 +976,7 @@
     background:#f8fafc; padding:10px 12px; border-bottom:1px solid #e5e7eb; font-weight:800;
     position: sticky; top: 60px; z-index: 30;
   }
-  .assignment-table th { background:#f8fafc; position: sticky; top: 118px; z-index: 40; }
+  .assignment-table th { background:#f8fafc; position: sticky; top: 100px; z-index: 40; }
 
 
   .pending-rest {
@@ -454,6 +1095,63 @@
     font-weight: 800;
     cursor: pointer;
   }
+  .deleted-duty-tray {
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px dashed #e2e8f0;
+  }
+  .deleted-duty-tray[hidden] { display: none !important; }
+  .deleted-duty-title {
+    font-size: 11px;
+    font-weight: 700;
+    color: #94a3b8;
+    margin-bottom: 6px;
+  }
+  .deleted-duty-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .duty-chip.duty-chip-custom {
+    position: relative;
+    padding-right: 26px;
+  }
+  .duty-chip-delete-btn {
+    position: absolute;
+    right: 4px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 18px;
+    height: 18px;
+    border-radius: 999px;
+    border: 1px solid #fca5a5;
+    background: #fff;
+    color: #ef4444;
+    font-size: 13px;
+    font-weight: 900;
+    line-height: 14px;
+    padding: 0;
+    cursor: pointer;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .12s ease;
+  }
+  .duty-chip-custom:hover .duty-chip-delete-btn {
+    opacity: 1;
+    pointer-events: auto;
+  }
+  .duty-chip-delete-btn:hover { background: #fef2f2; }
+  .duty-chip.duty-chip-deleted {
+    border-style: dashed !important;
+    background: #fff !important;
+    cursor: pointer;
+    min-width: 0;
+    padding: 0 12px;
+  }
+  .duty-chip.duty-chip-deleted:hover {
+    background: #f0fdf4 !important;
+    border-color: #86efac !important;
+  }
 
 
   .cloud-status {
@@ -464,54 +1162,132 @@
   }
   .cloud-status.offline { background:#fef2f2; color:#991b1b; border-color:#fecaca; }
   .cloud-status.saving { background:#fff7ed; color:#9a3412; border-color:#fed7aa; }
+  .cloud-status.pending { background:#fff7ed; color:#9a3412; border-color:#fed7aa; }
   .cloud-status.synced { background:#ecfdf5; color:#065f46; border-color:#a7f3d0; }
 
 
   .flight-editor {
     border-top: 1px solid var(--line);
     padding: 8px 12px 12px;
-    overflow: auto;
+    overflow: hidden;
     flex: 0 0 auto;
     max-height: 32vh;
     background: #fff;
     position: sticky;
     bottom: 0;
     z-index: 20;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
   }
   .flight-editor.collapsed {
     max-height: 54px;
     overflow: hidden;
     padding-bottom: 8px;
   }
+  .overtime-panel {
+    border-top: 1px solid var(--line);
+    padding: 8px 12px 10px;
+    overflow: auto;
+    flex: 0 0 auto;
+    background: #fff;
+    max-height: 28vh;
+  }
+  .overtime-panel.collapsed {
+    max-height: 48px;
+    overflow: hidden;
+    padding-bottom: 8px;
+  }
+  .overtime-topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 6px;
+  }
+  .overtime-title {
+    font-size: 13px;
+    font-weight: 800;
+    color: #374151;
+  }
+  .overtime-count {
+    font-size: 11px;
+    font-weight: 700;
+    color: #9a3412;
+    margin-left: 6px;
+  }
+  .overtime-body.hidden { display: none; }
+  .overtime-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 8px;
+    max-height: 180px;
+    overflow: auto;
+  }
+  .overtime-item {
+    border: 1px solid #fed7aa;
+    background: #fff7ed;
+    border-radius: 8px;
+    padding: 6px 8px;
+    font-size: 11px;
+    line-height: 1.45;
+    color: #334155;
+  }
+  .overtime-item strong {
+    color: #9a3412;
+    font-size: 12px;
+  }
+  .overtime-empty {
+    font-size: 12px;
+    color: #6b7280;
+    padding: 4px 2px 8px;
+  }
+  .overtime-export-btn {
+    width: 100%;
+    padding: 6px 8px;
+    border: 1px solid #fdba74;
+    border-radius: 8px;
+    background: #fff7ed;
+    color: #9a3412;
+    font-size: 11px;
+    font-weight: 800;
+    cursor: pointer;
+  }
+  .overtime-export-btn:disabled {
+    opacity: .45;
+    cursor: not-allowed;
+  }
   .palette-view {
     flex: 1 1 auto;
-    min-height: 120px;
+    min-height: 0;
+    max-height: none;
   }
 
   /* ===== 修正：人員欄與時間線對齊、往下滑時固定時間軸 ===== */
   .board {
-    min-width: calc(240px + var(--timeline-width));
+    min-width: calc(var(--name-col-width) + var(--timeline-width));
   }
   .header {
-    grid-template-columns: 240px var(--timeline-width) !important;
+    grid-template-columns: var(--name-col-width) var(--timeline-width) !important;
     position: sticky !important;
     top: 54px !important;
     z-index: 500 !important;
   }
   .name-col {
-    width: 240px;
-    min-width: 240px;
+    width: var(--name-col-width);
+    min-width: var(--name-col-width);
     z-index: 520 !important;
   }
   .times {
     z-index: 510 !important;
   }
   .row {
-    grid-template-columns: 240px var(--timeline-width) !important;
+    grid-template-columns: var(--name-col-width) var(--timeline-width) !important;
   }
   .person-cell {
-    width: 240px;
-    min-width: 240px;
+    width: var(--name-col-width);
+    min-width: var(--name-col-width);
     z-index: 100 !important;
   }
   .control-panel {
@@ -530,22 +1306,25 @@
 
   /* UI 優化：移除大段說明，讓畫面更乾淨 */
   .panel-title {
-    padding: 12px 14px 6px;
-    font-size: 18px;
+    padding: 10px 12px 4px;
+    font-size: 16px;
     letter-spacing: .2px;
   }
   .controls {
-    padding: 0 14px 8px;
+    padding: 0 12px 6px;
     grid-template-columns: 1fr 1fr;
+    gap: 5px;
   }
   .controls input,
   .controls select,
   .controls button {
-    min-height: 36px;
+    min-height: 30px;
+    font-size: 11px;
+    padding: 5px 8px;
   }
-  #searchInput,
   #roleFilter,
-  #cloudStatus {
+  #cloudStatus,
+  .sidebar-search-wrap {
     grid-column: 1 / -1;
   }
   .custom-duty-box {
@@ -599,6 +1378,52 @@
     background: #fff;
     font-size: 13px;
   }
+  .toolbar .schedule-date-panel button {
+    width: auto;
+    padding: 0;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    box-shadow: none;
+    font-size: 12px;
+  }
+  .toolbar .schedule-date-panel .schedule-date-day {
+    height: 32px;
+    font-weight: 600;
+  }
+  .toolbar .schedule-date-panel .schedule-date-day.today {
+    box-shadow: none;
+    color: #2563eb;
+    font-weight: 800;
+  }
+  .toolbar .schedule-date-panel .schedule-date-day.pending {
+    background: #2563eb;
+    color: #fff;
+    font-weight: 800;
+  }
+  .toolbar .schedule-date-panel .schedule-date-day.pending.today {
+    color: #fff;
+  }
+  .toolbar .schedule-date-panel .schedule-date-nav {
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    font-size: 14px;
+  }
+  .toolbar .schedule-date-panel-foot button {
+    padding: 4px 6px;
+    border: 0;
+    background: transparent;
+    font-size: 12px;
+  }
+  .toolbar .schedule-date-panel-foot .schedule-date-confirm-btn {
+    padding: 4px 12px;
+    background: #2563eb;
+    color: #fff;
+  }
   .header {
     top: 52px !important;
   }
@@ -615,9 +1440,25 @@
     font-size: 8px;
     padding: 1px 3px;
   }
+  .board:not(.roll-call-mode) .normal-grid .pending-rest {
+    font-size: 8px;
+    padding: 1px 4px;
+  }
+  .board.roll-call-mode .rollcall-grid .rc-col .pending-rest {
+    font-size: 10px;
+    padding: 2px 7px;
+  }
   .shift-select {
-    width: 58px;
-    height: 34px;
+    width: 50px;
+    height: 28px;
+  }
+  .next-shift-select {
+    width: 50px;
+    height: 28px;
+  }
+  .person-radio-input {
+    max-width: 64px;
+    height: 28px;
   }
   .block {
     height: calc(var(--row-height) - 12px);
@@ -650,9 +1491,12 @@
   <aside class="sidebar">
     <div class="panel-title">Duty 區塊庫</div>
     <div class="controls">
-      <input id="searchInput" type="text" placeholder="搜尋 duty / 航班" />
+      <div class="sidebar-search-wrap">
+        <input id="searchInput" type="text" placeholder="搜尋 duty / 航班" />
+        <button type="button" id="clearDutySearchBtn">清除</button>
+      </div>
       <select id="roleFilter">
-        <option value="">全部 duty</option>
+        <option value="">duty區塊篩選</option>
         <option value="RC">只看 RC</option>
         <option value="BG">只看 BG</option>
         <option value="ABG">只看 ABG</option>
@@ -661,13 +1505,12 @@
         <option value="PPT">只看 PPT</option>
         <option value="休">只看 休</option>
       </select>
-      <button id="importExcelBtn">匯入 Excel</button>
-      <button id="importStaffDbBtn">匯入人員資料庫</button>
+      <button id="importExcelBtn">匯入當日航班/人員</button>
+      <button id="importStaffDbBtn">代號/戰力維護</button>
       <span id="cloudStatus" class="cloud-status">雲端連線中</span>
       <input id="excelImportInput" type="file" accept=".xlsx,.xls" style="display:none" />
       <input id="staffDbImportInput" type="file" accept=".xlsx,.xls" style="display:none" />
       <button id="resetBtn">清空目前排班</button>
-      <button id="exportBtn">匯出 CSV</button>
     </div>
 
     <div class="custom-duty-box">
@@ -684,55 +1527,61 @@
       <button class="tab-btn active" data-tab="byRole">依 duty 種類</button>
       <button class="tab-btn" data-tab="byTime">依時間先後</button>
       <button class="tab-btn" data-tab="byFunction">功能區塊</button>
+      <button class="tab-btn" data-tab="deleted">最近刪除</button>
     </div>
     <div class="palette-view" id="palette"></div>
+    <div class="overtime-panel collapsed" id="overtimePanel">
+      <div class="overtime-topbar">
+        <div class="overtime-title">今日加班<span class="overtime-count" id="overtimeCount"></span></div>
+        <button class="collapse-btn" id="toggleOvertimeBtn" type="button">展開</button>
+      </div>
+      <div class="overtime-body hidden" id="overtimeBody">
+        <div class="overtime-list" id="overtimeList"></div>
+        <button class="overtime-export-btn" id="exportOvertimeBtn" type="button" disabled>匯出加班 CSV</button>
+      </div>
+    </div>
     <div class="flight-editor collapsed" id="flightEditorPanel">
       <div class="editor-topbar">
         <div class="editor-title">航班時間調整</div>
         <button class="collapse-btn" id="toggleEditorBtn">展開</button>
       </div>
       <div class="editor-body hidden" id="editorBody">
-        <div class="editor-sub">原始 STD / STA 保留；可另外設定提早/延後與延長。</div>
+        <div class="editor-sub">出境「改時」直接指定 STD；「提早/延長(分)」以改時（或原始 STD）為基準，負值往前提早 duty 起點，正值往後延長 duty 終點。入境保留 STA，可填入 ETA。</div>
         <div class="editor-controls">
           <input id="flightSearchInput" type="text" placeholder="搜尋航班，例如 BR49、49、BR8" />
-          <select id="flightTypeFilter">
-            <option value="">全部</option>
-            <option value="DEP">STD</option>
-            <option value="ARR">STA</option>
-          </select>
         </div>
+        <div class="editor-tabs">
+          <button class="editor-tab-btn active" type="button" data-flight-tab="DEP">出境</button>
+          <button class="editor-tab-btn" type="button" data-flight-tab="ARR">入境</button>
+        </div>
+        <div class="editor-flight-section" id="flightEditorDepSection">
         <div class="editor-group-title">STD</div>
-        <div class="editor-head"><div>航班</div><div>欄位</div><div>原始</div><div>提早/延後</div><div>延長</div><div>目前</div></div>
+        <div class="editor-head dep-editor-head"><div>航班</div><div>欄位</div><div>原始</div><div>改時</div><div>提早/延長(分)</div><div>目前</div></div>
         <div id="flightEditorDep"></div>
+        </div>
+        <div class="editor-flight-section" id="flightEditorArrSection" hidden>
         <div class="editor-group-title">STA</div>
-        <div class="editor-head"><div>航班</div><div>欄位</div><div>原始</div><div>提早/延後</div><div>延長</div><div>目前</div></div>
+        <div class="editor-head arr-editor-head"><div>航班</div><div>STA</div><div>ETA</div></div>
         <div id="flightEditorArr"></div>
+        </div>
       </div>
     </div>
   </aside>
   <main class="workspace">
   <div class="workspace-topbar">
-    <button class="assignment-toggle-btn" id="assignmentToggleBtn">📋 今日航班作業人員分配表</button>
+    <button class="assignment-toggle-btn" id="assignmentToggleBtn">展開人員分配表</button>
   </div>
   <div class="assignment-overlay-panel" id="assignmentPanel">
   <div class="assignment-inner">
     <div class="assignment-titlebar">
       <div>
         <div class="assignment-title">今日航班作業人員分配表</div>
-        <div class="assignment-sub">航班號碼與 STD / STA 使用你匯入的資料；值日組長、Gate、ETA、接飛、Memo 等未提供欄位先留白。</div>
       </div>
       <button class="assignment-toggle-btn" id="assignmentCloseBtn">收合</button>
     </div>
     <div class="assignment-grid">
       <section class="assign-section">
-        <div class="assign-head">
-          出境
-          <div class="assign-meta">
-            值日組長：<br>
-            協勤組長：<br>
-            業督：
-          </div>
-        </div>
+        <div class="assign-head">出境</div>
         <table class="assignment-table">
           <thead>
             <tr>
@@ -835,14 +1684,7 @@
         </table>
       </section>
       <section class="assign-section">
-        <div class="assign-head">
-          入境
-          <div class="assign-meta">
-            值日組長：<br>
-            協勤組長：<br>
-            業督：
-          </div>
-        </div>
+        <div class="assign-head">入境</div>
         <table class="assignment-table">
           <thead>
             <tr>
@@ -958,13 +1800,41 @@
       <div class="search-wrap"><input id="timelineFlightSearch" type="text" placeholder="搜尋航班" /></div>
       <button id="clearTimelineSearch">清除搜尋</button>
       <button id="toggleShiftViewBtn">顯示：早班</button>
-      <button id="zoomOut">時間縮小</button>
-      <button id="zoomIn">時間放大</button>
-      <button id="saveBtn">儲存到瀏覽器</button>
+      <button id="toggleRollCallBtn">點名：關</button>
+      <button id="saveBtn">同步</button>
+      <div class="schedule-date-wrap">
+        <label>班表日期</label>
+        <div class="schedule-date-picker" id="scheduleDatePicker">
+          <button type="button" class="schedule-date-trigger" id="scheduleDateTrigger" aria-haspopup="dialog" aria-expanded="false">
+            <span class="schedule-date-value" id="scheduleDateValue"></span>
+            <span class="schedule-date-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></span>
+          </button>
+          <div class="schedule-date-panel hidden" id="scheduleDatePanel" role="dialog" aria-label="選擇班表日期">
+            <div class="schedule-date-panel-head">
+              <span class="schedule-date-month-label" id="scheduleDateMonthLabel"></span>
+              <div>
+                <button type="button" class="schedule-date-nav" id="scheduleDatePrevMonth" aria-label="上個月">▲</button>
+                <button type="button" class="schedule-date-nav" id="scheduleDateNextMonth" aria-label="下個月">▼</button>
+              </div>
+            </div>
+            <div class="schedule-date-weekdays">
+              <span>日</span><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span>
+            </div>
+            <div class="schedule-date-grid" id="scheduleDateGrid"></div>
+            <div class="schedule-date-panel-foot">
+              <button type="button" id="scheduleDateClearBtn">清除</button>
+              <div>
+                <button type="button" id="scheduleDateTodayBtn">今天</button>
+                <button type="button" class="schedule-date-confirm-btn" id="scheduleDateConfirmBtn">確定</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
-    <div class="board">
+    <div class="board" id="scheduleBoard">
       <div class="header">
-        <div class="name-col">人員 / 戰力 / 班別</div>
+        <div class="name-col" id="nameColHeader">序 / 人員 / 班別</div>
         <div class="times" id="times"></div>
       </div>
       <div class="rows" id="rows"></div>
@@ -1009,8 +1879,218 @@ function updateShiftViewButtonLabel() {
   if (!btn) return;
   btn.textContent = `顯示：${getShiftViewLabel(activeShiftView)}`;
 }
+function updateRollCallButtonLabel() {
+  const btn = document.getElementById('toggleRollCallBtn');
+  if (!btn) return;
+  btn.textContent = rollCallMode ? '點名：開' : '點名：關';
+  btn.classList.toggle('active', rollCallMode);
+}
+function buildPersonRowCoreHtml(opts) {
+  const restCell = opts.hasRest
+    ? '<span class="rest-cell" aria-hidden="true"></span>'
+    : '<span class="pending-rest">待排休</span>';
+  return [
+    `<div class="rc-col rc-seq"><span class="person-seq">${opts.seqNo}</span></div>`,
+    '<div class="rc-col rc-grip"><span class="drag-icon">⋮⋮</span></div>',
+    `<div class="rc-col rc-level"><span class="badge">${escapeHtml(opts.displayLevel)}</span></div>`,
+    `<div class="rc-col rc-name"><span class="person-name">${escapeHtml(opts.displayName)}</span></div>`,
+    `<div class="rc-col rc-shift">${renderShiftLabel(opts.shift, opts.adjustedShift)}</div>`,
+    `<div class="rc-col rc-rest">${restCell}</div>`
+  ];
+}
+function buildRollCallHeaderHtml() {
+  return [
+    '<div class="rc-col rc-seq"><span class="rc-h">序號</span></div>',
+    '<div class="rc-col rc-grip"><span class="rc-h"></span></div>',
+    '<div class="rc-col rc-level"><span class="rc-h">戰力</span></div>',
+    '<div class="rc-col rc-name"><span class="rc-h">姓名</span></div>',
+    '<div class="rc-col rc-shift"><span class="rc-h">原班別</span></div>',
+    '<div class="rc-col rc-rest"><span class="rc-h">休息</span></div>',
+    '<div class="rc-col rc-adj"><span class="rc-h">調班</span></div>',
+    '<div class="rc-col rc-radio"><span class="rc-h">對講機</span></div>',
+    '<div class="rc-col rc-ircs"><span class="rc-h">IRCS</span></div>',
+    '<div class="rc-col rc-next"><span class="rc-h">隔日</span></div>',
+    '<div class="rc-col rc-out"><span class="rc-h">下班</span></div>'
+  ].join('');
+}
+function buildNormalHeaderHtml() {
+  return [
+    '<div class="rc-col rc-seq"><span class="rc-h">序號</span></div>',
+    '<div class="rc-col rc-level"><span class="rc-h">戰力</span></div>',
+    '<div class="rc-col rc-name"><span class="rc-h">姓名</span></div>',
+    '<div class="rc-col rc-shift"><span class="rc-h">班別</span></div>'
+  ].join('');
+}
+function buildNormalRowHtml(opts) {
+  const restBit = opts.hasRest ? '' : '<span class="pending-rest">待排休</span>';
+  return [
+    `<div class="rc-col rc-seq"><span class="drag-icon">⋮⋮</span><span class="person-seq">${opts.seqNo}</span></div>`,
+    `<div class="rc-col rc-level"><span class="badge">${escapeHtml(opts.displayLevel)}</span></div>`,
+    `<div class="rc-col rc-name"><span class="person-name">${escapeHtml(opts.displayName)}</span></div>`,
+    `<div class="rc-col rc-shift"><span class="normal-shift-tail">${renderShiftLabel(opts.shift, opts.adjustedShift)}${restBit}</span></div>`
+  ];
+}
+function buildRollCallRowHtml(opts) {
+  const blankOpt = '<option value=""></option>';
+  return buildPersonRowCoreHtml(opts).concat([
+    `<div class="rc-col rc-adj"><select class="adjusted-shift-select" title="調班班別" aria-label="調班班別">${blankOpt}${opts.adjustedShiftOptions}</select></div>`,
+    `<div class="rc-col rc-radio"><input type="text" class="person-radio-input" title="對講機號碼" aria-label="對講機號碼" inputmode="numeric" autocomplete="off" value="${escapeHtml(opts.radioNo)}" /></div>`,
+    `<div class="rc-col rc-ircs"><input type="text" class="person-ircs-input" title="IRCS號碼" aria-label="IRCS號碼" inputmode="numeric" autocomplete="off" value="${escapeHtml(opts.ircsNo)}" /></div>`,
+    `<div class="rc-col rc-next"><select class="next-shift-select" title="隔日班別" aria-label="隔日班別">${blankOpt}${opts.nextShiftOptions}</select></div>`,
+    `<div class="rc-col rc-out"><label class="person-rollcall-check" title="下班"><input type="checkbox" class="clocked-out-check" ${opts.clockedOut ? 'checked' : ''} /></label></div>`
+  ]).join('');
+}
+function updateNameColHeader() {
+  const col = document.getElementById('nameColHeader');
+  if (!col) return;
+  if (rollCallMode) {
+    col.className = 'name-col rollcall-grid';
+    col.innerHTML = buildRollCallHeaderHtml();
+  } else {
+    col.className = 'name-col normal-grid';
+    col.innerHTML = buildNormalHeaderHtml();
+  }
+}
+function syncRollCallBoardClass() {
+  document.getElementById('scheduleBoard')?.classList.toggle('roll-call-mode', rollCallMode);
+}
+function getEffectiveShift(person) {
+  return person.adjustedShift || person.shift || '';
+}
+function getShiftFilterKey(person) {
+  if (rollCallMode) return person.shift || '';
+  return getEffectiveShift(person);
+}
+function getPersonShiftBounds(person) {
+  const shiftKey = getEffectiveShift(person);
+  if (!shiftKey || !SHIFT_DEFS[shiftKey]) return null;
+  const startMin = tStrToMin(SHIFT_DEFS[shiftKey][0]);
+  let endMin = tStrToMin(SHIFT_DEFS[shiftKey][1]);
+  if (startMin === null || endMin === null) return null;
+  if (endMin <= startMin) endMin += 24 * 60;
+  return { shiftKey, startMin, endMin };
+}
+function getDutyDisplayLabel(item) {
+  if (item.role === '休') return '休';
+  if (item.role === '自訂') return item.label || '自訂';
+  return item.compactLabel || compactDutyLabel(item.flight, item.role);
+}
+function getItemOvertimeRanges(item, person) {
+  if (!person || item.role === '休') return [];
+  const bounds = getPersonShiftBounds(person);
+  if (!bounds) return [];
+  const ranges = [];
+  if (item.start < bounds.startMin) {
+    ranges.push({ otStart: item.start, otEnd: Math.min(item.end, bounds.startMin) });
+  }
+  if (item.end > bounds.endMin) {
+    ranges.push({ otStart: Math.max(item.start, bounds.endMin), otEnd: item.end });
+  }
+  return ranges.filter(r => r.otEnd > r.otStart);
+}
+function minutesToHoursText(mins) {
+  const halfHours = Math.round(mins / 30);
+  return (halfHours / 2).toFixed(1);
+}
+function collectOvertimeRecords() {
+  const records = [];
+  schedule.forEach(item => {
+    const person = people[item.personIndex];
+    if (!person) return;
+    const shiftKey = getEffectiveShift(person);
+    const dutyLabel = getDutyDisplayLabel(item);
+    getItemOvertimeRanges(item, person).forEach(r => {
+      const minutes = r.otEnd - r.otStart;
+      records.push({
+        personIndex: item.personIndex,
+        name: resolveFullName(person) || person.name || person.code || '',
+        level: person.level || '',
+        shift: person.shift || shiftKey,
+        otStart: r.otStart,
+        otEnd: r.otEnd,
+        minutes,
+        hoursText: minutesToHoursText(minutes),
+        dutyLabel
+      });
+    });
+  });
+  return records.sort((a, b) => a.personIndex - b.personIndex || a.otStart - b.otStart);
+}
+let overtimeExpanded = false;
+function setOvertimeExpanded(expanded) {
+  overtimeExpanded = expanded;
+  const panel = document.getElementById('overtimePanel');
+  const body = document.getElementById('overtimeBody');
+  const btn = document.getElementById('toggleOvertimeBtn');
+  if (!panel || !body || !btn) return;
+  panel.classList.toggle('collapsed', !expanded);
+  body.classList.toggle('hidden', !expanded);
+  btn.textContent = expanded ? '收合' : '展開';
+}
+function renderOvertimePanel() {
+  const countEl = document.getElementById('overtimeCount');
+  const listEl = document.getElementById('overtimeList');
+  const exportBtn = document.getElementById('exportOvertimeBtn');
+  if (!countEl || !listEl || !exportBtn) return;
+  const records = collectOvertimeRecords();
+  const peopleCount = new Set(records.map(r => r.personIndex)).size;
+  countEl.textContent = records.length ? `（${peopleCount}人・${records.length}筆）` : '';
+  exportBtn.disabled = !records.length;
+  listEl.innerHTML = '';
+  if (!records.length) {
+    const empty = document.createElement('div');
+    empty.className = 'overtime-empty';
+    empty.textContent = '目前沒有加班紀錄';
+    listEl.appendChild(empty);
+    return;
+  }
+  records.forEach(rec => {
+    const item = document.createElement('div');
+    item.className = 'overtime-item';
+    item.innerHTML = `<strong>${escapeHtml(rec.name)}</strong>（${escapeHtml(rec.shift || '無班別')}）<br>${minutesToTime(rec.otStart)}–${minutesToTime(rec.otEnd)}・${rec.hoursText} 小時・${escapeHtml(rec.dutyLabel)}`;
+    listEl.appendChild(item);
+  });
+}
+function exportOvertimeCSV() {
+  const records = collectOvertimeRecords();
+  if (!records.length) return;
+  const dateText = formatScheduleDateDisplay(selectedDate) || selectedDate || '';
+  const header = ['日期','姓名','戰力','班別','加班開始','加班結束','加班時數(小時)','加班Duty'];
+  const lines = [header.join(',')];
+  records.forEach(rec => {
+    lines.push([
+      dateText,
+      '"' + String(rec.name).replaceAll('"','""') + '"',
+      rec.level,
+      rec.shift,
+      minutesToTime(rec.otStart),
+      minutesToTime(rec.otEnd),
+      rec.hoursText,
+      '"' + String(rec.dutyLabel).replaceAll('"','""') + '"'
+    ].join(','));
+  });
+  const blob = new Blob(["\ufeff" + lines.join('\n')], {type:'text/csv;charset=utf-8;'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `overtime_${selectedDate || 'today'}.csv`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function renderShiftLabel(shift, adjustedShift) {
+  const hasAdjustment = !!(adjustedShift && adjustedShift !== shift);
+  const display = rollCallMode ? (shift || '—') : ((adjustedShift || shift) || '—');
+  const highlight = rollCallMode && hasAdjustment;
+  const title = rollCallMode
+    ? (hasAdjustment ? `原班別 ${shift}，調班 ${adjustedShift}` : '班別')
+    : (hasAdjustment ? `調班後 ${adjustedShift}（原 ${shift}）` : '班別');
+  return `<span class="person-shift-label${highlight ? ' is-adjusted' : ''}" title="${title}">${escapeHtml(display)}</span>`;
+}
+function buildShiftSelectOptions(selected) {
+  return Object.keys(SHIFT_DEFS).map(k => `<option value="${k}" ${selected === k ? 'selected' : ''}>${k}</option>`).join('');
+}
 function personMatchesShiftView(person) {
-  return getShiftType(person.shift || '') === activeShiftView;
+  return getShiftType(getShiftFilterKey(person)) === activeShiftView;
 }
 function getViewStartMin() {
   return activeShiftView === 'late' ? 12 * 60 : START_MIN;
@@ -1032,20 +2112,58 @@ const START_MIN = 3 * 60;
 const END_MIN = 24 * 60;
 let pxPerMinute = 1.4;
 let activePaletteTab = 'byRole';
+let activeFlightEditorTab = 'DEP';
 const LS_PREFIX = 'cursor_v1';
-const LS_KEYS = {
+const LS_KEYS_GLOBAL = {
+  selectedDate: `${LS_PREFIX}_selected_date`,
   shiftView: `${LS_PREFIX}_shift_view`,
-  customTemplates: `${LS_PREFIX}_custom_duty_templates`,
-  staffDirectory: `${LS_PREFIX}_staff_directory`,
-  peopleOrder: `${LS_PREFIX}_people_order`,
-  schedule: `${LS_PREFIX}_schedule`,
-  flightDefs: `${LS_PREFIX}_flight_defs`
+  rollCallMode: `${LS_PREFIX}_roll_call_mode`,
+  staffDirectory: `${LS_PREFIX}_staff_directory`
 };
-let activeShiftView = localStorage.getItem(LS_KEYS.shiftView) || 'early';
+function getLocalDateISO() {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+function isValidISODate(s) {
+  return /^\d{4}-\d{2}-\d{2}$/.test(String(s || '').trim());
+}
+function dayStorageKeys(dateStr) {
+  const d = String(dateStr || '').trim();
+  return {
+    peopleOrder: `${LS_PREFIX}_day_${d}_people_order`,
+    schedule: `${LS_PREFIX}_day_${d}_schedule`,
+    flightDefs: `${LS_PREFIX}_day_${d}_flight_defs`,
+    customTemplates: `${LS_PREFIX}_day_${d}_custom_templates`,
+    deletedCustomTemplates: `${LS_PREFIX}_day_${d}_deleted_custom_templates`,
+    flightsImported: `${LS_PREFIX}_day_${d}_flights_imported`
+  };
+}
+let selectedDate = localStorage.getItem(LS_KEYS_GLOBAL.selectedDate) || getLocalDateISO();
+if (!isValidISODate(selectedDate)) selectedDate = getLocalDateISO();
+
+function migrateLegacyUndatedDayStorage() {
+  const k = dayStorageKeys(selectedDate);
+  const legacySchedule = localStorage.getItem(`${LS_PREFIX}_schedule`);
+  if (legacySchedule && !localStorage.getItem(k.schedule)) {
+    localStorage.setItem(k.schedule, legacySchedule);
+    const po = localStorage.getItem(`${LS_PREFIX}_people_order`);
+    if (po && !localStorage.getItem(k.peopleOrder)) localStorage.setItem(k.peopleOrder, po);
+    const ct = localStorage.getItem(`${LS_PREFIX}_custom_duty_templates`);
+    if (ct && !localStorage.getItem(k.customTemplates)) localStorage.setItem(k.customTemplates, ct);
+  }
+}
+migrateLegacyUndatedDayStorage();
+
+let activeShiftView = localStorage.getItem(LS_KEYS_GLOBAL.shiftView) || 'early';
+let rollCallMode = localStorage.getItem(LS_KEYS_GLOBAL.rollCallMode) === '1';
 if (!['early', 'late'].includes(activeShiftView)) activeShiftView = 'early';
 
-let customTemplates = JSON.parse(localStorage.getItem(LS_KEYS.customTemplates) || '[]');
-let staffDirectory = JSON.parse(localStorage.getItem(LS_KEYS.staffDirectory) || '[]');
+let customTemplates = JSON.parse(localStorage.getItem(dayStorageKeys(selectedDate).customTemplates) || '[]');
+let deletedCustomTemplates = JSON.parse(localStorage.getItem(dayStorageKeys(selectedDate).deletedCustomTemplates) || '[]');
+let staffDirectory = JSON.parse(localStorage.getItem(LS_KEYS_GLOBAL.staffDirectory) || '[]');
 
 function normalizeHHMM(value) {
   const s = String(value || '').trim();
@@ -1063,10 +2181,62 @@ function hhmmToMinutes(value) {
   return hh * 60 + mm;
 }
 function saveCustomTemplates() {
-  localStorage.setItem(LS_KEYS.customTemplates, JSON.stringify(customTemplates));
+  localStorage.setItem(dayStorageKeys(selectedDate).customTemplates, JSON.stringify(customTemplates));
+}
+function saveDeletedCustomTemplates() {
+  localStorage.setItem(dayStorageKeys(selectedDate).deletedCustomTemplates, JSON.stringify(deletedCustomTemplates));
+}
+function deleteCustomTemplate(templateId) {
+  const idx = customTemplates.findIndex(t => t.id === templateId);
+  if (idx < 0) return;
+  const [tpl] = customTemplates.splice(idx, 1);
+  tpl.deletedAt = Date.now();
+  deletedCustomTemplates.unshift(tpl);
+  if (deletedCustomTemplates.length > 20) deletedCustomTemplates.length = 20;
+  schedule = schedule.filter(x => !(x.role === '自訂' && x.flight === tpl.flight));
+  saveCustomTemplates();
+  saveDeletedCustomTemplates();
+  rebuildTemplates();
+  renderPalette();
+  renderRows();
+  markUnsynced();
+}
+function restoreCustomTemplate(templateId) {
+  const idx = deletedCustomTemplates.findIndex(t => t.id === templateId);
+  if (idx < 0) return;
+  const [tpl] = deletedCustomTemplates.splice(idx, 1);
+  delete tpl.deletedAt;
+  customTemplates.push(tpl);
+  saveCustomTemplates();
+  saveDeletedCustomTemplates();
+  rebuildTemplates();
+  renderPalette();
+  markUnsynced();
+}
+function renderDeletedPaletteContent(palette) {
+  const title = document.createElement('div');
+  title.className = 'timeline-list-title';
+  title.textContent = '最近刪除（點擊恢復）';
+  palette.appendChild(title);
+  if (!deletedCustomTemplates.length) {
+    const empty = document.createElement('div');
+    empty.className = 'empty-msg';
+    empty.textContent = '目前沒有最近刪除的區塊';
+    palette.appendChild(empty);
+    return;
+  }
+  deletedCustomTemplates.forEach(t => {
+    const chip = document.createElement('button');
+    chip.type = 'button';
+    chip.className = 'duty-chip duty-chip-deleted';
+    chip.title = '點擊恢復';
+    chip.innerHTML = `<strong>${escapeHtml(t.label)}</strong> <small>${minutesToTime(t.start)}-${minutesToTime(t.end)}</small>`;
+    chip.addEventListener('click', () => restoreCustomTemplate(t.id));
+    palette.appendChild(chip);
+  });
 }
 function saveStaffDirectory() {
-  localStorage.setItem(LS_KEYS.staffDirectory, JSON.stringify(staffDirectory));
+  localStorage.setItem(LS_KEYS_GLOBAL.staffDirectory, JSON.stringify(staffDirectory));
 }
 function createCustomTemplate(name, startHHMM, duration) {
   const start = hhmmToMinutes(startHHMM);
@@ -1092,10 +2262,16 @@ function createCustomTemplate(name, startHHMM, duration) {
 let timelineFlightSearch = '';
 initialPeople.forEach(p => { if (!('shift' in p)) p.shift = ''; });
 initialPeople.forEach(p => { if (!('code' in p)) p.code = p.name; });
-let people = JSON.parse(localStorage.getItem(LS_KEYS.peopleOrder) || 'null') || initialPeople;
-people = people.map(p => ({...p, code: p.code || p.name, shift: p.shift || ''}));
-let schedule = JSON.parse(localStorage.getItem(LS_KEYS.schedule) || '[]');
-let flightDefs = JSON.parse(localStorage.getItem(LS_KEYS.flightDefs) || 'null') || initialFlightDefs;
+const _dayK0 = dayStorageKeys(selectedDate);
+let people = JSON.parse(localStorage.getItem(_dayK0.peopleOrder) || 'null') || initialPeople;
+people = people.map(normalizePerson);
+if (staffDirectory.length) people = mergePeopleWithStaffDirectory(people);
+let schedule = JSON.parse(localStorage.getItem(_dayK0.schedule) || '[]');
+let flightDefs = JSON.parse(localStorage.getItem(_dayK0.flightDefs) || 'null');
+if (!Array.isArray(flightDefs)) flightDefs = [];
+let flightsImported = localStorage.getItem(_dayK0.flightsImported) === '1';
+if (!flightsImported) flightDefs = [];
+normalizeFlightDefsInPlace();
 let selectedBlockId = null;
 let blockSeq = schedule.length ? Math.max(...schedule.map(x => x.uid || 0)) + 1 : 1;
 let editorExpanded = false;
@@ -1115,7 +2291,7 @@ let cloudReady = false;
 let applyingRemote = false;
 let cloudSaveTimer = null;
 let lastCloudJson = '';
-const CLOUD_DOC_ID = 'cursor-v1-main';
+let firebaseUnsub = null;
 
 function setCloudStatus(text, mode='') {
   const el = document.getElementById('cloudStatus');
@@ -1128,8 +2304,9 @@ function getCloudState() {
   return {
     people,
     schedule,
-    flightDefs,
+    flightDefs: flightsImported ? flightDefs : [],
     customTemplates,
+    flightsImported,
     updatedAtLocal: new Date().toISOString()
   };
 }
@@ -1137,17 +2314,24 @@ function getCloudState() {
 function applyCloudState(data) {
   if (!data) return;
   applyingRemote = true;
-  people = Array.isArray(data.people) ? data.people.map(p => ({...p, code: p.code || p.name, shift:p.shift || ''})) : people;
+  people = Array.isArray(data.people) ? data.people.map(normalizePerson) : people;
+  if (staffDirectory.length && Array.isArray(people) && people.length) {
+    people = mergePeopleWithStaffDirectory(people);
+  }
   schedule = Array.isArray(data.schedule) ? data.schedule : [];
-  flightDefs = Array.isArray(data.flightDefs) ? data.flightDefs : flightDefs;
+  flightsImported = data.flightsImported === true;
+  flightDefs = flightsImported && Array.isArray(data.flightDefs) ? data.flightDefs : [];
+  normalizeFlightDefsInPlace();
   customTemplates = Array.isArray(data.customTemplates) ? data.customTemplates : customTemplates;
   selectedBlockId = null;
   blockSeq = schedule.length ? Math.max(...schedule.map(x => Number(x.uid) || 0)) + 1 : 1;
-  templates = [...buildTemplates(), ...createRestTemplates(), ...customTemplates];
+  rebuildTemplates();
 
-  localStorage.setItem(LS_KEYS.schedule, JSON.stringify(schedule));
-  localStorage.setItem(LS_KEYS.peopleOrder, JSON.stringify(people));
-  localStorage.setItem(LS_KEYS.flightDefs, JSON.stringify(flightDefs));
+  const k = dayStorageKeys(selectedDate);
+  localStorage.setItem(k.schedule, JSON.stringify(schedule));
+  localStorage.setItem(k.peopleOrder, JSON.stringify(people));
+  localStorage.setItem(k.flightDefs, JSON.stringify(flightDefs));
+  localStorage.setItem(k.flightsImported, flightsImported ? '1' : '0');
   saveCustomTemplates();
 
   if (typeof renderTimeHeader === 'function') renderTimeHeader();
@@ -1185,21 +2369,79 @@ function scheduleCloudSave() {
   cloudSaveTimer = setTimeout(saveCloudNow, 350);
 }
 
-function initFirebaseSync() {
+function detachFirebaseSync() {
+  if (firebaseUnsub) {
+    firebaseUnsub();
+    firebaseUnsub = null;
+  }
+  scheduleDocRef = null;
+  cloudReady = false;
+  if (cloudSaveTimer) {
+    clearTimeout(cloudSaveTimer);
+    cloudSaveTimer = null;
+  }
+}
+
+function seedEmptyDayStateForCloud() {
+  applyingRemote = true;
+  people = JSON.parse(JSON.stringify(initialPeople)).map(normalizePerson);
+  if (staffDirectory.length) people = mergePeopleWithStaffDirectory(people);
+  schedule = [];
+  flightDefs = [];
+  flightsImported = false;
+  customTemplates = [];
+  selectedBlockId = null;
+  blockSeq = 1;
+  rebuildTemplates();
+  syncScheduleWindows();
+  const k = dayStorageKeys(selectedDate);
+  localStorage.setItem(k.schedule, JSON.stringify(schedule));
+  localStorage.setItem(k.peopleOrder, JSON.stringify(people));
+  localStorage.setItem(k.flightDefs, JSON.stringify(flightDefs));
+  localStorage.setItem(k.flightsImported, '0');
+  saveCustomTemplates();
+  applyingRemote = false;
+}
+
+function attachFirebaseForSelectedDate() {
   try {
     if (typeof firebase === 'undefined') {
       setCloudStatus('Firebase 未載入', 'offline');
       return;
     }
+    detachFirebaseSync();
+    lastCloudJson = '';
     if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
     db = firebase.firestore();
-    scheduleDocRef = db.collection('dutySchedules').doc(CLOUD_DOC_ID);
+    scheduleDocRef = db.collection('dutySchedules').doc(selectedDate);
 
-    scheduleDocRef.onSnapshot((doc) => {
+    firebaseUnsub = scheduleDocRef.onSnapshot((doc) => {
       if (!doc.exists) {
+        const k = dayStorageKeys(selectedDate);
+        const hasLocal = [k.peopleOrder, k.schedule, k.flightDefs, k.customTemplates].some(key => localStorage.getItem(key) !== null);
+        if (hasLocal) {
+          loadDayDataFromLocalStorage(selectedDate);
+          cloudReady = true;
+          setCloudStatus('上傳本機資料至雲端', 'saving');
+          if (typeof renderTimeHeader === 'function') renderTimeHeader();
+          if (typeof renderAssignmentTableFromFlightDefs === 'function') renderAssignmentTableFromFlightDefs();
+          if (typeof renderFlightEditor === 'function') renderFlightEditor();
+          if (typeof renderPalette === 'function') renderPalette();
+          if (typeof renderRows === 'function') renderRows();
+          if (typeof syncAssignmentTableFromSchedule === 'function') syncAssignmentTableFromSchedule();
+          markUnsynced();
+          return;
+        }
+        seedEmptyDayStateForCloud();
         cloudReady = true;
-        setCloudStatus('建立雲端資料', 'saving');
-        saveCloudNow();
+        setCloudStatus('尚未同步', 'pending');
+        if (typeof renderTimeHeader === 'function') renderTimeHeader();
+        if (typeof renderAssignmentTableFromFlightDefs === 'function') renderAssignmentTableFromFlightDefs();
+        if (typeof renderFlightEditor === 'function') renderFlightEditor();
+        if (typeof renderPalette === 'function') renderPalette();
+        if (typeof renderRows === 'function') renderRows();
+        if (typeof syncAssignmentTableFromSchedule === 'function') syncAssignmentTableFromSchedule();
+        markUnsynced();
         return;
       }
       const data = doc.data();
@@ -1208,6 +2450,7 @@ function initFirebaseSync() {
         schedule: data.schedule,
         flightDefs: data.flightDefs,
         customTemplates: data.customTemplates,
+        flightsImported: data.flightsImported === true,
         updatedAtLocal: data.updatedAtLocal
       };
       const remoteJson = JSON.stringify(remoteState);
@@ -1280,7 +2523,7 @@ function buildFlightDefsFromRows(rows) {
       const key = `${flight}_${time}_DEP`;
       if (!seen.has(key) && !Number.isNaN(hh) && !Number.isNaN(mm)) {
         seen.add(key);
-        out.push({ flight, type:'DEP', baseTime:time, baseMinutes:hh*60+mm, offset:0, extension:0 });
+        out.push({ flight, type:'DEP', baseTime:time, baseMinutes:hh*60+mm, offset:0, extension:0, changeTime:'' });
       }
     }
 
@@ -1291,7 +2534,7 @@ function buildFlightDefsFromRows(rows) {
       const key = `${flight}_${time}_ARR`;
       if (!seen.has(key) && !Number.isNaN(hh) && !Number.isNaN(mm)) {
         seen.add(key);
-        out.push({ flight, type:'ARR', baseTime:time, baseMinutes:hh*60+mm, offset:0, extension:0 });
+        out.push({ flight, type:'ARR', baseTime:time, baseMinutes:hh*60+mm, offset:0, extension:0, eta:'' });
       }
     }
   });
@@ -1312,7 +2555,12 @@ function buildPeopleFromRows(rows) {
         name,
         code: code || name,
         level: pick(row, ['戰力', '等級', 'Level', 'level']),
-        shift: pick(row, ['班別', '班次', 'Shift', 'shift'])
+        shift: pick(row, ['班別', '班次', 'Shift', 'shift']),
+        radioNo: '',
+        ircsNo: '',
+        nextDayShift: pick(row, ['隔日班別', '隔日', 'NextShift', 'nextDayShift']),
+        adjustedShift: pick(row, ['調班班別', '調班', 'AdjustedShift', 'adjustedShift']),
+        clockedOut: false
       };
     })
     .filter(p => p.name && p.name !== 'undefined' && p.name !== 'null');
@@ -1330,6 +2578,18 @@ function buildStaffDirectoryFromRows(rows) {
     const level = pick(row, ['戰力', '等級', 'Level', 'level']);
     return { code: code || fullName, fullName, level };
   }).filter(x => x.code || x.fullName);
+}
+function normalizePerson(p) {
+  return {
+    ...p,
+    code: p.code || p.name,
+    shift: p.shift || '',
+    adjustedShift: p.adjustedShift || '',
+    radioNo: p.radioNo || '',
+    ircsNo: p.ircsNo || '',
+    nextDayShift: p.nextDayShift || '',
+    clockedOut: !!p.clockedOut
+  };
 }
 function normalizeText(v) {
   return String(v || '').trim().toLowerCase().replace(/\s+/g, '');
@@ -1363,13 +2623,25 @@ function mergePeopleWithStaffDirectory(list) {
       normalizeText(x.code) === nameKey
     );
     if (!found) return p;
+    const fn = String(found.fullName || '').trim();
+    const pn = String(p.name || '').trim();
+    let mergedName = pn || fn;
+    if (fn.length >= pn.length && fn) mergedName = fn;
     return {
       ...p,
       code: found.code || p.code || p.name,
-      name: found.fullName || p.name,
+      name: mergedName,
       level: p.level || found.level || ''
     };
   });
+}
+
+function escapeHtml(s) {
+  return String(s ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
 }
 
 function renderAssignmentTableFromFlightDefs() {
@@ -1383,7 +2655,7 @@ function renderAssignmentTableFromFlightDefs() {
 
   const arrRows = flightDefs
     .filter(f => f.type === 'ARR')
-    .sort((a,b) => a.baseMinutes - b.baseMinutes || a.flight.localeCompare(b.flight));
+    .sort((a,b) => getArrSortMinutes(a) - getArrSortMinutes(b) || a.flight.localeCompare(b.flight));
 
   depBody.innerHTML = depRows.map(f => `
     <tr>
@@ -1404,7 +2676,7 @@ function renderAssignmentTableFromFlightDefs() {
       <td></td>
       <td>${minutesToTime(f.baseMinutes)}</td>
       <td></td>
-      <td></td>
+      <td>${f.eta ? normalizeImportedTime(f.eta) : ''}</td>
       <td></td>
       <td></td>
       <td data-flight="${f.flight}" data-role="接機C"></td>
@@ -1419,14 +2691,16 @@ function renderAssignmentTableFromFlightDefs() {
 }
 
 function rebuildAfterExcelImport(newFlightDefs, newPeople) {
+  flightsImported = true;
   flightDefs = newFlightDefs;
-  people = newPeople.map(p => ({ ...p, code: p.code || p.name, shift: p.shift || '' }));
+  normalizeFlightDefsInPlace();
+  people = newPeople.map(normalizePerson);
   renderAssignmentTableFromFlightDefs();
   schedule = [];
   selectedBlockId = null;
   blockSeq = 1;
-  templates = [...buildTemplates(), ...createRestTemplates(), ...customTemplates];
-  saveLocal();
+  rebuildTemplates();
+  markUnsynced();
   renderTimeHeader();
   renderFlightEditor();
   renderPalette();
@@ -1445,7 +2719,51 @@ function roleShort(role) {
 }
 function compactDutyLabel(flight, role) { return `${compactFlightNo(flight)}${roleShort(role)}`; }
 function snap5(v) { return Math.round(v / 5) * 5; }
-function adjustedMinutes(f) { return f.baseMinutes + Number(f.offset || 0); }
+function depStdMinutes(f) {
+  const changed = parseTimeToMinutes(f.changeTime);
+  return changed != null ? changed : f.baseMinutes;
+}
+function depDutyStart(std, before, ext) {
+  return Math.max(0, std - before + Math.min(ext, 0));
+}
+function depDutyEnd(std, ext) {
+  return std + Math.max(ext, 0);
+}
+function adjustedMinutes(f) {
+  if (f.type === 'DEP') return depStdMinutes(f);
+  return f.baseMinutes + Number(f.offset || 0);
+}
+function depExtensionDisplay(v) {
+  const n = Number(v || 0);
+  return n ? String(n) : '';
+}
+function parseTimeToMinutes(timeStr) {
+  if (!timeStr || !String(timeStr).trim()) return null;
+  const s = normalizeImportedTime(String(timeStr).trim());
+  const [hh, mm] = s.split(':').map(Number);
+  if (Number.isNaN(hh) || Number.isNaN(mm)) return null;
+  return hh * 60 + mm;
+}
+function toTimeInputValue(timeStr) {
+  const s = normalizeImportedTime(String(timeStr || '').trim());
+  return /^\d{2}:\d{2}$/.test(s) ? s : '';
+}
+function getArrSortMinutes(f) {
+  const etaMin = parseTimeToMinutes(f.eta);
+  return etaMin != null ? etaMin : f.baseMinutes;
+}
+function normalizeFlightDefsInPlace() {
+  flightDefs.forEach(f => {
+    if (f.type === 'ARR' && f.eta == null) f.eta = '';
+    if (f.type === 'DEP') {
+      if (f.changeTime == null) f.changeTime = '';
+      if (!f.changeTime && Number(f.offset || 0) !== 0) {
+        f.changeTime = minutesToTime(f.baseMinutes + Number(f.offset || 0));
+        f.offset = 0;
+      }
+    }
+  });
+}
 function hasRestForPerson(personIndex) { return schedule.some(x => x.personIndex === personIndex && x.role === '休'); }
 function createRestTemplates() {
   return [
@@ -1455,21 +2773,32 @@ function createRestTemplates() {
 }
 
 
+function hasImportedFlights() {
+  return flightsImported === true && Array.isArray(flightDefs) && flightDefs.length > 0;
+}
+function rebuildTemplates() {
+  templates = hasImportedFlights()
+    ? [...buildTemplates(), ...createRestTemplates(), ...customTemplates]
+    : [];
+}
+
 function buildTemplates() {
   const out = [];
   flightDefs.forEach(f => {
     const base = adjustedMinutes(f);
     const ext = Number(f.extension || 0);
     if (f.type === 'DEP') {
+      const std = depStdMinutes(f);
+      const ext = Number(f.extension || 0);
       [['RC',70],['BG',60],['ABG',40]].forEach(([role, before]) => {
-        const start = Math.max(0, base - before);
-        const end = base + ext;
+        const start = depDutyStart(std, before, ext);
+        const end = depDutyEnd(std, ext);
         out.push({ id: `${f.flight}_${role}_${f.type}`, label: `${f.flight} ${role}`, compactLabel: compactDutyLabel(f.flight, role), flight: f.flight, role, flightType: f.type, start, end });
       });
       if (['BR8','BR6'].includes(f.flight)) {
         const role = 'PPT';
-        const start = Math.max(0, base - 80);
-        const end = base + ext;
+        const start = depDutyStart(std, 80, ext);
+        const end = depDutyEnd(std, ext);
         out.push({ id: `${f.flight}_${role}_${f.type}`, label: `${f.flight} ${role}`, compactLabel: compactDutyLabel(f.flight, role), flight: f.flight, role, flightType: f.type, start, end });
       }
     } else {
@@ -1482,7 +2811,8 @@ function buildTemplates() {
   });
   return out;
 }
-let templates = [...buildTemplates(), ...createRestTemplates(), ...customTemplates];
+let templates = [];
+rebuildTemplates();
 
 function scheduledTemplateIds() { return new Set(schedule.map(item => `${item.flight}_${item.role}_${item.flightType}`)); }
 function syncScheduleWindows() {
@@ -1496,19 +2826,215 @@ function syncScheduleWindows() {
     item.end = tpl.end;
   });
 }
+function loadDayDataFromLocalStorage(dateStr) {
+  const k = dayStorageKeys(dateStr);
+  const rawPeople = localStorage.getItem(k.peopleOrder);
+  if (rawPeople) {
+    people = JSON.parse(rawPeople).map(normalizePerson);
+  } else {
+    people = JSON.parse(JSON.stringify(initialPeople)).map(normalizePerson);
+  }
+  schedule = JSON.parse(localStorage.getItem(k.schedule) || '[]');
+  const rawFd = localStorage.getItem(k.flightDefs);
+  flightsImported = localStorage.getItem(k.flightsImported) === '1';
+  flightDefs = rawFd ? JSON.parse(rawFd) : [];
+  if (!Array.isArray(flightDefs)) flightDefs = [];
+  if (!flightsImported) flightDefs = [];
+  normalizeFlightDefsInPlace();
+  customTemplates = JSON.parse(localStorage.getItem(k.customTemplates) || '[]');
+  deletedCustomTemplates = JSON.parse(localStorage.getItem(k.deletedCustomTemplates) || '[]');
+  selectedBlockId = null;
+  blockSeq = schedule.length ? Math.max(...schedule.map(x => Number(x.uid) || 0)) + 1 : 1;
+  rebuildTemplates();
+  syncScheduleWindows();
+  if (staffDirectory.length && people.length) {
+    people = mergePeopleWithStaffDirectory(people);
+  }
+}
+function formatScheduleDateDisplay(iso) {
+  if (!isValidISODate(iso)) return '';
+  const [y, m, d] = iso.split('-');
+  return `${y}/${m}/${d}`;
+}
+function parseISODateParts(iso) {
+  const [y, m, d] = iso.split('-').map(Number);
+  return { y, m: m - 1, d };
+}
+function isoFromParts(y, m, d) {
+  return `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+}
+let pickerPendingDate = selectedDate;
+let pickerViewYear = 0;
+let pickerViewMonth = 0;
+function syncScheduleDatePickerUI() {
+  const valueEl = document.getElementById('scheduleDateValue');
+  if (valueEl) valueEl.textContent = formatScheduleDateDisplay(selectedDate);
+  pickerPendingDate = selectedDate;
+  const parts = parseISODateParts(selectedDate);
+  pickerViewYear = parts.y;
+  pickerViewMonth = parts.m;
+}
+function renderScheduleDateGrid() {
+  const grid = document.getElementById('scheduleDateGrid');
+  const label = document.getElementById('scheduleDateMonthLabel');
+  if (!grid || !label) return;
+  label.textContent = `${pickerViewYear}年${String(pickerViewMonth + 1).padStart(2, '0')}月`;
+  const todayIso = getLocalDateISO();
+  const startDay = new Date(pickerViewYear, pickerViewMonth, 1).getDay();
+  const daysInMonth = new Date(pickerViewYear, pickerViewMonth + 1, 0).getDate();
+  const prevMonthDays = new Date(pickerViewYear, pickerViewMonth, 0).getDate();
+  grid.innerHTML = '';
+  for (let i = 0; i < 42; i++) {
+    let y = pickerViewYear, m = pickerViewMonth, day, otherMonth = false;
+    if (i < startDay) {
+      day = prevMonthDays - startDay + i + 1;
+      m = pickerViewMonth - 1;
+      if (m < 0) { m = 11; y--; }
+      otherMonth = true;
+    } else if (i >= startDay + daysInMonth) {
+      day = i - startDay - daysInMonth + 1;
+      m = pickerViewMonth + 1;
+      if (m > 11) { m = 0; y++; }
+      otherMonth = true;
+    } else {
+      day = i - startDay + 1;
+    }
+    const iso = isoFromParts(y, m, day);
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'schedule-date-day';
+    if (otherMonth) btn.classList.add('other-month');
+    if (iso === todayIso) btn.classList.add('today');
+    if (pickerPendingDate && iso === pickerPendingDate) btn.classList.add('pending');
+    btn.textContent = String(day);
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      pickerPendingDate = iso;
+      renderScheduleDateGrid();
+    });
+    grid.appendChild(btn);
+  }
+}
+function setScheduleDatePanelOpen(open) {
+  const panel = document.getElementById('scheduleDatePanel');
+  const trigger = document.getElementById('scheduleDateTrigger');
+  if (!panel || !trigger) return;
+  if (open) {
+    pickerPendingDate = selectedDate;
+    const parts = parseISODateParts(pickerPendingDate);
+    pickerViewYear = parts.y;
+    pickerViewMonth = parts.m;
+    renderScheduleDateGrid();
+    panel.classList.remove('hidden');
+    trigger.setAttribute('aria-expanded', 'true');
+  } else {
+    panel.classList.add('hidden');
+    trigger.setAttribute('aria-expanded', 'false');
+  }
+}
+function initScheduleDatePicker() {
+  const picker = document.getElementById('scheduleDatePicker');
+  const trigger = document.getElementById('scheduleDateTrigger');
+  const panel = document.getElementById('scheduleDatePanel');
+  syncScheduleDatePickerUI();
+  trigger?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    setScheduleDatePanelOpen(panel.classList.contains('hidden'));
+  });
+  document.addEventListener('click', (e) => {
+    if (!picker || picker.contains(e.target)) return;
+    setScheduleDatePanelOpen(false);
+  });
+  document.getElementById('scheduleDatePrevMonth')?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    pickerViewMonth--;
+    if (pickerViewMonth < 0) { pickerViewMonth = 11; pickerViewYear--; }
+    renderScheduleDateGrid();
+  });
+  document.getElementById('scheduleDateNextMonth')?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    pickerViewMonth++;
+    if (pickerViewMonth > 11) { pickerViewMonth = 0; pickerViewYear++; }
+    renderScheduleDateGrid();
+  });
+  document.getElementById('scheduleDateClearBtn')?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    pickerPendingDate = '';
+    renderScheduleDateGrid();
+  });
+  document.getElementById('scheduleDateTodayBtn')?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    pickerPendingDate = getLocalDateISO();
+    const parts = parseISODateParts(pickerPendingDate);
+    pickerViewYear = parts.y;
+    pickerViewMonth = parts.m;
+    renderScheduleDateGrid();
+  });
+  document.getElementById('scheduleDateConfirmBtn')?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (!pickerPendingDate || !isValidISODate(pickerPendingDate)) return;
+    setScheduleDatePanelOpen(false);
+    if (pickerPendingDate === selectedDate) return;
+    switchScheduleDate(pickerPendingDate);
+  });
+}
+function switchScheduleDate(newDate) {
+  if (!newDate || newDate === selectedDate) return;
+  if (cloudSaveTimer) {
+    clearTimeout(cloudSaveTimer);
+    cloudSaveTimer = null;
+  }
+  saveLocal();
+  if (firebaseUnsub) {
+    firebaseUnsub();
+    firebaseUnsub = null;
+  }
+  scheduleDocRef = null;
+  cloudReady = false;
+
+  selectedDate = newDate;
+  localStorage.setItem(LS_KEYS_GLOBAL.selectedDate, selectedDate);
+  syncScheduleDatePickerUI();
+  loadDayDataFromLocalStorage(selectedDate);
+  renderTimeHeader();
+  renderAssignmentTableFromFlightDefs();
+  renderFlightEditor();
+  renderPalette();
+  renderRows();
+  if (typeof syncAssignmentTableFromSchedule === 'function') syncAssignmentTableFromSchedule();
+  updateShiftViewButtonLabel();
+  attachFirebaseForSelectedDate();
+}
 function overlaps(aStart, aEnd, bStart, bEnd) { return aStart < bEnd && aEnd > bStart; }
 function confirmConflict(personIndex, itemUid, start, end) { return true; }
 function safeRoleClass(role) { return 'role-' + role.replace(/[^\w\u4e00-\u9fff-]/g, ''); }
 function applyRoleClass(el, role) { el.classList.add(safeRoleClass(role)); }
 function timeToLeft(mins) { return (mins - getViewStartMin()) * pxPerMinute; }
 function durationToWidth(start, end) { return Math.max((end - start) * pxPerMinute, 50); }
+function markUnsynced() {
+  setCloudStatus('尚未同步', 'pending');
+}
+function syncRollCallRowVisual(cell, person) {
+  const radioNo = String(person.radioNo || '').trim();
+  const clockedOut = !!person.clockedOut;
+  cell.classList.toggle('on-duty-by-radio', rollCallMode && !!radioNo && !clockedOut);
+  cell.classList.toggle('clocked-out', rollCallMode && clockedOut);
+}
+function refreshShiftLabelEl(cell, shift, adjustedShift) {
+  const el = cell.querySelector('.person-shift-label');
+  if (!el) return;
+  const wrap = document.createElement('span');
+  wrap.innerHTML = renderShiftLabel(shift, adjustedShift);
+  el.replaceWith(wrap.firstElementChild);
+}
 function saveLocal() {
-  localStorage.setItem(LS_KEYS.schedule, JSON.stringify(schedule));
-  localStorage.setItem(LS_KEYS.peopleOrder, JSON.stringify(people));
-  localStorage.setItem(LS_KEYS.flightDefs, JSON.stringify(flightDefs));
+  const k = dayStorageKeys(selectedDate);
+  localStorage.setItem(k.schedule, JSON.stringify(schedule));
+  localStorage.setItem(k.peopleOrder, JSON.stringify(people));
+  localStorage.setItem(k.flightDefs, JSON.stringify(flightsImported ? flightDefs : []));
+  localStorage.setItem(k.flightsImported, flightsImported ? '1' : '0');
   saveCustomTemplates();
   saveStaffDirectory();
-  scheduleCloudSave();
 }
 function clearHoverStates() { document.querySelectorAll('.person-cell').forEach(el => el.classList.remove('over', 'dragging')); }
 
@@ -1535,17 +3061,33 @@ function makeChip(t) {
     chip.classList.add(t.duration >= 60 ? 'rest-chip-60' : 'rest-chip-30');
     chip.innerHTML = `<strong>${t.label}</strong>`;
   } else if (t.role === '自訂') {
-    chip.innerHTML = `<strong>${t.label}</strong> <small>${minutesToTime(t.start)}-${minutesToTime(t.end)}</small>`;
+    chip.classList.add('duty-chip-custom');
+    chip.innerHTML = `<span class="duty-chip-body"><strong>${escapeHtml(t.label)}</strong> <small>${minutesToTime(t.start)}-${minutesToTime(t.end)}</small></span><button type="button" class="duty-chip-delete-btn" title="刪除">×</button>`;
+    const delBtn = chip.querySelector('.duty-chip-delete-btn');
+    delBtn.addEventListener('click', e => {
+      e.stopPropagation();
+      e.preventDefault();
+      deleteCustomTemplate(t.id);
+    });
+    delBtn.addEventListener('mousedown', e => e.stopPropagation());
   } else {
     chip.innerHTML = `<strong>${t.compactLabel}</strong> <small>${minutesToTime(t.start)}-${minutesToTime(t.end)}</small>`;
   }
 
-  chip.addEventListener('dragstart', e => e.dataTransfer.setData('text/template', t.id));
+  chip.addEventListener('dragstart', e => {
+    if (e.target.closest('.duty-chip-delete-btn')) { e.preventDefault(); return; }
+    e.dataTransfer.setData('text/template', t.id);
+  });
   return chip;
 }
 function renderPalette() {
   const palette = document.getElementById('palette');
   palette.innerHTML = '';
+  if (activePaletteTab === 'deleted') {
+    renderDeletedPaletteContent(palette);
+    return;
+  }
+  if (!hasImportedFlights()) return;
   const items = filteredUnscheduledTemplates();
   if (!items.length) {
     const done = document.createElement('div');
@@ -1595,55 +3137,130 @@ function renderPalette() {
   }
 }
 
-function buildEditorRow(f) {
+function buildEditorRowDep(f) {
   const row = document.createElement('div');
-  row.className = 'editor-row';
+  row.className = 'editor-row dep-editor-row';
   row.innerHTML = `
     <strong>${f.flight}</strong>
     <span class="mini">${f.type === 'DEP' ? 'STD' : 'STA'}</span>
     <span class="mini">${f.baseTime}</span>
-    <input type="number" step="5" value="${Number(f.offset || 0)}" />
-    <input type="number" min="0" step="5" value="${Number(f.extension || 0)}" />
-    <span class="mini">${minutesToTime(adjustedMinutes(f))}</span>
+    <input type="text" class="editor-change-time-input" inputmode="numeric" maxlength="5" value="${toTimeInputValue(f.changeTime)}" />
+    <input type="number" step="5" value="${depExtensionDisplay(f.extension)}" />
+    <span class="mini editor-current">${minutesToTime(adjustedMinutes(f))}</span>
   `;
-  const [offsetInput, extInput] = row.querySelectorAll('input');
-  offsetInput.addEventListener('change', () => {
-    let v = Number(offsetInput.value || 0);
-    if (Number.isNaN(v)) v = 0;
-    v = snap5(v);
-    offsetInput.value = v;
-    const target = flightDefs.find(x => x.flight === f.flight && x.type === f.type);
-    target.offset = v;
-    templates = [...buildTemplates(), ...createRestTemplates(), ...customTemplates];
+  const changeTimeInput = row.querySelector('.editor-change-time-input');
+  const extInput = row.querySelectorAll('input')[1];
+  const currentEl = row.querySelector('.editor-current');
+  const applyFlightEdit = () => {
+    currentEl.textContent = minutesToTime(adjustedMinutes(f));
+    rebuildTemplates();
     syncScheduleWindows();
-    renderPalette(); renderRows(); renderFlightEditor(); saveLocal();
-  });
-  extInput.addEventListener('change', () => {
-    let v = Number(extInput.value || 0);
-    if (Number.isNaN(v) || v < 0) v = 0;
-    v = snap5(v);
-    extInput.value = v;
+    renderPalette();
+    renderRows();
+    markUnsynced();
+  };
+  const commitChangeTime = () => {
     const target = flightDefs.find(x => x.flight === f.flight && x.type === f.type);
-    target.extension = v;
-    templates = [...buildTemplates(), ...createRestTemplates(), ...customTemplates];
-    syncScheduleWindows();
-    renderPalette(); renderRows(); renderFlightEditor(); saveLocal();
-  });
+    const raw = changeTimeInput.value.trim();
+    if (!raw) {
+      target.changeTime = '';
+      target.offset = 0;
+      changeTimeInput.value = '';
+    } else {
+      const normalized = normalizeImportedTime(raw);
+      if (parseTimeToMinutes(normalized) == null) {
+        changeTimeInput.value = target.changeTime ? toTimeInputValue(target.changeTime) : '';
+        return;
+      }
+      target.changeTime = normalized;
+      target.offset = 0;
+      changeTimeInput.value = normalized;
+    }
+    applyFlightEdit();
+  };
+  const commitExtension = () => {
+    const target = flightDefs.find(x => x.flight === f.flight && x.type === f.type);
+    const raw = extInput.value.trim();
+    if (!raw) {
+      target.extension = 0;
+      extInput.value = '';
+    } else {
+      let v = Number(raw);
+      if (Number.isNaN(v)) {
+        extInput.value = depExtensionDisplay(target.extension);
+        return;
+      }
+      v = snap5(v);
+      target.extension = v;
+      extInput.value = depExtensionDisplay(v);
+    }
+    applyFlightEdit();
+  };
+  changeTimeInput.addEventListener('change', commitChangeTime);
+  changeTimeInput.addEventListener('blur', commitChangeTime);
+  extInput.addEventListener('change', commitExtension);
+  extInput.addEventListener('blur', commitExtension);
+  return row;
+}
+function buildEditorRowArr(f) {
+  const row = document.createElement('div');
+  row.className = 'editor-row arr-editor-row';
+  row.innerHTML = `
+    <strong>${f.flight}</strong>
+    <span class="mini">${f.baseTime}</span>
+    <input type="text" class="editor-eta-input" inputmode="numeric" maxlength="5" value="${toTimeInputValue(f.eta)}" />
+  `;
+  const etaInput = row.querySelector('.editor-eta-input');
+  const commitEta = () => {
+    const target = flightDefs.find(x => x.flight === f.flight && x.type === f.type);
+    const raw = etaInput.value.trim();
+    if (!raw) {
+      target.eta = '';
+      etaInput.value = '';
+    } else {
+      const normalized = normalizeImportedTime(raw);
+      if (parseTimeToMinutes(normalized) == null) {
+        etaInput.value = target.eta ? toTimeInputValue(target.eta) : '';
+        return;
+      }
+      target.eta = normalized;
+      etaInput.value = normalized;
+    }
+    renderAssignmentTableFromFlightDefs();
+    markUnsynced();
+  };
+  etaInput.addEventListener('change', commitEta);
+  etaInput.addEventListener('blur', commitEta);
   return row;
 }
 function renderFlightEditor() {
   const depWrap = document.getElementById('flightEditorDep');
   const arrWrap = document.getElementById('flightEditorArr');
-  depWrap.innerHTML = ''; arrWrap.innerHTML = '';
-  const q = document.getElementById('flightSearchInput').value.trim().toLowerCase();
-  const typeFilter = document.getElementById('flightTypeFilter').value;
-  const filtered = flightDefs.slice().sort((a,b) => adjustedMinutes(a) - adjustedMinutes(b) || a.flight.localeCompare(b.flight)).filter(f => {
-    const text = `${f.flight} ${compactFlightNo(f.flight)} ${f.type === 'DEP' ? 'std' : 'sta'} ${f.baseTime}`.toLowerCase();
-    if (q && !text.includes(q)) return false;
-    if (typeFilter && f.type !== typeFilter) return false;
-    return true;
+  const depSection = document.getElementById('flightEditorDepSection');
+  const arrSection = document.getElementById('flightEditorArrSection');
+  if (!depWrap || !arrWrap) return;
+  depWrap.innerHTML = '';
+  arrWrap.innerHTML = '';
+  if (depSection) depSection.hidden = activeFlightEditorTab !== 'DEP';
+  if (arrSection) arrSection.hidden = activeFlightEditorTab !== 'ARR';
+  document.querySelectorAll('.editor-tab-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.flightTab === activeFlightEditorTab);
   });
-  filtered.forEach(f => (f.type === 'DEP' ? depWrap : arrWrap).appendChild(buildEditorRow(f)));
+  const q = document.getElementById('flightSearchInput').value.trim().toLowerCase();
+  const filtered = flightDefs.slice().filter(f => {
+    const text = `${f.flight} ${compactFlightNo(f.flight)} ${f.type === 'DEP' ? 'std' : 'sta'} ${f.baseTime} ${f.eta || ''}`.toLowerCase();
+    if (q && !text.includes(q)) return false;
+    if (f.type !== activeFlightEditorTab) return false;
+    return true;
+  }).sort((a,b) => {
+    if (activeFlightEditorTab === 'ARR') {
+      return getArrSortMinutes(a) - getArrSortMinutes(b) || a.flight.localeCompare(b.flight);
+    }
+    return a.baseMinutes - b.baseMinutes || a.flight.localeCompare(b.flight);
+  });
+  const targetWrap = activeFlightEditorTab === 'DEP' ? depWrap : arrWrap;
+  const buildRow = activeFlightEditorTab === 'DEP' ? buildEditorRowDep : buildEditorRowArr;
+  filtered.forEach(f => targetWrap.appendChild(buildRow(f)));
 }
 
 function renderTimeHeader() {
@@ -1693,8 +3310,13 @@ function createBlockEl(item, normalizedSearch) {
   block.style.left = timeToLeft(item.start) + 'px';
   block.style.width = durationToWidth(item.start, item.end) + 'px';
 
+  const person = people[item.personIndex];
+  const otRanges = person ? getItemOvertimeRanges(item, person) : [];
+  if (otRanges.length) block.classList.add('block-overtime');
+  const otBadge = otRanges.length ? '<span class="block-overtime-badge">加班</span>' : '';
   block.innerHTML = `
     <div class="label">${item.role === "休" ? "休" : (item.role === "自訂" ? item.label : (item.compactLabel || compactDutyLabel(item.flight, item.role)))}</div>
+    ${otBadge}
     <button class="block-delete-btn" type="button" title="刪除此 duty">×</button>
   `;
 
@@ -1708,7 +3330,7 @@ function createBlockEl(item, normalizedSearch) {
 
     renderPalette();
     renderRows();
-    saveLocal();
+    markUnsynced();
   });
 
   block.addEventListener('click', e => {
@@ -1738,7 +3360,7 @@ function renderRows() {
     return;
   }
 
-  displayRows.forEach((rowInfo) => {
+  displayRows.forEach((rowInfo, displayIdx) => {
     const row = document.createElement('div');
     row.className = 'row';
     if (rowInfo.matchedRow) row.classList.add('flight-match-top');
@@ -1748,14 +3370,50 @@ function renderRows() {
     left.draggable = true;
     left.dataset.originalIndex = rowInfo.originalIndex;
     const shift = rowInfo.person.shift || '';
-    const shiftTimes = "";
+    const adjustedShift = rowInfo.person.adjustedShift || '';
+    const radioNo = rowInfo.person.radioNo || '';
+    const ircsNo = rowInfo.person.ircsNo || '';
+    const nextDayShift = rowInfo.person.nextDayShift || '';
+    const clockedOut = !!rowInfo.person.clockedOut;
+    const seqNo = displayIdx + 1;
     const pendingRest = hasRestForPerson(rowInfo.originalIndex) ? '' : '<span class="pending-rest">待排休</span>';
     const resolvedName = resolveFullName(rowInfo.person);
-    const displayName = resolvedName || rowInfo.person.name || rowInfo.person.code || '';
-    const displayLevel = rowInfo.person.level || resolveLevel(rowInfo.person) || '';
-    const shiftType = getShiftType(shift);
+    const rawName = String(rowInfo.person.name || rowInfo.person.code || '').trim();
+    let displayName = resolvedName || rawName;
+    if (resolvedName && rawName && rawName.length > resolvedName.length) displayName = rawName;
+    const displayLevel = String(rowInfo.person.level || resolveLevel(rowInfo.person) || '').trim();
+    const shiftType = getShiftType(getShiftFilterKey(rowInfo.person));
     if (shiftType) left.classList.add(`shift-${shiftType}`);
-    left.innerHTML = `<div class="person-main"><span class="drag-icon">⋮⋮</span><span class="badge">${displayLevel}</span><div class="person-meta"><span class="person-name">${displayName}</span></div></div><div class="shift-row"><select class="shift-select"><option value="">班別</option>${Object.keys(SHIFT_DEFS).map(k => `<option value="${k}" ${shift===k?'selected':''}>${k}</option>`).join('')}</select></div>${pendingRest}`;
+    if (rollCallMode && radioNo && !clockedOut) left.classList.add('on-duty-by-radio');
+    if (rollCallMode && clockedOut) left.classList.add('clocked-out');
+    const adjustedShiftOptions = buildShiftSelectOptions(adjustedShift);
+    const nextShiftOptions = buildShiftSelectOptions(nextDayShift);
+    if (rollCallMode) {
+      left.classList.add('rollcall-grid');
+      left.innerHTML = buildRollCallRowHtml({
+        seqNo,
+        displayLevel,
+        displayName,
+        shift,
+        adjustedShift,
+        hasRest: hasRestForPerson(rowInfo.originalIndex),
+        adjustedShiftOptions,
+        radioNo,
+        ircsNo,
+        nextShiftOptions,
+        clockedOut
+      });
+    } else {
+      left.classList.add('normal-grid');
+      left.innerHTML = buildNormalRowHtml({
+        seqNo,
+        displayLevel,
+        displayName,
+        shift,
+        adjustedShift,
+        hasRest: hasRestForPerson(rowInfo.originalIndex)
+      }).join('');
+    }
     left.addEventListener('dragstart', e => {
       e.dataTransfer.setData('text/person-row', rowInfo.originalIndex);
       left.classList.add('dragging');
@@ -1772,12 +3430,39 @@ function renderRows() {
       if (Number.isNaN(fromIdx) || Number.isNaN(toIdx) || fromIdx === toIdx) return;
       reorderPeople(fromIdx, toIdx); clearHoverStates();
     });
-    const shiftSelect = left.querySelector('.shift-select');
-    shiftSelect.addEventListener('change', e => {
-      people[rowInfo.originalIndex].shift = e.target.value;
-      const st = SHIFT_DEFS[e.target.value];
-      renderRows();
-      saveLocal();
+    if (rollCallMode) {
+      const adjustedShiftSelect = left.querySelector('.adjusted-shift-select');
+      adjustedShiftSelect?.addEventListener('change', e => {
+        people[rowInfo.originalIndex].adjustedShift = e.target.value;
+        refreshShiftLabelEl(left, shift, e.target.value);
+        markUnsynced();
+      });
+      const radioInput = left.querySelector('.person-radio-input');
+      radioInput?.addEventListener('input', e => {
+        people[rowInfo.originalIndex].radioNo = e.target.value;
+        syncRollCallRowVisual(left, people[rowInfo.originalIndex]);
+        markUnsynced();
+      });
+      const ircsInput = left.querySelector('.person-ircs-input');
+      ircsInput?.addEventListener('input', e => {
+        people[rowInfo.originalIndex].ircsNo = e.target.value;
+        markUnsynced();
+      });
+      const nextShiftSelect = left.querySelector('.next-shift-select');
+      nextShiftSelect?.addEventListener('change', e => {
+        people[rowInfo.originalIndex].nextDayShift = e.target.value;
+        markUnsynced();
+      });
+      const clockedOutCheck = left.querySelector('.clocked-out-check');
+      clockedOutCheck?.addEventListener('change', e => {
+        people[rowInfo.originalIndex].clockedOut = e.target.checked;
+        syncRollCallRowVisual(left, people[rowInfo.originalIndex]);
+        markUnsynced();
+      });
+    }
+    left.querySelectorAll('input, select').forEach(el => {
+      el.addEventListener('mousedown', e => e.stopPropagation());
+      el.addEventListener('click', e => e.stopPropagation());
     });
 
     const timeline = document.createElement('div');
@@ -1825,10 +3510,10 @@ function renderRows() {
         start,
         end
       });
-      renderPalette(); renderRows(); saveLocal();
+      renderPalette(); renderRows(); markUnsynced();
     });
 
-    const personShift = people[rowInfo.originalIndex].shift;
+    const personShift = getEffectiveShift(people[rowInfo.originalIndex]);
     if (personShift && SHIFT_DEFS[personShift]) {
       const s1 = tStrToMin(SHIFT_DEFS[personShift][0]);
       let s2 = tStrToMin(SHIFT_DEFS[personShift][1]);
@@ -1854,6 +3539,7 @@ function renderRows() {
   });
   document.querySelectorAll('.timeline').forEach(t => t.addEventListener('click', () => selectBlock(null)));
   syncAssignmentTableFromSchedule();
+  renderOvertimePanel();
 }
 
 function reorderPeople(fromIdx, toIdx) {
@@ -1864,7 +3550,7 @@ function reorderPeople(fromIdx, toIdx) {
     else if (fromIdx < toIdx && item.personIndex > fromIdx && item.personIndex <= toIdx) item.personIndex -= 1;
     else if (fromIdx > toIdx && item.personIndex >= toIdx && item.personIndex < fromIdx) item.personIndex += 1;
   });
-  renderRows(); saveLocal();
+  renderRows(); markUnsynced();
 }
 
 function startMoveBlock(e, item) {
@@ -1905,32 +3591,10 @@ function startMoveBlock(e, item) {
       selectBlock(item.uid);
       return;
     }
-    saveLocal();
+    markUnsynced();
   }
   document.addEventListener('mousemove', onMove);
   document.addEventListener('mouseup', onUp);
-}
-
-function exportCSV() {
-  const header = ['姓名','戰力','完整Duty','顯示字樣','角色','開始','結束'];
-  const lines = [header.join(',')];
-  schedule.slice().sort((a,b) => a.personIndex - b.personIndex || a.start - b.start).forEach(item => {
-    const p = people[item.personIndex];
-    lines.push([
-      p.name, p.level,
-      '"' + item.label.replaceAll('"','""') + '"',
-      item.compactLabel || compactDutyLabel(item.flight, item.role),
-      item.role,
-      minutesToTime(item.start),
-      minutesToTime(item.end)
-    ].join(','));
-  });
-  const blob = new Blob(["\ufeff" + lines.join('\n')], {type:'text/csv;charset=utf-8;'});
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = 'duty_schedule.csv';
-  a.click();
-  URL.revokeObjectURL(a.href);
 }
 
 function setEditorExpanded(expanded) {
@@ -1938,8 +3602,10 @@ function setEditorExpanded(expanded) {
   const panel = document.getElementById('flightEditorPanel');
   const body = document.getElementById('editorBody');
   const btn = document.getElementById('toggleEditorBtn');
+  const sidebar = document.querySelector('.sidebar');
   panel.classList.toggle('collapsed', !expanded);
   body.classList.toggle('hidden', !expanded);
+  sidebar?.classList.toggle('sidebar-editor-open', expanded);
   btn.textContent = expanded ? '收合' : '展開';
 }
 
@@ -1949,7 +3615,38 @@ function toggleAssignmentPanel(forceOpen) {
   const btn = document.getElementById('assignmentToggleBtn');
   const willOpen = typeof forceOpen === 'boolean' ? forceOpen : panel.style.display !== 'block';
   panel.style.display = willOpen ? 'block' : 'none';
-  btn.textContent = willOpen ? '📋 收合分配表' : '📋 今日航班作業人員分配表';
+  btn.textContent = willOpen ? '收合分配表' : '展開人員分配表';
+}
+function focusPersonInSchedule(personIndex) {
+  if (personIndex < 0 || !people[personIndex]) return;
+  const person = people[personIndex];
+  const neededView = getShiftType(getShiftFilterKey(person));
+  if (neededView && neededView !== activeShiftView) {
+    activeShiftView = neededView;
+    updateShiftViewButtonLabel();
+    renderRows();
+  }
+  requestAnimationFrame(() => {
+    const cell = document.querySelector(`.person-cell[data-original-index="${personIndex}"]`);
+    if (!cell) return;
+    const row = cell.closest('.row');
+    const scrollHost = document.querySelector('.control-panel');
+    if (row && scrollHost) {
+      const rowRect = row.getBoundingClientRect();
+      const hostRect = scrollHost.getBoundingClientRect();
+      const targetTop = scrollHost.scrollTop + (rowRect.top - hostRect.top) - (hostRect.height / 2) + (rowRect.height / 2);
+      scrollHost.scrollTo({ top: Math.max(0, targetTop), behavior: 'smooth' });
+    } else if (row) {
+      row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+    document.querySelectorAll('.row.person-locate-flash, .person-cell.person-locate-flash').forEach(el => el.classList.remove('person-locate-flash'));
+    row.classList.add('person-locate-flash');
+    cell.classList.add('person-locate-flash');
+    setTimeout(() => {
+      row.classList.remove('person-locate-flash');
+      cell.classList.remove('person-locate-flash');
+    }, 2000);
+  });
 }
 function syncAssignmentTableFromSchedule() {
   const mappedCells = document.querySelectorAll('[data-flight][data-role]');
@@ -1963,16 +3660,10 @@ function syncAssignmentTableFromSchedule() {
     cell.textContent = codes.join(' ');
     if (codes.length) {
       cell.classList.add('assignment-clickable');
-      cell.onclick = () => {
-        const index = matchedItems[0] ? matchedItems[0].personIndex : -1;
-        if (index === -1) return;
-        const row = document.querySelector(`.person-cell[data-original-index="${index}"]`)?.closest('.row');
-        if (row) {
-          row.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          const oldBg = row.style.background;
-          row.style.background = '#fff3bf';
-          setTimeout(() => { row.style.background = oldBg; }, 1500);
-        }
+      cell.onclick = (e) => {
+        e.stopPropagation();
+        const targets = [...new Set(matchedItems.map(item => item.personIndex))];
+        targets.forEach(idx => focusPersonInSchedule(idx));
       };
       cell.title = '點一下可定位到下方該人員';
     } else {
@@ -1985,24 +3676,19 @@ function syncAssignmentTableFromSchedule() {
 document.getElementById('assignmentToggleBtn').addEventListener('click', () => toggleAssignmentPanel());
 document.getElementById('assignmentCloseBtn').addEventListener('click', () => toggleAssignmentPanel(false));
 
-
-function forceFixFlightEditorToggle() {
-  const panel = document.getElementById('flightEditorPanel');
-  const body = document.getElementById('editorBody');
-  const btn = document.getElementById('toggleEditorBtn');
-  if (!panel || !body || !btn) return;
-  btn.onclick = () => {
-    const isClosed = body.classList.contains('hidden');
-    panel.classList.toggle('collapsed', !isClosed);
-    body.classList.toggle('hidden', !isClosed);
-    btn.textContent = isClosed ? '收合' : '展開';
-  };
-}
-
 document.getElementById('searchInput').addEventListener('input', renderPalette);
+document.getElementById('clearDutySearchBtn').addEventListener('click', () => {
+  document.getElementById('searchInput').value = '';
+  renderPalette();
+});
 document.getElementById('roleFilter').addEventListener('change', renderPalette);
 document.getElementById('flightSearchInput').addEventListener('input', renderFlightEditor);
-document.getElementById('flightTypeFilter').addEventListener('change', renderFlightEditor);
+document.querySelectorAll('.editor-tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    activeFlightEditorTab = btn.dataset.flightTab;
+    renderFlightEditor();
+  });
+});
 document.querySelectorAll('.tab-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     activePaletteTab = btn.dataset.tab;
@@ -2024,9 +3710,17 @@ document.getElementById('toggleEditorBtn').addEventListener('click', () => {
 });
 document.getElementById('toggleShiftViewBtn').addEventListener('click', () => {
   activeShiftView = activeShiftView === 'early' ? 'late' : 'early';
-  localStorage.setItem(LS_KEYS.shiftView, activeShiftView);
+  localStorage.setItem(LS_KEYS_GLOBAL.shiftView, activeShiftView);
   updateShiftViewButtonLabel();
   renderTimeHeader();
+  renderRows();
+});
+document.getElementById('toggleRollCallBtn')?.addEventListener('click', () => {
+  rollCallMode = !rollCallMode;
+  localStorage.setItem(LS_KEYS_GLOBAL.rollCallMode, rollCallMode ? '1' : '0');
+  updateRollCallButtonLabel();
+  updateNameColHeader();
+  syncRollCallBoardClass();
   renderRows();
 });
 
@@ -2072,7 +3766,7 @@ document.getElementById('excelImportInput').addEventListener('change', async (e)
   if (!confirm(`即將匯入 ${newFlightDefs.length} 筆航班、${newPeople.length} 位人員。\n目前已排的 duty 會清空，確定匯入嗎？`)) return;
 
   rebuildAfterExcelImport(newFlightDefs, newPeople);
-  alert('Excel 匯入完成，已依新規則產生 duty 區塊，並同步到雲端。');
+  alert('Excel 匯入完成，已依新規則產生 duty 區塊。請按「同步」上傳雲端。');
   e.target.value = '';
 });
 document.getElementById('staffDbImportInput').addEventListener('change', async (e) => {
@@ -2097,8 +3791,9 @@ document.getElementById('staffDbImportInput').addEventListener('change', async (
   }
   staffDirectory = directory;
   saveStaffDirectory();
+  if (people.length) people = mergePeopleWithStaffDirectory(people);
   renderRows();
-  scheduleCloudSave();
+  markUnsynced();
   alert(`人員資料庫已更新，共 ${directory.length} 筆。`);
   e.target.value = '';
 });
@@ -2107,12 +3802,21 @@ document.getElementById('resetBtn').addEventListener('click', () => {
   if (confirm('要清空目前排班嗎？')) {
     schedule = [];
     selectedBlockId = null;
-    saveLocal();
+    markUnsynced();
     renderPalette(); renderRows();
   }
 });
-document.getElementById('exportBtn').addEventListener('click', exportCSV);
-document.getElementById('saveBtn').addEventListener('click', () => { saveLocal(); alert('已儲存到瀏覽器'); });
+document.getElementById('toggleOvertimeBtn').addEventListener('click', () => setOvertimeExpanded(!overtimeExpanded));
+document.getElementById('exportOvertimeBtn').addEventListener('click', exportOvertimeCSV);
+document.getElementById('saveBtn').addEventListener('click', () => {
+  const active = document.activeElement;
+  if (active && typeof active.blur === 'function') active.blur();
+  setTimeout(() => {
+    saveLocal();
+    saveCloudNow();
+    alert('已儲存並同步');
+  }, 0);
+});
 
 document.getElementById('addCustomDutyBtn').addEventListener('click', () => {
   const nameEl = document.getElementById('customDutyName');
@@ -2131,7 +3835,7 @@ document.getElementById('addCustomDutyBtn').addEventListener('click', () => {
 
   customTemplates.push(tpl);
   saveCustomTemplates();
-  templates = [...buildTemplates(), ...createRestTemplates(), ...customTemplates];
+  rebuildTemplates();
   renderPalette();
 
   nameEl.value = '';
@@ -2139,8 +3843,6 @@ document.getElementById('addCustomDutyBtn').addEventListener('click', () => {
   durEl.value = '';
 });
 
-document.getElementById('zoomIn').addEventListener('click', () => { pxPerMinute = Math.min(4, pxPerMinute + 0.2); renderTimeHeader(); renderRows(); });
-document.getElementById('zoomOut').addEventListener('click', () => { pxPerMinute = Math.max(0.6, pxPerMinute - 0.2); renderTimeHeader(); renderRows(); });
 document.addEventListener('keydown', e => {
   const active = document.activeElement;
   const tag = active && active.tagName ? active.tagName.toLowerCase() : '';
@@ -2156,20 +3858,33 @@ document.addEventListener('keydown', e => {
 
     renderPalette();
     renderRows();
-    saveLocal();
+    markUnsynced();
   }
 });
 
-templates = [...buildTemplates(), ...createRestTemplates(), ...customTemplates];
 syncScheduleWindows();
 renderTimeHeader();
 renderPalette();
+syncRollCallBoardClass();
+updateRollCallButtonLabel();
+updateNameColHeader();
 renderRows();
+renderOvertimePanel();
 updateShiftViewButtonLabel();
 renderFlightEditor();
 setEditorExpanded(false);
-forceFixFlightEditorToggle();
-initFirebaseSync();
+initScheduleDatePicker();
+if (!flightsImported) {
+  const _kSan = dayStorageKeys(selectedDate);
+  flightDefs = [];
+  rebuildTemplates();
+  localStorage.setItem(_kSan.flightDefs, '[]');
+  localStorage.setItem(_kSan.flightsImported, '0');
+  renderPalette();
+  renderAssignmentTableFromFlightDefs();
+  renderFlightEditor();
+}
+attachFirebaseForSelectedDate();
 toggleAssignmentPanel(false);
 </script>
 </body>
