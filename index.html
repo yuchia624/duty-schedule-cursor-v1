@@ -18,6 +18,9 @@
     --bg: #f5f7fb;
     --line: #d6dbe6;
     --text: #1f2937;
+    --assignment-titlebar-h: 38px;
+    --assign-section-head-h: 30px;
+    --assignment-pane-height: 420px;
   }
   * { box-sizing: border-box; }
   body { margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang TC","Microsoft JhengHei",sans-serif; color:var(--text); background:var(--bg); }
@@ -300,7 +303,7 @@
   .editor-head.arr-editor-head,.editor-row.arr-editor-row { display:grid; grid-template-columns:62px 54px 80px; gap:5px; align-items:center; padding:4px 3px; font-size:11px; }
   .editor-head { font-size:11px; color:#6b7280; font-weight:700; padding-top:3px; padding-bottom:3px; }
   .editor-row:hover { background:#f8fafc; border-radius:8px; }
-  .workspace { overflow: auto; position: relative; height: 100vh; isolation: isolate; padding-top: 56px; }
+  .workspace { overflow: hidden; position: relative; height: 100vh; isolation: isolate; padding-top: 0; }
   .toolbar {
     position:sticky; top:0; left:0; z-index:60; display:flex; gap:8px; align-items:center; padding:10px 14px;
     border-bottom:1px solid var(--line); background:rgba(255,255,255,.97); backdrop-filter:blur(6px); flex-wrap:wrap;
@@ -308,7 +311,10 @@
   }
   .toolbar .search-wrap { width:260px; }
   .toolbar .schedule-date-wrap { display:inline-flex; align-items:center; gap:6px; margin-left:8px; position:relative; }
-  .toolbar .schedule-date-wrap label { font-size:12px; font-weight:700; color:#475569; white-space:nowrap; }
+  .toolbar .schedule-date-wrap label {
+    font-size:12px; font-weight:600; color:#111827; white-space:nowrap; line-height:1.2;
+  }
+  .toolbar-assignment-wrap { margin-left:auto; flex:0 0 auto; display:flex; align-items:center; }
   .schedule-date-picker { position:relative; }
   .schedule-date-trigger {
     display:inline-flex; align-items:center; gap:5px; padding:0; border:0; border-radius:0;
@@ -408,7 +414,7 @@
   .time-label { position:absolute; top:10px; transform:translateX(-50%); font-size:12px; color:#4b5563; font-weight:700; }
   .row { display:grid; grid-template-columns:var(--name-col-width) var(--timeline-width); height:var(--row-height); border-bottom:1px solid var(--line); background:#fff; position:relative; }
   .person-cell {
-    position: sticky; left: 0; z-index: 5; border-right:1px solid var(--line); padding:4px 6px; display:flex;
+    position: sticky; left: 0; z-index: 15; border-right:1px solid var(--line); padding:4px 6px; display:flex;
     flex-direction:column; align-items:stretch; gap:3px; overflow:hidden; cursor:grab; background:#fff;
   }
   .person-cell-top {
@@ -422,7 +428,8 @@
   }
   .person-shift-label {
     flex:0 0 auto; min-width:36px; padding:2px 6px; border-radius:8px;
-    font-size:11px; font-weight:800; background:#f1f5f9; color:#334155; text-align:center; white-space:nowrap;
+    font-size:11px; font-weight:800; background:#e2e8f0; color:#0f172a; text-align:center; white-space:nowrap;
+    border:1px solid #cbd5e1;
   }
   .person-shift-label.is-adjusted { background:#fef3c7; color:#92400e; }
   .board:not(.roll-call-mode) .person-cell-top .pending-rest {
@@ -454,6 +461,16 @@
   }
   .row.clocked-out .person-cell {
     background: #f8fafc;
+  }
+  .row.clocked-out .person-cell.shift-early,
+  .row.clocked-out .person-cell.shift-late {
+    background: #f8fafc;
+    border-left-color: #e2e8f0;
+  }
+  .row.clocked-out .person-cell.rollcall-grid.shift-early,
+  .row.clocked-out .person-cell.rollcall-grid.shift-late {
+    background: #f8fafc;
+    box-shadow: none;
   }
   .board.roll-call-mode {
     --name-col-width: 558px;
@@ -576,9 +593,9 @@
     border-radius: 8px;
     font-size: 11px;
     line-height: 1.15;
-    background: #fff;
-    border: 1px solid #d1d5db;
-    color: #334155;
+    background: #e2e8f0;
+    border: 1px solid #cbd5e1;
+    color: #0f172a;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -680,7 +697,7 @@
   }
   .rollcall-grid .rc-col .person-shift-label {
     width:auto; min-width:36px; flex:0 0 auto; padding:2px 6px; box-sizing:border-box; font-weight:800;
-    border-radius:8px; background:#f1f5f9; color:#334155; text-align:center;
+    border-radius:8px; background:#e2e8f0; color:#0f172a; border:1px solid #cbd5e1; text-align:center;
   }
   .rollcall-grid .rc-col .pending-rest {
     width:auto; flex:0 0 auto; max-width:100%; overflow:hidden; white-space:nowrap;
@@ -889,52 +906,102 @@
     overflow: auto;
     max-height: 42vh;
   }
-  .assignment-inner { min-width: 1200px; }
   .assignment-titlebar {
-    display:flex; justify-content:space-between; align-items:center; gap:8px;
-    min-height: 60px;
-    padding:12px 14px; border-bottom:1px solid #e5e7eb;
-    position: sticky; top: 0; background:#fff; z-index: 50;
+    display:flex; justify-content:space-between; align-items:center; gap:6px;
+    min-height: var(--assignment-titlebar-h);
+    padding:6px 10px; border-bottom:1px solid #e5e7eb;
+    background:#fff;
+    flex: 0 0 auto;
   }
-  .assignment-title { font-weight: 800; font-size: 16px; }
-  .assignment-sub { color:#6b7280; font-size:12px; }
-  .assignment-grid { display:grid; grid-template-columns: 1fr 1fr; gap: 0; }
-  .assign-section { border-right: 1px solid #e5e7eb; }
+  .assignment-title { font-weight: 800; font-size: 14px; }
+  .assignment-sub { color:#6b7280; font-size:11px; }
+  .assignment-grid {
+    display: grid;
+    grid-template-columns: minmax(620px, 1fr) minmax(620px, 1fr);
+    gap: 0;
+    width: max-content;
+    min-width: 100%;
+    align-items: start;
+  }
+  .assign-section {
+    min-width: 620px;
+    border-right: 1px solid #e5e7eb;
+    display: flex;
+    flex-direction: column;
+  }
   .assign-section:last-child { border-right: 0; }
-  .assign-head {
-    background:#f8fafc; padding:10px 12px; border-bottom:1px solid #e5e7eb; font-weight:800;
-    position: sticky; top: 60px; z-index: 30;
+  .assign-section .assignment-table {
+    flex: 0 0 auto;
+    margin: 0;
   }
-  .assign-meta { font-size:12px; color:#475569; margin-top:4px; line-height:1.5; }
-  table.assignment-table { width:100%; border-collapse: collapse; font-size: 13px; table-layout: auto; }
+  .assign-head {
+    background:#f8fafc; padding:5px 8px; border-bottom:1px solid #e5e7eb; font-weight:800;
+    font-size: 13px;
+    position: sticky; top: 0; z-index: 30;
+  }
+  .assign-meta { font-size:11px; color:#475569; margin-top:2px; line-height:1.35; }
+  table.assignment-table { width:100%; border-collapse: collapse; font-size: 12px; table-layout: auto; }
   .assignment-table th, .assignment-table td {
-    border:1px solid #e5e7eb; padding:8px 10px; text-align:center; vertical-align:middle;
-    line-height:1.4; white-space:nowrap;
+    border:1px solid #e5e7eb; padding:5px 6px; text-align:center; vertical-align:middle;
+    line-height:1.3; white-space:nowrap; box-sizing:border-box;
+  }
+  .assignment-table thead tr {
+    height: 34px;
+  }
+  .assignment-table thead th {
+    height: 34px;
+    padding: 4px 6px;
   }
   .assignment-table td[data-role],
   .assignment-table th:nth-child(n+4):not(:last-child) {
-    min-width:48px;
+    min-width:44px;
   }
   .assignment-table td[data-role] {
-    font-size:14px;
+    font-size:13px;
     font-weight:700;
-    line-height:1.35;
-    white-space:normal;
-    word-break:keep-all;
-    padding:8px 6px;
+    line-height:1.3;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    padding:5px 4px;
   }
-  .assignment-table th { background:#f8fafc; position: sticky; top: 100px; z-index: 40; }
-  .memo-cell { text-align:left !important; white-space:normal !important; min-width:120px; }
+  .assignment-table th {
+    background:#f8fafc;
+    position: sticky;
+    top: 0;
+    z-index: 40;
+    font-size: 12px;
+  }
+  .memo-cell {
+    text-align:left !important;
+    white-space:nowrap !important;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    min-width:80px;
+  }
   .assignment-clickable { cursor: pointer; background: #fffdfa; }
   .assignment-clickable:hover { background: #fff3bf; }
+  .assignment-flight-no {
+    cursor: pointer;
+  }
+  .assignment-flight-no:hover {
+    background: #fff3bf;
+  }
+  .assignment-table tbody tr.assignment-flight-match td {
+    background: #fffbea !important;
+    overflow: visible;
+  }
+  .assignment-table tbody tr.assignment-flight-match td:first-child {
+    border-left: 3px solid #f59e0b !important;
+    background: #fffbea !important;
+  }
   .row.person-locate-flash {
     z-index: 6;
-    box-shadow: inset 0 0 0 2px #f59e0b;
   }
   .person-cell.person-locate-flash,
   .row.person-locate-flash .person-cell {
-    background: #fde68a !important;
-    box-shadow: inset 0 0 0 2px #f59e0b !important;
+    background: #fffbea !important;
+    box-shadow: inset 3px 0 0 #f59e0b;
     z-index: 40 !important;
   }
   .board .person-cell.rollcall-grid.person-locate-flash,
@@ -943,22 +1010,22 @@
   .person-cell.shift-early.person-locate-flash,
   .person-cell.shift-late.person-locate-flash,
   .row.flight-match-top .person-cell.person-locate-flash {
-    background: #fde68a !important;
-    box-shadow: inset 0 0 0 2px #f59e0b !important;
+    background: #fffbea !important;
+    box-shadow: inset 3px 0 0 #f59e0b;
   }
   .row.person-locate-flash .timeline {
-    background-color: rgba(253, 230, 138, 0.55) !important;
+    background-color: rgba(255, 251, 234, 0.45) !important;
   }
   .row.person-locate-flash .timeline::before {
     content: '';
     position: absolute;
     inset: 0;
-    background: rgba(251, 191, 36, 0.28);
+    background: rgba(255, 251, 234, 0.25);
     pointer-events: none;
     z-index: 25;
   }
   .row.person-locate-flash .shift-band {
-    background-color: #fef3c7 !important;
+    background-color: #fffbea !important;
   }
 
 
@@ -970,38 +1037,93 @@
     isolation: isolate;
     display: flex;
     flex-direction: column;
-  }
-  .workspace-topbar {
-    flex: 0 0 auto;
-    padding: 10px 14px 0;
-    display: flex;
-    justify-content: flex-end;
-    background: rgba(255,255,255,.97);
+    padding-top: 0;
+    min-height: 0;
   }
   .assignment-toggle-btn {
     border: 1px solid #cfd6e4;
     background: #fff;
-    border-radius: 14px;
-    padding: 10px 14px;
+    border-radius: 10px;
+    padding: 5px 10px;
     font-weight: 800;
-    font-size: 15px;
+    font-size: 12px;
     cursor: pointer;
-    box-shadow: 0 2px 8px rgba(0,0,0,.04);
+    box-shadow: 0 1px 4px rgba(0,0,0,.04);
+    line-height: 1.2;
   }
   .assignment-overlay-panel,
   .assignment-split-panel {
     display: none;
+    flex-direction: column;
     position: relative;
     left: auto; right: auto; top: auto;
     z-index: auto;
-    margin: 8px 14px 10px;
+    margin: 2px 6px 4px;
     background: #fff;
     border: 1px solid #d6dbe6;
-    border-radius: 14px;
-    box-shadow: 0 6px 18px rgba(0,0,0,0.06);
+    border-radius: 10px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    overflow: hidden;
+    flex: 1 1 auto;
+    min-height: 0;
+    max-height: none;
+  }
+  .assignment-scroll {
+    flex: 1 1 auto;
+    min-height: 0;
+    min-width: 0;
     overflow: auto;
-    max-height: 38vh;
+    -webkit-overflow-scrolling: touch;
+  }
+  .workspace--assignment-open .assignment-overlay-panel {
     flex: 0 0 auto;
+    height: var(--assignment-pane-height);
+    min-height: 140px;
+    max-height: calc(100vh - 160px);
+  }
+  .workspace-splitter {
+    display: none;
+    flex: 0 0 10px;
+    margin: 0 8px;
+    border-radius: 6px;
+    background: #e2e8f0;
+    cursor: ns-resize;
+    touch-action: none;
+    position: relative;
+    z-index: 200;
+  }
+  .workspace-splitter::before {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: 40px;
+    height: 4px;
+    border-radius: 999px;
+    background: #94a3b8;
+  }
+  .workspace-splitter:hover,
+  .workspace-splitter.is-dragging {
+    background: #cbd5e1;
+  }
+  .workspace-splitter:hover::before,
+  .workspace-splitter.is-dragging::before {
+    background: #64748b;
+  }
+  body.workspace-split-dragging {
+    cursor: ns-resize !important;
+    user-select: none;
+  }
+  body.workspace-split-dragging * {
+    cursor: ns-resize !important;
+  }
+  .workspace--assignment-open .workspace-splitter {
+    display: block;
+  }
+  .workspace--assignment-open .control-panel {
+    flex: 1 1 auto;
+    min-height: 120px;
   }
   .control-panel {
     flex: 1 1 auto;
@@ -1023,20 +1145,9 @@
   }
   .control-panel .header {
     position: sticky;
-    top: 60px;
+    top: 0;
     z-index: 110;
   }
-  .assignment-titlebar {
-    display:flex; justify-content:space-between; align-items:center; gap:8px;
-    min-height: 60px;
-    padding:12px 14px; border-bottom:1px solid #e5e7eb;
-    position: sticky; top: 0; background:#fff; z-index: 50;
-  }
-  .assign-head {
-    background:#f8fafc; padding:10px 12px; border-bottom:1px solid #e5e7eb; font-weight:800;
-    position: sticky; top: 60px; z-index: 30;
-  }
-  .assignment-table th { background:#f8fafc; position: sticky; top: 100px; z-index: 40; }
 
 
   .pending-rest {
@@ -1075,20 +1186,6 @@
     align-items: flex-start;
     gap: 2px;
     min-width: 0;
-  }
-  .out-of-view-duty-badge {
-    display: inline-flex;
-    align-items: center;
-    margin-left: 0;
-    padding: 1px 5px;
-    border-radius: 999px;
-    background: #fef2f2;
-    color: #b91c1c;
-    border: 1px solid #fecaca;
-    font-size: 9px;
-    font-weight: 800;
-    flex: 0 0 auto;
-    white-space: nowrap;
   }
   .role-休 { background:#f3f4f6; }
 
@@ -1401,6 +1498,46 @@
     color: #94a3b8;
     cursor: default;
   }
+  .overtime-seg-lines {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin: 4px 0 2px;
+  }
+  .overtime-seg-line {
+    font-size: 11px;
+    color: #64748b;
+    font-weight: 600;
+    line-height: 1.35;
+  }
+  .overtime-dic-row {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px dashed #e5e7eb;
+  }
+  .overtime-dic-label {
+    font-size: 11px;
+    font-weight: 800;
+    color: #7c2d12;
+  }
+  .overtime-dic-select {
+    flex: 1 1 auto;
+    min-width: 140px;
+    height: 28px;
+    padding: 2px 8px;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    font-size: 11px;
+    font-weight: 700;
+    background: #fff;
+  }
+  .overtime-item.dic-approved { border-left: 3px solid #16a34a; }
+  .overtime-item.dic-rejected { border-left: 3px solid #94a3b8; opacity: 0.85; }
+  .overtime-item.dic-pending { border-left: 3px solid #ea580c; }
   .overtime-empty {
     font-size: 12px;
     color: #6b7280;
@@ -1518,12 +1655,9 @@
     min-width: 96px;
     padding: 0 12px;
   }
-  .workspace-topbar {
-    padding: 8px 12px 0;
-  }
   .assignment-toggle-btn {
-    padding: 8px 12px;
-    font-size: 14px;
+    padding: 5px 10px;
+    font-size: 12px;
   }
   .toolbar {
     padding: 8px 12px;
@@ -1700,7 +1834,7 @@
       </div>
       <div class="overtime-body hidden" id="overtimeBody">
         <div class="overtime-list" id="overtimeList"></div>
-        <button class="overtime-export-btn" id="exportOvertimeBtn" type="button" disabled>匯出加班 CSV</button>
+        <button class="overtime-export-btn" id="exportOvertimeBtn" type="button" disabled>匯出加班 Excel</button>
       </div>
     </div>
     <div class="flight-editor collapsed" id="flightEditorPanel">
@@ -1709,7 +1843,6 @@
         <button class="collapse-btn" id="toggleEditorBtn">展開</button>
       </div>
       <div class="editor-body hidden" id="editorBody">
-        <div class="editor-sub">出境「改時」直接指定 STD；「提早/延長(分)」以改時（或原始 STD）為基準，負值往前提早 duty 起點，正值往後延長 duty 終點。入境保留 STA，可填入 ETA。</div>
         <div class="editor-controls">
           <input id="flightSearchInput" type="text" placeholder="搜尋航班，例如 BR49、49、BR8" />
         </div>
@@ -1731,20 +1864,10 @@
     </div>
   </aside>
   <main class="workspace">
-  <div class="workspace-topbar">
-    <button class="assignment-toggle-btn" id="assignmentToggleBtn">展開人員分配表</button>
-  </div>
   <div class="assignment-overlay-panel" id="assignmentPanel">
-  <div class="assignment-inner">
-    <div class="assignment-titlebar">
-      <div>
-        <div class="assignment-title">今日航班作業人員分配表</div>
-      </div>
-      <button class="assignment-toggle-btn" id="assignmentCloseBtn">收合</button>
-    </div>
+    <div class="assignment-scroll">
     <div class="assignment-grid">
       <section class="assign-section">
-        <div class="assign-head">出境</div>
         <table class="assignment-table">
           <thead>
             <tr>
@@ -1847,7 +1970,6 @@
         </table>
       </section>
       <section class="assign-section">
-        <div class="assign-head">入境</div>
         <table class="assignment-table">
           <thead>
             <tr>
@@ -1953,14 +2075,15 @@
         </table>
       </section>
     </div>
+    </div>
   </div>
-</div>
+  <div id="workspaceSplitter" class="workspace-splitter" role="separator" aria-label="拖曳調整分配表高度" hidden></div>
 
 
   <div class="control-panel">
 
     <div class="toolbar">
-      <div class="search-wrap"><input id="timelineFlightSearch" type="text" placeholder="搜尋航班" /></div>
+      <div class="search-wrap"><input id="timelineFlightSearch" type="text" placeholder="搜尋航班、姓名、戰力（如 2A/m）" /></div>
       <button id="clearTimelineSearch">清除搜尋</button>
       <button id="toggleShiftViewBtn">顯示：早班</button>
       <button id="toggleRollCallBtn">點名：關</button>
@@ -1993,6 +2116,9 @@
             </div>
           </div>
         </div>
+      </div>
+      <div class="toolbar-assignment-wrap">
+        <button type="button" class="assignment-toggle-btn" id="assignmentToggleBtn">展開人員分配表</button>
       </div>
     </div>
     <div class="board" id="scheduleBoard">
@@ -2048,10 +2174,6 @@ function updateRollCallButtonLabel() {
   btn.textContent = rollCallMode ? '點名：開' : '點名：關';
   btn.classList.toggle('active', rollCallMode);
 }
-function buildOutOfViewBadge(count) {
-  if (!count) return '';
-  return `<span class="out-of-view-duty-badge" title="此列有 duty 落在目前顯示區間外">畫面外×${count}</span>`;
-}
 function buildRestStatusHtml(opts) {
   if (opts.clockedOut) return '<span class="clocked-out-rest">已下班</span>';
   if (opts.hasRest) return opts.useRestCell ? '<span class="rest-cell" aria-hidden="true"></span>' : '';
@@ -2086,14 +2208,13 @@ function buildPersonRowCoreHtml(opts) {
     hasRest: opts.hasRest,
     useRestCell: true
   });
-  const outOfView = buildOutOfViewBadge(opts.outOfViewCount || 0);
   return [
     `<div class="rc-col rc-seq"><span class="person-seq">${opts.seqNo}</span></div>`,
     '<div class="rc-col rc-grip"><span class="drag-icon">⋮⋮</span></div>',
     `<div class="rc-col rc-level"><span class="badge">${escapeHtml(opts.displayLevel)}</span></div>`,
     `<div class="rc-col rc-name"><span class="person-name">${escapeHtml(opts.displayName)}</span></div>`,
     `<div class="rc-col rc-shift">${renderShiftLabel(opts.shift, opts.adjustedShift)}</div>`,
-    `<div class="rc-col rc-rest"><div class="rest-stack">${restCell}${outOfView}</div></div>`
+    `<div class="rc-col rc-rest"><div class="rest-stack">${restCell}</div></div>`
   ];
 }
 function buildRollCallHeaderHtml() {
@@ -2125,12 +2246,11 @@ function buildNormalRowHtml(opts) {
     hasRest: opts.hasRest,
     useRestCell: false
   });
-  const outOfView = buildOutOfViewBadge(opts.outOfViewCount || 0);
   return [
     `<div class="rc-col rc-seq"><span class="drag-icon">⋮⋮</span><span class="person-seq">${opts.seqNo}</span></div>`,
     `<div class="rc-col rc-level"><span class="badge">${escapeHtml(opts.displayLevel)}</span></div>`,
     `<div class="rc-col rc-name"><span class="person-name">${escapeHtml(opts.displayName)}</span></div>`,
-    `<div class="rc-col rc-shift"><span class="normal-shift-tail">${renderShiftLabel(opts.shift, opts.adjustedShift)}<span class="rest-out-stack">${restBit}${outOfView}</span></span></div>`
+    `<div class="rc-col rc-shift"><span class="normal-shift-tail">${renderShiftLabel(opts.shift, opts.adjustedShift)}<span class="rest-out-stack">${restBit}</span></span></div>`
   ];
 }
 function buildRollCallRowHtml(opts) {
@@ -2184,30 +2304,51 @@ function getItemOvertimeRanges(item, person) {
   if (!bounds) return [];
   const ranges = [];
   if (item.start < bounds.startMin) {
-    ranges.push({ otStart: item.start, otEnd: bounds.startMin });
+    ranges.push({ otStart: item.start, otEnd: Math.min(item.end, bounds.startMin) });
   }
   if (item.end > bounds.endMin) {
     ranges.push({ otStart: Math.max(item.start, bounds.endMin), otEnd: item.end });
   }
   return ranges.filter(r => r.otEnd > r.otStart);
 }
-function minutesToHoursText(mins) {
-  if (mins <= 0) return '0.0';
-  const halfHours = Math.max(1, Math.round(mins / 30));
-  return (halfHours / 2).toFixed(1);
+function overtimeBillableMinutes(rawMins) {
+  if (rawMins <= 0) return 0;
+  return Math.ceil(rawMins / 30) * 30;
 }
-function getOvertimeRecordKey(personIndex, otStart, otEnd, dutyLabel) {
-  return `${personIndex}_${otStart}_${otEnd}_${dutyLabel}`;
+function billableMinutesToHoursText(billableMins) {
+  if (billableMins <= 0) return '0.0';
+  return (billableMins / 60).toFixed(1);
+}
+function getOvertimeCombinedRecordKey(personIndex) {
+  return `${personIndex}_ot_combined`;
+}
+function getCombinedOvertimeHoursText(totalBillableMins, overrideKey) {
+  const auto = billableMinutesToHoursText(totalBillableMins);
+  const manual = overtimeHourOverrides[overrideKey];
+  if (manual != null && manual !== '') return normalizeManualOvertimeHours(manual) || auto;
+  return auto;
+}
+function normalizeDicOvertimeStatus(v) {
+  if (v === 'approved' || v === 'rejected' || v === 'pending') return v;
+  return 'pending';
+}
+function getDicOvertimeStatus(key) {
+  return normalizeDicOvertimeStatus(dicOvertimeApprovals[key]);
+}
+function saveDicOvertimeApprovals() {
+  localStorage.setItem(dayStorageKeys(selectedDate).dicOvertimeApprovals, JSON.stringify(dicOvertimeApprovals));
+}
+function setDicOvertimeStatus(key, status) {
+  const s = normalizeDicOvertimeStatus(status);
+  if (s === 'pending') delete dicOvertimeApprovals[key];
+  else dicOvertimeApprovals[key] = s;
+  saveDicOvertimeApprovals();
+  markUnsynced();
 }
 function normalizeManualOvertimeHours(value) {
   const n = Number(value);
   if (Number.isNaN(n) || n <= 0) return null;
   return (Math.round(n * 2) / 2).toFixed(1);
-}
-function getOvertimeHoursText(minutes, overrideKey) {
-  const manual = overtimeHourOverrides[overrideKey];
-  if (manual != null && manual !== '') return normalizeManualOvertimeHours(manual) || minutesToHoursText(minutes);
-  return minutesToHoursText(minutes);
 }
 function saveOvertimeOverrides() {
   localStorage.setItem(dayStorageKeys(selectedDate).overtimeOverrides, JSON.stringify(overtimeHourOverrides));
@@ -2221,30 +2362,80 @@ function setOvertimeHourOverride(key, value) {
 }
 function collectOvertimeRecords() {
   const records = [];
+  const byPerson = new Map();
   schedule.forEach(item => {
-    const person = people[item.personIndex];
-    if (!person) return;
+    if (item.role === '休') return;
+    const pid = item.personIndex;
+    if (people[pid] == null) return;
+    if (!byPerson.has(pid)) byPerson.set(pid, []);
+    byPerson.get(pid).push(item);
+  });
+  byPerson.forEach((items, personIndex) => {
+    const person = people[personIndex];
+    const bounds = getPersonShiftBounds(person);
+    if (!bounds) return;
+    let minStart = Infinity;
+    let maxEnd = -Infinity;
+    let firstStartItem = null;
+    let lastEndItem = null;
+    for (const it of items) {
+      if (it.start < minStart) {
+        minStart = it.start;
+        firstStartItem = it;
+      }
+      if (it.end > maxEnd) {
+        maxEnd = it.end;
+        lastEndItem = it;
+      }
+    }
+    if (minStart === Infinity) return;
     const shiftKey = getEffectiveShift(person);
-    const dutyLabel = getDutyDisplayLabel(item);
-    getItemOvertimeRanges(item, person).forEach(r => {
-      const minutes = r.otEnd - r.otStart;
-      const overrideKey = getOvertimeRecordKey(item.personIndex, r.otStart, r.otEnd, dutyLabel);
-      records.push({
-        personIndex: item.personIndex,
-        name: resolveFullName(person) || person.name || person.code || '',
-        level: person.level || '',
-        shift: person.shift || shiftKey,
-        otStart: r.otStart,
-        otEnd: r.otEnd,
-        minutes,
-        hoursText: getOvertimeHoursText(minutes, overrideKey),
-        dutyLabel,
-        overrideKey,
-        isManual: overtimeHourOverrides[overrideKey] != null && overtimeHourOverrides[overrideKey] !== ''
-      });
+    const segments = [];
+    let totalBillable = 0;
+    if (minStart < bounds.startMin && firstStartItem) {
+      const minutesRaw = bounds.startMin - minStart;
+      if (minutesRaw > 0) {
+        totalBillable += overtimeBillableMinutes(minutesRaw);
+        segments.push({
+          tag: '加上',
+          otStart: minStart,
+          otEnd: bounds.startMin,
+          minutesRaw,
+          dutyHint: getDutyDisplayLabel(firstStartItem)
+        });
+      }
+    }
+    if (maxEnd > bounds.endMin && lastEndItem) {
+      const minutesRaw = maxEnd - bounds.endMin;
+      if (minutesRaw > 0) {
+        totalBillable += overtimeBillableMinutes(minutesRaw);
+        segments.push({
+          tag: '加下',
+          otStart: bounds.endMin,
+          otEnd: maxEnd,
+          minutesRaw,
+          dutyHint: getDutyDisplayLabel(lastEndItem)
+        });
+      }
+    }
+    if (!segments.length) return;
+    const overrideKey = getOvertimeCombinedRecordKey(personIndex);
+    const dicStatus = getDicOvertimeStatus(overrideKey);
+    records.push({
+      personIndex,
+      personnelId: resolvePersonnelId(person),
+      name: resolveFullName(person) || person.name || person.code || '',
+      level: person.level || '',
+      shift: person.shift || shiftKey,
+      segments,
+      totalBillableMinutes: totalBillable,
+      hoursText: getCombinedOvertimeHoursText(totalBillable, overrideKey),
+      overrideKey,
+      isManual: overtimeHourOverrides[overrideKey] != null && overtimeHourOverrides[overrideKey] !== '',
+      dicStatus
     });
   });
-  return records.sort((a, b) => a.personIndex - b.personIndex || a.otStart - b.otStart);
+  return records.sort((a, b) => a.personIndex - b.personIndex);
 }
 let overtimeExpanded = false;
 function setOvertimeExpanded(expanded) {
@@ -2266,8 +2457,7 @@ function renderOvertimePanel() {
   const exportBtn = document.getElementById('exportOvertimeBtn');
   if (!countEl || !listEl || !exportBtn) return;
   const records = collectOvertimeRecords();
-  const peopleCount = new Set(records.map(r => r.personIndex)).size;
-  countEl.textContent = records.length ? `（${peopleCount}人・${records.length}筆）` : '';
+  countEl.textContent = records.length ? `（${records.length}人）` : '';
   exportBtn.disabled = !records.length;
   listEl.innerHTML = '';
   if (!records.length) {
@@ -2279,22 +2469,36 @@ function renderOvertimePanel() {
   }
   records.forEach(rec => {
     const item = document.createElement('div');
-    item.className = 'overtime-item';
+    const dicClass = rec.dicStatus === 'approved' ? 'dic-approved' : rec.dicStatus === 'rejected' ? 'dic-rejected' : 'dic-pending';
+    item.className = 'overtime-item ' + dicClass;
+    const segLinesHtml = rec.segments.map(seg => {
+      const h = billableMinutesToHoursText(overtimeBillableMinutes(seg.minutesRaw));
+      return `<div class="overtime-seg-line">${escapeHtml(seg.tag)} ${minutesToTime(seg.otStart)}–${minutesToTime(seg.otEnd)}・${escapeHtml(seg.dutyHint)}・${h}</div>`;
+    }).join('');
     item.innerHTML = `
-      <strong>${escapeHtml(rec.name)}</strong>（${escapeHtml(rec.shift || '無班別')}）<br>
-      ${minutesToTime(rec.otStart)}–${minutesToTime(rec.otEnd)}・${escapeHtml(rec.dutyLabel)}
+      <strong>${escapeHtml(rec.name)}</strong>（${escapeHtml(rec.shift || '無班別')}）
+      <div class="overtime-seg-lines">${segLinesHtml}</div>
       <div class="overtime-item-meta">
         <span class="overtime-hours-tag">時數</span>
-        <input type="number" class="overtime-hours-input" step="0.5" min="0.5" value="${rec.hoursText}" aria-label="加班時數" />
+        <input type="number" class="overtime-hours-input" step="0.5" min="0" value="${rec.hoursText}" aria-label="加班時數" />
         <span class="overtime-hours-tag">小時</span>
         <span class="overtime-hours-tag">${rec.isManual ? '手動' : '自動'}</span>
         <button type="button" class="overtime-reset-btn" ${rec.isManual ? '' : 'disabled'}>重設</button>
       </div>
+      <div class="overtime-dic-row">
+        <span class="overtime-dic-label">DIC 審核</span>
+        <select class="overtime-dic-select" aria-label="DIC 審核">
+          <option value="pending" ${rec.dicStatus === 'pending' ? 'selected' : ''}>待確認</option>
+          <option value="approved" ${rec.dicStatus === 'approved' ? 'selected' : ''}>核准計加班</option>
+          <option value="rejected" ${rec.dicStatus === 'rejected' ? 'selected' : ''}>不予計加班</option>
+        </select>
+      </div>
     `;
     const hoursInput = item.querySelector('.overtime-hours-input');
     const resetBtn = item.querySelector('.overtime-reset-btn');
+    const dicSelect = item.querySelector('.overtime-dic-select');
     const commitHours = () => {
-      const autoText = minutesToHoursText(rec.minutes);
+      const autoText = billableMinutesToHoursText(rec.totalBillableMinutes);
       const next = normalizeManualOvertimeHours(hoursInput.value);
       if (next == null || next === autoText) {
         delete overtimeHourOverrides[rec.overrideKey];
@@ -2313,33 +2517,58 @@ function renderOvertimePanel() {
       renderOvertimePanel();
       markUnsynced();
     });
+    dicSelect?.addEventListener('change', () => {
+      setDicOvertimeStatus(rec.overrideKey, dicSelect.value);
+      if (typeof scheduleCloudSave === 'function') scheduleCloudSave();
+      renderOvertimePanel();
+    });
     listEl.appendChild(item);
   });
 }
-function exportOvertimeCSV() {
+function excelCell(val) {
+  if (val === null || val === undefined) return '-';
+  if (typeof val === 'number') return Number.isNaN(val) ? '-' : val;
+  const s = String(val).trim();
+  return s === '' ? '-' : s;
+}
+function exportOvertimeExcel() {
   const records = collectOvertimeRecords();
   if (!records.length) return;
+  if (typeof XLSX === 'undefined') {
+    alert('Excel 套件尚未載入，請確認網路連線後重新整理頁面。');
+    return;
+  }
   const dateText = formatScheduleDateDisplay(selectedDate) || selectedDate || '';
-  const header = ['日期','姓名','戰力','班別','加班開始','加班結束','加班時數(小時)','加班Duty'];
-  const lines = [header.join(',')];
+  const dicLabel = s => (s === 'approved' ? '核准計加班' : s === 'rejected' ? '不予計加班' : '待確認');
+  const rows = [
+    ['日期', '人事代號', '姓名', '戰力', '班別', '加上起時', '加上訖時', '加下起時', '加下訖時', '加班內容', '建議時數', '填報時數', 'DIC審核']
+  ];
   records.forEach(rec => {
-    lines.push([
-      dateText,
-      '"' + String(rec.name).replaceAll('"','""') + '"',
-      rec.level,
-      rec.shift,
-      minutesToTime(rec.otStart),
-      minutesToTime(rec.otEnd),
-      rec.hoursText,
-      '"' + String(rec.dutyLabel).replaceAll('"','""') + '"'
-    ].join(','));
+    const up = rec.segments.find(s => s.tag === '加上');
+    const down = rec.segments.find(s => s.tag === '加下');
+    const otContent = rec.segments.map(s => s.dutyHint).filter(Boolean).join('、');
+    const personnelId = resolvePersonnelId(people[rec.personIndex]) || rec.personnelId || '';
+    rows.push([
+      excelCell(dateText),
+      excelCell(personnelId),
+      excelCell(rec.name),
+      excelCell(rec.level),
+      excelCell(rec.shift),
+      excelCell(up ? minutesToTime(up.otStart) : ''),
+      excelCell(up ? minutesToTime(up.otEnd) : ''),
+      excelCell(down ? minutesToTime(down.otStart) : ''),
+      excelCell(down ? minutesToTime(down.otEnd) : ''),
+      excelCell(otContent),
+      excelCell(Number(billableMinutesToHoursText(rec.totalBillableMinutes))),
+      excelCell(Number(rec.hoursText)),
+      excelCell(dicLabel(rec.dicStatus))
+    ]);
   });
-  const blob = new Blob(["\ufeff" + lines.join('\n')], {type:'text/csv;charset=utf-8;'});
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = `overtime_${selectedDate || 'today'}.csv`;
-  a.click();
-  URL.revokeObjectURL(a.href);
+  const sheet = XLSX.utils.aoa_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, sheet, '加班');
+  const fileDate = selectedDate || 'today';
+  XLSX.writeFile(wb, `overtime_${fileDate}.xlsx`);
 }
 
 function renderShiftLabel(shift, adjustedShift) {
@@ -2386,7 +2615,7 @@ function tStrToMin(s) {
 
 const initialFlightDefs = [{"flight": "BR166", "type": "DEP", "baseTime": "06:15", "baseMinutes": 375, "offset": 0, "extension": 0}, {"flight": "BR316", "type": "ARR", "baseTime": "05:05", "baseMinutes": 305, "offset": 0, "extension": 0}, {"flight": "BR178", "type": "DEP", "baseTime": "06:30", "baseMinutes": 390, "offset": 0, "extension": 0}, {"flight": "BR49", "type": "ARR", "baseTime": "05:10", "baseMinutes": 310, "offset": 0, "extension": 0}, {"flight": "BR158", "type": "DEP", "baseTime": "06:35", "baseMinutes": 395, "offset": 0, "extension": 0}, {"flight": "BR35", "type": "ARR", "baseTime": "05:10", "baseMinutes": 310, "offset": 0, "extension": 0}, {"flight": "BR112", "type": "DEP", "baseTime": "06:55", "baseMinutes": 415, "offset": 0, "extension": 0}, {"flight": "BR25", "type": "ARR", "baseTime": "05:10", "baseMinutes": 310, "offset": 0, "extension": 0}, {"flight": "BR891", "type": "DEP", "baseTime": "07:00", "baseMinutes": 420, "offset": 0, "extension": 0}, {"flight": "BR11", "type": "ARR", "baseTime": "05:15", "baseMinutes": 315, "offset": 0, "extension": 0}, {"flight": "BR170", "type": "DEP", "baseTime": "07:05", "baseMinutes": 425, "offset": 0, "extension": 0}, {"flight": "BR9", "type": "ARR", "baseTime": "05:15", "baseMinutes": 315, "offset": 0, "extension": 0}, {"flight": "BR257", "type": "DEP", "baseTime": "07:20", "baseMinutes": 440, "offset": 0, "extension": 0}, {"flight": "BR55", "type": "ARR", "baseTime": "05:25", "baseMinutes": 325, "offset": 0, "extension": 0}, {"flight": "BR225", "type": "DEP", "baseTime": "07:25", "baseMinutes": 445, "offset": 0, "extension": 0}, {"flight": "BR27", "type": "ARR", "baseTime": "05:35", "baseMinutes": 335, "offset": 0, "extension": 0}, {"flight": "BR395", "type": "DEP", "baseTime": "07:40", "baseMinutes": 460, "offset": 0, "extension": 0}, {"flight": "BR15", "type": "ARR", "baseTime": "05:40", "baseMinutes": 340, "offset": 0, "extension": 0}, {"flight": "BR75", "type": "DEP", "baseTime": "07:40", "baseMinutes": 460, "offset": 0, "extension": 0}, {"flight": "BR17", "type": "ARR", "baseTime": "05:55", "baseMinutes": 355, "offset": 0, "extension": 0}, {"flight": "BR184", "type": "DEP", "baseTime": "07:55", "baseMinutes": 475, "offset": 0, "extension": 0}, {"flight": "BR262", "type": "ARR", "baseTime": "06:00", "baseMinutes": 360, "offset": 0, "extension": 0}, {"flight": "BR106", "type": "DEP", "baseTime": "08:00", "baseMinutes": 480, "offset": 0, "extension": 0}, {"flight": "BR96", "type": "ARR", "baseTime": "06:10", "baseMinutes": 370, "offset": 0, "extension": 0}, {"flight": "BR1251", "type": "DEP", "baseTime": "08:35", "baseMinutes": 515, "offset": 0, "extension": 0}, {"flight": "BR382", "type": "ARR", "baseTime": "06:10", "baseMinutes": 370, "offset": 0, "extension": 0}, {"flight": "BR67", "type": "DEP", "baseTime": "08:05", "baseMinutes": 485, "offset": 0, "extension": 0}, {"flight": "BR31", "type": "ARR", "baseTime": "06:20", "baseMinutes": 380, "offset": 0, "extension": 0}, {"flight": "BR851", "type": "DEP", "baseTime": "08:10", "baseMinutes": 490, "offset": 0, "extension": 0}, {"flight": "BR51", "type": "ARR", "baseTime": "06:20", "baseMinutes": 380, "offset": 0, "extension": 0}, {"flight": "BR132", "type": "DEP", "baseTime": "08:20", "baseMinutes": 500, "offset": 0, "extension": 0}, {"flight": "BR72", "type": "ARR", "baseTime": "06:30", "baseMinutes": 390, "offset": 0, "extension": 0}, {"flight": "BR281", "type": "DEP", "baseTime": "08:20", "baseMinutes": 500, "offset": 0, "extension": 0}, {"flight": "BR66", "type": "ARR", "baseTime": "06:40", "baseMinutes": 400, "offset": 0, "extension": 0}, {"flight": "BR211", "type": "DEP", "baseTime": "08:25", "baseMinutes": 505, "offset": 0, "extension": 0}, {"flight": "BR206", "type": "ARR", "baseTime": "06:50", "baseMinutes": 410, "offset": 0, "extension": 0}, {"flight": "BR265", "type": "DEP", "baseTime": "08:45", "baseMinutes": 525, "offset": 0, "extension": 0}, {"flight": "BR88", "type": "ARR", "baseTime": "07:20", "baseMinutes": 440, "offset": 0, "extension": 0}, {"flight": "BR233", "type": "DEP", "baseTime": "08:50", "baseMinutes": 530, "offset": 0, "extension": 0}, {"flight": "B73211", "type": "ARR", "baseTime": "08:40", "baseMinutes": 520, "offset": 0, "extension": 0}, {"flight": "BR198", "type": "DEP", "baseTime": "08:50", "baseMinutes": 530, "offset": 0, "extension": 0}, {"flight": "OZ711", "type": "ARR", "baseTime": "09:50", "baseMinutes": 590, "offset": 0, "extension": 0}, {"flight": "BR237", "type": "DEP", "baseTime": "09:00", "baseMinutes": 540, "offset": 0, "extension": 0}, {"flight": "B73213", "type": "ARR", "baseTime": "10:00", "baseMinutes": 600, "offset": 0, "extension": 0}, {"flight": "BR716", "type": "DEP", "baseTime": "09:05", "baseMinutes": 545, "offset": 0, "extension": 0}, {"flight": "HX252", "type": "ARR", "baseTime": "10:50", "baseMinutes": 650, "offset": 0, "extension": 0}, {"flight": "BR271", "type": "DEP", "baseTime": "09:10", "baseMinutes": 550, "offset": 0, "extension": 0}, {"flight": "BR113", "type": "ARR", "baseTime": "10:55", "baseMinutes": 655, "offset": 0, "extension": 0}, {"flight": "BR391", "type": "DEP", "baseTime": "09:10", "baseMinutes": 550, "offset": 0, "extension": 0}, {"flight": "BR892", "type": "ARR", "baseTime": "12:00", "baseMinutes": 720, "offset": 0, "extension": 0}, {"flight": "BR397", "type": "DEP", "baseTime": "09:15", "baseMinutes": 555, "offset": 0, "extension": 0}, {"flight": "BX793", "type": "ARR", "baseTime": "12:25", "baseMinutes": 745, "offset": 0, "extension": 0}, {"flight": "BR227", "type": "DEP", "baseTime": "09:20", "baseMinutes": 560, "offset": 0, "extension": 0}, {"flight": "BR852", "type": "ARR", "baseTime": "13:05", "baseMinutes": 785, "offset": 0, "extension": 0}, {"flight": "BR116", "type": "DEP", "baseTime": "09:30", "baseMinutes": 570, "offset": 0, "extension": 0}, {"flight": "BR177", "type": "ARR", "baseTime": "13:10", "baseMinutes": 790, "offset": 0, "extension": 0}, {"flight": "BR315", "type": "DEP", "baseTime": "09:30", "baseMinutes": 570, "offset": 0, "extension": 0}, {"flight": "BR169", "type": "ARR", "baseTime": "13:30", "baseMinutes": 810, "offset": 0, "extension": 0}, {"flight": "BR215", "type": "DEP", "baseTime": "09:35", "baseMinutes": 575, "offset": 0, "extension": 0}, {"flight": "BR105", "type": "ARR", "baseTime": "13:50", "baseMinutes": 830, "offset": 0, "extension": 0}, {"flight": "BR383", "type": "DEP", "baseTime": "09:45", "baseMinutes": 585, "offset": 0, "extension": 0}, {"flight": "BR234", "type": "ARR", "baseTime": "14:15", "baseMinutes": 855, "offset": 0, "extension": 0}, {"flight": "BR867", "type": "DEP", "baseTime": "09:50", "baseMinutes": 590, "offset": 0, "extension": 0}, {"flight": "BR157", "type": "ARR", "baseTime": "14:35", "baseMinutes": 875, "offset": 0, "extension": 0}, {"flight": "BR712", "type": "DEP", "baseTime": "09:50", "baseMinutes": 590, "offset": 0, "extension": 0}, {"flight": "BR802", "type": "ARR", "baseTime": "14:55", "baseMinutes": 895, "offset": 0, "extension": 0}, {"flight": "BR801", "type": "DEP", "baseTime": "10:00", "baseMinutes": 600, "offset": 0, "extension": 0}, {"flight": "BR272", "type": "ARR", "baseTime": "15:00", "baseMinutes": 900, "offset": 0, "extension": 0}, {"flight": "BR122", "type": "DEP", "baseTime": "10:00", "baseMinutes": 600, "offset": 0, "extension": 0}, {"flight": "BR131", "type": "ARR", "baseTime": "15:05", "baseMinutes": 905, "offset": 0, "extension": 0}, {"flight": "BR255", "type": "DEP", "baseTime": "10:00", "baseMinutes": 600, "offset": 0, "extension": 0}, {"flight": "BR711", "type": "ARR", "baseTime": "15:15", "baseMinutes": 915, "offset": 0, "extension": 0}, {"flight": "BR118", "type": "DEP", "baseTime": "10:15", "baseMinutes": 615, "offset": 0, "extension": 0}, {"flight": "BR282", "type": "ARR", "baseTime": "15:20", "baseMinutes": 920, "offset": 0, "extension": 0}, {"flight": "BR1383", "type": "DEP", "baseTime": "11:20", "baseMinutes": 680, "offset": 0, "extension": 0}, {"flight": "BR868", "type": "ARR", "baseTime": "15:20", "baseMinutes": 920, "offset": 0, "extension": 0}, {"flight": "BR6", "type": "DEP", "baseTime": "11:20", "baseMinutes": 680, "offset": 0, "extension": 0}, {"flight": "HX264", "type": "ARR", "baseTime": "15:30", "baseMinutes": 930, "offset": 0, "extension": 0}, {"flight": "BR8", "type": "DEP", "baseTime": "11:30", "baseMinutes": 690, "offset": 0, "extension": 0}, {"flight": "OZ713", "type": "ARR", "baseTime": "15:45", "baseMinutes": 945, "offset": 0, "extension": 0}, {"flight": "BR104", "type": "DEP", "baseTime": "11:40", "baseMinutes": 700, "offset": 0, "extension": 0}, {"flight": "BR165", "type": "ARR", "baseTime": "16:05", "baseMinutes": 965, "offset": 0, "extension": 0}, {"flight": "OZ712", "type": "DEP", "baseTime": "11:40", "baseMinutes": 700, "offset": 0, "extension": 0}, {"flight": "BR183", "type": "ARR", "baseTime": "16:05", "baseMinutes": 965, "offset": 0, "extension": 0}, {"flight": "HX253", "type": "DEP", "baseTime": "11:50", "baseMinutes": 710, "offset": 0, "extension": 0}, {"flight": "BR1252", "type": "ARR", "baseTime": "16:35", "baseMinutes": 995, "offset": 0, "extension": 0}, {"flight": "BR869", "type": "DEP", "baseTime": "12:25", "baseMinutes": 745, "offset": 0, "extension": 0}, {"flight": "BR398", "type": "ARR", "baseTime": "16:10", "baseMinutes": 970, "offset": 0, "extension": 0}, {"flight": "BX794", "type": "DEP", "baseTime": "13:25", "baseMinutes": 805, "offset": 0, "extension": 0}, {"flight": "BR258", "type": "ARR", "baseTime": "16:30", "baseMinutes": 990, "offset": 0, "extension": 0}, {"flight": "BR130", "type": "DEP", "baseTime": "13:30", "baseMinutes": 810, "offset": 0, "extension": 0}, {"flight": "BX791", "type": "ARR", "baseTime": "16:40", "baseMinutes": 1000, "offset": 0, "extension": 0}, {"flight": "BR164", "type": "DEP", "baseTime": "14:25", "baseMinutes": 865, "offset": 0, "extension": 0}, {"flight": "BR384", "type": "ARR", "baseTime": "16:50", "baseMinutes": 1010, "offset": 0, "extension": 0}, {"flight": "BR385", "type": "DEP", "baseTime": "14:50", "baseMinutes": 890, "offset": 0, "extension": 0}, {"flight": "BR392", "type": "ARR", "baseTime": "17:00", "baseMinutes": 1020, "offset": 0, "extension": 0}, {"flight": "BR160", "type": "DEP", "baseTime": "15:15", "baseMinutes": 915, "offset": 0, "extension": 0}, {"flight": "NZ77", "type": "ARR", "baseTime": "17:00", "baseMinutes": 1020, "offset": 0, "extension": 0}, {"flight": "BR196", "type": "DEP", "baseTime": "15:20", "baseMinutes": 920, "offset": 0, "extension": 0}, {"flight": "BR197", "type": "ARR", "baseTime": "17:05", "baseMinutes": 1025, "offset": 0, "extension": 0}, {"flight": "BR277", "type": "DEP", "baseTime": "15:30", "baseMinutes": 930, "offset": 0, "extension": 0}, {"flight": "BR266", "type": "ARR", "baseTime": "17:05", "baseMinutes": 1025, "offset": 0, "extension": 0}, {"flight": "B70187", "type": "DEP", "baseTime": "16:25", "baseMinutes": 985, "offset": 0, "extension": 0}, {"flight": "BR715", "type": "ARR", "baseTime": "17:10", "baseMinutes": 1030, "offset": 0, "extension": 0}, {"flight": "BR102", "type": "DEP", "baseTime": "16:25", "baseMinutes": 985, "offset": 0, "extension": 0}, {"flight": "BR870", "type": "ARR", "baseTime": "17:10", "baseMinutes": 1030, "offset": 0, "extension": 0}, {"flight": "BR722", "type": "DEP", "baseTime": "16:30", "baseMinutes": 990, "offset": 0, "extension": 0}, {"flight": "BR212", "type": "ARR", "baseTime": "17:15", "baseMinutes": 1035, "offset": 0, "extension": 0}, {"flight": "BR805", "type": "DEP", "baseTime": "16:30", "baseMinutes": 990, "offset": 0, "extension": 0}, {"flight": "BR5", "type": "ARR", "baseTime": "17:20", "baseMinutes": 1040, "offset": 0, "extension": 0}, {"flight": "HX265", "type": "DEP", "baseTime": "16:30", "baseMinutes": 990, "offset": 0, "extension": 0}, {"flight": "BR103", "type": "ARR", "baseTime": "17:35", "baseMinutes": 1055, "offset": 0, "extension": 0}, {"flight": "BR871", "type": "DEP", "baseTime": "16:35", "baseMinutes": 995, "offset": 0, "extension": 0}, {"flight": "BR226", "type": "ARR", "baseTime": "17:50", "baseMinutes": 1070, "offset": 0, "extension": 0}, {"flight": "BR186", "type": "DEP", "baseTime": "16:50", "baseMinutes": 1010, "offset": 0, "extension": 0}, {"flight": "BR7", "type": "ARR", "baseTime": "18:00", "baseMinutes": 1080, "offset": 0, "extension": 0}, {"flight": "OZ714", "type": "DEP", "baseTime": "17:10", "baseMinutes": 1030, "offset": 0, "extension": 0}, {"flight": "HX260", "type": "ARR", "baseTime": "18:20", "baseMinutes": 1100, "offset": 0, "extension": 0}, {"flight": "BX792", "type": "DEP", "baseTime": "17:40", "baseMinutes": 1060, "offset": 0, "extension": 0}, {"flight": "BR1384", "type": "ARR", "baseTime": "18:25", "baseMinutes": 1105, "offset": 0, "extension": 0}, {"flight": "BR857", "type": "DEP", "baseTime": "18:10", "baseMinutes": 1090, "offset": 0, "extension": 0}, {"flight": "BR121", "type": "ARR", "baseTime": "19:00", "baseMinutes": 1140, "offset": 0, "extension": 0}, {"flight": "NZ78", "type": "DEP", "baseTime": "18:30", "baseMinutes": 1110, "offset": 0, "extension": 0}, {"flight": "BR115", "type": "ARR", "baseTime": "19:05", "baseMinutes": 1145, "offset": 0, "extension": 0}, {"flight": "BR809", "type": "DEP", "baseTime": "19:00", "baseMinutes": 1140, "offset": 0, "extension": 0}, {"flight": "BR3808", "type": "ARR", "baseTime": "19:10", "baseMinutes": 1150, "offset": 0, "extension": 0}, {"flight": "BR36", "type": "DEP", "baseTime": "19:20", "baseMinutes": 1160, "offset": 0, "extension": 0}, {"flight": "BR117", "type": "ARR", "baseTime": "19:30", "baseMinutes": 1170, "offset": 0, "extension": 0}, {"flight": "BR32", "type": "DEP", "baseTime": "19:20", "baseMinutes": 1160, "offset": 0, "extension": 0}, {"flight": "BR228", "type": "ARR", "baseTime": "20:05", "baseMinutes": 1205, "offset": 0, "extension": 0}, {"flight": "HX261", "type": "DEP", "baseTime": "19:20", "baseMinutes": 1160, "offset": 0, "extension": 0}, {"flight": "BR396", "type": "ARR", "baseTime": "20:10", "baseMinutes": 1210, "offset": 0, "extension": 0}, {"flight": "BR381", "type": "DEP", "baseTime": "19:30", "baseMinutes": 1170, "offset": 0, "extension": 0}, {"flight": "BR216", "type": "ARR", "baseTime": "20:15", "baseMinutes": 1215, "offset": 0, "extension": 0}, {"flight": "BR12", "type": "DEP", "baseTime": "19:40", "baseMinutes": 1180, "offset": 0, "extension": 0}, {"flight": "BR129", "type": "ARR", "baseTime": "20:25", "baseMinutes": 1225, "offset": 0, "extension": 0}, {"flight": "BR50", "type": "DEP", "baseTime": "19:45", "baseMinutes": 1185, "offset": 0, "extension": 0}, {"flight": "BR163", "type": "ARR", "baseTime": "20:25", "baseMinutes": 1225, "offset": 0, "extension": 0}, {"flight": "BR18", "type": "DEP", "baseTime": "19:50", "baseMinutes": 1190, "offset": 0, "extension": 0}, {"flight": "HX282", "type": "ARR", "baseTime": "20:35", "baseMinutes": 1235, "offset": 0, "extension": 0}, {"flight": "BR56", "type": "DEP", "baseTime": "20:00", "baseMinutes": 1200, "offset": 0, "extension": 0}, {"flight": "BR238", "type": "ARR", "baseTime": "20:55", "baseMinutes": 1255, "offset": 0, "extension": 0}, {"flight": "BR3811", "type": "DEP", "baseTime": "20:10", "baseMinutes": 1210, "offset": 0, "extension": 0}, {"flight": "BR185", "type": "ARR", "baseTime": "20:55", "baseMinutes": 1255, "offset": 0, "extension": 0}, {"flight": "BR261", "type": "DEP", "baseTime": "20:30", "baseMinutes": 1230, "offset": 0, "extension": 0}, {"flight": "BR278", "type": "ARR", "baseTime": "21:10", "baseMinutes": 1270, "offset": 0, "extension": 0}, {"flight": "BR205", "type": "DEP", "baseTime": "20:45", "baseMinutes": 1245, "offset": 0, "extension": 0}, {"flight": "BR872", "type": "ARR", "baseTime": "21:25", "baseMinutes": 1285, "offset": 0, "extension": 0}, {"flight": "BR52", "type": "DEP", "baseTime": "21:20", "baseMinutes": 1280, "offset": 0, "extension": 0}, {"flight": "B70188", "type": "ARR", "baseTime": "21:35", "baseMinutes": 1295, "offset": 0, "extension": 0}, {"flight": "HX283", "type": "DEP", "baseTime": "21:35", "baseMinutes": 1295, "offset": 0, "extension": 0}, {"flight": "BR159", "type": "ARR", "baseTime": "21:40", "baseMinutes": 1300, "offset": 0, "extension": 0}, {"flight": "BR61", "type": "DEP", "baseTime": "22:30", "baseMinutes": 1350, "offset": 0, "extension": 0}, {"flight": "BR256", "type": "ARR", "baseTime": "21:45", "baseMinutes": 1305, "offset": 0, "extension": 0}, {"flight": "BR24", "type": "DEP", "baseTime": "23:00", "baseMinutes": 1380, "offset": 0, "extension": 0}, {"flight": "BR68", "type": "ARR", "baseTime": "21:50", "baseMinutes": 1310, "offset": 0, "extension": 0}, {"flight": "BR87", "type": "DEP", "baseTime": "23:00", "baseMinutes": 1380, "offset": 0, "extension": 0}, {"flight": "BR386", "type": "ARR", "baseTime": "21:55", "baseMinutes": 1315, "offset": 0, "extension": 0}, {"flight": "BR95", "type": "DEP", "baseTime": "23:10", "baseMinutes": 1390, "offset": 0, "extension": 0}, {"flight": "BR806", "type": "ARR", "baseTime": "22:00", "baseMinutes": 1320, "offset": 0, "extension": 0}, {"flight": "BR28", "type": "DEP", "baseTime": "23:30", "baseMinutes": 1410, "offset": 0, "extension": 0}, {"flight": "BR721", "type": "ARR", "baseTime": "22:10", "baseMinutes": 1330, "offset": 0, "extension": 0}, {"flight": "BR26", "type": "DEP", "baseTime": "23:40", "baseMinutes": 1420, "offset": 0, "extension": 0}, {"flight": "BR101", "type": "ARR", "baseTime": "22:40", "baseMinutes": 1360, "offset": 0, "extension": 0}, {"flight": "BR10", "type": "DEP", "baseTime": "23:55", "baseMinutes": 1435, "offset": 0, "extension": 0}, {"flight": "BR858", "type": "ARR", "baseTime": "22:55", "baseMinutes": 1375, "offset": 0, "extension": 0}, {"flight": "BR16", "type": "DEP", "baseTime": "23:55", "baseMinutes": 1435, "offset": 0, "extension": 0}, {"flight": "BR195", "type": "ARR", "baseTime": "23:25", "baseMinutes": 1405, "offset": 0, "extension": 0}, {"flight": "BR810", "type": "ARR", "baseTime": "23:35", "baseMinutes": 1415, "offset": 0, "extension": 0}];
 
-const START_MIN = 3 * 60;
+const START_MIN = 2 * 60;
 const EARLY_VIEW_END_MIN = 17 * 60;
 let pxPerMinute = 1.4;
 let activePaletteTab = 'byRole';
@@ -2417,7 +2646,8 @@ function dayStorageKeys(dateStr) {
     customTemplates: `${LS_PREFIX}_day_${d}_custom_templates`,
     deletedCustomTemplates: `${LS_PREFIX}_day_${d}_deleted_custom_templates`,
     flightsImported: `${LS_PREFIX}_day_${d}_flights_imported`,
-    overtimeOverrides: `${LS_PREFIX}_day_${d}_overtime_overrides`
+    overtimeOverrides: `${LS_PREFIX}_day_${d}_overtime_overrides`,
+    dicOvertimeApprovals: `${LS_PREFIX}_day_${d}_dic_ot`
   };
 }
 let selectedDate = localStorage.getItem(LS_KEYS_GLOBAL.selectedDate) || getLocalDateISO();
@@ -2553,6 +2783,8 @@ if (!flightsImported) flightDefs = [];
 normalizeFlightDefsInPlace();
 let overtimeHourOverrides = JSON.parse(localStorage.getItem(_dayK0.overtimeOverrides) || '{}');
 if (!overtimeHourOverrides || typeof overtimeHourOverrides !== 'object') overtimeHourOverrides = {};
+let dicOvertimeApprovals = JSON.parse(localStorage.getItem(_dayK0.dicOvertimeApprovals) || '{}');
+if (!dicOvertimeApprovals || typeof dicOvertimeApprovals !== 'object') dicOvertimeApprovals = {};
 let selectedBlockId = null;
 let blockSeq = schedule.length ? Math.max(...schedule.map(x => x.uid || 0)) + 1 : 1;
 let editorExpanded = false;
@@ -2588,6 +2820,7 @@ function getCloudState() {
     flightDefs: flightsImported ? flightDefs : [],
     customTemplates,
     overtimeHourOverrides,
+    dicOvertimeApprovals,
     flightsImported,
     updatedAtLocal: new Date().toISOString()
   };
@@ -2608,6 +2841,9 @@ function applyCloudState(data) {
   overtimeHourOverrides = data.overtimeHourOverrides && typeof data.overtimeHourOverrides === 'object'
     ? data.overtimeHourOverrides
     : {};
+  dicOvertimeApprovals = data.dicOvertimeApprovals && typeof data.dicOvertimeApprovals === 'object'
+    ? data.dicOvertimeApprovals
+    : {};
   selectedBlockId = null;
   blockSeq = schedule.length ? Math.max(...schedule.map(x => Number(x.uid) || 0)) + 1 : 1;
   rebuildTemplates();
@@ -2619,6 +2855,7 @@ function applyCloudState(data) {
   localStorage.setItem(k.flightsImported, flightsImported ? '1' : '0');
   saveCustomTemplates();
   saveOvertimeOverrides();
+  saveDicOvertimeApprovals();
 
   if (typeof renderTimeHeader === 'function') renderTimeHeader();
   if (typeof renderAssignmentTableFromFlightDefs === 'function') renderAssignmentTableFromFlightDefs();
@@ -2677,6 +2914,8 @@ function seedEmptyDayStateForCloud() {
   flightDefs = [];
   flightsImported = false;
   customTemplates = [];
+  overtimeHourOverrides = {};
+  dicOvertimeApprovals = {};
   selectedBlockId = null;
   blockSeq = 1;
   rebuildTemplates();
@@ -2687,6 +2926,8 @@ function seedEmptyDayStateForCloud() {
   localStorage.setItem(k.flightDefs, JSON.stringify(flightDefs));
   localStorage.setItem(k.flightsImported, '0');
   saveCustomTemplates();
+  saveOvertimeOverrides();
+  saveDicOvertimeApprovals();
   applyingRemote = false;
 }
 
@@ -2738,6 +2979,7 @@ function attachFirebaseForSelectedDate() {
         flightDefs: data.flightDefs,
         customTemplates: data.customTemplates,
         overtimeHourOverrides: data.overtimeHourOverrides,
+        dicOvertimeApprovals: data.dicOvertimeApprovals,
         flightsImported: data.flightsImported === true,
         updatedAtLocal: data.updatedAtLocal
       };
@@ -2775,6 +3017,112 @@ function normalizeFlightSearch(q) {
   if (/^BR0*\d+$/.test(s)) return 'BR' + String(Number(s.replace('BR','')));
   if (/^\d+$/.test(s)) return 'BR' + String(Number(s));
   return s;
+}
+function scheduleItemMatchesFlightSearch(item, normalized) {
+  if (!normalized || !item || item.role === '休') return false;
+  const f = String(item.flight || '').trim().toUpperCase();
+  if (!f) return false;
+  if (f === normalized) return true;
+  return compactFlightNo(f) === compactFlightNo(normalized);
+}
+function personLevelMatches(person, levelToken) {
+  const level = String(person?.level || resolveLevel(person) || '').trim();
+  const token = String(levelToken || '').trim();
+  if (!level || !token) return false;
+  if (level === token) return true;
+  const strip = s => s.replace(/[*!]/g, '');
+  if (strip(level) === strip(token)) return true;
+  if (/^\d+[a-zA-Z*!]+$/.test(token)) {
+    return strip(level).toUpperCase() === strip(token).toUpperCase();
+  }
+  return false;
+}
+function personMatchesNameSearch(person, text) {
+  const q = normalizeText(text);
+  if (!q) return false;
+  const found = findStaffDirectoryEntry(person);
+  const hay = [
+    person?.name,
+    person?.code,
+    found?.fullName,
+    found?.code,
+    resolveFullName(person)
+  ].filter(Boolean).map(normalizeText);
+  return hay.some(n => n.includes(q) || q.includes(n));
+}
+function parseTimelineSearch(query) {
+  const raw = String(query || '').trim();
+  if (!raw) return { mode: 'none' };
+  if (/[/,，、]/.test(raw)) {
+    const levels = raw.split(/[/,，、\s]+/).map(s => s.trim()).filter(Boolean);
+    if (levels.length) return { mode: 'level', levels };
+  }
+  if (/^BR\d+$/i.test(raw) || /^\d+$/.test(raw)) {
+    return { mode: 'flight', flight: normalizeFlightSearch(raw) };
+  }
+  if (/[\u4e00-\u9fff]/.test(raw)) {
+    return { mode: 'name', text: raw };
+  }
+  if (/^BR/i.test(raw)) {
+    return { mode: 'flight', flight: normalizeFlightSearch(raw) };
+  }
+  if (/^[a-zA-Z0-9!*]+$/.test(raw)) {
+    return { mode: 'level', levels: [raw] };
+  }
+  return { mode: 'name', text: raw };
+}
+function getPersonIndicesForFlightSearch(query) {
+  const normalized = normalizeFlightSearch(query);
+  if (!normalized) return [];
+  return [...new Set(schedule.filter(s => scheduleItemMatchesFlightSearch(s, normalized)).map(s => s.personIndex))];
+}
+function getPersonIndicesForTimelineSearch(query) {
+  const parsed = parseTimelineSearch(query);
+  if (parsed.mode === 'none') return [];
+  if (parsed.mode === 'flight') {
+    return getPersonIndicesForFlightSearch(parsed.flight);
+  }
+  if (parsed.mode === 'level') {
+    return people.map((p, idx) => idx).filter(idx => parsed.levels.some(tok => personLevelMatches(people[idx], tok)));
+  }
+  if (parsed.mode === 'name') {
+    return people.map((p, idx) => idx).filter(idx => personMatchesNameSearch(people[idx], parsed.text));
+  }
+  return [];
+}
+function scheduleItemMatchesTimelineSearch(item, query) {
+  if (!query || !item || item.role === '休') return true;
+  const parsed = parseTimelineSearch(query);
+  if (parsed.mode === 'none') return true;
+  if (parsed.mode === 'flight') return scheduleItemMatchesFlightSearch(item, parsed.flight);
+  return getPersonIndicesForTimelineSearch(query).includes(item.personIndex);
+}
+function applyTimelineFlightSearch(query, preferredAssignmentRow) {
+  timelineFlightSearch = String(query || '').trim();
+  const input = document.getElementById('timelineFlightSearch');
+  if (input) input.value = timelineFlightSearch;
+  renderRows();
+  updateAssignmentFlightHighlight(preferredAssignmentRow);
+  if (!preferredAssignmentRow && timelineFlightSearch) {
+    const parsed = parseTimelineSearch(timelineFlightSearch);
+    if (parsed.mode === 'level') {
+      const indices = getPersonIndicesForTimelineSearch(timelineFlightSearch)
+        .filter(idx => personMatchesShiftView(people[idx]));
+      if (indices.length) focusPersonInSchedule(indices[0]);
+    }
+  }
+}
+function scrollAssignmentRowIntoView(row) {
+  const scrollHost = document.querySelector('.assignment-scroll');
+  if (!scrollHost || !row) return;
+  const table = row.closest('table');
+  const theadH = table?.querySelector('thead')?.offsetHeight || 34;
+  const hostRect = scrollHost.getBoundingClientRect();
+  const rowRect = row.getBoundingClientRect();
+  const visibleBelowHead = Math.max(80, hostRect.height - theadH);
+  const targetTop = scrollHost.scrollTop + (rowRect.top - hostRect.top) - theadH - (visibleBelowHead / 2) + (rowRect.height / 2);
+  const maxScroll = Math.max(0, scrollHost.scrollHeight - scrollHost.clientHeight);
+  scrollHost.scrollTo({ top: Math.max(0, Math.min(maxScroll, targetTop)), behavior: 'smooth' });
 }
 function normalizeImportedFlightNo(value) {
   const s = String(value || '').trim().toUpperCase();
@@ -2828,20 +3176,32 @@ function buildFlightDefsFromRows(rows) {
   });
   return out;
 }
+function normalizeHeaderKey(v) {
+  return String(v || '').trim().replace(/\s+/g, '');
+}
+function pickRow(row, aliases) {
+  if (!row || typeof row !== 'object') return '';
+  const aliasNorms = aliases.map(normalizeHeaderKey);
+  for (const key of Object.keys(row)) {
+    const kn = normalizeHeaderKey(key);
+    const hit = aliasNorms.some(an => kn === an || kn.includes(an) || an.includes(kn));
+    if (!hit) continue;
+    const val = row[key];
+    if (val !== undefined && val !== null && String(val).trim() !== '') return String(val).trim();
+  }
+  return '';
+}
 function buildPeopleFromRows(rows) {
-  const pick = (row, keys) => {
-    for (const key of keys) {
-      if (row[key] !== undefined && row[key] !== null && String(row[key]).trim() !== '') return String(row[key]).trim();
-    }
-    return '';
-  };
+  const pick = (row, keys) => pickRow(row, keys);
   return rows
     .map(row => {
-      const code = pick(row, ['代號', '代碼', '員編', '工號', '編號', 'Code', 'code']);
+      const code = pick(row, ['代號', '代碼', 'Code', 'code']);
+      const personnelId = pick(row, ['人事代號', '人事代号', 'PersonnelID', 'personnelId', 'EmployeeID', 'employeeId', '員編', '工號']);
       const name = pick(row, ['姓名', '全名', '名字', 'Name', 'name']) || code;
       return {
         name,
         code: code || name,
+        personnelId,
         level: pick(row, ['戰力', '等級', 'Level', 'level']),
         shift: pick(row, ['班別', '班次', 'Shift', 'shift']),
         radioNo: '',
@@ -2854,23 +3214,20 @@ function buildPeopleFromRows(rows) {
     .filter(p => p.name && p.name !== 'undefined' && p.name !== 'null');
 }
 function buildStaffDirectoryFromRows(rows) {
-  const pick = (row, keys) => {
-    for (const key of keys) {
-      if (row[key] !== undefined && row[key] !== null && String(row[key]).trim() !== '') return String(row[key]).trim();
-    }
-    return '';
-  };
+  const pick = (row, keys) => pickRow(row, keys);
   return rows.map(row => {
-    const code = pick(row, ['代號', '代碼', '員編', '工號', '編號', 'Code', 'code']);
+    const code = pick(row, ['代號', '代碼', 'Code', 'code']);
+    const personnelId = pick(row, ['人事代號', '人事代号', 'PersonnelID', 'personnelId', 'EmployeeID', 'employeeId', '員編', '工號']);
     const fullName = pick(row, ['姓名', '全名', '名字', 'Name', 'name']);
     const level = pick(row, ['戰力', '等級', 'Level', 'level']);
-    return { code: code || fullName, fullName, level };
+    return { code: code || fullName, personnelId, fullName, level };
   }).filter(x => x.code || x.fullName);
 }
 function normalizePerson(p) {
   return {
     ...p,
     code: p.code || p.name,
+    personnelId: String(p.personnelId || '').trim(),
     shift: p.shift || '',
     adjustedShift: p.adjustedShift || '',
     radioNo: p.radioNo || '',
@@ -2883,33 +3240,38 @@ function normalizeText(v) {
   return String(v || '').trim().toLowerCase().replace(/\s+/g, '');
 }
 function resolveFullName(person) {
-  if (!staffDirectory.length || !person) return '';
-  const nameKey = normalizeText(person.name);
-  const codeKey = normalizeText(person.code || person.name);
-  const found = staffDirectory.find(x => normalizeText(x.code) === codeKey || normalizeText(x.fullName) === nameKey || normalizeText(x.code) === nameKey);
+  const found = findStaffDirectoryEntry(person);
   return found ? (found.fullName || '') : '';
 }
 function resolveLevel(person) {
-  if (!staffDirectory.length || !person) return '';
+  const found = findStaffDirectoryEntry(person);
+  return found ? (found.level || '') : '';
+}
+function findStaffDirectoryEntry(person) {
+  if (!staffDirectory.length || !person) return null;
   const nameKey = normalizeText(person.name);
   const codeKey = normalizeText(person.code || person.name);
-  const found = staffDirectory.find(x =>
-    normalizeText(x.code) === codeKey ||
-    normalizeText(x.fullName) === nameKey ||
-    normalizeText(x.code) === nameKey
-  );
-  return found ? (found.level || '') : '';
+  return staffDirectory.find(x => {
+    const xCode = normalizeText(x.code);
+    const xName = normalizeText(x.fullName);
+    if (codeKey && xCode === codeKey) return true;
+    if (nameKey && xName === nameKey) return true;
+    if (nameKey && xCode === nameKey) return true;
+    if (nameKey && xName && (xName.includes(nameKey) || nameKey.includes(xName))) return true;
+    return false;
+  }) || null;
+}
+function resolvePersonnelId(person) {
+  if (!person) return '';
+  const direct = String(person.personnelId || '').trim();
+  if (direct) return direct;
+  const found = findStaffDirectoryEntry(person);
+  return found ? String(found.personnelId || '').trim() : '';
 }
 function mergePeopleWithStaffDirectory(list) {
   if (!Array.isArray(list) || !list.length || !staffDirectory.length) return list;
   return list.map(p => {
-    const codeKey = normalizeText(p.code || p.name);
-    const nameKey = normalizeText(p.name);
-    const found = staffDirectory.find(x =>
-      normalizeText(x.code) === codeKey ||
-      normalizeText(x.fullName) === nameKey ||
-      normalizeText(x.code) === nameKey
-    );
+    const found = findStaffDirectoryEntry(p);
     if (!found) return p;
     const fn = String(found.fullName || '').trim();
     const pn = String(p.name || '').trim();
@@ -2918,6 +3280,7 @@ function mergePeopleWithStaffDirectory(list) {
     return {
       ...p,
       code: found.code || p.code || p.name,
+      personnelId: String(p.personnelId || found.personnelId || '').trim(),
       name: mergedName,
       level: p.level || found.level || ''
     };
@@ -2946,8 +3309,8 @@ function renderAssignmentTableFromFlightDefs() {
     .sort((a,b) => getArrSortMinutes(a) - getArrSortMinutes(b) || a.flight.localeCompare(b.flight));
 
   depBody.innerHTML = depRows.map(f => `
-    <tr>
-      <td>${f.flight}</td>
+    <tr data-flight="${f.flight}">
+      <td class="assignment-flight-no" data-flight="${f.flight}" title="點一下篩選下方管制表人員">${f.flight}</td>
       <td>${minutesToTime(f.baseMinutes)}</td>
       <td></td>
       <td data-flight="${f.flight}" data-role="PPT"></td>
@@ -2959,8 +3322,8 @@ function renderAssignmentTableFromFlightDefs() {
   `).join('');
 
   arrBody.innerHTML = arrRows.map(f => `
-    <tr>
-      <td>${f.flight}</td>
+    <tr data-flight="${f.flight}">
+      <td class="assignment-flight-no" data-flight="${f.flight}" title="點一下篩選下方管制表人員">${f.flight}</td>
       <td></td>
       <td>${minutesToTime(f.baseMinutes)}</td>
       <td></td>
@@ -2975,6 +3338,8 @@ function renderAssignmentTableFromFlightDefs() {
 
   if (typeof syncAssignmentTableFromSchedule === 'function') {
     syncAssignmentTableFromSchedule();
+  } else {
+    syncAssignmentRowHeights();
   }
 }
 
@@ -2983,6 +3348,7 @@ function rebuildAfterExcelImport(newFlightDefs, newPeople) {
   flightDefs = newFlightDefs;
   normalizeFlightDefsInPlace();
   people = newPeople.map(normalizePerson);
+  if (staffDirectory.length) people = mergePeopleWithStaffDirectory(people);
   renderAssignmentTableFromFlightDefs();
   schedule = [];
   selectedBlockId = null;
@@ -3131,6 +3497,8 @@ function loadDayDataFromLocalStorage(dateStr) {
   normalizeFlightDefsInPlace();
   overtimeHourOverrides = JSON.parse(localStorage.getItem(k.overtimeOverrides) || '{}');
   if (!overtimeHourOverrides || typeof overtimeHourOverrides !== 'object') overtimeHourOverrides = {};
+  dicOvertimeApprovals = JSON.parse(localStorage.getItem(k.dicOvertimeApprovals) || '{}');
+  if (!dicOvertimeApprovals || typeof dicOvertimeApprovals !== 'object') dicOvertimeApprovals = {};
   customTemplates = JSON.parse(localStorage.getItem(k.customTemplates) || '[]');
   deletedCustomTemplates = JSON.parse(localStorage.getItem(k.deletedCustomTemplates) || '[]');
   selectedBlockId = null;
@@ -3329,6 +3697,7 @@ function saveLocal() {
   localStorage.setItem(k.flightsImported, flightsImported ? '1' : '0');
   saveCustomTemplates();
   saveOvertimeOverrides();
+  saveDicOvertimeApprovals();
   saveStaffDirectory();
 }
 function clearHoverStates() { document.querySelectorAll('.person-cell').forEach(el => el.classList.remove('over', 'dragging')); }
@@ -3586,16 +3955,23 @@ function selectBlock(uid) {
 
 function getDisplayRows() {
   const allRows = people.map((p, idx) => ({ person: p, originalIndex: idx, matchedRow: false }));
-  const normalized = normalizeFlightSearch(timelineFlightSearch);
-  if (!normalized) {
-    const filteredRows = allRows.filter(row => personMatchesShiftView(row.person));
-    return filteredRows;
+  const query = String(timelineFlightSearch || '').trim();
+  if (!query) {
+    return allRows.filter(row => personMatchesShiftView(row.person));
   }
-  const matchedPersonIdx = [...new Set(schedule.filter(s => s.flight === normalized).map(s => s.personIndex))];
+  const parsed = parseTimelineSearch(query);
+  const matchedPersonIdx = getPersonIndicesForTimelineSearch(query);
+  if (parsed.mode === 'name') {
+    return matchedPersonIdx.map(idx => ({ person: people[idx], originalIndex: idx, matchedRow: false }));
+  }
+  if (parsed.mode === 'level') {
+    return matchedPersonIdx
+      .filter(idx => personMatchesShiftView(people[idx]))
+      .map(idx => ({ person: people[idx], originalIndex: idx, matchedRow: false }));
+  }
   const topRows = matchedPersonIdx.map(idx => ({ person: people[idx], originalIndex: idx, matchedRow: true }));
   const restRows = people.map((p, idx) => idx).filter(idx => !matchedPersonIdx.includes(idx)).map(idx => ({ person: people[idx], originalIndex: idx, matchedRow: false }));
-  const filteredRows = [...topRows, ...restRows].filter(row => personMatchesShiftView(row.person));
-  return filteredRows;
+  return [...topRows, ...restRows].filter(row => personMatchesShiftView(row.person));
 }
 
 function createBlockEl(item, normalizedSearch) {
@@ -3606,7 +3982,7 @@ function createBlockEl(item, normalizedSearch) {
   block.className = 'block';
   applyRoleClass(block, item.role);
 
-  if (normalizedSearch && item.flight !== normalizedSearch) block.classList.add('dimmed');
+  if (normalizedSearch && !scheduleItemMatchesTimelineSearch(item, timelineFlightSearch)) block.classList.add('dimmed');
 
   block.dataset.uid = item.uid;
   block.style.left = timeToLeft(slice.start) + 'px';
@@ -3626,10 +4002,8 @@ function createBlockEl(item, normalizedSearch) {
   deleteBtn.addEventListener('click', e => {
     e.stopPropagation();
     e.preventDefault();
-
     schedule = schedule.filter(x => x.uid !== item.uid);
     selectedBlockId = null;
-
     renderPalette();
     renderRows();
     markUnsynced();
@@ -3652,8 +4026,9 @@ function renderRows() {
   const rows = document.getElementById('rows');
   rows.innerHTML = '';
   const displayRows = getDisplayRows();
-  const normalized = normalizeFlightSearch(timelineFlightSearch);
-  if (!displayRows.length && activeShiftView === 'late') {
+  const searchActive = !!String(timelineFlightSearch || '').trim();
+  const searchParsed = parseTimelineSearch(timelineFlightSearch);
+  if (!displayRows.length && searchParsed.mode === 'flight' && activeShiftView === 'late') {
     const reminder = document.createElement('div');
     reminder.className = 'shift-empty-reminder';
     reminder.textContent = '無晚班上班人員';
@@ -3678,7 +4053,6 @@ function renderRows() {
     const nextDayShift = rowInfo.person.nextDayShift || '';
     const clockedOut = !!rowInfo.person.clockedOut;
     const seqNo = displayIdx + 1;
-    const hiddenDutyCount = schedule.filter(s => s.personIndex === rowInfo.originalIndex && !dutyIntersectsView(s)).length;
     const resolvedName = resolveFullName(rowInfo.person);
     const rawName = String(rowInfo.person.name || rowInfo.person.code || '').trim();
     let displayName = resolvedName || rawName;
@@ -3699,7 +4073,6 @@ function renderRows() {
         shift,
         adjustedShift,
         hasRest: hasRestForPerson(rowInfo.originalIndex),
-        outOfViewCount: hiddenDutyCount,
         adjustedShiftOptions,
         radioNo,
         ircsNo,
@@ -3715,7 +4088,6 @@ function renderRows() {
         shift,
         adjustedShift,
         hasRest: hasRestForPerson(rowInfo.originalIndex),
-        outOfViewCount: hiddenDutyCount,
         clockedOut
       }).join('');
     }
@@ -3769,7 +4141,6 @@ function renderRows() {
       el.addEventListener('mousedown', e => e.stopPropagation());
       el.addEventListener('click', e => e.stopPropagation());
     });
-
     const timeline = document.createElement('div');
     timeline.className = 'timeline';
     timeline.dataset.originalIndex = rowInfo.originalIndex;
@@ -3839,7 +4210,7 @@ function renderRows() {
     }
     const items = schedule.filter(s => s.personIndex === rowInfo.originalIndex);
     items.forEach(item => {
-      const el = createBlockEl(item, normalized);
+      const el = createBlockEl(item, searchActive);
       if (el) timeline.appendChild(el);
     });
 
@@ -3921,12 +4292,75 @@ function setEditorExpanded(expanded) {
 }
 
 
+const LS_ASSIGNMENT_PANE = `${LS_PREFIX}_assignment_pane_px`;
+function getAssignmentPaneHeightPx(workspace) {
+  const saved = parseFloat(localStorage.getItem(LS_ASSIGNMENT_PANE));
+  if (Number.isFinite(saved) && saved >= 140) return saved;
+  const usable = (workspace?.getBoundingClientRect().height || window.innerHeight) - 10;
+  return Math.round(usable * 0.52);
+}
+function applyAssignmentPaneHeight(px) {
+  document.documentElement.style.setProperty('--assignment-pane-height', `${Math.round(px)}px`);
+}
+function initWorkspaceSplitter() {
+  const splitter = document.getElementById('workspaceSplitter');
+  const workspace = document.querySelector('.workspace');
+  if (!splitter || !workspace) return;
+  let dragging = false;
+  const onMove = e => {
+    if (!dragging) return;
+    const splitterH = splitter.getBoundingClientRect().height || 10;
+    const rect = workspace.getBoundingClientRect();
+    const usable = rect.height - splitterH;
+    const y = e.clientY - rect.top;
+    const minPx = 140;
+    const maxPx = Math.max(minPx + 80, usable - 120);
+    applyAssignmentPaneHeight(Math.min(maxPx, Math.max(minPx, y)));
+  };
+  const onUp = () => {
+    if (!dragging) return;
+    dragging = false;
+    splitter.classList.remove('is-dragging');
+    document.body.classList.remove('workspace-split-dragging');
+    const raw = getComputedStyle(document.documentElement).getPropertyValue('--assignment-pane-height').trim();
+    const px = parseFloat(raw);
+    if (Number.isFinite(px)) localStorage.setItem(LS_ASSIGNMENT_PANE, String(Math.round(px)));
+  };
+  splitter.addEventListener('mousedown', e => {
+    if (!workspace.classList.contains('workspace--assignment-open')) return;
+    dragging = true;
+    splitter.classList.add('is-dragging');
+    document.body.classList.add('workspace-split-dragging');
+    e.preventDefault();
+  });
+  document.addEventListener('mousemove', onMove);
+  document.addEventListener('mouseup', onUp);
+}
 function toggleAssignmentPanel(forceOpen) {
   const panel = document.getElementById('assignmentPanel');
   const btn = document.getElementById('assignmentToggleBtn');
-  const willOpen = typeof forceOpen === 'boolean' ? forceOpen : panel.style.display !== 'block';
-  panel.style.display = willOpen ? 'block' : 'none';
+  const workspace = document.querySelector('.workspace');
+  const splitter = document.getElementById('workspaceSplitter');
+  const isOpen = panel.classList.contains('is-open');
+  const willOpen = typeof forceOpen === 'boolean' ? forceOpen : !isOpen;
+  panel.classList.toggle('is-open', willOpen);
+  panel.style.display = willOpen ? 'flex' : 'none';
+  workspace?.classList.toggle('workspace--assignment-open', willOpen);
+  if (splitter) {
+    splitter.hidden = !willOpen;
+    splitter.setAttribute('aria-hidden', willOpen ? 'false' : 'true');
+  }
+  if (willOpen && workspace) applyAssignmentPaneHeight(getAssignmentPaneHeightPx(workspace));
   btn.textContent = willOpen ? '收合分配表' : '展開人員分配表';
+  if (willOpen) {
+    resetAssignmentRowHeights();
+    requestAnimationFrame(() => syncAssignmentRowHeights());
+  }
+}
+function resetAssignmentRowHeights() {
+  document.querySelectorAll('#assignmentDepBody tr, #assignmentArrBody tr, .assignment-table thead tr').forEach(el => {
+    el.style.height = '';
+  });
 }
 function focusPersonInSchedule(personIndex) {
   if (personIndex < 0 || !people[personIndex]) return;
@@ -3959,6 +4393,56 @@ function focusPersonInSchedule(personIndex) {
     }, 2000);
   });
 }
+function syncAssignmentRowHeights() {
+  const panel = document.getElementById('assignmentPanel');
+  if (!panel?.classList.contains('is-open') || panel.style.display === 'none') return;
+  const depRows = [...document.querySelectorAll('#assignmentDepBody tr')];
+  const arrRows = [...document.querySelectorAll('#assignmentArrBody tr')];
+  if (!depRows.length && !arrRows.length) return;
+  depRows.forEach(r => { r.style.height = ''; });
+  arrRows.forEach(r => { r.style.height = ''; });
+  const depThead = document.querySelector('#assignmentDepBody')?.closest('table')?.querySelector('thead tr');
+  const arrThead = document.querySelector('#assignmentArrBody')?.closest('table')?.querySelector('thead tr');
+  if (depThead) depThead.style.height = '';
+  if (arrThead) arrThead.style.height = '';
+  const applyHeights = () => {
+    if (!panel.classList.contains('is-open') || panel.style.display === 'none') return;
+    const minRow = 26;
+    const minHead = 30;
+    if (depThead && arrThead) {
+      const th = Math.max(minHead, depThead.getBoundingClientRect().height, arrThead.getBoundingClientRect().height);
+      const hPx = `${Math.ceil(th)}px`;
+      depThead.style.height = hPx;
+      arrThead.style.height = hPx;
+    }
+    const count = Math.min(depRows.length, arrRows.length);
+    for (let i = 0; i < count; i++) {
+      const h = Math.max(minRow, depRows[i].getBoundingClientRect().height, arrRows[i].getBoundingClientRect().height);
+      const hPx = `${Math.ceil(h)}px`;
+      depRows[i].style.height = hPx;
+      arrRows[i].style.height = hPx;
+    }
+  };
+  requestAnimationFrame(() => requestAnimationFrame(applyHeights));
+}
+function updateAssignmentFlightHighlight(preferredRow, options = {}) {
+  const parsed = parseTimelineSearch(timelineFlightSearch);
+  let focusRow = preferredRow && preferredRow.isConnected ? preferredRow : null;
+  document.querySelectorAll('.assignment-table tbody tr').forEach(tr => {
+    const flight = tr.dataset.flight || tr.querySelector('td:first-child')?.textContent?.trim() || '';
+    const match = parsed.mode === 'flight' && normalizeFlightSearch(flight) === parsed.flight;
+    tr.classList.toggle('assignment-flight-match', match);
+    if (match && !focusRow) focusRow = tr;
+  });
+  if (focusRow && !options.skipScroll) {
+    requestAnimationFrame(() => {
+      scrollAssignmentRowIntoView(focusRow);
+      requestAnimationFrame(() => syncAssignmentRowHeights());
+    });
+  } else if (parsed.mode === 'none') {
+    syncAssignmentRowHeights();
+  }
+}
 function syncAssignmentTableFromSchedule() {
   const mappedCells = document.querySelectorAll('[data-flight][data-role]');
   mappedCells.forEach(cell => {
@@ -3983,9 +4467,16 @@ function syncAssignmentTableFromSchedule() {
       cell.title = '';
     }
   });
+  if (timelineFlightSearch) updateAssignmentFlightHighlight(null, { skipScroll: true });
+  else syncAssignmentRowHeights();
 }
 document.getElementById('assignmentToggleBtn').addEventListener('click', () => toggleAssignmentPanel());
-document.getElementById('assignmentCloseBtn').addEventListener('click', () => toggleAssignmentPanel(false));
+initWorkspaceSplitter();
+window.addEventListener('resize', () => {
+  if (document.getElementById('assignmentPanel')?.classList.contains('is-open')) {
+    syncAssignmentRowHeights();
+  }
+});
 
 document.getElementById('searchInput').addEventListener('input', renderPalette);
 document.getElementById('clearDutySearchBtn').addEventListener('click', () => {
@@ -4008,13 +4499,18 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
   });
 });
 document.getElementById('timelineFlightSearch').addEventListener('input', (e) => {
-  timelineFlightSearch = e.target.value.trim();
-  renderRows();
+  applyTimelineFlightSearch(e.target.value.trim());
 });
 document.getElementById('clearTimelineSearch').addEventListener('click', () => {
-  timelineFlightSearch = '';
-  document.getElementById('timelineFlightSearch').value = '';
-  renderRows();
+  applyTimelineFlightSearch('');
+});
+document.querySelector('.assignment-scroll')?.addEventListener('click', e => {
+  const cell = e.target.closest('.assignment-flight-no');
+  if (!cell) return;
+  const flight = cell.dataset.flight || cell.textContent.trim();
+  const row = cell.closest('tr');
+  if (!flight) return;
+  applyTimelineFlightSearch(flight, row);
 });
 document.getElementById('toggleEditorBtn').addEventListener('click', () => {
   setEditorExpanded(!editorExpanded);
@@ -4102,10 +4598,14 @@ document.getElementById('staffDbImportInput').addEventListener('change', async (
   }
   staffDirectory = directory;
   saveStaffDirectory();
-  if (people.length) people = mergePeopleWithStaffDirectory(people);
+  if (people.length) {
+    people = mergePeopleWithStaffDirectory(people);
+    saveLocal();
+  }
   renderRows();
   markUnsynced();
-  alert(`人員資料庫已更新，共 ${directory.length} 筆。`);
+  const withPid = directory.filter(x => String(x.personnelId || '').trim()).length;
+  alert(`人員資料庫已更新，共 ${directory.length} 筆（含人事代號 ${withPid} 筆）。`);
   e.target.value = '';
 });
 
@@ -4118,7 +4618,7 @@ document.getElementById('resetBtn').addEventListener('click', () => {
   }
 });
 document.getElementById('toggleOvertimeBtn').addEventListener('click', () => setOvertimeExpanded(!overtimeExpanded));
-document.getElementById('exportOvertimeBtn').addEventListener('click', exportOvertimeCSV);
+document.getElementById('exportOvertimeBtn').addEventListener('click', exportOvertimeExcel);
 document.getElementById('saveBtn').addEventListener('click', () => {
   const active = document.activeElement;
   if (active && typeof active.blur === 'function') active.blur();
