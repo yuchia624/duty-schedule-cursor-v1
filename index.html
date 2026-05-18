@@ -268,6 +268,7 @@
     width:100%; padding:9px 10px; border:1px solid #d1d5db; border-radius:8px; font-size:13px; background:#fff;
   }
   .controls button,.toolbar button,.tab-btn,.collapse-btn { cursor:pointer; font-weight:700; }
+  .toolbar button:disabled { opacity:0.45; cursor:not-allowed; }
   .hint { color:#6b7280; font-size:12px; padding:4px 16px 10px; line-height:1.5; }
   .palette-tabs { display:flex; flex-wrap:wrap; gap:8px; padding:10px 12px 0; border-top:1px solid var(--line); background:#fff; flex: 0 0 auto; }
   .tab-btn { border:1px solid #cfd6e4; background:#fff; border-radius:999px; padding:8px 12px; font-size:13px; }
@@ -862,6 +863,11 @@
   .block .label { white-space:nowrap; font-size:16px; font-weight:900; letter-spacing:.2px; }
   .block.selected { outline:2px solid #111827; }
   .block.dimmed { opacity:.18; }
+  .block.block-flight-match {
+    outline: 3px solid #f59e0b;
+    outline-offset: 1px;
+    z-index: 6;
+  }
   .block.block-overtime {
     outline: 2px solid #ea580c;
     box-shadow: 0 1px 2px rgba(0,0,0,.08), inset 0 0 0 1px #fed7aa;
@@ -884,6 +890,13 @@
     white-space: nowrap;
   }
   .row.flight-match-top .person-cell { background:#fffbea; }
+  .row.palette-drop-hover .person-cell,
+  .board .row.palette-drop-hover .person-cell.rollcall-grid.shift-early,
+  .board .row.palette-drop-hover .person-cell.rollcall-grid.shift-late,
+  .row.palette-drop-hover .person-cell.shift-early,
+  .row.palette-drop-hover .person-cell.shift-late {
+    background: #fffbea !important;
+  }
 
   .person-cell-tail {
     display: inline-flex;
@@ -2180,10 +2193,11 @@
   <div class="control-panel">
 
     <div class="toolbar">
-      <div class="search-wrap"><input id="timelineFlightSearch" type="text" placeholder="搜尋航班、姓名、戰力（如 2A/m）" /></div>
+      <div class="search-wrap"><input id="timelineFlightSearch" type="text" placeholder="搜尋航班、姓名、戰力、班別（如 I9）" /></div>
       <button id="clearTimelineSearch">清除搜尋</button>
       <button id="toggleShiftViewBtn">顯示：早班</button>
       <button id="toggleRollCallBtn">點名：關</button>
+      <button type="button" id="undoBtn" disabled title="復原上一步（Ctrl+Z）">復原</button>
       <button id="saveBtn">同步</button>
       <div class="schedule-date-wrap">
         <label>班表日期</label>
@@ -2795,6 +2809,7 @@ function saveDeletedCustomTemplates() {
 function deleteCustomTemplate(templateId) {
   const idx = customTemplates.findIndex(t => t.id === templateId);
   if (idx < 0) return;
+  pushUndoSnapshot();
   const [tpl] = customTemplates.splice(idx, 1);
   tpl.deletedAt = Date.now();
   deletedCustomTemplates.unshift(tpl);
@@ -2902,6 +2917,9 @@ let applyingRemote = false;
 let cloudSaveTimer = null;
 let lastCloudJson = '';
 let firebaseUnsub = null;
+const UNDO_MAX = 50;
+let undoStack = [];
+let undoRestoring = false;
 
 function setCloudStatus(text, mode='') {
   const el = document.getElementById('cloudStatus');
@@ -2963,6 +2981,7 @@ function applyCloudState(data) {
   if (typeof renderOvertimePanel === 'function') renderOvertimePanel();
 
   applyingRemote = false;
+  clearUndoHistory();
 }
 
 function saveCloudNow() {
@@ -3122,6 +3141,20 @@ function scheduleItemMatchesFlightSearch(item, normalized) {
   if (f === normalized) return true;
   return compactFlightNo(f) === compactFlightNo(normalized);
 }
+function templateMatchesFlightSearch(t, normalized) {
+  if (!normalized || !t || t.role === '休' || t.role === '自訂') return false;
+  const f = String(t.flight || '').trim().toUpperCase();
+  if (!f) return false;
+  if (f === normalized) return true;
+  return compactFlightNo(f) === compactFlightNo(normalized);
+}
+function templateMatchesTimelineSearch(t) {
+  const query = String(timelineFlightSearch || '').trim();
+  if (!query) return true;
+  const parsed = parseTimelineSearch(query);
+  if (parsed.mode !== 'flight') return true;
+  return templateMatchesFlightSearch(t, parsed.flight);
+}
 function personLevelMatches(person, levelToken) {
   const level = String(person?.level || resolveLevel(person) || '').trim();
   const token = String(levelToken || '').trim();
@@ -3147,12 +3180,34 @@ function personMatchesNameSearch(person, text) {
   ].filter(Boolean).map(normalizeText);
   return hay.some(n => n.includes(q) || q.includes(n));
 }
+function resolveShiftKey(token) {
+  const t = String(token || '').trim();
+  if (!t) return null;
+  return Object.keys(SHIFT_DEFS).find(k => k.toLowerCase() === t.toLowerCase()) || null;
+}
+function personMatchesShiftSearch(person, token) {
+  const key = resolveShiftKey(token);
+  if (!key) return false;
+  const shift = String(person?.shift || '').trim();
+  const adjusted = String(person?.adjustedShift || '').trim();
+  return shift === key || adjusted === key;
+}
 function parseTimelineSearch(query) {
   const raw = String(query || '').trim();
   if (!raw) return { mode: 'none' };
   if (/[/,，、]/.test(raw)) {
-    const levels = raw.split(/[/,，、\s]+/).map(s => s.trim()).filter(Boolean);
-    if (levels.length) return { mode: 'level', levels };
+    const parts = raw.split(/[/,，、\s]+/).map(s => s.trim()).filter(Boolean);
+    if (parts.length) {
+      const shifts = [];
+      const levels = [];
+      parts.forEach(p => {
+        if (resolveShiftKey(p)) shifts.push(p);
+        else levels.push(p);
+      });
+      if (shifts.length && levels.length) return { mode: 'mixed', shifts, levels };
+      if (shifts.length) return { mode: 'shift', shifts };
+      if (levels.length) return { mode: 'level', levels };
+    }
   }
   if (/^BR\d+$/i.test(raw) || /^\d+$/.test(raw)) {
     return { mode: 'flight', flight: normalizeFlightSearch(raw) };
@@ -3164,6 +3219,7 @@ function parseTimelineSearch(query) {
     return { mode: 'flight', flight: normalizeFlightSearch(raw) };
   }
   if (/^[a-zA-Z0-9!*]+$/.test(raw)) {
+    if (resolveShiftKey(raw)) return { mode: 'shift', shifts: [raw] };
     return { mode: 'level', levels: [raw] };
   }
   return { mode: 'name', text: raw };
@@ -3182,6 +3238,15 @@ function getPersonIndicesForTimelineSearch(query) {
   if (parsed.mode === 'level') {
     return people.map((p, idx) => idx).filter(idx => parsed.levels.some(tok => personLevelMatches(people[idx], tok)));
   }
+  if (parsed.mode === 'shift') {
+    return people.map((p, idx) => idx).filter(idx => parsed.shifts.some(tok => personMatchesShiftSearch(people[idx], tok)));
+  }
+  if (parsed.mode === 'mixed') {
+    return people.map((p, idx) => idx).filter(idx =>
+      parsed.shifts.some(tok => personMatchesShiftSearch(people[idx], tok)) ||
+      parsed.levels.some(tok => personLevelMatches(people[idx], tok))
+    );
+  }
   if (parsed.mode === 'name') {
     return people.map((p, idx) => idx).filter(idx => personMatchesNameSearch(people[idx], parsed.text));
   }
@@ -3199,10 +3264,11 @@ function applyTimelineFlightSearch(query, preferredAssignmentRow) {
   const input = document.getElementById('timelineFlightSearch');
   if (input) input.value = timelineFlightSearch;
   renderRows();
+  renderPalette();
   updateAssignmentFlightHighlight(preferredAssignmentRow);
   if (!preferredAssignmentRow && timelineFlightSearch) {
     const parsed = parseTimelineSearch(timelineFlightSearch);
-    if (parsed.mode === 'level') {
+    if (parsed.mode === 'level' || parsed.mode === 'shift' || parsed.mode === 'mixed') {
       const indices = getPersonIndicesForTimelineSearch(timelineFlightSearch)
         .filter(idx => personMatchesShiftView(people[idx]));
       if (indices.length) focusPersonInSchedule(indices[0]);
@@ -3605,6 +3671,7 @@ function loadDayDataFromLocalStorage(dateStr) {
   if (staffDirectory.length && people.length) {
     people = mergePeopleWithStaffDirectory(people);
   }
+  clearUndoHistory();
 }
 function formatScheduleDateDisplay(iso) {
   if (!isValidISODate(iso)) return '';
@@ -3760,6 +3827,7 @@ function switchScheduleDate(newDate) {
   renderOvertimePanel();
   updateShiftViewButtonLabel();
   attachFirebaseForSelectedDate();
+  clearUndoHistory();
 }
 function overlaps(aStart, aEnd, bStart, bEnd) { return aStart < bEnd && aEnd > bStart; }
 function confirmConflict(personIndex, itemUid, start, end) { return true; }
@@ -3768,6 +3836,44 @@ function applyRoleClass(el, role) { el.classList.add(safeRoleClass(role)); }
 function timeToLeft(mins) { return (mins - getViewStartMin()) * pxPerMinute; }
 function durationToWidth(start, end) { return Math.max((end - start) * pxPerMinute, 50); }
 let paletteDragTemplateId = null;
+let paletteDragSlotRange = null;
+let paletteDropHoverPersonIndex = null;
+function setPaletteDropHover(personIndex) {
+  const idx = Number(personIndex);
+  if (paletteDropHoverPersonIndex === idx) return;
+  document.querySelectorAll('.row.palette-drop-hover').forEach(el => el.classList.remove('palette-drop-hover'));
+  paletteDropHoverPersonIndex = Number.isNaN(idx) ? null : idx;
+  if (paletteDropHoverPersonIndex == null) return;
+  const cell = document.querySelector(`.person-cell[data-original-index="${paletteDropHoverPersonIndex}"]`);
+  cell?.closest('.row')?.classList.add('palette-drop-hover');
+}
+function clearPaletteDropHover() {
+  paletteDropHoverPersonIndex = null;
+  document.querySelectorAll('.row.palette-drop-hover').forEach(el => el.classList.remove('palette-drop-hover'));
+}
+function personHasDutyInRange(personIndex, start, end) {
+  return schedule.some(item =>
+    item.personIndex === personIndex && overlaps(item.start, item.end, start, end)
+  );
+}
+function updatePaletteDragSlotRange(range) {
+  if (!range) {
+    if (paletteDragSlotRange !== null) {
+      paletteDragSlotRange = null;
+      renderRows();
+    }
+    return;
+  }
+  if (paletteDragSlotRange && paletteDragSlotRange.start === range.start && paletteDragSlotRange.end === range.end) return;
+  paletteDragSlotRange = range;
+  renderRows();
+}
+function endPaletteDragSession() {
+  paletteDragTemplateId = null;
+  paletteDragSlotRange = null;
+  clearPaletteDragGuide();
+  renderRows();
+}
 function getNameColWidthPx() {
   const v = getComputedStyle(document.documentElement).getPropertyValue('--name-col-width').trim();
   const n = parseFloat(v);
@@ -3836,6 +3942,7 @@ function clearPaletteDragGuide() {
   document.querySelectorAll('.timeline-palette-drag-guide').forEach(el => el.remove());
   document.querySelectorAll('.timeline.palette-drag-target').forEach(el => el.classList.remove('palette-drag-target', 'drag-over'));
   document.querySelectorAll('.timeline-drag-ghost').forEach(el => el.remove());
+  clearPaletteDropHover();
 }
 function ensureTimelinePaletteDragGuide(timeline) {
   if (!timeline) return null;
@@ -3917,7 +4024,12 @@ function updatePaletteDragGuide(tpl, timelineEl, clientX) {
   syncRowTimelineDragGuides(range);
   document.querySelectorAll('.timeline.palette-drag-target').forEach(el => el.classList.remove('palette-drag-target'));
   document.querySelectorAll('.timeline-drag-ghost').forEach(el => el.remove());
-  if (!timelineEl) return;
+  if (!timelineEl) {
+    setPaletteDropHover(null);
+    return;
+  }
+  const hoverIdx = Number(timelineEl.dataset.originalIndex);
+  setPaletteDropHover(Number.isNaN(hoverIdx) ? null : hoverIdx);
   timelineEl.classList.add('palette-drag-target');
   const viewStart = getViewStartMin();
   const viewEnd = getViewEndMin();
@@ -3949,9 +4061,53 @@ function scrollControlPanelForTemplateDrag(tpl, timelineEl, clientX) {
   if (dutyIntersectsView({ start, end })) scrollControlPanelToTimeRange(start, end);
   else scrollControlPanelTowardTimeRange(start, end);
   updatePaletteDragGuide(tpl, timelineEl, clientX);
+  updatePaletteDragSlotRange(range);
 }
 function markUnsynced() {
   setCloudStatus('尚未同步', 'pending');
+}
+function captureUndoState() {
+  return {
+    schedule: JSON.parse(JSON.stringify(schedule)),
+    people: JSON.parse(JSON.stringify(people)),
+    customTemplates: JSON.parse(JSON.stringify(customTemplates)),
+    blockSeq,
+    selectedBlockId
+  };
+}
+function updateUndoButtonState() {
+  const btn = document.getElementById('undoBtn');
+  if (btn) btn.disabled = undoStack.length === 0;
+}
+function clearUndoHistory() {
+  undoStack = [];
+  updateUndoButtonState();
+}
+function pushUndoSnapshot() {
+  if (undoRestoring || applyingRemote) return;
+  undoStack.push(captureUndoState());
+  if (undoStack.length > UNDO_MAX) undoStack.shift();
+  updateUndoButtonState();
+}
+function undoLastChange() {
+  if (!undoStack.length || undoRestoring) return;
+  undoRestoring = true;
+  const snap = undoStack.pop();
+  schedule = snap.schedule;
+  people = snap.people.map(normalizePerson);
+  if (staffDirectory.length && people.length) people = mergePeopleWithStaffDirectory(people);
+  customTemplates = JSON.parse(JSON.stringify(snap.customTemplates || []));
+  blockSeq = snap.blockSeq;
+  selectedBlockId = snap.selectedBlockId;
+  rebuildTemplates();
+  syncScheduleWindows();
+  renderPalette();
+  renderRows();
+  renderOvertimePanel();
+  if (typeof syncAssignmentTableFromSchedule === 'function') syncAssignmentTableFromSchedule();
+  markUnsynced();
+  undoRestoring = false;
+  updateUndoButtonState();
 }
 function syncRollCallRowVisual(cell, person) {
   const row = cell.closest('.row');
@@ -3988,11 +4144,16 @@ function filteredUnscheduledTemplates() {
   const used = scheduledTemplateIds();
   return templates.filter(t => {
     if (t.role !== '休' && t.role !== '自訂' && used.has(t.id)) return false;
+    if (!templateMatchesTimelineSearch(t)) return false;
     const text = (t.compactLabel + ' ' + minutesToTime(t.start) + '-' + minutesToTime(t.end) + ' ' + t.flight + ' ' + t.role).toLowerCase();
     if (q && !text.includes(q)) return false;
     if (role && t.role !== role) return false;
     return true;
   });
+}
+function paletteEmptyMessage(flightSearchActive) {
+  if (flightSearchActive) return '此航班待排 duty 已全部安排，或請確認航班編號';
+  return '全部 duty 都已安排完成';
 }
 function makeChip(t) {
   const chip = document.createElement('div');
@@ -4022,12 +4183,16 @@ function makeChip(t) {
     if (e.target.closest('.duty-chip-delete-btn')) { e.preventDefault(); return; }
     e.dataTransfer.setData('text/template', t.id);
     paletteDragTemplateId = t.id;
-    if (t.role !== '休') scrollControlPanelTowardTimeRange(t.start, t.end);
+    if (t.role !== '休') {
+      scrollControlPanelTowardTimeRange(t.start, t.end);
+      updatePaletteDragSlotRange({ start: t.start, end: t.end });
+    } else {
+      updatePaletteDragSlotRange(null);
+    }
     updatePaletteDragGuide(t, null, 0);
   });
   chip.addEventListener('dragend', () => {
-    paletteDragTemplateId = null;
-    clearPaletteDragGuide();
+    endPaletteDragSession();
   });
   return chip;
 }
@@ -4039,11 +4204,12 @@ function renderPalette() {
     return;
   }
   if (!hasImportedFlights()) return;
+  const flightSearchActive = parseTimelineSearch(timelineFlightSearch).mode === 'flight';
   const items = filteredUnscheduledTemplates();
   if (!items.length) {
     const done = document.createElement('div');
     done.className = 'empty-msg';
-    done.textContent = '全部 duty 都已安排完成';
+    done.textContent = paletteEmptyMessage(flightSearchActive);
     palette.appendChild(done);
     return;
   }
@@ -4242,21 +4408,33 @@ function selectBlock(uid) {
 
 function getDisplayRows() {
   const allRows = people.map((p, idx) => ({ person: p, originalIndex: idx, matchedRow: false }));
+  const filterShift = rows => rows.filter(row => personMatchesShiftView(row.person));
+  if (paletteDragTemplateId && paletteDragSlotRange) {
+    const { start, end } = paletteDragSlotRange;
+    const shiftRows = filterShift(allRows);
+    const freeRows = [];
+    const busyRows = [];
+    shiftRows.forEach(row => {
+      if (personHasDutyInRange(row.originalIndex, start, end)) busyRows.push(row);
+      else freeRows.push(row);
+    });
+    return [...freeRows, ...busyRows];
+  }
   const query = String(timelineFlightSearch || '').trim();
   if (!query) {
-    return allRows.filter(row => personMatchesShiftView(row.person));
+    return filterShift(allRows);
   }
   const parsed = parseTimelineSearch(query);
   const matchedPersonIdx = getPersonIndicesForTimelineSearch(query);
   if (parsed.mode === 'name') {
     return matchedPersonIdx.map(idx => ({ person: people[idx], originalIndex: idx, matchedRow: false }));
   }
-  if (parsed.mode === 'level') {
+  if (parsed.mode === 'level' || parsed.mode === 'shift' || parsed.mode === 'mixed') {
     return matchedPersonIdx
       .filter(idx => personMatchesShiftView(people[idx]))
       .map(idx => ({ person: people[idx], originalIndex: idx, matchedRow: false }));
   }
-  const topRows = matchedPersonIdx.map(idx => ({ person: people[idx], originalIndex: idx, matchedRow: true }));
+  const topRows = matchedPersonIdx.map(idx => ({ person: people[idx], originalIndex: idx, matchedRow: false }));
   const restRows = people.map((p, idx) => idx).filter(idx => !matchedPersonIdx.includes(idx)).map(idx => ({ person: people[idx], originalIndex: idx, matchedRow: false }));
   return [...topRows, ...restRows].filter(row => personMatchesShiftView(row.person));
 }
@@ -4269,7 +4447,14 @@ function createBlockEl(item, normalizedSearch) {
   block.className = 'block';
   applyRoleClass(block, item.role);
 
-  if (normalizedSearch && !scheduleItemMatchesTimelineSearch(item, timelineFlightSearch)) block.classList.add('dimmed');
+  if (normalizedSearch) {
+    const parsed = parseTimelineSearch(timelineFlightSearch);
+    if (parsed.mode === 'flight') {
+      if (scheduleItemMatchesFlightSearch(item, parsed.flight)) block.classList.add('block-flight-match');
+    } else if (!scheduleItemMatchesTimelineSearch(item, timelineFlightSearch)) {
+      block.classList.add('dimmed');
+    }
+  }
 
   block.dataset.uid = item.uid;
   block.style.left = timeToLeft(slice.start) + 'px';
@@ -4289,6 +4474,7 @@ function createBlockEl(item, normalizedSearch) {
   deleteBtn.addEventListener('click', e => {
     e.stopPropagation();
     e.preventDefault();
+    pushUndoSnapshot();
     schedule = schedule.filter(x => x.uid !== item.uid);
     selectedBlockId = null;
     renderPalette();
@@ -4440,11 +4626,16 @@ function renderRows() {
     timeline.addEventListener('dragleave', e => {
       if (e.currentTarget.contains(e.relatedTarget)) return;
       timeline.classList.remove('drag-over');
+      if (!e.relatedTarget?.closest?.('.timeline')) setPaletteDropHover(null);
+    });
+    left.addEventListener('dragover', e => {
+      if (!e.dataTransfer.types.includes('text/template') || !paletteDragTemplateId) return;
+      e.preventDefault();
+      setPaletteDropHover(rowInfo.originalIndex);
     });
     timeline.addEventListener('drop', e => {
       if (!e.dataTransfer.types.includes('text/template')) return;
       e.preventDefault(); timeline.classList.remove('drag-over');
-      clearPaletteDragGuide();
       const templateId = e.dataTransfer.getData('text/template');
       const tpl = templates.find(x => x.id === templateId);
       if (!tpl) return;
@@ -4470,6 +4661,7 @@ function renderRows() {
       }
 
       if (!confirmConflict(targetPersonIndex, null, start, end)) return;
+      pushUndoSnapshot();
       schedule.push({
         uid: blockSeq++,
         label,
@@ -4481,7 +4673,9 @@ function renderRows() {
         start,
         end
       });
-      renderPalette(); renderRows(); markUnsynced();
+      renderPalette();
+      markUnsynced();
+      endPaletteDragSession();
     });
 
     const personShift = getEffectiveShift(people[rowInfo.originalIndex]);
@@ -4517,6 +4711,7 @@ function renderRows() {
 }
 
 function reorderPeople(fromIdx, toIdx) {
+  pushUndoSnapshot();
   const moved = people.splice(fromIdx, 1)[0];
   people.splice(toIdx, 0, moved);
   schedule.forEach(item => {
@@ -4533,9 +4728,14 @@ function startMoveBlock(e, item) {
   const originalPersonIndex = item.personIndex;
   const originalStart = item.start;
   const originalEnd = item.end;
+  let undoPushed = false;
   const rowHeight = document.querySelector('.row').getBoundingClientRect().height;
   const originTimeline = e.currentTarget.parentElement;
   function onMove(ev) {
+    if (!undoPushed) {
+      pushUndoSnapshot();
+      undoPushed = true;
+    }
     const boardRect = document.getElementById('rows').getBoundingClientRect();
     const displayRows = getDisplayRows();
     let idx = Math.max(0, Math.min(Math.floor((ev.clientY - boardRect.top - 1) / rowHeight), displayRows.length - 1));
@@ -4777,13 +4977,8 @@ function initPaletteDragAutoScroll() {
     const timeline = e.target.closest('.timeline');
     scrollControlPanelForTemplateDrag(tpl, timeline, e.clientX);
   });
-  panel.addEventListener('dragleave', e => {
-    if (panel.contains(e.relatedTarget)) return;
-    if (!paletteDragTemplateId) clearPaletteDragGuide();
-  });
   document.addEventListener('dragend', () => {
-    paletteDragTemplateId = null;
-    clearPaletteDragGuide();
+    if (paletteDragTemplateId) endPaletteDragSession();
   });
 }
 initPaletteDragAutoScroll();
@@ -4924,8 +5119,10 @@ document.getElementById('staffDbImportInput').addEventListener('change', async (
   e.target.value = '';
 });
 
+document.getElementById('undoBtn')?.addEventListener('click', () => undoLastChange());
 document.getElementById('resetBtn').addEventListener('click', () => {
   if (confirm('要清空目前排班嗎？')) {
+    pushUndoSnapshot();
     schedule = [];
     selectedBlockId = null;
     markUnsynced();
@@ -4976,9 +5173,15 @@ document.addEventListener('keydown', e => {
 
   if (isTyping) return;
 
+  if ((e.ctrlKey || e.metaKey) && !e.shiftKey && (e.key === 'z' || e.key === 'Z')) {
+    e.preventDefault();
+    undoLastChange();
+    return;
+  }
+
   if ((e.key === 'Delete' || e.key === 'Backspace') && selectedBlockId !== null) {
     e.preventDefault();
-
+    pushUndoSnapshot();
     schedule = schedule.filter(x => x.uid !== selectedBlockId);
     selectedBlockId = null;
 
@@ -4989,6 +5192,7 @@ document.addEventListener('keydown', e => {
 });
 
 syncScheduleWindows();
+updateUndoButtonState();
 renderTimeHeader();
 renderPalette();
 syncRollCallBoardClass();
