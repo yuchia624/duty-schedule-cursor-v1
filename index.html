@@ -757,7 +757,104 @@
     background-image:repeating-linear-gradient(to right,rgba(15,23,42,0.10) 0,rgba(15,23,42,0.10) 1px,transparent 1px,transparent calc(60 * var(--px-per-minute) * 1px)),
                      repeating-linear-gradient(to right,rgba(15,23,42,0.05) 0,rgba(15,23,42,0.05) 1px,transparent 1px,transparent calc(30 * var(--px-per-minute) * 1px));
   }
-  .timeline.drag-over { background-color:#f0f9ff; }
+  .timeline.drag-over { background-color:#f8fafc; }
+  .timeline.palette-drag-target { background-color: inherit !important; }
+  .timeline-palette-drag-guide {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 27;
+  }
+  .timeline-palette-drag-guide .palette-drag-guide-range { display: none; }
+  .palette-drag-guide-range {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    box-sizing: border-box;
+    background: rgba(37, 99, 235, 0.04);
+    border: 1px dashed rgba(37, 99, 235, 0.22);
+    border-radius: 3px;
+  }
+  .palette-drag-guide-line {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 1px;
+    background: rgba(37, 99, 235, 0.42);
+    z-index: 2;
+  }
+  .palette-drag-guide-offscreen {
+    display: none;
+    position: absolute;
+    top: 6px;
+    padding: 1px 6px;
+    font-size: 10px;
+    font-weight: 700;
+    color: #64748b;
+    background: rgba(255, 255, 255, 0.92);
+    border: 1px solid rgba(148, 163, 184, 0.55);
+    border-radius: 4px;
+    white-space: nowrap;
+    z-index: 3;
+  }
+  .palette-drag-guide-offscreen.is-visible { display: block; }
+  .palette-drag-guide-offscreen--before { left: 6px; }
+  .palette-drag-guide-offscreen--after { right: 6px; }
+  .times-palette-drag-guide {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 106;
+    display: none;
+  }
+  .times-palette-drag-guide.is-active { display: block; }
+  .times-palette-drag-guide .palette-drag-guide-line {
+    top: 0;
+    bottom: 0;
+  }
+  .times-palette-drag-guide .palette-drag-guide-range {
+    top: 4px;
+    bottom: 4px;
+    border-radius: 3px;
+  }
+  .times-palette-drag-guide .palette-drag-guide-offscreen {
+    top: 50%;
+    transform: translateY(-50%);
+  }
+  .timeline-drag-ghost {
+    position: absolute;
+    top: 5px;
+    height: calc(var(--row-height) - 10px);
+    box-sizing: border-box;
+    background: transparent;
+    border: 1px dashed rgba(37, 99, 235, 0.38);
+    border-radius: 8px;
+    pointer-events: none;
+    z-index: 28;
+    display: flex;
+    align-items: center;
+    padding: 0 6px;
+    overflow: hidden;
+  }
+  .timeline-drag-ghost--offscreen {
+    width: 1px !important;
+    min-width: 1px;
+    padding: 0;
+    border-radius: 0;
+    border-style: solid;
+    background: rgba(37, 99, 235, 0.42);
+  }
+  .timeline-drag-ghost-label {
+    font-size: 10px;
+    font-weight: 600;
+    color: #64748b;
+    background: rgba(255, 255, 255, 0.88);
+    padding: 0 4px;
+    border-radius: 3px;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    overflow: hidden;
+  }
   .block {
     position:absolute; top:5px; height:calc(var(--row-height) - 10px); border-radius:10px; border:1px solid rgba(0,0,0,.08);
     display:flex; align-items:center; padding:0 10px; gap:8px; cursor:move; user-select:none; box-shadow:0 1px 2px rgba(0,0,0,.08); overflow:visible;
@@ -3670,6 +3767,189 @@ function safeRoleClass(role) { return 'role-' + role.replace(/[^\w\u4e00-\u9fff-
 function applyRoleClass(el, role) { el.classList.add(safeRoleClass(role)); }
 function timeToLeft(mins) { return (mins - getViewStartMin()) * pxPerMinute; }
 function durationToWidth(start, end) { return Math.max((end - start) * pxPerMinute, 50); }
+let paletteDragTemplateId = null;
+function getNameColWidthPx() {
+  const v = getComputedStyle(document.documentElement).getPropertyValue('--name-col-width').trim();
+  const n = parseFloat(v);
+  return Number.isFinite(n) ? n : 240;
+}
+function scrollControlPanelToTimeRange(startMin, endMin, options = {}) {
+  const host = document.querySelector('.control-panel');
+  if (!host) return;
+  const viewStart = getViewStartMin();
+  const viewEnd = getViewEndMin();
+  const start = Math.max(viewStart, startMin);
+  const end = Math.min(viewEnd, endMin);
+  if (end <= start) return;
+  const nameCol = getNameColWidthPx();
+  const blockLeft = nameCol + timeToLeft(start);
+  const blockWidth = Math.max(50, (end - start) * pxPerMinute);
+  const blockRight = blockLeft + blockWidth;
+  const blockCenter = blockLeft + blockWidth / 2;
+  const padding = options.padding ?? 72;
+  let targetScroll = host.scrollLeft;
+  if (options.center) {
+    targetScroll = blockCenter - host.clientWidth / 2;
+  } else {
+    const visibleLeft = host.scrollLeft;
+    const visibleRight = host.scrollLeft + host.clientWidth;
+    if (blockLeft >= visibleLeft + padding && blockRight <= visibleRight - padding) return;
+    if (blockLeft < visibleLeft + padding) targetScroll = blockLeft - padding;
+    else targetScroll = blockRight - host.clientWidth + padding;
+  }
+  const maxScroll = Math.max(0, host.scrollWidth - host.clientWidth);
+  host.scrollLeft = Math.max(0, Math.min(targetScroll, maxScroll));
+}
+function getTemplateDragTimeRange(tpl, timelineEl, clientX) {
+  if (!tpl) return null;
+  if (tpl.role === '休') {
+    if (!timelineEl) return null;
+    const rect = timelineEl.getBoundingClientRect();
+    const x = clientX - rect.left;
+    const start = snap5(getViewStartMin() + Math.max(0, x / pxPerMinute));
+    return { start, end: start + tpl.duration };
+  }
+  return { start: tpl.start, end: tpl.end };
+}
+function scrollControlPanelTowardTimeRange(startMin, endMin) {
+  if (dutyIntersectsView({ start: startMin, end: endMin })) {
+    scrollControlPanelToTimeRange(startMin, endMin, { center: true });
+    return;
+  }
+  const host = document.querySelector('.control-panel');
+  if (!host) return;
+  const viewStart = getViewStartMin();
+  const viewEnd = getViewEndMin();
+  const maxScroll = Math.max(0, host.scrollWidth - host.clientWidth);
+  if (endMin <= viewStart) host.scrollLeft = 0;
+  else if (startMin >= viewEnd) host.scrollLeft = maxScroll;
+}
+const PALETTE_DRAG_GUIDE_INNER = `
+  <div class="palette-drag-guide-range"></div>
+  <div class="palette-drag-guide-line palette-drag-guide-line--start"></div>
+  <div class="palette-drag-guide-line palette-drag-guide-line--end"></div>
+  <div class="palette-drag-guide-offscreen palette-drag-guide-offscreen--before"></div>
+  <div class="palette-drag-guide-offscreen palette-drag-guide-offscreen--after"></div>
+`;
+function clearPaletteDragGuide() {
+  document.getElementById('timesPaletteDragGuide')?.classList.remove('is-active');
+  document.querySelectorAll('.timeline-palette-drag-guide').forEach(el => el.remove());
+  document.querySelectorAll('.timeline.palette-drag-target').forEach(el => el.classList.remove('palette-drag-target', 'drag-over'));
+  document.querySelectorAll('.timeline-drag-ghost').forEach(el => el.remove());
+}
+function ensureTimelinePaletteDragGuide(timeline) {
+  if (!timeline) return null;
+  let guide = timeline.querySelector('.timeline-palette-drag-guide');
+  if (!guide) {
+    guide = document.createElement('div');
+    guide.className = 'timeline-palette-drag-guide';
+    guide.innerHTML = PALETTE_DRAG_GUIDE_INNER;
+    timeline.appendChild(guide);
+  }
+  return guide;
+}
+function syncRowTimelineDragGuides(range) {
+  if (!range) return;
+  document.querySelectorAll('#rows .timeline').forEach(timeline => {
+    const guide = ensureTimelinePaletteDragGuide(timeline);
+    applyPaletteDragGuidePositions(guide, range);
+  });
+}
+function applyPaletteDragGuidePositions(layer, range) {
+  if (!layer || !range) return;
+  const viewStart = getViewStartMin();
+  const viewEnd = getViewEndMin();
+  const { start, end } = range;
+  const visStart = Math.max(viewStart, start);
+  const visEnd = Math.min(viewEnd, end);
+  const hasVisible = visEnd > visStart;
+  const rangeEl = layer.querySelector('.palette-drag-guide-range');
+  const lineStart = layer.querySelector('.palette-drag-guide-line--start');
+  const lineEnd = layer.querySelector('.palette-drag-guide-line--end');
+  const beforeEl = layer.querySelector('.palette-drag-guide-offscreen--before');
+  const afterEl = layer.querySelector('.palette-drag-guide-offscreen--after');
+  if (rangeEl) {
+    rangeEl.style.display = hasVisible ? '' : 'none';
+    if (hasVisible) {
+      rangeEl.style.left = timeToLeft(visStart) + 'px';
+      rangeEl.style.width = Math.max((visEnd - visStart) * pxPerMinute, 2) + 'px';
+    }
+  }
+  if (lineStart) {
+    lineStart.style.display = hasVisible ? '' : 'none';
+    if (hasVisible) lineStart.style.left = timeToLeft(visStart) + 'px';
+  }
+  if (lineEnd) {
+    lineEnd.style.display = hasVisible ? '' : 'none';
+    if (hasVisible) lineEnd.style.left = timeToLeft(visEnd) + 'px';
+  }
+  if (beforeEl) {
+    const show = start < viewStart;
+    beforeEl.classList.toggle('is-visible', show);
+    if (show) beforeEl.textContent = `${minutesToTime(start % 1440)} ←`;
+  }
+  if (afterEl) {
+    const show = end > viewEnd;
+    afterEl.classList.toggle('is-visible', show);
+    if (show) afterEl.textContent = `→ ${minutesToTime(end % 1440)}`;
+  }
+}
+function ensureTimesPaletteDragGuide() {
+  const times = document.getElementById('times');
+  if (!times) return null;
+  let layer = document.getElementById('timesPaletteDragGuide');
+  if (!layer) {
+    layer = document.createElement('div');
+    layer.id = 'timesPaletteDragGuide';
+    layer.className = 'times-palette-drag-guide';
+    layer.innerHTML = PALETTE_DRAG_GUIDE_INNER;
+    times.appendChild(layer);
+  }
+  return layer;
+}
+function updatePaletteDragGuide(tpl, timelineEl, clientX) {
+  if (!tpl) return clearPaletteDragGuide();
+  const range = getTemplateDragTimeRange(tpl, timelineEl, clientX) || (tpl.role !== '休' ? { start: tpl.start, end: tpl.end } : null);
+  if (!range) return clearPaletteDragGuide();
+  const timesLayer = ensureTimesPaletteDragGuide();
+  timesLayer?.classList.add('is-active');
+  applyPaletteDragGuidePositions(timesLayer, range);
+  syncRowTimelineDragGuides(range);
+  document.querySelectorAll('.timeline.palette-drag-target').forEach(el => el.classList.remove('palette-drag-target'));
+  document.querySelectorAll('.timeline-drag-ghost').forEach(el => el.remove());
+  if (!timelineEl) return;
+  timelineEl.classList.add('palette-drag-target');
+  const viewStart = getViewStartMin();
+  const viewEnd = getViewEndMin();
+  const { start, end } = range;
+  const visStart = Math.max(viewStart, start);
+  const visEnd = Math.min(viewEnd, end);
+  const hasVisible = visEnd > visStart;
+  const ghost = document.createElement('div');
+  ghost.className = 'timeline-drag-ghost';
+  const label = tpl.role === '休' ? '休' : (tpl.compactLabel || tpl.label || tpl.role);
+  const timeLabel = `${minutesToTime(start % 1440)}–${minutesToTime(end % 1440)}`;
+  if (hasVisible) {
+    ghost.style.left = timeToLeft(visStart) + 'px';
+    ghost.style.width = Math.max((visEnd - visStart) * pxPerMinute, 50) + 'px';
+    ghost.innerHTML = `<span class="timeline-drag-ghost-label">${escapeHtml(label)} · ${timeLabel}</span>`;
+  } else {
+    ghost.classList.add('timeline-drag-ghost--offscreen');
+    if (end <= viewStart) ghost.style.left = '0';
+    else ghost.style.right = '0';
+    ghost.innerHTML = `<span class="timeline-drag-ghost-label">${timeLabel}</span>`;
+  }
+  timelineEl.appendChild(ghost);
+}
+function scrollControlPanelForTemplateDrag(tpl, timelineEl, clientX) {
+  if (!tpl) return;
+  const range = getTemplateDragTimeRange(tpl, timelineEl, clientX);
+  if (!range) return;
+  const { start, end } = range;
+  if (dutyIntersectsView({ start, end })) scrollControlPanelToTimeRange(start, end);
+  else scrollControlPanelTowardTimeRange(start, end);
+  updatePaletteDragGuide(tpl, timelineEl, clientX);
+}
 function markUnsynced() {
   setCloudStatus('尚未同步', 'pending');
 }
@@ -3741,6 +4021,13 @@ function makeChip(t) {
   chip.addEventListener('dragstart', e => {
     if (e.target.closest('.duty-chip-delete-btn')) { e.preventDefault(); return; }
     e.dataTransfer.setData('text/template', t.id);
+    paletteDragTemplateId = t.id;
+    if (t.role !== '休') scrollControlPanelTowardTimeRange(t.start, t.end);
+    updatePaletteDragGuide(t, null, 0);
+  });
+  chip.addEventListener('dragend', () => {
+    paletteDragTemplateId = null;
+    clearPaletteDragGuide();
   });
   return chip;
 }
@@ -4147,11 +4434,17 @@ function renderRows() {
     timeline.addEventListener('dragover', e => {
       if (!e.dataTransfer.types.includes('text/template')) return;
       e.preventDefault(); timeline.classList.add('drag-over');
+      const tpl = templates.find(x => x.id === paletteDragTemplateId);
+      if (tpl) scrollControlPanelForTemplateDrag(tpl, timeline, e.clientX);
     });
-    timeline.addEventListener('dragleave', () => timeline.classList.remove('drag-over'));
+    timeline.addEventListener('dragleave', e => {
+      if (e.currentTarget.contains(e.relatedTarget)) return;
+      timeline.classList.remove('drag-over');
+    });
     timeline.addEventListener('drop', e => {
       if (!e.dataTransfer.types.includes('text/template')) return;
       e.preventDefault(); timeline.classList.remove('drag-over');
+      clearPaletteDragGuide();
       const templateId = e.dataTransfer.getData('text/template');
       const tpl = templates.find(x => x.id === templateId);
       if (!tpl) return;
@@ -4472,6 +4765,28 @@ function syncAssignmentTableFromSchedule() {
 }
 document.getElementById('assignmentToggleBtn').addEventListener('click', () => toggleAssignmentPanel());
 initWorkspaceSplitter();
+function initPaletteDragAutoScroll() {
+  const panel = document.querySelector('.control-panel');
+  if (!panel || panel.dataset.paletteDragScroll) return;
+  panel.dataset.paletteDragScroll = '1';
+  panel.addEventListener('dragover', e => {
+    if (!paletteDragTemplateId || !e.dataTransfer.types.includes('text/template')) return;
+    e.preventDefault();
+    const tpl = templates.find(x => x.id === paletteDragTemplateId);
+    if (!tpl) return;
+    const timeline = e.target.closest('.timeline');
+    scrollControlPanelForTemplateDrag(tpl, timeline, e.clientX);
+  });
+  panel.addEventListener('dragleave', e => {
+    if (panel.contains(e.relatedTarget)) return;
+    if (!paletteDragTemplateId) clearPaletteDragGuide();
+  });
+  document.addEventListener('dragend', () => {
+    paletteDragTemplateId = null;
+    clearPaletteDragGuide();
+  });
+}
+initPaletteDragAutoScroll();
 window.addEventListener('resize', () => {
   if (document.getElementById('assignmentPanel')?.classList.contains('is-open')) {
     syncAssignmentRowHeights();
