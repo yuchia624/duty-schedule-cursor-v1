@@ -2290,6 +2290,17 @@ function buildRestStatusHtml(opts) {
   if (opts.hasRest) return opts.useRestCell ? '<span class="rest-cell" aria-hidden="true"></span>' : '';
   return '<span class="pending-rest">待排休</span>';
 }
+function isFunctionDuty(duty) {
+  return !!duty && (duty.role === '休' || duty.role === '自訂' || duty.isFunction || duty.isCustom);
+}
+function isPaletteFunctionDrag(tpl) {
+  return isFunctionDuty(tpl);
+}
+function getStableShiftRows() {
+  return people
+    .map((p, idx) => ({ person: p, originalIndex: idx, matchedRow: false }))
+    .filter(row => personMatchesShiftView(row.person));
+}
 function refreshRestStatusDisplay(cell, personIndex) {
   const person = people[personIndex];
   if (!person || !cell) return;
@@ -3167,6 +3178,46 @@ function personLevelMatches(person, levelToken) {
   }
   return false;
 }
+function normalizeLevelTier(person) {
+  const raw = String(person?.level || resolveLevel(person) || '').trim();
+  if (raw === 'M') return 'M';
+  if (raw === 'm') return 'm';
+  const core = raw.replace(/[*!]/g, '').toUpperCase();
+  if (core === '2A') return '2A';
+  if (core === '1A') return '1A';
+  return core;
+}
+function isOzFlight(flight) {
+  return String(flight || '').trim().toUpperCase().startsWith('OZ');
+}
+function dutyRequiresPersonQualification(duty) {
+  if (!duty) return false;
+  const role = duty.role;
+  return role && role !== '休' && role !== '自訂';
+}
+function personQualifiesForDuty(person, duty) {
+  if (!person || !duty) return false;
+  if (!dutyRequiresPersonQualification(duty)) return true;
+  const tier = normalizeLevelTier(person);
+  const role = duty.role;
+  const flightType = duty.flightType;
+  const flight = duty.flight;
+  if (tier === 'M') return true;
+  if (tier === 'm') {
+    if (isOzFlight(flight) && (role === 'RC' || role === '接機RC')) return false;
+    return true;
+  }
+  if (tier === '2A' || tier === '1A') {
+    if (flightType === 'DEP' && role === 'RC') return false;
+    if (tier === '1A' && flightType === 'DEP' && role === 'BG') return false;
+    return true;
+  }
+  return true;
+}
+function getPaletteDragTemplate() {
+  if (!paletteDragTemplateId) return null;
+  return templates.find(x => x.id === paletteDragTemplateId) || null;
+}
 function personMatchesNameSearch(person, text) {
   const q = normalizeText(text);
   if (!q) return false;
@@ -3830,13 +3881,18 @@ function switchScheduleDate(newDate) {
   clearUndoHistory();
 }
 function overlaps(aStart, aEnd, bStart, bEnd) { return aStart < bEnd && aEnd > bStart; }
-function confirmConflict(personIndex, itemUid, start, end) { return true; }
+function confirmConflict(personIndex, itemUid, start, end, duty) {
+  if (duty && dutyRequiresPersonQualification(duty) && !personQualifiesForDuty(people[personIndex], duty)) return false;
+  return true;
+}
 function safeRoleClass(role) { return 'role-' + role.replace(/[^\w\u4e00-\u9fff-]/g, ''); }
 function applyRoleClass(el, role) { el.classList.add(safeRoleClass(role)); }
 function timeToLeft(mins) { return (mins - getViewStartMin()) * pxPerMinute; }
 function durationToWidth(start, end) { return Math.max((end - start) * pxPerMinute, 50); }
 let paletteDragTemplateId = null;
 let paletteDragSlotRange = null;
+let blockMoveDragItem = null;
+let blockMoveSlotRange = null;
 let paletteDropHoverPersonIndex = null;
 function setPaletteDropHover(personIndex) {
   const idx = Number(personIndex);
@@ -3851,10 +3907,33 @@ function clearPaletteDropHover() {
   paletteDropHoverPersonIndex = null;
   document.querySelectorAll('.row.palette-drop-hover').forEach(el => el.classList.remove('palette-drop-hover'));
 }
-function personHasDutyInRange(personIndex, start, end) {
+function personHasDutyInRange(personIndex, start, end, excludeUid = null) {
   return schedule.some(item =>
-    item.personIndex === personIndex && overlaps(item.start, item.end, start, end)
+    item.personIndex === personIndex &&
+    item.uid !== excludeUid &&
+    overlaps(item.start, item.end, start, end)
   );
+}
+function getDutyPlacementContext() {
+  if (paletteDragTemplateId && paletteDragSlotRange) {
+    const tpl = getPaletteDragTemplate();
+    if (!tpl) return null;
+    return { duty: tpl, start: paletteDragSlotRange.start, end: paletteDragSlotRange.end, excludeUid: null };
+  }
+  if (blockMoveDragItem && blockMoveSlotRange && !isFunctionDuty(blockMoveDragItem)) {
+    return {
+      duty: blockMoveDragItem,
+      start: blockMoveSlotRange.start,
+      end: blockMoveSlotRange.end,
+      excludeUid: blockMoveDragItem.uid
+    };
+  }
+  return null;
+}
+function endBlockMoveSession() {
+  blockMoveDragItem = null;
+  blockMoveSlotRange = null;
+  clearPaletteDropHover();
 }
 function updatePaletteDragSlotRange(range) {
   if (!range) {
@@ -3907,15 +3986,15 @@ function scrollControlPanelToTimeRange(startMin, endMin, options = {}) {
   host.scrollLeft = Math.max(0, Math.min(targetScroll, maxScroll));
 }
 function getTemplateDragTimeRange(tpl, timelineEl, clientX) {
-  if (!tpl) return null;
-  if (tpl.role === '休') {
-    if (!timelineEl) return null;
-    const rect = timelineEl.getBoundingClientRect();
-    const x = clientX - rect.left;
-    const start = snap5(getViewStartMin() + Math.max(0, x / pxPerMinute));
-    return { start, end: start + tpl.duration };
-  }
-  return { start: tpl.start, end: tpl.end };
+  if (!tpl || !timelineEl) return null;
+  if (!isPaletteFunctionDrag(tpl)) return { start: tpl.start, end: tpl.end };
+  const rect = timelineEl.getBoundingClientRect();
+  const x = clientX - rect.left;
+  const start = snap5(getViewStartMin() + Math.max(0, x / pxPerMinute));
+  const duration = tpl.role === '休'
+    ? tpl.duration
+    : Math.max(5, tpl.duration || ((tpl.end != null && tpl.start != null) ? tpl.end - tpl.start : 30));
+  return { start, end: start + duration };
 }
 function scrollControlPanelTowardTimeRange(startMin, endMin) {
   if (dutyIntersectsView({ start: startMin, end: endMin })) {
@@ -4014,10 +4093,30 @@ function ensureTimesPaletteDragGuide() {
   }
   return layer;
 }
+function clearPaletteDragGuideLines() {
+  document.getElementById('timesPaletteDragGuide')?.classList.remove('is-active');
+  document.querySelectorAll('.timeline-palette-drag-guide').forEach(el => el.remove());
+  document.querySelectorAll('.timeline-drag-ghost').forEach(el => el.remove());
+  document.querySelectorAll('.timeline.palette-drag-target').forEach(el => el.classList.remove('palette-drag-target'));
+}
 function updatePaletteDragGuide(tpl, timelineEl, clientX) {
   if (!tpl) return clearPaletteDragGuide();
-  const range = getTemplateDragTimeRange(tpl, timelineEl, clientX) || (tpl.role !== '休' ? { start: tpl.start, end: tpl.end } : null);
-  if (!range) return clearPaletteDragGuide();
+  if (isPaletteFunctionDrag(tpl)) {
+    clearPaletteDragGuideLines();
+    if (timelineEl) {
+      const hoverIdx = Number(timelineEl.dataset.originalIndex);
+      setPaletteDropHover(Number.isNaN(hoverIdx) ? null : hoverIdx);
+    } else {
+      setPaletteDropHover(null);
+    }
+    return;
+  }
+  const range = getTemplateDragTimeRange(tpl, timelineEl, clientX);
+  if (!range) {
+    clearPaletteDragGuideLines();
+    setPaletteDropHover(null);
+    return;
+  }
   const timesLayer = ensureTimesPaletteDragGuide();
   timesLayer?.classList.add('is-active');
   applyPaletteDragGuidePositions(timesLayer, range);
@@ -4055,6 +4154,11 @@ function updatePaletteDragGuide(tpl, timelineEl, clientX) {
 }
 function scrollControlPanelForTemplateDrag(tpl, timelineEl, clientX) {
   if (!tpl) return;
+  if (isPaletteFunctionDrag(tpl)) {
+    updatePaletteDragGuide(tpl, timelineEl, clientX);
+    updatePaletteDragSlotRange(null);
+    return;
+  }
   const range = getTemplateDragTimeRange(tpl, timelineEl, clientX);
   if (!range) return;
   const { start, end } = range;
@@ -4183,11 +4287,11 @@ function makeChip(t) {
     if (e.target.closest('.duty-chip-delete-btn')) { e.preventDefault(); return; }
     e.dataTransfer.setData('text/template', t.id);
     paletteDragTemplateId = t.id;
-    if (t.role !== '休') {
+    if (isPaletteFunctionDrag(t)) {
+      updatePaletteDragSlotRange(null);
+    } else {
       scrollControlPanelTowardTimeRange(t.start, t.end);
       updatePaletteDragSlotRange({ start: t.start, end: t.end });
-    } else {
-      updatePaletteDragSlotRange(null);
     }
     updatePaletteDragGuide(t, null, 0);
   });
@@ -4409,13 +4513,20 @@ function selectBlock(uid) {
 function getDisplayRows() {
   const allRows = people.map((p, idx) => ({ person: p, originalIndex: idx, matchedRow: false }));
   const filterShift = rows => rows.filter(row => personMatchesShiftView(row.person));
-  if (paletteDragTemplateId && paletteDragSlotRange) {
-    const { start, end } = paletteDragSlotRange;
+  if (paletteDragTemplateId) {
+    const tpl = getPaletteDragTemplate();
+    if (tpl && isPaletteFunctionDrag(tpl)) return filterShift(allRows);
+  }
+  if (blockMoveDragItem && isFunctionDuty(blockMoveDragItem)) return filterShift(allRows);
+  const placementCtx = getDutyPlacementContext();
+  if (placementCtx) {
+    const { duty, start, end, excludeUid } = placementCtx;
     const shiftRows = filterShift(allRows);
     const freeRows = [];
     const busyRows = [];
     shiftRows.forEach(row => {
-      if (personHasDutyInRange(row.originalIndex, start, end)) busyRows.push(row);
+      if (dutyRequiresPersonQualification(duty) && !personQualifiesForDuty(row.person, duty)) return;
+      if (personHasDutyInRange(row.originalIndex, start, end, excludeUid)) busyRows.push(row);
       else freeRows.push(row);
     });
     return [...freeRows, ...busyRows];
@@ -4649,18 +4760,22 @@ function renderRows() {
       let compactLabel = tpl.compactLabel;
       let flight = tpl.flight;
 
-      if (tpl.role === '休') {
+      if (isPaletteFunctionDrag(tpl)) {
         const rect = timeline.getBoundingClientRect();
         const x = e.clientX - rect.left;
         const mins = snap5(getViewStartMin() + Math.max(0, x / pxPerMinute));
         start = mins;
-        end = mins + tpl.duration;
-        flight = tpl.id + '_' + blockSeq;
+        const duration = tpl.role === '休'
+          ? tpl.duration
+          : Math.max(5, tpl.duration || (tpl.end - tpl.start));
+        end = mins + duration;
+        if (tpl.role === '休') flight = tpl.id + '_' + blockSeq;
       } else if (!dutyIntersectsView({ start, end })) {
         return;
       }
 
-      if (!confirmConflict(targetPersonIndex, null, start, end)) return;
+      if (!personQualifiesForDuty(people[targetPersonIndex], tpl)) return;
+      if (!confirmConflict(targetPersonIndex, null, start, end, tpl)) return;
       pushUndoSnapshot();
       schedule.push({
         uid: blockSeq++,
@@ -4731,15 +4846,19 @@ function startMoveBlock(e, item) {
   let undoPushed = false;
   const rowHeight = document.querySelector('.row').getBoundingClientRect().height;
   const originTimeline = e.currentTarget.parentElement;
+  const stableRows = getStableShiftRows();
+  const isFuncMove = isFunctionDuty(item);
   function onMove(ev) {
     if (!undoPushed) {
       pushUndoSnapshot();
       undoPushed = true;
     }
+    blockMoveDragItem = item;
+    if (!isFuncMove) blockMoveSlotRange = { start: item.start, end: item.end };
     const boardRect = document.getElementById('rows').getBoundingClientRect();
-    const displayRows = getDisplayRows();
-    let idx = Math.max(0, Math.min(Math.floor((ev.clientY - boardRect.top - 1) / rowHeight), displayRows.length - 1));
-    item.personIndex = displayRows[idx].originalIndex;
+    const rowList = isFuncMove ? stableRows : getDisplayRows();
+    let idx = Math.max(0, Math.min(Math.floor((ev.clientY - boardRect.top - 1) / rowHeight), rowList.length - 1));
+    item.personIndex = rowList[idx]?.originalIndex ?? item.personIndex;
 
     if (item.role === '休') {
       const targetTimeline = document.querySelector(`.timeline[data-original-index="${item.personIndex}"]`) || originTimeline;
@@ -4750,6 +4869,7 @@ function startMoveBlock(e, item) {
       item.start = snapped;
       item.end = snapped + duration;
     }
+    setPaletteDropHover(item.personIndex);
 
     renderRows();
     selectBlock(item.uid);
@@ -4757,7 +4877,8 @@ function startMoveBlock(e, item) {
   function onUp() {
     document.removeEventListener('mousemove', onMove);
     document.removeEventListener('mouseup', onUp);
-    if (!confirmConflict(item.personIndex, item.uid, item.start, item.end)) {
+    endBlockMoveSession();
+    if (!personQualifiesForDuty(people[item.personIndex], item) || !confirmConflict(item.personIndex, item.uid, item.start, item.end, item)) {
       item.personIndex = originalPersonIndex;
       item.start = originalStart;
       item.end = originalEnd;
