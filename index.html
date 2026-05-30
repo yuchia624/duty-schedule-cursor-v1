@@ -375,6 +375,115 @@
     padding:4px 12px; border-radius:8px; background:#2563eb; color:#fff;
   }
   .schedule-date-panel-foot .schedule-date-confirm-btn:hover { background:#1d4ed8; }
+  .sidebar .sidebar-date-head {
+    margin: 14px 16px 10px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+  }
+  .sidebar .sidebar-date-title {
+    font-size: 20px;
+    font-weight: 800;
+    color: #111827;
+    line-height: 1.2;
+    white-space: nowrap;
+  }
+  .sidebar .schedule-date-wrap {
+    margin: 0;
+    display: block;
+    min-width: 0;
+    flex: 1 1 auto;
+  }
+  .sidebar .schedule-date-picker { position: relative; width: 100%; }
+  .sidebar .schedule-date-trigger {
+    width: 100%;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 10px;
+    border: 1px solid #2563eb;
+    border-radius: 10px;
+    background: #fff;
+    font-size: 14px;
+    font-weight: 700;
+    color: #111827;
+    cursor: pointer;
+    box-shadow: 0 1px 2px rgba(37, 99, 235, 0.08);
+  }
+  .sidebar .schedule-date-trigger:hover {
+    border-color: #1d4ed8;
+    background: #f8fbff;
+  }
+  .sidebar .schedule-date-trigger:hover .schedule-date-value,
+  .sidebar .schedule-date-trigger:hover .schedule-date-icon {
+    color: inherit;
+    text-decoration: none;
+  }
+  .sidebar .schedule-date-trigger[aria-expanded="true"] {
+    border-color: #1d4ed8;
+    background: #eff6ff;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+  }
+  .sidebar .schedule-date-trigger .schedule-date-value {
+    text-decoration: none !important;
+    color: #111827;
+    font-weight: 700;
+  }
+  .sidebar .schedule-date-trigger .schedule-date-icon {
+    color: #64748b;
+    flex-shrink: 0;
+  }
+  .sidebar .schedule-date-panel {
+    left: 0;
+    right: auto;
+  }
+  .sidebar .schedule-date-panel button {
+    width: auto;
+    padding: 0;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    box-shadow: none;
+    font-size: 12px;
+    min-height: 0;
+  }
+  .sidebar .schedule-date-panel .schedule-date-day {
+    height: 32px;
+    font-weight: 600;
+  }
+  .sidebar .schedule-date-panel .schedule-date-day.today {
+    box-shadow: none;
+    color: #2563eb;
+    font-weight: 800;
+  }
+  .sidebar .schedule-date-panel .schedule-date-day.pending {
+    background: #2563eb;
+    color: #fff;
+    font-weight: 800;
+  }
+  .sidebar .schedule-date-panel .schedule-date-day.pending.today {
+    color: #fff;
+  }
+  .sidebar .schedule-date-panel .schedule-date-nav {
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    font-size: 14px;
+  }
+  .sidebar .schedule-date-panel-foot button {
+    padding: 4px 6px;
+    border: 0;
+    background: transparent;
+    font-size: 12px;
+  }
+  .sidebar .schedule-date-panel-foot .schedule-date-confirm-btn {
+    padding: 4px 12px;
+    background: #2563eb;
+    color: #fff;
+  }
   .board {
     position: relative;
     min-width: calc(var(--name-col-width) + var(--timeline-width));
@@ -1896,7 +2005,37 @@
 
 <div class="app">
   <aside class="sidebar">
-    <div class="panel-title">Duty 區塊庫</div>
+    <div class="sidebar-date-head">
+      <div class="sidebar-date-title">班表日期</div>
+      <div class="schedule-date-wrap">
+        <div class="schedule-date-picker" id="scheduleDatePicker">
+          <button type="button" class="schedule-date-trigger" id="scheduleDateTrigger" aria-haspopup="dialog" aria-expanded="false">
+            <span class="schedule-date-value" id="scheduleDateValue"></span>
+            <span class="schedule-date-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></span>
+          </button>
+          <div class="schedule-date-panel hidden" id="scheduleDatePanel" role="dialog" aria-label="選擇班表日期">
+            <div class="schedule-date-panel-head">
+              <span class="schedule-date-month-label" id="scheduleDateMonthLabel"></span>
+              <div>
+                <button type="button" class="schedule-date-nav" id="scheduleDatePrevMonth" aria-label="上個月">▲</button>
+                <button type="button" class="schedule-date-nav" id="scheduleDateNextMonth" aria-label="下個月">▼</button>
+              </div>
+            </div>
+            <div class="schedule-date-weekdays">
+              <span>日</span><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span>
+            </div>
+            <div class="schedule-date-grid" id="scheduleDateGrid"></div>
+            <div class="schedule-date-panel-foot">
+              <button type="button" id="scheduleDateCancelBtn">取消</button>
+              <div>
+                <button type="button" id="scheduleDateTodayBtn">今天</button>
+                <button type="button" class="schedule-date-confirm-btn" id="scheduleDateConfirmBtn">確定</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
     <div class="controls">
       <div class="sidebar-search-wrap">
         <input id="searchInput" type="text" placeholder="搜尋 duty / 航班" />
@@ -2199,35 +2338,6 @@
       <button id="toggleRollCallBtn">點名：關</button>
       <button type="button" id="undoBtn" disabled title="復原上一步（Ctrl+Z）">復原</button>
       <button id="saveBtn">同步</button>
-      <div class="schedule-date-wrap">
-        <label>班表日期</label>
-        <div class="schedule-date-picker" id="scheduleDatePicker">
-          <button type="button" class="schedule-date-trigger" id="scheduleDateTrigger" aria-haspopup="dialog" aria-expanded="false">
-            <span class="schedule-date-value" id="scheduleDateValue"></span>
-            <span class="schedule-date-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></span>
-          </button>
-          <div class="schedule-date-panel hidden" id="scheduleDatePanel" role="dialog" aria-label="選擇班表日期">
-            <div class="schedule-date-panel-head">
-              <span class="schedule-date-month-label" id="scheduleDateMonthLabel"></span>
-              <div>
-                <button type="button" class="schedule-date-nav" id="scheduleDatePrevMonth" aria-label="上個月">▲</button>
-                <button type="button" class="schedule-date-nav" id="scheduleDateNextMonth" aria-label="下個月">▼</button>
-              </div>
-            </div>
-            <div class="schedule-date-weekdays">
-              <span>日</span><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span>
-            </div>
-            <div class="schedule-date-grid" id="scheduleDateGrid"></div>
-            <div class="schedule-date-panel-foot">
-              <button type="button" id="scheduleDateClearBtn">清除</button>
-              <div>
-                <button type="button" id="scheduleDateTodayBtn">今天</button>
-                <button type="button" class="schedule-date-confirm-btn" id="scheduleDateConfirmBtn">確定</button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
       <div class="toolbar-assignment-wrap">
         <button type="button" class="assignment-toggle-btn" id="assignmentToggleBtn">展開人員分配表</button>
       </div>
@@ -3737,6 +3847,7 @@ function isoFromParts(y, m, d) {
   return `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
 }
 let pickerPendingDate = selectedDate;
+let pickerDateOnOpen = selectedDate;
 let pickerViewYear = 0;
 let pickerViewMonth = 0;
 function syncScheduleDatePickerUI() {
@@ -3793,6 +3904,7 @@ function setScheduleDatePanelOpen(open) {
   const trigger = document.getElementById('scheduleDateTrigger');
   if (!panel || !trigger) return;
   if (open) {
+    pickerDateOnOpen = selectedDate;
     pickerPendingDate = selectedDate;
     const parts = parseISODateParts(pickerPendingDate);
     pickerViewYear = parts.y;
@@ -3830,10 +3942,10 @@ function initScheduleDatePicker() {
     if (pickerViewMonth > 11) { pickerViewMonth = 0; pickerViewYear++; }
     renderScheduleDateGrid();
   });
-  document.getElementById('scheduleDateClearBtn')?.addEventListener('click', (e) => {
+  document.getElementById('scheduleDateCancelBtn')?.addEventListener('click', (e) => {
     e.stopPropagation();
-    pickerPendingDate = '';
-    renderScheduleDateGrid();
+    pickerPendingDate = pickerDateOnOpen || selectedDate;
+    setScheduleDatePanelOpen(false);
   });
   document.getElementById('scheduleDateTodayBtn')?.addEventListener('click', (e) => {
     e.stopPropagation();
