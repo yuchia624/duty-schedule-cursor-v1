@@ -4638,6 +4638,7 @@ function initStaffPersonnelRegistry() {
       normalizeStaffPersonnelBaselines(staffPersonnelRegistry);
       changed = true;
     }
+    if (repairStaffPersonnelMissingBaselines()) changed = true;
     if (changed) saveStaffPersonnelRegistry();
     else rebuildStaffDirectoryCache(getScheduleReferenceDate());
   }
@@ -4658,6 +4659,10 @@ function getStaffSnapshotAtDate(personnelId, refDateISO) {
   rec.events.forEach(ev => {
     if (ev.effectiveDate && compareIsoDate(ev.effectiveDate, ref) <= 0) snap = ev;
   });
+  if (!snap) {
+    const sorted = (rec.events || []).slice().sort((a, b) => compareIsoDate(a.effectiveDate, b.effectiveDate));
+    snap = sorted[sorted.length - 1] || null;
+  }
   if (!snap) return null;
   return { personnelId: rec.personnelId, ...snap };
 }
@@ -4925,6 +4930,37 @@ function getStaffHistoryDisplayEvents(rec) {
   const registry = staffPersonnelRegistry;
   return (rec?.events || []).filter(ev => !isStaffImportBaselineEvent(ev, registry, rec));
 }
+function repairStaffPersonnelBaseline(rec) {
+  const registry = staffPersonnelRegistry;
+  if (!rec?.events?.length || !registry) return false;
+  if (rec.events.some(ev => isStaffImportBaselineEvent(ev, registry, rec))) return false;
+  const baseline = getStaffHistoryBaselineDate(registry);
+  const seedEv = window.STAFF_PERSONNEL_SEED?.people
+    ?.find(p => p.personnelId === rec.personnelId)?.events?.[0];
+  const sorted = rec.events.slice().sort((a, b) => compareIsoDate(a.effectiveDate, b.effectiveDate));
+  const template = seedEv || sorted[0];
+  if (!template) return false;
+  rec.events.push({
+    code: template.code,
+    fullName: template.fullName,
+    group: template.group,
+    level: template.level,
+    status: template.status,
+    restrictions: template.restrictions || '',
+    effectiveDate: baseline,
+    isImportBaseline: true
+  });
+  sortStaffPersonnelEvents(rec);
+  return true;
+}
+function repairStaffPersonnelMissingBaselines() {
+  if (!staffPersonnelRegistry?.people?.length) return false;
+  let changed = false;
+  staffPersonnelRegistry.people.forEach(rec => {
+    if (repairStaffPersonnelBaseline(rec)) changed = true;
+  });
+  return changed;
+}
 function getStaffLatestAdjustmentSummary(rec) {
   const display = getStaffHistoryDisplayEvents(rec);
   if (!display.length) return { label: '—', title: '' };
@@ -5101,7 +5137,10 @@ function upsertStaffPersonnelEvent(personnelId, patch, replaceDate) {
   if (!isValidISODate(eff)) return false;
   const prevDate = isValidISODate(replaceDate) ? replaceDate : '';
   if (prevDate && prevDate !== eff) {
-    rec.events = (rec.events || []).filter(ev => ev.effectiveDate !== prevDate);
+    rec.events = (rec.events || []).filter(ev => {
+      if (ev.effectiveDate !== prevDate) return true;
+      return isStaffImportBaselineEvent(ev, staffPersonnelRegistry, rec);
+    });
   }
   const base = rec.events?.[rec.events.length - 1] || {};
   const snap = {
