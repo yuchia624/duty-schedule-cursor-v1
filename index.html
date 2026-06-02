@@ -699,6 +699,22 @@
     flex: 1 1 auto;
   }
   .sidebar .schedule-date-picker { position: relative; width: 100%; min-width: 0; }
+  .app-date-drop-panel {
+    position: absolute; top: calc(100% + 6px); left: 0; right: 0; z-index: 700;
+    width: 100%; min-width: 260px; border: 1px solid #d1d5db; border-radius: 12px;
+    background: #fff; box-shadow: 0 10px 28px rgba(15, 23, 42, .12);
+    padding: 10px; box-sizing: border-box;
+  }
+  .app-date-drop-panel.hidden { display: none; }
+  .app-date-drop-panel.app-date-drop-panel--above {
+    box-shadow: 0 -10px 28px rgba(15, 23, 42, .12);
+  }
+  .app-date-drop-panel .app-date-inline-month.hidden { display: none; }
+  .app-date-drop-panel .app-date-inline-day.hidden { display: none; }
+  .app-date-drop-panel .app-date-dialog-foot {
+    margin-top: 8px; padding-top: 8px; border-top: 1px solid #e5e7eb;
+  }
+  .app-date-drop-panel .app-date-year-list { max-height: 220px; padding: 0; }
   .sidebar .schedule-date-bar {
     display: flex;
     align-items: stretch;
@@ -2912,6 +2928,168 @@
     font-size: 14px; font-weight: 600; color: #334155; background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E") no-repeat right 8px center;
     appearance: none; cursor: pointer;
   }
+  .erp-staff-ref-date-picker { position: relative; flex-shrink: 0; }
+  .erp-staff-ref-date-picker .app-date-drop-panel {
+    left: 0; right: auto; width: 280px;
+  }
+  .erp-staff-ref-date-wrap {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 0 10px; border: 1px solid #e2e8f0; border-radius: 8px; background: #fff;
+    min-height: 38px;
+  }
+  .erp-staff-ref-date-wrap > span {
+    font-size: 13px; font-weight: 700; color: #475569; white-space: nowrap;
+  }
+  .erp-staff-ref-date-trigger {
+    display: inline-flex; align-items: center; gap: 6px; border: 0; padding: 8px 0;
+    font-size: 14px; font-weight: 600; color: #0f172a; background: transparent;
+    cursor: pointer; min-width: 108px;
+  }
+  .erp-staff-ref-date-trigger:hover { color: #2563eb; }
+  .erp-staff-ref-date-icon {
+    display: inline-flex; color: #64748b; width: 16px; height: 16px;
+  }
+  .erp-staff-ref-date-icon svg { display: block; width: 16px; height: 16px; }
+  .app-date-field-trigger {
+    display: inline-flex; align-items: center; justify-content: space-between; gap: 8px;
+    width: 100%; box-sizing: border-box; text-align: left; cursor: pointer;
+  }
+  .erp-staff-add-input-wrap .app-date-field-trigger,
+  .erp-staff-field-value-wrap .app-date-field-trigger {
+    border: 0; background: transparent; padding: 0; font-size: 14px; font-weight: 600; color: #0f172a;
+  }
+  .erp-staff-form-grid.is-readonly .app-date-field-trigger {
+    pointer-events: none; opacity: .85;
+  }
+  .erp-staff-eff-date-picker { position: relative; width: 100%; }
+  .erp-staff-eff-date-picker .app-date-drop-panel { z-index: 1300; }
+  .app-date-field-trigger-icon {
+    display: inline-flex; color: #64748b; width: 16px; height: 16px; flex-shrink: 0;
+  }
+  .app-date-field-trigger-icon svg { display: block; width: 16px; height: 16px; }
+  .schedule-date-bar {
+    display: flex; align-items: stretch; width: 100%;
+    border: 1px solid #d1d5db; border-radius: 10px; background: #fff;
+    overflow: hidden; box-sizing: border-box;
+  }
+  .schedule-date-bar .schedule-date-step-btn {
+    flex: 0 0 34px; width: 34px; border: 0; background: #fff; color: #64748b;
+    font-size: 20px; line-height: 1; cursor: pointer; padding: 0;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .schedule-date-bar .schedule-date-step-btn:hover { background: #f8fafc; color: #111827; }
+  .schedule-date-bar .schedule-date-trigger {
+    flex: 1 1 auto; min-width: 0; display: flex; align-items: center; justify-content: center; gap: 8px;
+    padding: 8px 10px; border: 0; border-left: 1px solid #e5e7eb; border-right: 1px solid #e5e7eb;
+    border-radius: 0; background: #fff; font-size: 14px; font-weight: 700; color: #111827; cursor: pointer;
+  }
+  .schedule-date-bar .schedule-date-trigger:hover { background: #f8fafc; }
+  .app-date-dialog-backdrop {
+    position: fixed; inset: 0; z-index: 12000;
+    display: flex; align-items: center; justify-content: center;
+    padding: 16px; background: rgba(15, 23, 42, .35);
+  }
+  .app-date-dialog-backdrop.hidden { display: none; }
+  .app-date-dialog {
+    width: min(280px, 100%); border-radius: 12px; background: #fff;
+    box-shadow: 0 10px 28px rgba(15, 23, 42, .12); overflow: hidden;
+  }
+  .app-date-dialog-view.hidden { display: none; }
+  .app-date-dialog-head {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 12px 8px;
+  }
+  .app-date-dialog-head h3 {
+    margin: 0; font-size: 14px; font-weight: 800; color: #0f172a;
+  }
+  .app-date-dialog-close {
+    width: 28px; height: 28px; border: 0; border-radius: 6px; background: transparent;
+    color: #64748b; font-size: 20px; line-height: 1; cursor: pointer;
+  }
+  .app-date-dialog-close:hover { background: #f1f5f9; color: #0f172a; }
+  .app-date-dialog-divider { height: 1px; background: #e5e7eb; }
+  .app-date-dialog-nav-row {
+    display: flex; align-items: center; justify-content: space-between; gap: 6px;
+    padding: 8px 10px 6px;
+  }
+  .app-date-dialog-nav-box {
+    width: 28px; height: 28px; flex: 0 0 28px; border: 1px solid #e2e8f0; border-radius: 6px;
+    background: #fff; color: #334155; font-size: 16px; line-height: 1; cursor: pointer;
+  }
+  .app-date-dialog-nav-box:hover { background: #f8fafc; border-color: #cbd5e1; }
+  .app-date-month-trigger {
+    flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 4px;
+    border: 0; background: transparent; font-size: 13px; font-weight: 800; color: #0f172a;
+    cursor: pointer; padding: 4px 6px; border-radius: 6px;
+  }
+  .app-date-month-trigger:hover { background: #f8fafc; color: #2563eb; }
+  .app-date-month-trigger svg { width: 12px; height: 12px; color: #64748b; }
+  .app-date-weekdays {
+    display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px;
+    padding: 0 10px 2px; font-size: 11px; font-weight: 700; color: #64748b; text-align: center;
+  }
+  .app-date-grid {
+    display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px;
+    padding: 0 10px 8px;
+  }
+  .app-date-day {
+    height: 32px; border: 1px solid transparent; border-radius: 6px; background: transparent;
+    font-size: 12px; font-weight: 600; color: #0f172a; cursor: pointer;
+  }
+  .app-date-day.other-month { color: #cbd5e1; font-weight: 500; }
+  .app-date-day.today:not(.selected) {
+    background: #eff6ff; border-color: #93c5fd; color: #2563eb;
+  }
+  .app-date-day.selected {
+    background: #2563eb; border-color: #2563eb; color: #fff; font-weight: 800;
+  }
+  .app-date-day:hover:not(.selected) { background: #f8fafc; }
+  .app-date-dialog-foot {
+    display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    padding: 8px 10px 10px;
+  }
+  .app-date-dialog-foot--end { justify-content: flex-end; }
+  .app-date-dialog-actions { display: flex; gap: 6px; }
+  .app-date-link-btn {
+    border: 0; background: transparent; color: #64748b; font-size: 12px; font-weight: 700;
+    cursor: pointer; padding: 4px 2px;
+  }
+  .app-date-link-btn:hover { color: #2563eb; }
+  .app-date-outline-btn {
+    padding: 6px 12px; border: 1px solid #e2e8f0; border-radius: 6px; background: #fff;
+    font-size: 12px; font-weight: 700; color: #0f172a; cursor: pointer;
+  }
+  .app-date-outline-btn:hover { background: #f8fafc; }
+  .app-date-primary-btn {
+    padding: 6px 12px; border: 1px solid transparent; border-radius: 6px; background: #2563eb;
+    font-size: 12px; font-weight: 700; color: #fff; cursor: pointer;
+  }
+  .app-date-primary-btn:hover { background: #1d4ed8; }
+  .app-date-year-list {
+    max-height: 260px; overflow: auto; padding: 6px 10px 8px;
+  }
+  .app-date-year-block { margin-bottom: 4px; }
+  .app-date-year-row {
+    display: flex; align-items: center; justify-content: space-between; width: 100%;
+    padding: 8px 10px; border: 0; border-radius: 8px; background: #f1f5f9;
+    font-size: 13px; font-weight: 800; color: #0f172a; cursor: pointer; text-align: left;
+  }
+  .app-date-year-row:hover { background: #e2e8f0; }
+  .app-date-year-row.is-expanded { background: #eff6ff; color: #2563eb; }
+  .app-date-year-row svg { width: 14px; height: 14px; color: #94a3b8; flex-shrink: 0; }
+  .app-date-year-row.is-expanded svg { color: #2563eb; transform: rotate(180deg); }
+  .app-date-month-grid {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px;
+    padding: 8px 2px 2px;
+  }
+  .app-date-month-cell {
+    height: 32px; border: 0; border-radius: 6px; background: transparent;
+    font-size: 12px; font-weight: 700; color: #0f172a; cursor: pointer;
+  }
+  .app-date-month-cell:hover { background: #f1f5f9; }
+  .app-date-month-cell.is-selected {
+    background: #2563eb; color: #fff;
+  }
   .erp-staff-filter-btn {
     display: inline-flex; align-items: center; gap: 5px; padding: 8px 12px;
     border: 1px solid #e2e8f0; border-radius: 8px; background: #fff;
@@ -2953,6 +3131,7 @@
   .erp-staff-status-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; background: #22c55e; }
   .erp-staff-status-badge.is-leave .erp-staff-status-dot { background: #f59e0b; }
   .erp-staff-status-badge.is-out .erp-staff-status-dot { background: #94a3b8; }
+  .erp-staff-status-badge.is-in .erp-staff-status-dot { background: #22c55e; }
   .erp-staff-modal-topbar {
     display: flex; align-items: center; justify-content: flex-end; gap: 12px;
     padding: 12px 18px 0; flex-shrink: 0;
@@ -2973,6 +3152,7 @@
   }
   .erp-staff-status-pill.is-leave { background: #fef3c7; color: #b45309; }
   .erp-staff-status-pill.is-out { background: #f1f5f9; color: #64748b; }
+  .erp-staff-status-pill.is-in { background: #dcfce7; color: #15803d; }
   .erp-staff-modal-body { flex: 1; min-height: 0; padding: 0 16px 8px; overflow: auto; }
   .erp-staff-section {
     margin-top: 14px; padding: 14px; border: 1px solid #e8edf3; border-radius: 12px; background: #fafbfc;
@@ -3098,6 +3278,19 @@
   .erp-staff-timeline-item.is-tone-indigo .erp-staff-history-badge { background: #e0e7ff; color: #4338ca; }
   .erp-staff-timeline-item.is-tone-slate .erp-staff-history-badge { background: #f1f5f9; color: #475569; }
   .erp-staff-history-change { font-size: 13px; font-weight: 600; color: #64748b; }
+  .erp-staff-timeline-card-actions {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 12px;
+    margin-top: 10px; padding-top: 10px; border-top: 1px solid #f1f5f9;
+  }
+  .erp-staff-timeline-card-actions button {
+    border: 0; background: transparent; padding: 0;
+    font-size: 12px; font-weight: 600; cursor: pointer;
+  }
+  .erp-staff-timeline-card-actions .erp-staff-history-edit { color: #2563eb; }
+  .erp-staff-timeline-card-actions .erp-staff-history-edit:hover { text-decoration: underline; }
+  .erp-staff-timeline-card-actions .erp-staff-history-delete { color: #b91c1c; }
+  .erp-staff-timeline-card-actions .erp-staff-history-delete:hover { text-decoration: underline; }
+  .erp-staff-timeline-item.is-editing-mode { cursor: default; }
   .erp-staff-history-count {
     margin: 10px 0 0; font-size: 12px; color: #94a3b8;
   }
@@ -3121,12 +3314,20 @@
     background: #b91c1c; border-color: #b91c1c; color: #fff;
   }
   .erp-staff-modal-footer button[hidden] { display: none !important; }
-  .erp-staff-history-delete {
-    margin-top: 8px; border: 0; background: transparent; padding: 0;
-    font-size: 12px; font-weight: 600; color: #b91c1c; cursor: pointer;
+  .erp-staff-history-hint {
+    margin: 8px 0 0; font-size: 12px; color: #64748b; line-height: 1.45;
   }
-  .erp-staff-history-delete:hover { text-decoration: underline; }
-  .erp-staff-history-delete[hidden] { display: none !important; }
+  .erp-staff-history-hint[hidden] { display: none !important; }
+  .erp-staff-edit-mode-banner {
+    margin: 0 0 12px; padding: 10px 12px; border-radius: 8px; font-size: 13px; font-weight: 600; line-height: 1.45;
+  }
+  .erp-staff-edit-mode-banner[hidden] { display: none !important; }
+  .erp-staff-edit-mode-banner.is-new {
+    background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe;
+  }
+  .erp-staff-edit-mode-banner.is-history {
+    background: #fff7ed; color: #c2410c; border: 1px solid #fed7aa;
+  }
   .erp-staff-detail-empty {
     flex: 1; display: flex; align-items: center; justify-content: center; padding: 24px;
     color: #94a3b8; font-size: 14px; text-align: center;
@@ -3157,10 +3358,9 @@
   .workbench-hero p { margin: 0; color: #64748b; font-size: 14px; }
   .workbench-setup {
     margin-bottom: 24px;
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 16px;
-    align-items: start;
+    max-width: 480px;
+    margin-left: auto;
+    margin-right: auto;
   }
   #erpPageHome .workbench-panel {
     background: #fff;
@@ -3178,91 +3378,6 @@
     box-shadow: none;
   }
   .workbench-panel-title { font-size: 14px; font-weight: 800; color: #0f172a; margin-bottom: 10px; }
-  .workbench-panel--date .workbench-panel-head {
-    margin-bottom: 10px;
-    flex-wrap: wrap;
-    width: 100%;
-  }
-  .workbench-panel--date .workbench-panel-head .workbench-panel-title { margin-bottom: 0; }
-  .workbench-home-calendar {
-    margin: 0 auto;
-    max-width: 280px;
-    width: 100%;
-  }
-  .workbench-home-calendar .schedule-date-picker { position: static; width: 100%; max-width: 280px; }
-  .workbench-home-calendar .schedule-date-panel--embedded {
-    position: static;
-    width: 100%;
-    max-width: 280px;
-    margin: 0;
-    border: 0;
-    border-radius: 0;
-    box-shadow: none;
-    padding: 8px 0 8px;
-    box-sizing: border-box;
-  }
-  .workbench-home-calendar .schedule-date-panel--embedded .schedule-date-day,
-  .workbench-home-calendar .schedule-date-panel--embedded .schedule-date-nav {
-    width: auto;
-    padding: 0;
-    border: 0;
-    border-radius: 6px;
-    background: transparent;
-    min-height: 0;
-  }
-  .workbench-home-calendar .schedule-date-panel-head { margin-bottom: 4px; }
-  .workbench-home-calendar .schedule-date-month-label { font-size: 12px; }
-  .workbench-home-calendar .schedule-date-nav {
-    width: 24px;
-    height: 24px;
-    font-size: 12px;
-  }
-  .workbench-home-calendar .schedule-date-weekdays {
-    gap: 1px;
-    margin-bottom: 2px;
-    font-size: 10px;
-  }
-  .workbench-home-calendar .schedule-date-grid { gap: 1px; }
-  .workbench-home-calendar .schedule-date-day {
-    height: 26px;
-    font-size: 11px;
-    border-radius: 6px;
-  }
-  .workbench-home-calendar .schedule-date-panel-foot--compact {
-    justify-content: flex-end;
-    margin-top: 6px;
-    padding-top: 6px;
-  }
-  .workbench-home-calendar .schedule-date-panel-foot--compact:has(#homeDateConfirmBtn[hidden]) {
-    display: none;
-  }
-  .workbench-home-calendar .schedule-date-panel-foot--compact .schedule-date-confirm-btn {
-    padding: 4px 12px;
-    border-radius: 8px;
-    background: #2563eb;
-    color: #fff;
-    font-size: 12px;
-    font-weight: 700;
-  }
-  .workbench-home-calendar .schedule-date-panel-foot--compact .schedule-date-confirm-btn:hover {
-    background: #1d4ed8;
-  }
-  .workbench-home-calendar .schedule-date-day.pending {
-    background: #93c5fd;
-    color: #1e3a8a;
-    font-weight: 800;
-  }
-  .workbench-home-calendar .schedule-date-day.confirmed {
-    background: #2563eb;
-    color: #fff;
-    font-weight: 800;
-    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.25);
-  }
-  .workbench-home-calendar .schedule-date-day.confirmed.pending {
-    background: #2563eb;
-    color: #fff;
-  }
-  #homeDateConfirmBtn[hidden] { display: none !important; }
   .workbench-role-list { display: flex; flex-direction: column; gap: 8px; }
   .workbench-role-option {
     display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px;
@@ -3300,6 +3415,71 @@
     background: #f1f5f9; color: #475569; font-size: 11px; font-weight: 700;
   }
   .erp-page-my-duty .workbench-panel { max-width: none; margin: 0; padding: 0; }
+
+  .app-notice-dialog {
+    position: fixed; inset: 0; z-index: 2000;
+    display: flex; align-items: center; justify-content: center;
+    padding: 20px 16px;
+  }
+  .app-notice-dialog[hidden] { display: none !important; }
+  .app-notice-backdrop {
+    position: absolute; inset: 0; background: rgba(15, 23, 42, 0.45);
+  }
+  .app-notice-panel {
+    position: relative; width: min(420px, 100%);
+    background: #fff; border-radius: 14px;
+    box-shadow: 0 24px 60px rgba(15, 23, 42, 0.22);
+    padding: 20px 20px 0;
+  }
+  .app-notice-close {
+    position: absolute; top: 12px; right: 12px;
+    width: 32px; height: 32px; border: 0; background: transparent;
+    color: #94a3b8; font-size: 22px; line-height: 1; cursor: pointer; border-radius: 8px;
+  }
+  .app-notice-close:hover { background: #f1f5f9; color: #0f172a; }
+  .app-notice-head {
+    display: flex; gap: 12px; align-items: flex-start; padding-right: 24px;
+  }
+  .app-notice-icon {
+    width: 40px; height: 40px; border-radius: 50%; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .app-notice-dialog.is-warning .app-notice-icon { background: #fee2e2; color: #dc2626; }
+  .app-notice-dialog.is-success .app-notice-icon { background: #dcfce7; color: #16a34a; }
+  .app-notice-dialog.is-info .app-notice-icon { background: #dbeafe; color: #2563eb; }
+  .app-notice-icon svg { width: 20px; height: 20px; display: block; }
+  .app-notice-title { margin: 0 0 6px; font-size: 17px; font-weight: 800; color: #0f172a; line-height: 1.35; }
+  .app-notice-message { margin: 0; font-size: 14px; line-height: 1.55; color: #475569; }
+  .app-notice-hl { color: #dc2626; font-weight: 700; }
+  .app-notice-details {
+    margin-top: 14px; padding: 4px 14px; border-radius: 10px; background: #fff5f5;
+  }
+  .app-notice-details[hidden] { display: none !important; }
+  .app-notice-detail-row {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    padding: 10px 0; font-size: 14px;
+  }
+  .app-notice-detail-row + .app-notice-detail-row { border-top: 1px solid #fecaca; }
+  .app-notice-detail-label { color: #64748b; font-weight: 600; }
+  .app-notice-detail-value { font-weight: 700; color: #0f172a; text-align: right; }
+  .app-notice-detail-value.is-em { color: #dc2626; }
+  .app-notice-foot {
+    display: flex; justify-content: flex-end; align-items: center; gap: 10px;
+    padding: 16px 0 18px; margin-top: 16px; border-top: 1px solid #f1f5f9;
+  }
+  .app-notice-btn {
+    min-width: 88px; padding: 9px 16px; border-radius: 8px; font-size: 14px; font-weight: 700;
+    cursor: pointer; border: 1px solid transparent;
+  }
+  .app-notice-btn--ghost {
+    background: #fff; border-color: #d1d5db; color: #334155;
+  }
+  .app-notice-btn--ghost:hover { background: #f8fafc; }
+  .app-notice-btn--primary {
+    background: #2563eb; border-color: #2563eb; color: #fff;
+  }
+  .app-notice-btn--primary:hover { background: #1d4ed8; border-color: #1d4ed8; }
+  .app-notice-btn[hidden] { display: none !important; }
 
 </style>
 </head>
@@ -3368,34 +3548,9 @@
         <div class="workbench-page">
           <div class="workbench-hero">
             <h2>Duty 工作台</h2>
-            <p>請先選擇班表日期與登入角色，系統會依權限顯示可使用的功能入口。</p>
+            <p>請選擇登入角色，系統會依權限顯示可使用的功能入口。班表日期請於各功能區塊中選擇。</p>
           </div>
           <div class="workbench-setup">
-            <div class="workbench-panel workbench-panel--date">
-              <div class="workbench-panel-head erp-page-nav-head" id="workbenchPanelDateHead">
-                <div class="workbench-panel-title">班表日期</div>
-              </div>
-              <div class="workbench-home-calendar schedule-date-wrap">
-                <div class="schedule-date-picker" id="homeDatePicker">
-                  <div class="schedule-date-panel schedule-date-panel--embedded" id="homeDatePanel" role="group" aria-label="選擇班表日期">
-                    <div class="schedule-date-panel-head">
-                      <span class="schedule-date-month-label" id="homeDateMonthLabel"></span>
-                      <div>
-                        <button type="button" class="schedule-date-nav" id="homeDatePrevMonth" aria-label="上個月">▲</button>
-                        <button type="button" class="schedule-date-nav" id="homeDateNextMonth" aria-label="下個月">▼</button>
-                      </div>
-                    </div>
-                    <div class="schedule-date-weekdays">
-                      <span>日</span><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span>
-                    </div>
-                    <div class="schedule-date-grid" id="homeDateGrid"></div>
-                    <div class="schedule-date-panel-foot schedule-date-panel-foot--compact">
-                      <button type="button" class="schedule-date-confirm-btn" id="homeDateConfirmBtn" hidden>確定</button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
             <div class="workbench-panel">
               <div class="workbench-panel-title">登入角色</div>
               <div class="workbench-role-list" id="workbenchRoleList">
@@ -3418,7 +3573,7 @@
               </div>
             </div>
           </div>
-          <div class="workbench-status" id="workbenchStatus">請選擇日期並選擇角色，下方會顯示可用功能入口。</div>
+          <div class="workbench-status" id="workbenchStatus">請選擇登入角色，下方會顯示可用功能入口。</div>
           <div class="workbench-entries" id="workbenchEntries"></div>
         </div>
       </section>
@@ -3432,30 +3587,36 @@
         <div class="schedule-date-picker" id="scheduleDatePicker">
           <div class="schedule-date-bar">
             <button type="button" class="schedule-date-step-btn" id="scheduleDatePrevDay" aria-label="前一日">‹</button>
-            <button type="button" class="schedule-date-trigger" id="scheduleDateTrigger" aria-haspopup="dialog" aria-expanded="false">
+            <button type="button" class="schedule-date-trigger" id="scheduleDateTrigger" aria-haspopup="dialog" aria-expanded="false" aria-controls="scheduleDateDropPanel">
               <span class="schedule-date-value" id="scheduleDateValue"></span>
               <span class="schedule-date-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></span>
             </button>
             <button type="button" class="schedule-date-step-btn" id="scheduleDateNextDay" aria-label="翌日">›</button>
           </div>
-          <div class="schedule-date-panel hidden" id="scheduleDatePanel" role="dialog" aria-label="選擇班表日期">
-            <div class="schedule-date-panel-head">
-              <span class="schedule-date-month-label" id="scheduleDateMonthLabel"></span>
-              <div>
-                <button type="button" class="schedule-date-nav" id="scheduleDatePrevMonth" aria-label="上個月">▲</button>
-                <button type="button" class="schedule-date-nav" id="scheduleDateNextMonth" aria-label="下個月">▼</button>
+          <div class="app-date-drop-panel hidden" id="scheduleDateDropPanel" role="dialog" aria-label="選擇班表日期">
+            <div class="app-date-inline-day" id="scheduleDateInlineDay">
+              <div class="app-date-dialog-nav-row">
+                <button type="button" class="app-date-dialog-nav-box" id="scheduleDateInlinePrevMonth" aria-label="上個月">‹</button>
+                <button type="button" class="app-date-month-trigger" id="scheduleDateInlineMonthTrigger" aria-label="選擇月份">
+                  <span id="scheduleDateInlineMonthLabel"></span>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+                </button>
+                <button type="button" class="app-date-dialog-nav-box" id="scheduleDateInlineNextMonth" aria-label="下個月">›</button>
+              </div>
+              <div class="app-date-weekdays">
+                <span>日</span><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span>
+              </div>
+              <div class="app-date-grid" id="scheduleDateInlineGrid"></div>
+              <div class="app-date-dialog-foot">
+                <button type="button" class="app-date-link-btn" id="scheduleDateInlineTodayBtn">今天</button>
+                <div class="app-date-dialog-actions">
+                  <button type="button" class="app-date-outline-btn" id="scheduleDateInlineCancelBtn">取消</button>
+                  <button type="button" class="app-date-primary-btn" id="scheduleDateInlineConfirmBtn">確定</button>
+                </div>
               </div>
             </div>
-            <div class="schedule-date-weekdays">
-              <span>日</span><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span>
-            </div>
-            <div class="schedule-date-grid" id="scheduleDateGrid"></div>
-            <div class="schedule-date-panel-foot">
-              <button type="button" id="scheduleDateCancelBtn">取消</button>
-              <div>
-                <button type="button" id="scheduleDateTodayBtn">今天</button>
-                <button type="button" class="schedule-date-confirm-btn" id="scheduleDateConfirmBtn">確定</button>
-              </div>
+            <div class="app-date-inline-month hidden" id="scheduleDateInlineMonth">
+              <div class="app-date-year-list" id="scheduleDateInlineYearList"></div>
             </div>
           </div>
         </div>
@@ -3877,14 +4038,44 @@
                   </div>
                   <div class="erp-staff-add-field">
                     <span class="erp-staff-add-label">狀態 <span class="req">*</span></span>
-                    <div class="erp-staff-add-status-locked" title="調入人員固定為在職，並標記為調入紀錄">
+                    <div class="erp-staff-add-status-locked" title="新增人員固定為調入">
                       <span class="erp-staff-add-status-pill">調入</span>
                     </div>
                   </div>
                   <div class="erp-staff-add-field is-span-2">
                     <span class="erp-staff-add-label">生效日 <span class="req">*</span></span>
-                    <div class="erp-staff-add-input-wrap">
-                      <input type="date" id="erpStaffAddEffDate" required />
+                    <div class="erp-staff-add-input-wrap erp-staff-eff-date-picker" id="erpStaffAddEffDatePicker">
+                      <button type="button" class="app-date-field-trigger" id="erpStaffAddEffDateTrigger" aria-haspopup="dialog" aria-expanded="false" aria-controls="erpStaffAddEffDateDropPanel">
+                        <span id="erpStaffAddEffDateDisplay">—</span>
+                        <span class="app-date-field-trigger-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></span>
+                      </button>
+                      <input type="hidden" id="erpStaffAddEffDate" class="erp-staff-eff-sync" required />
+                      <div class="app-date-drop-panel hidden" id="erpStaffAddEffDateDropPanel" role="dialog" aria-label="選擇生效日">
+                        <div class="app-date-inline-day" id="erpStaffAddEffDateInlineDay">
+                          <div class="app-date-dialog-nav-row">
+                            <button type="button" class="app-date-dialog-nav-box" id="erpStaffAddEffDateInlinePrevMonth" aria-label="上個月">‹</button>
+                            <button type="button" class="app-date-month-trigger" id="erpStaffAddEffDateInlineMonthTrigger" aria-label="選擇月份">
+                              <span id="erpStaffAddEffDateInlineMonthLabel"></span>
+                              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+                            </button>
+                            <button type="button" class="app-date-dialog-nav-box" id="erpStaffAddEffDateInlineNextMonth" aria-label="下個月">›</button>
+                          </div>
+                          <div class="app-date-weekdays">
+                            <span>日</span><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span>
+                          </div>
+                          <div class="app-date-grid" id="erpStaffAddEffDateInlineGrid"></div>
+                          <div class="app-date-dialog-foot">
+                            <button type="button" class="app-date-link-btn" id="erpStaffAddEffDateInlineTodayBtn">今天</button>
+                            <div class="app-date-dialog-actions">
+                              <button type="button" class="app-date-outline-btn" id="erpStaffAddEffDateInlineCancelBtn">取消</button>
+                              <button type="button" class="app-date-primary-btn" id="erpStaffAddEffDateInlineConfirmBtn">確定</button>
+                            </div>
+                          </div>
+                        </div>
+                        <div class="app-date-inline-month hidden" id="erpStaffAddEffDateInlineMonth">
+                          <div class="app-date-year-list" id="erpStaffAddEffDateInlineYearList"></div>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </form>
@@ -3899,9 +4090,46 @@
             <div class="erp-staff-list-pane">
               <div class="erp-staff-list-tabs" role="tablist" aria-label="人員列表分類">
                 <button type="button" role="tab" id="erpStaffTabActive" class="is-active" aria-selected="true">在職人員</button>
+                <button type="button" role="tab" id="erpStaffTabLeave" aria-selected="false">留停人員</button>
                 <button type="button" role="tab" id="erpStaffTabInactive" aria-selected="false">停用人員</button>
               </div>
               <div class="erp-staff-filters">
+                <div class="erp-staff-ref-date-picker" id="staffListRefDatePicker">
+                  <div class="erp-staff-ref-date-wrap">
+                    <span>基準日</span>
+                    <button type="button" class="erp-staff-ref-date-trigger" id="staffListRefDateTrigger" aria-haspopup="dialog" aria-expanded="false" aria-controls="staffListRefDateDropPanel">
+                      <span id="staffListRefDateDisplay">—</span>
+                      <span class="erp-staff-ref-date-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></span>
+                    </button>
+                    <input type="hidden" id="erpStaffListRefDate" value="" />
+                  </div>
+                  <div class="app-date-drop-panel hidden" id="staffListRefDateDropPanel" role="dialog" aria-label="選擇基準日">
+                    <div class="app-date-inline-day" id="staffListRefDateInlineDay">
+                      <div class="app-date-dialog-nav-row">
+                        <button type="button" class="app-date-dialog-nav-box" id="staffListRefDateInlinePrevMonth" aria-label="上個月">‹</button>
+                        <button type="button" class="app-date-month-trigger" id="staffListRefDateInlineMonthTrigger" aria-label="選擇月份">
+                          <span id="staffListRefDateInlineMonthLabel"></span>
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+                        </button>
+                        <button type="button" class="app-date-dialog-nav-box" id="staffListRefDateInlineNextMonth" aria-label="下個月">›</button>
+                      </div>
+                      <div class="app-date-weekdays">
+                        <span>日</span><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span>
+                      </div>
+                      <div class="app-date-grid" id="staffListRefDateInlineGrid"></div>
+                      <div class="app-date-dialog-foot">
+                        <button type="button" class="app-date-link-btn" id="staffListRefDateInlineTodayBtn">今天</button>
+                        <div class="app-date-dialog-actions">
+                          <button type="button" class="app-date-outline-btn" id="staffListRefDateInlineCancelBtn">取消</button>
+                          <button type="button" class="app-date-primary-btn" id="staffListRefDateInlineConfirmBtn">確定</button>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="app-date-inline-month hidden" id="staffListRefDateInlineMonth">
+                      <div class="app-date-year-list" id="staffListRefDateInlineYearList"></div>
+                    </div>
+                  </div>
+                </div>
                 <label class="erp-staff-search-wrap">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
                   <input type="search" id="erpStaffSearchInput" placeholder="搜尋人事代號、姓名、代號、戰力…" autocomplete="off" />
@@ -3957,9 +4185,10 @@
                     <span class="erp-staff-edit-toggle-icon" aria-hidden="true">
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
                     </span>
-                    <span class="erp-staff-edit-toggle-label">編輯</span>
+                    <span class="erp-staff-edit-toggle-label">新增異動</span>
                   </button>
                 </div>
+                <p class="erp-staff-edit-mode-banner" id="erpStaffEditModeBanner" hidden></p>
                 <form class="erp-staff-form-grid is-readonly" id="erpStaffEditForm">
                   <input type="hidden" id="erpStaffEffDate" />
                   <div class="erp-staff-field-row">
@@ -3982,17 +4211,44 @@
                     <span class="erp-staff-field-label">狀態</span>
                     <div class="erp-staff-field-value-wrap">
                       <span class="erp-staff-field-readonly" id="erpStaffStatusView" aria-hidden="true"></span>
-                      <select class="erp-staff-field-input" id="erpStaffStatus">
-                        <option value="在職">在職</option>
-                        <option value="留停">留停</option>
-                        <option value="調出">調出</option>
-                        <option value="離職">離職</option>
-                      </select>
+                      <select class="erp-staff-field-input" id="erpStaffStatus"></select>
                     </div>
                   </div>
                   <div class="erp-staff-field-row erp-staff-eff-field is-span-2">
                     <span class="erp-staff-field-label">生效日</span>
-                    <input type="date" class="erp-staff-field-input erp-staff-eff-sync" id="erpStaffEffDatePick" required />
+                    <div class="erp-staff-field-value-wrap erp-staff-eff-date-picker" id="erpStaffEffDatePicker">
+                      <button type="button" class="erp-staff-field-input app-date-field-trigger" id="erpStaffEffDatePickTrigger" aria-haspopup="dialog" aria-expanded="false" aria-controls="erpStaffEffDateDropPanel">
+                        <span id="erpStaffEffDatePickDisplay">—</span>
+                        <span class="app-date-field-trigger-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></span>
+                      </button>
+                      <input type="hidden" class="erp-staff-eff-sync" id="erpStaffEffDatePick" required />
+                      <div class="app-date-drop-panel hidden" id="erpStaffEffDateDropPanel" role="dialog" aria-label="選擇生效日">
+                        <div class="app-date-inline-day" id="erpStaffEffDateInlineDay">
+                          <div class="app-date-dialog-nav-row">
+                            <button type="button" class="app-date-dialog-nav-box" id="erpStaffEffDateInlinePrevMonth" aria-label="上個月">‹</button>
+                            <button type="button" class="app-date-month-trigger" id="erpStaffEffDateInlineMonthTrigger" aria-label="選擇月份">
+                              <span id="erpStaffEffDateInlineMonthLabel"></span>
+                              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+                            </button>
+                            <button type="button" class="app-date-dialog-nav-box" id="erpStaffEffDateInlineNextMonth" aria-label="下個月">›</button>
+                          </div>
+                          <div class="app-date-weekdays">
+                            <span>日</span><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span>
+                          </div>
+                          <div class="app-date-grid" id="erpStaffEffDateInlineGrid"></div>
+                          <div class="app-date-dialog-foot">
+                            <button type="button" class="app-date-link-btn" id="erpStaffEffDateInlineTodayBtn">今天</button>
+                            <div class="app-date-dialog-actions">
+                              <button type="button" class="app-date-outline-btn" id="erpStaffEffDateInlineCancelBtn">取消</button>
+                              <button type="button" class="app-date-primary-btn" id="erpStaffEffDateInlineConfirmBtn">確定</button>
+                            </div>
+                          </div>
+                        </div>
+                        <div class="app-date-inline-month hidden" id="erpStaffEffDateInlineMonth">
+                          <div class="app-date-year-list" id="erpStaffEffDateInlineYearList"></div>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </form>
               </section>
@@ -4003,7 +4259,7 @@
                 </div>
                 <div class="erp-staff-timeline" id="erpStaffHistoryList"></div>
                 <p class="erp-staff-history-count" id="erpStaffHistoryCount" hidden></p>
-                <button type="button" class="erp-staff-history-delete" id="erpStaffDeleteEventBtn" hidden>刪除此筆資料</button>
+                <p class="erp-staff-history-hint" id="erpStaffHistoryAdminHint" hidden>管理員：「新增異動」會新增一筆紀錄；若要改舊資料請在該筆紀錄內按「編輯此筆」。</p>
               </section>
             </div>
             <footer class="erp-staff-modal-footer" id="erpStaffEditFooter" hidden>
@@ -4079,6 +4335,70 @@
     </div>
   </div>
 </div>
+
+<div id="appNoticeDialog" class="app-notice-dialog is-warning" hidden>
+  <div class="app-notice-backdrop" data-app-notice-dismiss="1"></div>
+  <div class="app-notice-panel" role="alertdialog" aria-modal="true" aria-labelledby="appNoticeTitle" aria-describedby="appNoticeMessage">
+    <button type="button" class="app-notice-close" id="appNoticeCloseBtn" aria-label="關閉">×</button>
+    <div class="app-notice-head">
+      <div class="app-notice-icon" id="appNoticeIcon" aria-hidden="true"></div>
+      <div class="app-notice-copy">
+        <h3 class="app-notice-title" id="appNoticeTitle"></h3>
+        <p class="app-notice-message" id="appNoticeMessage"></p>
+      </div>
+    </div>
+    <div class="app-notice-details" id="appNoticeDetails" hidden></div>
+    <footer class="app-notice-foot">
+      <button type="button" class="app-notice-btn app-notice-btn--ghost" id="appNoticeCancelBtn">取消</button>
+      <button type="button" class="app-notice-btn app-notice-btn--primary" id="appNoticeConfirmBtn">確定</button>
+    </footer>
+  </div>
+</div>
+
+<div class="app-date-dialog-backdrop hidden" id="appDateDialogBackdrop" aria-hidden="true">
+  <div class="app-date-dialog" id="appDateDialog" role="dialog" aria-modal="true" aria-labelledby="appDateDialogTitle">
+    <div class="app-date-dialog-view" id="appDateDayView">
+      <div class="app-date-dialog-head">
+        <h3 id="appDateDialogTitle">選擇日期</h3>
+        <button type="button" class="app-date-dialog-close" id="appDateDialogCloseBtn" aria-label="關閉">×</button>
+      </div>
+      <div class="app-date-dialog-divider"></div>
+      <div class="app-date-dialog-nav-row">
+        <button type="button" class="app-date-dialog-nav-box" id="appDatePrevMonth" aria-label="上個月">‹</button>
+        <button type="button" class="app-date-month-trigger" id="appDateMonthTrigger" aria-label="選擇月份">
+          <span id="appDateMonthLabel">2026年06月</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+        </button>
+        <button type="button" class="app-date-dialog-nav-box" id="appDateNextMonth" aria-label="下個月">›</button>
+      </div>
+      <div class="app-date-weekdays">
+        <span>日</span><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span>
+      </div>
+      <div class="app-date-grid" id="appDateGrid"></div>
+      <div class="app-date-dialog-divider"></div>
+      <div class="app-date-dialog-foot">
+        <button type="button" class="app-date-link-btn" id="appDateClearBtn">今天</button>
+        <div class="app-date-dialog-actions">
+          <button type="button" class="app-date-outline-btn" id="appDateCancelBtn">取消</button>
+          <button type="button" class="app-date-primary-btn" id="appDateConfirmBtn">確定</button>
+        </div>
+      </div>
+    </div>
+    <div class="app-date-dialog-view hidden" id="appDateMonthView">
+      <div class="app-date-dialog-head">
+        <h3 id="appDateMonthViewTitle">選擇月份</h3>
+        <button type="button" class="app-date-dialog-close" id="appDateMonthCloseBtn" aria-label="關閉">×</button>
+      </div>
+      <div class="app-date-year-list" id="appDateYearList"></div>
+      <div class="app-date-dialog-divider"></div>
+      <div class="app-date-dialog-foot app-date-dialog-foot--end">
+        <button type="button" class="app-date-outline-btn" id="appDateMonthCancelBtn">取消</button>
+        <button type="button" class="app-date-primary-btn" id="appDateMonthConfirmBtn">確定</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
 const initialPeople = [{"name": "又", "level": "M"}, {"name": "承", "level": "M"}, {"name": "沛", "level": "m"}, {"name": "洪", "level": "m"}, {"name": "芬", "level": "M"}, {"name": "沈", "level": "M"}, {"name": "君", "level": "M"}, {"name": "炘", "level": "M"}, {"name": "趙", "level": "M"}, {"name": "佳", "level": "M"}, {"name": "桃", "level": "M"}, {"name": "穎", "level": "M"}, {"name": "澤", "level": "M"}, {"name": "徐", "level": "m"}, {"name": "瑩", "level": "m"}, {"name": "蘇", "level": "m"}, {"name": "伶", "level": "m"}, {"name": "品", "level": "m"}, {"name": "喧", "level": "m"}, {"name": "健", "level": "2A"}, {"name": "媛", "level": "2A"}, {"name": "翰", "level": "2A"}, {"name": "庭", "level": "1A"}, {"name": "淵", "level": "1A"}, {"name": "昕", "level": "1A"}, {"name": "富", "level": "M"}, {"name": "雨", "level": "M"}, {"name": "鈞", "level": "M"}, {"name": "費", "level": "M"}, {"name": "莊", "level": "M"}, {"name": "孝", "level": "M"}, {"name": "展", "level": "M"}, {"name": "東", "level": "m"}, {"name": "玲", "level": "m"}, {"name": "筠", "level": "m"}, {"name": "皓", "level": "m"}, {"name": "姿", "level": "m"}, {"name": "文", "level": "m"}, {"name": "浩", "level": "m"}, {"name": "賴", "level": "m"}, {"name": "娟", "level": "m"}, {"name": "勛", "level": "m"}, {"name": "順", "level": "m"}, {"name": "榕", "level": "m"}, {"name": "汶", "level": "m!"}, {"name": "景", "level": "m!"}, {"name": "宇", "level": "m!"}, {"name": "澄", "level": "2A*"}, {"name": "易", "level": "1A"}, {"name": "靜", "level": "1A"}, {"name": "慶", "level": "1A"}, {"name": "姜", "level": "1A"}];
 
@@ -4562,7 +4882,7 @@ function exportOvertimeExcel() {
   const records = collectOvertimeRecords();
   if (!records.length) return;
   if (typeof XLSX === 'undefined') {
-    alert('Excel 套件尚未載入，請確認網路連線後重新整理頁面。');
+    appAlert('Excel 套件尚未載入，請確認網路連線後重新整理頁面。', '無法匯出');
     return;
   }
   const dateText = formatScheduleDateDisplay(selectedDate) || selectedDate || '';
@@ -4656,11 +4976,25 @@ const LS_KEYS_GLOBAL = {
   shiftView: `${LS_PREFIX}_shift_view`,
   rollCallMode: `${LS_PREFIX}_roll_call_mode`,
   staffDirectory: `${LS_PREFIX}_staff_directory`,
-  staffPersonnel: `${LS_PREFIX}_staff_personnel`
+  staffPersonnel: `${LS_PREFIX}_staff_personnel`,
+  staffListRefDate: `${LS_PREFIX}_staff_list_ref_date`
 };
 const STAFF_PERSONNEL_BASELINE = '2026-01-01';
-const STAFF_ALERT_STATUSES = new Set(['留停', '調出', '離職']);
-const STAFF_INACTIVE_STATUSES = new Set(['留停', '調出', '離職']);
+const STAFF_LEGACY_ACTIVE_STATUS = '在職';
+const STAFF_STATUS_FORM_OPTIONS = [STAFF_LEGACY_ACTIVE_STATUS, '調入', '調出', '留停', '復職', '離職', '退休'];
+const STAFF_ALERT_STATUSES = new Set(['留停', '調出', '離職', '退休']);
+const STAFF_TAB_ACTIVE_STATUSES = new Set([STAFF_LEGACY_ACTIVE_STATUS, '調入', '復職']);
+const STAFF_TAB_LEAVE_STATUSES = new Set(['留停']);
+const STAFF_TAB_DISABLED_STATUSES = new Set(['調出', '離職', '退休']);
+const STAFF_LIST_TAB_LABELS = { active: '在職人員', leave: '留停人員', inactive: '停用人員' };
+const STAFF_LIST_TAB_EMPTY_MSG = {
+  active: '沒有在職人員，或不符合搜尋／篩選條件。',
+  leave: '沒有留停人員，或不符合搜尋／篩選條件。',
+  inactive: '沒有停用人員，或不符合搜尋／篩選條件。'
+};
+const STAFF_STATUS_HISTORY_TONES = {
+  在職: 'green', 調入: 'blue', 復職: 'blue', 留停: 'purple', 調出: 'slate', 離職: 'slate', 退休: 'slate'
+};
 function getLocalDateISO() {
   const d = new Date();
   const y = d.getFullYear();
@@ -4725,6 +5059,349 @@ if (!staffPersonnelRegistry || !Array.isArray(staffPersonnelRegistry.people)) st
 
 function getScheduleReferenceDate() {
   return isValidISODate(selectedDate) ? selectedDate : getLocalDateISO();
+}
+function getStaffListReferenceDate() {
+  const stored = localStorage.getItem(LS_KEYS_GLOBAL.staffListRefDate);
+  if (isValidISODate(stored)) return stored;
+  return getLocalDateISO();
+}
+function setStaffListReferenceDate(iso) {
+  const next = isValidISODate(iso) ? iso : getLocalDateISO();
+  localStorage.setItem(LS_KEYS_GLOBAL.staffListRefDate, next);
+  return next;
+}
+function formatStaffRefDateDisplay(iso) {
+  if (!isValidISODate(iso)) return '—';
+  const [y, m, d] = iso.split('-').map(Number);
+  return `${y}/${String(m).padStart(2, '0')}/${String(d).padStart(2, '0')}`;
+}
+function syncStaffListRefDateDisplay() {
+  const iso = getStaffListReferenceDate();
+  const display = document.getElementById('staffListRefDateDisplay');
+  const hidden = document.getElementById('erpStaffListRefDate');
+  if (display) display.textContent = formatStaffRefDateDisplay(iso);
+  if (hidden) hidden.value = iso;
+  document.getElementById('staffListRefDatePicker')?.refreshInlineDateDrop?.();
+}
+function ensureStaffListRefDateDefault() {
+  const stored = localStorage.getItem(LS_KEYS_GLOBAL.staffListRefDate);
+  if (!isValidISODate(stored)) setStaffListReferenceDate(getLocalDateISO());
+}
+const inlineAppDateDropClosers = new Map();
+function closeInlineAppDateDrop(pickerId) {
+  inlineAppDateDropClosers.get(pickerId)?.();
+}
+function closeAllInlineAppDateDrops(exceptPickerId) {
+  inlineAppDateDropClosers.forEach((close, pickerId) => {
+    if (pickerId !== exceptPickerId) close();
+  });
+}
+function initInlineAppDateDrop(cfg) {
+  const root = document.getElementById(cfg.pickerId);
+  if (!root || root.dataset.inlineDateBound === '1') return;
+  root.dataset.inlineDateBound = '1';
+  const st = { vy: 0, vm: 0, pending: '', onOpen: '', monthOpen: false, expY: 0, pickY: 0, pickM: 0 };
+  const $ = id => document.getElementById(id);
+  const syncPending = () => { st.pending = String(cfg.getValue() || '').trim(); };
+  const syncView = () => {
+    const iso = isValidISODate(st.pending) ? st.pending
+      : (isValidISODate(cfg.getValue()) ? cfg.getValue() : getLocalDateISO());
+    const p = parseISODateParts(iso);
+    st.vy = p.y;
+    st.vm = p.m;
+  };
+  const setView = view => {
+    st.monthOpen = view === 'month';
+    $(cfg.dayWrapId)?.classList.toggle('hidden', view !== 'day');
+    $(cfg.monthWrapId)?.classList.toggle('hidden', view !== 'month');
+  };
+  const positionPanel = () => {
+    const panel = $(cfg.panelId);
+    const trigger = $(cfg.triggerId);
+    if (!panel || !trigger) return;
+    const gap = 6;
+    const pad = 8;
+    const width = Math.max(280, trigger.getBoundingClientRect().width);
+    if (cfg.fixed) {
+      const r = trigger.getBoundingClientRect();
+      const ph = panel.offsetHeight || 340;
+      const spaceBelow = window.innerHeight - r.bottom - pad;
+      const spaceAbove = r.top - pad;
+      const openBelow = spaceBelow >= ph + gap ? true : spaceAbove < ph + gap ? false : spaceBelow >= spaceAbove;
+      panel.style.position = 'fixed';
+      panel.style.width = `${width}px`;
+      panel.style.left = `${Math.max(pad, Math.min(r.left, window.innerWidth - width - pad))}px`;
+      panel.style.zIndex = '1300';
+      panel.style.marginBottom = '';
+      panel.style.marginTop = '';
+      if (openBelow) {
+        panel.style.top = `${r.bottom + gap}px`;
+        panel.style.bottom = 'auto';
+        panel.classList.remove('app-date-drop-panel--above');
+      } else {
+        panel.style.top = 'auto';
+        panel.style.bottom = `${window.innerHeight - r.top + gap}px`;
+        panel.classList.add('app-date-drop-panel--above');
+      }
+      const scrollHost = trigger.closest('.erp-staff-modal-body, .erp-staff-add-body');
+      if (scrollHost && openBelow) {
+        const hostRect = scrollHost.getBoundingClientRect();
+        const needBottom = r.bottom + gap + ph;
+        if (needBottom > hostRect.bottom - pad) {
+          scrollHost.scrollTop += needBottom - hostRect.bottom + pad;
+        }
+      }
+      return;
+    }
+    panel.style.position = 'absolute';
+    panel.style.left = '0';
+    panel.style.right = '0';
+    panel.style.width = '';
+    panel.style.zIndex = '700';
+    const ph = panel.offsetHeight || 320;
+    const rootRect = root.getBoundingClientRect();
+    const spaceBelow = window.innerHeight - rootRect.bottom - pad;
+    const spaceAbove = rootRect.top - pad;
+    const openBelow = spaceBelow >= ph + gap ? true : spaceAbove < ph + gap ? false : spaceBelow >= spaceAbove;
+    if (openBelow) {
+      panel.style.top = `calc(100% + ${gap}px)`;
+      panel.style.bottom = 'auto';
+      panel.classList.remove('app-date-drop-panel--above');
+    } else {
+      panel.style.top = 'auto';
+      panel.style.bottom = `calc(100% + ${gap}px)`;
+      panel.classList.add('app-date-drop-panel--above');
+    }
+  };
+  const renderMonth = () => {
+    const list = $(cfg.yearListId);
+    if (!list) return;
+    const todayParts = parseISODateParts(getLocalDateISO());
+    const startYear = todayParts.y - 2;
+    const endYear = todayParts.y + 8;
+    list.innerHTML = '';
+    for (let y = startYear; y <= endYear; y++) {
+      const block = document.createElement('div');
+      block.className = 'app-date-year-block';
+      const row = document.createElement('button');
+      row.type = 'button';
+      row.className = 'app-date-year-row' + (y === st.expY ? ' is-expanded' : '');
+      row.innerHTML = `<span>${y}年</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>`;
+      row.addEventListener('click', e => {
+        e.stopPropagation();
+        st.expY = st.expY === y ? 0 : y;
+        renderMonth();
+      });
+      block.appendChild(row);
+      if (y === st.expY) {
+        const grid = document.createElement('div');
+        grid.className = 'app-date-month-grid';
+        APP_DATE_MONTH_LABELS.forEach((label, mi) => {
+          const cell = document.createElement('button');
+          cell.type = 'button';
+          cell.className = 'app-date-month-cell';
+          if (y === st.pickY && mi === st.pickM) cell.classList.add('is-selected');
+          cell.textContent = label;
+          cell.addEventListener('click', e => {
+            e.stopPropagation();
+            st.pickY = y;
+            st.pickM = mi;
+            st.vy = y;
+            st.vm = mi;
+            setView('day');
+            renderDay();
+          });
+          grid.appendChild(cell);
+        });
+        block.appendChild(grid);
+      }
+      list.appendChild(block);
+    }
+    if (!$(cfg.panelId)?.classList.contains('hidden')) {
+      requestAnimationFrame(() => positionPanel());
+    }
+  };
+  const renderDay = () => {
+    if (st.monthOpen) {
+      renderMonth();
+      return;
+    }
+    const label = $(cfg.monthLabelId);
+    if (label) label.textContent = formatAppDateMonthLabel(st.vy, st.vm);
+    renderAppDateCalendarGrid($(cfg.gridId), {
+      viewYear: st.vy,
+      viewMonth: st.vm,
+      selectedIso: cfg.getSelectedIso ? cfg.getSelectedIso() : cfg.getValue(),
+      pendingIso: st.pending,
+      onSelect: iso => {
+        st.pending = iso;
+        renderDay();
+      }
+    });
+    if (!$(cfg.panelId)?.classList.contains('hidden')) {
+      requestAnimationFrame(() => positionPanel());
+    }
+  };
+  const setOpen = (open, opts = {}) => {
+    const panel = $(cfg.panelId);
+    const trigger = $(cfg.triggerId);
+    if (!panel || !trigger) return;
+    if (open) {
+      closeAllInlineAppDateDrops(cfg.pickerId);
+      syncPending();
+      st.onOpen = st.pending;
+      syncView();
+      setView('day');
+      panel.classList.remove('hidden');
+      renderDay();
+      trigger.setAttribute('aria-expanded', 'true');
+      requestAnimationFrame(() => {
+        positionPanel();
+        trigger.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+      });
+    } else {
+      if (!opts.confirmed) {
+        st.pending = st.onOpen;
+        syncView();
+      }
+      panel.classList.add('hidden');
+      trigger.setAttribute('aria-expanded', 'false');
+      setView('day');
+      if (!opts.confirmed) renderDay();
+    }
+  };
+  inlineAppDateDropClosers.set(cfg.pickerId, () => setOpen(false));
+  root.refreshInlineDateDrop = () => {
+    syncPending();
+    if (!$(cfg.panelId)?.classList.contains('hidden')) renderDay();
+  };
+  $(cfg.triggerId)?.addEventListener('click', e => {
+    e.stopPropagation();
+    setOpen($(cfg.panelId).classList.contains('hidden'));
+  });
+  document.addEventListener('click', e => {
+    const panel = $(cfg.panelId);
+    if (!panel || panel.classList.contains('hidden')) return;
+    const t = e.target;
+    if (root.contains(t) || panel.contains(t)) return;
+    setOpen(false);
+  });
+  $(cfg.todayBtnId)?.addEventListener('click', e => {
+    e.stopPropagation();
+    st.pending = getLocalDateISO();
+    syncView();
+    renderDay();
+  });
+  $(cfg.cancelBtnId)?.addEventListener('click', e => {
+    e.stopPropagation();
+    setOpen(false);
+  });
+  $(cfg.confirmBtnId)?.addEventListener('click', e => {
+    e.stopPropagation();
+    if (!isValidISODate(st.pending)) return;
+    cfg.onConfirm(st.pending);
+    setOpen(false, { confirmed: true });
+  });
+  $(cfg.prevMonthId)?.addEventListener('click', e => {
+    e.stopPropagation();
+    st.vm--;
+    if (st.vm < 0) { st.vm = 11; st.vy--; }
+    renderDay();
+  });
+  $(cfg.nextMonthId)?.addEventListener('click', e => {
+    e.stopPropagation();
+    st.vm++;
+    if (st.vm > 11) { st.vm = 0; st.vy++; }
+    renderDay();
+  });
+  $(cfg.monthTriggerId)?.addEventListener('click', e => {
+    e.stopPropagation();
+    if (st.monthOpen) {
+      setView('day');
+      renderDay();
+      return;
+    }
+    st.pickY = st.vy;
+    st.pickM = st.vm;
+    st.expY = st.vy;
+    setView('month');
+    renderMonth();
+  });
+}
+function initStaffListRefDatePicker() {
+  if (initStaffListRefDatePicker._done) return;
+  initStaffListRefDatePicker._done = true;
+  ensureStaffListRefDateDefault();
+  syncStaffListRefDateDisplay();
+  initInlineAppDateDrop({
+    pickerId: 'staffListRefDatePicker',
+    panelId: 'staffListRefDateDropPanel',
+    triggerId: 'staffListRefDateTrigger',
+    dayWrapId: 'staffListRefDateInlineDay',
+    monthWrapId: 'staffListRefDateInlineMonth',
+    gridId: 'staffListRefDateInlineGrid',
+    monthLabelId: 'staffListRefDateInlineMonthLabel',
+    yearListId: 'staffListRefDateInlineYearList',
+    todayBtnId: 'staffListRefDateInlineTodayBtn',
+    cancelBtnId: 'staffListRefDateInlineCancelBtn',
+    confirmBtnId: 'staffListRefDateInlineConfirmBtn',
+    prevMonthId: 'staffListRefDateInlinePrevMonth',
+    nextMonthId: 'staffListRefDateInlineNextMonth',
+    monthTriggerId: 'staffListRefDateInlineMonthTrigger',
+    getValue: getStaffListReferenceDate,
+    getSelectedIso: getStaffListReferenceDate,
+    onConfirm: iso => {
+      setStaffListReferenceDate(iso);
+      syncStaffListRefDateDisplay();
+      renderErpStaffTable();
+    }
+  });
+}
+function initStaffEffDateDropPickers() {
+  if (initStaffEffDateDropPickers._done) return;
+  initStaffEffDateDropPickers._done = true;
+  const getEffValue = () => document.getElementById('erpStaffEffDate')?.value
+    || document.getElementById('erpStaffEffDatePick')?.value || '';
+  initInlineAppDateDrop({
+    pickerId: 'erpStaffEffDatePicker',
+    panelId: 'erpStaffEffDateDropPanel',
+    triggerId: 'erpStaffEffDatePickTrigger',
+    dayWrapId: 'erpStaffEffDateInlineDay',
+    monthWrapId: 'erpStaffEffDateInlineMonth',
+    gridId: 'erpStaffEffDateInlineGrid',
+    monthLabelId: 'erpStaffEffDateInlineMonthLabel',
+    yearListId: 'erpStaffEffDateInlineYearList',
+    todayBtnId: 'erpStaffEffDateInlineTodayBtn',
+    cancelBtnId: 'erpStaffEffDateInlineCancelBtn',
+    confirmBtnId: 'erpStaffEffDateInlineConfirmBtn',
+    prevMonthId: 'erpStaffEffDateInlinePrevMonth',
+    nextMonthId: 'erpStaffEffDateInlineNextMonth',
+    monthTriggerId: 'erpStaffEffDateInlineMonthTrigger',
+    fixed: true,
+    getValue: getEffValue,
+    getSelectedIso: getEffValue,
+    onConfirm: iso => syncStaffEffDateInputs(iso)
+  });
+  initInlineAppDateDrop({
+    pickerId: 'erpStaffAddEffDatePicker',
+    panelId: 'erpStaffAddEffDateDropPanel',
+    triggerId: 'erpStaffAddEffDateTrigger',
+    dayWrapId: 'erpStaffAddEffDateInlineDay',
+    monthWrapId: 'erpStaffAddEffDateInlineMonth',
+    gridId: 'erpStaffAddEffDateInlineGrid',
+    monthLabelId: 'erpStaffAddEffDateInlineMonthLabel',
+    yearListId: 'erpStaffAddEffDateInlineYearList',
+    todayBtnId: 'erpStaffAddEffDateInlineTodayBtn',
+    cancelBtnId: 'erpStaffAddEffDateInlineCancelBtn',
+    confirmBtnId: 'erpStaffAddEffDateInlineConfirmBtn',
+    prevMonthId: 'erpStaffAddEffDateInlinePrevMonth',
+    nextMonthId: 'erpStaffAddEffDateInlineNextMonth',
+    monthTriggerId: 'erpStaffAddEffDateInlineMonthTrigger',
+    fixed: true,
+    getValue: () => document.getElementById('erpStaffAddEffDate')?.value || '',
+    getSelectedIso: () => document.getElementById('erpStaffAddEffDate')?.value || '',
+    onConfirm: iso => syncStaffEffDateInputs(iso)
+  });
 }
 function saveStaffPersonnelRegistry() {
   localStorage.setItem(LS_KEYS_GLOBAL.staffPersonnel, JSON.stringify(staffPersonnelRegistry));
@@ -4831,15 +5508,19 @@ function compareIsoDate(a, b) {
 }
 function getStaffSnapshotAtDate(personnelId, refDateISO) {
   const rec = getStaffPersonnelRecord(personnelId);
-  const ref = isValidISODate(refDateISO) ? refDateISO : getScheduleReferenceDate();
+  const ref = isValidISODate(refDateISO) ? refDateISO : getStaffListReferenceDate();
   if (!rec?.events?.length) return null;
+  const sorted = (rec.events || []).slice().sort((a, b) => compareIsoDate(a.effectiveDate, b.effectiveDate));
   let snap = null;
-  rec.events.forEach(ev => {
+  sorted.forEach(ev => {
     if (ev.effectiveDate && compareIsoDate(ev.effectiveDate, ref) <= 0) snap = ev;
   });
   if (!snap) {
-    const sorted = (rec.events || []).slice().sort((a, b) => compareIsoDate(a.effectiveDate, b.effectiveDate));
-    snap = sorted[sorted.length - 1] || null;
+    const baseline = sorted.find(ev =>
+      isStaffImportBaselineEvent(ev, staffPersonnelRegistry, rec)
+      && ev.effectiveDate && compareIsoDate(ev.effectiveDate, ref) <= 0
+    );
+    if (baseline) snap = baseline;
   }
   if (!snap) return null;
   return { personnelId: rec.personnelId, ...snap };
@@ -4879,12 +5560,50 @@ function getStaffStatusEffectiveDate(personnelId, status, refDateISO) {
   });
   return hit;
 }
-function getStaffDisplayStatus(snap) {
+function getStaffCanonicalStatus(snap) {
   if (!snap) return '';
   const status = String(snap.status || '').trim();
-  if (STAFF_ALERT_STATUSES.has(status)) return status;
+  if (status) return status;
+  if (snap.isTransferIn || snap.source === 'transfer-in') return '調入';
   if (String(snap.group || '').trim() === '留停') return '留停';
-  return status;
+  return STAFF_LEGACY_ACTIVE_STATUS;
+}
+function getStaffListColumnStatus(snap) {
+  const st = getStaffCanonicalStatus(snap);
+  if (getStaffListTabForStatus(st) === 'active') return STAFF_LEGACY_ACTIVE_STATUS;
+  return st;
+}
+function coerceStaffFormStatus(snap) {
+  const st = getStaffCanonicalStatus(snap);
+  if (STAFF_STATUS_FORM_OPTIONS.includes(st)) return st;
+  return STAFF_LEGACY_ACTIVE_STATUS;
+}
+function staffStatusVisualClass(st) {
+  if (st === '留停') return 'is-leave';
+  if (st === STAFF_LEGACY_ACTIVE_STATUS || st === '調入' || st === '復職') return 'is-in';
+  if (st === '調出' || st === '離職' || st === '退休') return 'is-out';
+  return '';
+}
+function isStaffEquivalentActiveStatus(a, b) {
+  if (!a || !b || a === b) return true;
+  return STAFF_TAB_ACTIVE_STATUSES.has(a) && STAFF_TAB_ACTIVE_STATUSES.has(b);
+}
+function isStaffMeaningfulStatusChange(prevSt, currSt) {
+  if (!prevSt || !currSt || prevSt === currSt) return false;
+  return !isStaffEquivalentActiveStatus(prevSt, currSt);
+}
+function syncStaffStatusSelectOptions() {
+  const sel = document.getElementById('erpStaffStatus');
+  if (!sel) return;
+  const cur = sel.value;
+  sel.innerHTML = STAFF_STATUS_FORM_OPTIONS
+    .map(v => `<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`)
+    .join('');
+  const next = STAFF_STATUS_FORM_OPTIONS.includes(cur) ? cur : coerceStaffFormStatus({ status: cur });
+  if (next) sel.value = next;
+}
+function getStaffDisplayStatus(snap) {
+  return getStaffCanonicalStatus(snap);
 }
 function getStaffStatusAlert(person, refDateISO) {
   const rec = findStaffPersonnelByPerson(person);
@@ -5009,7 +5728,9 @@ function ensureStaffPersonnelRegistry() {
 function createStaffPersonnelRecord(patch) {
   const pid = String(patch.personnelId || '').trim();
   if (!pid) return { ok: false, message: '請輸入人事代號。' };
-  if (getStaffPersonnelRecord(pid)) return { ok: false, message: `人事代號 ${pid} 已存在。` };
+  if (getStaffPersonnelRecord(pid)) {
+    return { ok: false, code: 'duplicate_personnel_id', personnelId: pid, message: `人事代號 ${pid} 已存在。` };
+  }
   const eff = String(patch.effectiveDate || '').trim();
   if (!isValidISODate(eff)) return { ok: false, message: '請選擇有效的生效日。' };
   const fullName = String(patch.fullName || '').trim();
@@ -5027,7 +5748,7 @@ function createStaffPersonnelRecord(patch) {
     code,
     group,
     level,
-    status: String(patch.status || '在職').trim() || '在職',
+    status: STAFF_LEGACY_ACTIVE_STATUS,
     restrictions: '',
     isTransferIn: true,
     source: 'transfer-in'
@@ -5041,10 +5762,9 @@ function openStaffAddDialog() {
   const form = document.getElementById('erpStaffAddForm');
   if (!dlg || !form) return;
   form.reset();
-  const eff = document.getElementById('erpStaffAddEffDate');
-  if (eff) eff.value = getScheduleReferenceDate();
+  syncStaffEffDateInputs(getLocalDateISO());
   const st = document.getElementById('erpStaffAddStatus');
-  if (st) st.value = '在職';
+  if (st) st.value = STAFF_LEGACY_ACTIVE_STATUS;
   dlg.hidden = false;
   document.getElementById('erpStaffAddPid')?.focus();
 }
@@ -5052,7 +5772,6 @@ function closeStaffAddDialog() {
   const dlg = document.getElementById('erpStaffAddDialog');
   if (dlg) dlg.hidden = true;
 }
-const STAFF_STATUS_FORM_OPTIONS = ['在職', '留停', '調出', '離職'];
 let selectedStaffPersonnelId = null;
 let staffEditorLoadedDate = null;
 let erpStaffSortKey = 'personnelId';
@@ -5060,48 +5779,49 @@ let erpStaffSortAsc = true;
 let erpStaffHistoryExpanded = false;
 let erpStaffFormEditing = false;
 let staffFormDraft = null;
+let staffEditMode = null;
+let staffHistoryReplaceDate = null;
 let erpStaffListTab = 'active';
 function isWorkbenchAdmin() {
   return getWorkbenchRole() === 'admin';
 }
-function isStaffInactiveSnapshot(snap) {
-  if (!snap) return false;
-  const st = getStaffDisplayStatus(snap) || String(snap.status || '').trim();
-  return STAFF_INACTIVE_STATUSES.has(st);
+function getStaffListTabForStatus(status) {
+  const st = String(status || '').trim();
+  if (STAFF_TAB_LEAVE_STATUSES.has(st)) return 'leave';
+  if (STAFF_TAB_DISABLED_STATUSES.has(st)) return 'inactive';
+  if (STAFF_TAB_ACTIVE_STATUSES.has(st)) return 'active';
+  return 'active';
 }
-function isStaffInactiveAtDate(personnelId, refDateISO) {
+function getStaffListTabAtDate(personnelId, refDateISO) {
   const snap = getStaffSnapshotAtDate(personnelId, refDateISO);
-  return isStaffInactiveSnapshot(snap);
+  if (!snap) return 'active';
+  const st = getStaffDisplayStatus(snap) || String(snap.status || '').trim();
+  return getStaffListTabForStatus(st);
 }
 function staffRowPassesListTab(rec, ref) {
-  const inactive = isStaffInactiveAtDate(rec.personnelId, ref);
-  return erpStaffListTab === 'inactive' ? inactive : !inactive;
+  return getStaffListTabAtDate(rec.personnelId, ref) === erpStaffListTab;
 }
 function updateStaffListTabsUi() {
-  const activeBtn = document.getElementById('erpStaffTabActive');
-  const inactiveBtn = document.getElementById('erpStaffTabInactive');
-  const isActive = erpStaffListTab === 'active';
-  if (activeBtn) {
-    activeBtn.classList.toggle('is-active', isActive);
-    activeBtn.setAttribute('aria-selected', isActive ? 'true' : 'false');
-  }
-  if (inactiveBtn) {
-    inactiveBtn.classList.toggle('is-active', !isActive);
-    inactiveBtn.setAttribute('aria-selected', !isActive ? 'true' : 'false');
-  }
-  const addBtn = document.getElementById('erpStaffAddBtn');
-  if (addBtn) {
-    addBtn.hidden = false;
-    addBtn.style.display = isActive ? '' : 'none';
-  }
+  [
+    { id: 'erpStaffTabActive', tab: 'active' },
+    { id: 'erpStaffTabLeave', tab: 'leave' },
+    { id: 'erpStaffTabInactive', tab: 'inactive' }
+  ].forEach(({ id, tab }) => {
+    const btn = document.getElementById(id);
+    if (!btn) return;
+    const on = erpStaffListTab === tab;
+    btn.classList.toggle('is-active', on);
+    btn.setAttribute('aria-selected', on ? 'true' : 'false');
+  });
 }
 function setStaffListTab(tab) {
-  const next = tab === 'inactive' ? 'inactive' : 'active';
+  const allowed = new Set(['active', 'leave', 'inactive']);
+  const next = allowed.has(tab) ? tab : 'active';
   if (erpStaffListTab === next) return;
   erpStaffListTab = next;
   updateStaffListTabsUi();
   if (selectedStaffPersonnelId) {
-    const ref = getScheduleReferenceDate();
+    const ref = getStaffListReferenceDate();
     if (!staffRowPassesListTab({ personnelId: selectedStaffPersonnelId }, ref)) {
       selectedStaffPersonnelId = null;
       staffEditorLoadedDate = null;
@@ -5113,18 +5833,15 @@ function setStaffListTab(tab) {
   renderErpStaffTable();
 }
 function syncStaffListTabForPerson(personnelId) {
-  const inactive = isStaffInactiveAtDate(personnelId, getScheduleReferenceDate());
-  const want = inactive ? 'inactive' : 'active';
+  const want = getStaffListTabAtDate(personnelId, getStaffListReferenceDate());
   if (erpStaffListTab !== want) {
     erpStaffListTab = want;
     updateStaffListTabsUi();
   }
 }
 function buildStaffStatusPillHtml(status) {
-  const st = String(status || '在職').trim() || '在職';
-  let cls = '';
-  if (st === '留停') cls = 'is-leave';
-  else if (st === '調出' || st === '離職') cls = 'is-out';
+  const st = String(status || '').trim() || STAFF_LEGACY_ACTIVE_STATUS;
+  const cls = staffStatusVisualClass(st);
   return `<span class="erp-staff-status-pill ${cls}">${escapeHtml(st)}</span>`;
 }
 function syncStaffEffDateInputs(value) {
@@ -5132,10 +5849,19 @@ function syncStaffEffDateInputs(value) {
   const hidden = document.getElementById('erpStaffEffDate');
   if (hidden) hidden.value = v;
   document.querySelectorAll('.erp-staff-eff-sync').forEach(el => { el.value = v; });
+  const pickDisp = document.getElementById('erpStaffEffDatePickDisplay');
+  const addDisp = document.getElementById('erpStaffAddEffDateDisplay');
+  const text = isValidISODate(v) ? formatStaffRefDateDisplay(v) : '—';
+  if (pickDisp) pickDisp.textContent = text;
+  if (addDisp) addDisp.textContent = text;
+  document.getElementById('erpStaffEffDatePicker')?.refreshInlineDateDrop?.();
+  document.getElementById('erpStaffAddEffDatePicker')?.refreshInlineDateDrop?.();
 }
 function captureStaffFormSnapshot() {
   return {
     loadedDate: staffEditorLoadedDate,
+    editMode: staffEditMode,
+    historyReplaceDate: staffHistoryReplaceDate,
     eff: document.getElementById('erpStaffEffDate')?.value,
     fullName: document.getElementById('erpStaffFullName')?.value,
     code: document.getElementById('erpStaffCode')?.value,
@@ -5147,6 +5873,8 @@ function captureStaffFormSnapshot() {
 function applyStaffFormSnapshot(snap) {
   if (!snap) return;
   staffEditorLoadedDate = snap.loadedDate;
+  staffEditMode = snap.editMode ?? null;
+  staffHistoryReplaceDate = snap.historyReplaceDate ?? null;
   syncStaffEffDateInputs(snap.eff);
   const nameInput = document.getElementById('erpStaffFullName');
   const codeInput = document.getElementById('erpStaffCode');
@@ -5157,41 +5885,157 @@ function applyStaffFormSnapshot(snap) {
   if (codeInput) codeInput.value = snap.code || '';
   if (groupInput) groupInput.value = snap.group || '';
   if (levelInput) levelInput.value = snap.level || '';
-  if (statusInput) statusInput.value = snap.status || '在職';
+  if (statusInput) statusInput.value = coerceStaffFormStatus({ status: snap.status });
   updateStaffBasicInfoReadonlyView();
+}
+function updateStaffHistoryAdminUi(rec) {
+  const hint = document.getElementById('erpStaffHistoryAdminHint');
+  if (hint) hint.hidden = !(isWorkbenchAdmin() && erpStaffFormEditing);
+}
+function fillStaffFormFromSnapshot(snap, effDate) {
+  if (isValidISODate(effDate)) syncStaffEffDateInputs(effDate);
+  const nameInput = document.getElementById('erpStaffFullName');
+  const codeInput = document.getElementById('erpStaffCode');
+  const groupInput = document.getElementById('erpStaffGroup');
+  const levelInput = document.getElementById('erpStaffLevel');
+  const statusInput = document.getElementById('erpStaffStatus');
+  if (nameInput) nameInput.value = snap?.fullName || '';
+  if (codeInput) codeInput.value = snap?.code || '';
+  if (groupInput) groupInput.value = snap?.group || '';
+  if (levelInput) levelInput.value = snap?.level || '';
+  if (statusInput) statusInput.value = coerceStaffFormStatus(snap || {});
+  updateStaffBasicInfoReadonlyView();
+}
+function updateStaffEditModeBanner() {
+  const banner = document.getElementById('erpStaffEditModeBanner');
+  if (!banner) return;
+  if (!erpStaffFormEditing || !staffEditMode) {
+    banner.hidden = true;
+    banner.className = 'erp-staff-edit-mode-banner';
+    banner.textContent = '';
+    return;
+  }
+  banner.hidden = false;
+  if (staffEditMode === 'history' && staffHistoryReplaceDate) {
+    const d = formatScheduleDateDisplay(staffHistoryReplaceDate) || staffHistoryReplaceDate;
+    banner.className = 'erp-staff-edit-mode-banner is-history';
+    banner.textContent = `正在編輯歷史紀錄（${d}）。儲存後會更新該筆資料，不會新增異動。`;
+  } else {
+    banner.className = 'erp-staff-edit-mode-banner is-new';
+    banner.textContent = '正在新增異動。儲存後會新增一筆生效紀錄，不會修改您正在瀏覽的歷史紀錄。';
+  }
+}
+function beginStaffHistoryEdit(rec, effDate) {
+  if (!rec || !isValidISODate(effDate) || !isStaffEditableHistoryEvent(rec, effDate)) return;
+  if (!erpStaffFormEditing) {
+    staffFormDraft = captureStaffFormSnapshot();
+    setStaffFormEditing(true);
+  }
+  staffEditMode = 'history';
+  staffHistoryReplaceDate = effDate;
+  staffEditorLoadedDate = effDate;
+  const ev = rec.events.find(e => e.effectiveDate === effDate);
+  fillStaffFormFromSnapshot(ev, effDate);
+  updateStaffEditModeBanner();
+}
+async function deleteStaffHistoryEventByDate(effDate) {
+  if (!selectedStaffPersonnelId || !isWorkbenchAdmin() || !isValidISODate(effDate)) return;
+  const ok = await appConfirm(`刪除 ${formatScheduleDateDisplay(effDate) || effDate} 這筆生效紀錄？`, { title: '刪除紀錄', confirmText: '確定刪除' });
+  if (!ok) return;
+  if (!deleteStaffPersonnelEventAt(selectedStaffPersonnelId, effDate)) {
+    appAlert('無法刪除（至少需保留一筆紀錄）。', '無法刪除');
+    return;
+  }
+  saveStaffPersonnelRegistry();
+  staffEditorLoadedDate = null;
+  staffFormDraft = null;
+  applyStaffPersonnelEditsToSchedule();
+  renderErpStaffTable();
+  renderStaffPersonnelEditor();
+}
+function bindStaffHistoryListInteractions() {
+  if (bindStaffHistoryListInteractions._done) return;
+  bindStaffHistoryListInteractions._done = true;
+  document.getElementById('erpStaffHistoryList')?.addEventListener('click', async (e) => {
+    const editBtn = e.target.closest('.js-staff-history-edit');
+    const delBtn = e.target.closest('.js-staff-history-delete');
+    const item = e.target.closest('.erp-staff-timeline-item');
+    const rec = selectedStaffPersonnelId ? getStaffPersonnelRecord(selectedStaffPersonnelId) : null;
+    if (editBtn) {
+      e.preventDefault();
+      e.stopPropagation();
+      if (!isWorkbenchAdmin() || !rec || !erpStaffFormEditing) return;
+      const eff = editBtn.dataset.eff;
+      beginStaffHistoryEdit(rec, eff);
+      renderStaffPersonnelEditor();
+      return;
+    }
+    if (delBtn) {
+      e.preventDefault();
+      e.stopPropagation();
+      if (!isWorkbenchAdmin() || !erpStaffFormEditing) return;
+      await deleteStaffHistoryEventByDate(delBtn.dataset.eff);
+      return;
+    }
+    if (!item?.dataset.eff || !rec) return;
+    if (erpStaffFormEditing) return;
+    staffEditorLoadedDate = item.dataset.eff;
+    renderStaffPersonnelEditor();
+  });
+  document.getElementById('erpStaffHistoryList')?.addEventListener('keydown', (e) => {
+    const item = e.target.closest('.erp-staff-timeline-item');
+    if (!item || (e.key !== 'Enter' && e.key !== ' ')) return;
+    if (e.target.closest('.js-staff-history-edit, .js-staff-history-delete')) return;
+    e.preventDefault();
+    item.click();
+  });
 }
 function updateStaffEditorFooter() {
   const footer = document.getElementById('erpStaffEditFooter');
-  const delEventBtn = document.getElementById('erpStaffDeleteEventBtn');
   const delPersonBtn = document.getElementById('erpStaffDeletePersonBtn');
   if (footer) footer.hidden = !erpStaffFormEditing;
   const rec = selectedStaffPersonnelId ? getStaffPersonnelRecord(selectedStaffPersonnelId) : null;
-  const eventCount = (rec?.events || []).length;
-  const canDeleteEvent = erpStaffFormEditing && eventCount > 1
-    && !isStaffImportBaselineEvent(
-      rec?.events?.find(e => e.effectiveDate === staffEditorLoadedDate),
-      staffPersonnelRegistry,
-      rec
-    );
-  if (delEventBtn) delEventBtn.hidden = !canDeleteEvent;
+  updateStaffHistoryAdminUi(rec);
   if (delPersonBtn) delPersonBtn.hidden = !(erpStaffFormEditing && isWorkbenchAdmin());
+}
+function getStaffEditEffectiveDefaultDate() {
+  return getLocalDateISO();
+}
+function isStaffEditableHistoryEvent(rec, effectiveDate) {
+  if (!rec || !isValidISODate(effectiveDate)) return false;
+  const ev = (rec.events || []).find(e => e.effectiveDate === effectiveDate);
+  if (!ev) return false;
+  return !isStaffImportBaselineEvent(ev, staffPersonnelRegistry, rec);
 }
 function enterStaffFormEditing() {
   staffFormDraft = captureStaffFormSnapshot();
+  staffEditMode = 'new';
+  staffHistoryReplaceDate = null;
   setStaffFormEditing(true);
-  const effDefault = staffEditorLoadedDate || getScheduleReferenceDate();
-  syncStaffEffDateInputs(effDefault);
+  const rec = selectedStaffPersonnelId ? getStaffPersonnelRecord(selectedStaffPersonnelId) : null;
+  if (rec) {
+    const snap = getStaffSnapshotAtDate(rec.personnelId, getStaffListReferenceDate()) || {};
+    fillStaffFormFromSnapshot(snap, getStaffEditEffectiveDefaultDate());
+  } else {
+    syncStaffEffDateInputs(getStaffEditEffectiveDefaultDate());
+  }
+  updateStaffEditModeBanner();
 }
 function exitStaffFormEditing(revert) {
   if (revert && staffFormDraft) applyStaffFormSnapshot(staffFormDraft);
+  else {
+    staffEditMode = null;
+    staffHistoryReplaceDate = null;
+  }
   staffFormDraft = null;
   setStaffFormEditing(false);
+  updateStaffEditModeBanner();
 }
 function updateStaffBasicInfoReadonlyView() {
   const statusInput = document.getElementById('erpStaffStatus');
   const statusView = document.getElementById('erpStaffStatusView');
   if (!statusView || !statusInput) return;
-  const st = getStaffDisplayStatus({ status: statusInput.value }) || statusInput.value || '在職';
+  const st = getStaffListColumnStatus({ status: statusInput.value });
   statusView.innerHTML = buildStaffStatusBadgeHtml(st);
 }
 function updateStaffEditToggleBtn() {
@@ -5203,15 +6047,28 @@ function updateStaffEditToggleBtn() {
   btn.setAttribute('aria-pressed', editing ? 'true' : 'false');
   btn.classList.toggle('is-cancel', editing);
   if (icon) icon.hidden = editing;
-  label.textContent = editing ? '取消編輯' : '編輯';
+  if (editing && staffEditMode === 'history') label.textContent = '取消編輯紀錄';
+  else if (editing) label.textContent = '取消新增';
+  else label.textContent = '新增異動';
 }
 function setStaffFormEditing(editing) {
   erpStaffFormEditing = !!editing;
   const form = document.getElementById('erpStaffEditForm');
   if (form) form.classList.toggle('is-readonly', !erpStaffFormEditing);
   updateStaffEditToggleBtn();
+  updateStaffEditModeBanner();
   if (!erpStaffFormEditing) updateStaffBasicInfoReadonlyView();
   updateStaffEditorFooter();
+  const rec = selectedStaffPersonnelId ? getStaffPersonnelRecord(selectedStaffPersonnelId) : null;
+  const histList = document.getElementById('erpStaffHistoryList');
+  if (histList && rec) {
+    const historyHighlight = erpStaffFormEditing && staffEditMode === 'history'
+      ? staffHistoryReplaceDate
+      : staffEditorLoadedDate;
+    histList.innerHTML = buildStaffHistoryTimelineHtml(rec.events || [], historyHighlight, erpStaffHistoryExpanded, rec, {
+      showAdminActions: erpStaffFormEditing && isWorkbenchAdmin()
+    });
+  }
 }
 function isStaffImportBaselineEvent(ev, registry, rec) {
   if (!ev) return false;
@@ -5265,14 +6122,24 @@ function formatStaffAdjustmentDate(iso) {
   const [y, m, d] = iso.split('-');
   return `${y}/${m}/${d}`;
 }
-function getStaffLatestAdjustmentSummary(rec) {
-  const display = getStaffHistoryDisplayEvents(rec);
+function getStaffHistoryEventPrev(curr, ascSorted, importBaseline) {
+  const idx = ascSorted.findIndex(ev => ev.effectiveDate === curr.effectiveDate);
+  if (idx > 0) return ascSorted[idx - 1];
+  if (importBaseline && compareIsoDate(importBaseline.effectiveDate, curr.effectiveDate) < 0) {
+    return importBaseline;
+  }
+  return null;
+}
+function getStaffLatestAdjustmentSummary(rec, refDateISO) {
+  const ref = isValidISODate(refDateISO) ? refDateISO : getStaffListReferenceDate();
+  const display = getStaffHistoryDisplayEvents(rec)
+    .filter(ev => ev.effectiveDate && compareIsoDate(ev.effectiveDate, ref) <= 0);
   if (!display.length) return { label: '—', title: '' };
   const all = rec?.events || [];
   const importBaseline = all.find(ev => isStaffImportBaselineEvent(ev, staffPersonnelRegistry, rec)) || null;
   const asc = display.slice().sort((a, b) => compareIsoDate(a.effectiveDate, b.effectiveDate));
   const latest = asc[asc.length - 1];
-  const prev = asc.length > 1 ? asc[asc.length - 2] : importBaseline;
+  const prev = getStaffHistoryEventPrev(latest, asc, importBaseline);
   const meta = getStaffHistoryEventMeta(latest, prev);
   const dateText = formatStaffAdjustmentDate(latest.effectiveDate) || String(latest.effectiveDate || '').trim();
   const detail = String(meta.change || '').trim();
@@ -5281,8 +6148,8 @@ function getStaffLatestAdjustmentSummary(rec) {
   return { label, title: detail && detail !== meta.badge ? detail : '' };
 }
 function getStaffHistoryEventMeta(curr, prev) {
-  const currSt = getStaffDisplayStatus(curr) || String(curr.status || '').trim() || '在職';
-  const prevSt = prev ? (getStaffDisplayStatus(prev) || String(prev.status || '').trim() || '在職') : '';
+  const currSt = getStaffCanonicalStatus(curr);
+  const prevSt = prev ? getStaffCanonicalStatus(prev) : '';
   const currLevel = String(curr.level || '').trim();
   const prevLevel = prev ? String(prev.level || '').trim() : '';
   const currGroup = cleanStaffGroupValue(curr.group) || String(curr.group || '').trim();
@@ -5290,22 +6157,22 @@ function getStaffHistoryEventMeta(curr, prev) {
   const currCode = String(curr.code || '').trim();
   const prevCode = prev ? String(prev.code || '').trim() : '';
   if (!prev) {
-    if (curr.isTransferIn || curr.source === 'transfer-in') {
+    if (currSt === '調入' || curr.isTransferIn || curr.source === 'transfer-in') {
       return { tone: 'blue', badge: '調入', change: '調入' };
+    }
+    if (currSt === STAFF_LEGACY_ACTIVE_STATUS) {
+      return { tone: 'green', badge: '到職（新進）', change: '新進' };
+    }
+    if (currSt && STAFF_STATUS_FORM_OPTIONS.includes(currSt)) {
+      return { tone: STAFF_STATUS_HISTORY_TONES[currSt] || 'slate', badge: currSt, change: currSt };
     }
     return { tone: 'green', badge: '到職（新進）', change: '新進' };
   }
-  if (prevSt === '留停' && currSt === '在職') {
-    return { tone: 'blue', badge: '復職', change: `${prevSt} → ${currSt}` };
-  }
-  if (prevSt === '在職' && currSt === '留停') {
+  if (prevSt === STAFF_LEGACY_ACTIVE_STATUS && currSt === '留停') {
     return { tone: 'purple', badge: '留停', change: `${prevSt} → ${currSt}` };
   }
-  if (currSt === '離職' && prevSt && prevSt !== '離職') {
-    return { tone: 'slate', badge: '離職', change: `${prevSt} → ${currSt}` };
-  }
-  if (currSt === '調出' && prevSt && prevSt !== '調出') {
-    return { tone: 'slate', badge: '調出', change: `${prevSt} → ${currSt}` };
+  if (prevSt === '留停' && (currSt === STAFF_LEGACY_ACTIVE_STATUS || currSt === '復職')) {
+    return { tone: 'blue', badge: '復職', change: `${prevSt} → ${currSt === '復職' ? '復職' : STAFF_LEGACY_ACTIVE_STATUS}` };
   }
   if (currLevel && prevLevel && currLevel !== prevLevel) {
     return { tone: 'orange', badge: '戰力變更', change: `${prevLevel} → ${currLevel}` };
@@ -5316,41 +6183,64 @@ function getStaffHistoryEventMeta(curr, prev) {
   if (currCode && prevCode && currCode !== prevCode) {
     return { tone: 'indigo', badge: '代號變更', change: `${prevCode} → ${currCode}` };
   }
-  if (prevSt && currSt !== prevSt) {
-    return { tone: 'blue', badge: '狀態變更', change: `${prevSt} → ${currSt}` };
+  if (isStaffMeaningfulStatusChange(prevSt, currSt)) {
+    let badge = currSt;
+    if (currSt === '調入' || (currSt === STAFF_LEGACY_ACTIVE_STATUS && (curr.isTransferIn || curr.source === 'transfer-in'))) {
+      badge = '調入';
+    } else if (currSt === '復職') {
+      badge = '復職';
+    }
+    if (STAFF_STATUS_FORM_OPTIONS.includes(currSt) || currSt === STAFF_LEGACY_ACTIVE_STATUS || badge === '調入') {
+      return { tone: STAFF_STATUS_HISTORY_TONES[badge] || 'blue', badge, change: `${prevSt} → ${currSt}` };
+    }
+  }
+  if (prevSt && currSt !== prevSt && isStaffEquivalentActiveStatus(prevSt, currSt)) {
+    const fallback = [curr.level && curr.level !== prevLevel ? `戰力 ${curr.level}` : '', curr.group, curr.code].filter(Boolean).join(' · ');
+    if (fallback) return { tone: 'slate', badge: '資料調整', change: fallback };
   }
   const fallback = [curr.group, curr.level, currSt].filter(Boolean).join(' · ');
   return { tone: 'slate', badge: '資料調整', change: fallback || '—' };
 }
-function buildStaffHistoryTimelineHtml(events, activeDate, expanded, rec) {
+function buildStaffHistoryTimelineHtml(events, activeDate, expanded, rec, options = {}) {
   const all = (events || []).slice();
   const list = all.filter(ev => !isStaffImportBaselineEvent(ev, staffPersonnelRegistry, rec || { events: all }));
   if (!list.length) return '<div class="erp-staff-timeline-empty">尚無歷史紀錄</div>';
-  const show = expanded || list.length <= 4 ? list : list.slice(-4);
-  const asc = show.slice();
+  const show = (expanded || list.length <= 4 ? list : list.slice(-4))
+    .slice()
+    .sort((a, b) => compareIsoDate(a.effectiveDate, b.effectiveDate));
+  const asc = show;
   const importBaseline = all.find(ev => isStaffImportBaselineEvent(ev, staffPersonnelRegistry, rec || { events: all })) || null;
-  return asc.slice().reverse().map((e, ri) => {
-    const ci = asc.length - 1 - ri;
-    const prev = ci > 0 ? asc[ci - 1] : importBaseline;
+  const showAdminActions = !!options.showAdminActions && isWorkbenchAdmin();
+  const eventCount = all.length;
+  const editingClass = showAdminActions ? ' is-editing-mode' : '';
+  return asc.slice().reverse().map((e) => {
+    const prev = getStaffHistoryEventPrev(e, asc, importBaseline);
     const meta = getStaffHistoryEventMeta(e, prev);
     const active = e.effectiveDate === activeDate ? ' is-active' : '';
     const dateText = formatScheduleDateDisplay(e.effectiveDate) || e.effectiveDate;
-    return `<div class="erp-staff-timeline-item is-tone-${meta.tone}${active}" data-eff="${escapeHtml(e.effectiveDate)}" role="button" tabindex="0">
+    const canManage = showAdminActions && isStaffEditableHistoryEvent(rec, e.effectiveDate);
+    const canDelete = canManage && eventCount > 1;
+    const adminActions = canManage ? `
+        <div class="erp-staff-timeline-card-actions">
+          <button type="button" class="erp-staff-history-edit js-staff-history-edit" data-eff="${escapeHtml(e.effectiveDate)}">編輯此筆</button>
+          ${canDelete ? `<button type="button" class="erp-staff-history-delete js-staff-history-delete" data-eff="${escapeHtml(e.effectiveDate)}">刪除此筆</button>` : ''}
+        </div>` : '';
+    const roleAttrs = showAdminActions ? '' : ' role="button" tabindex="0"';
+    return `<div class="erp-staff-timeline-item is-tone-${meta.tone}${active}${editingClass}" data-eff="${escapeHtml(e.effectiveDate)}"${roleAttrs}>
       <div class="erp-staff-timeline-card">
         <div class="erp-staff-timeline-date">${escapeHtml(dateText)}</div>
         <div class="erp-staff-timeline-card-body">
           <span class="erp-staff-history-badge">${escapeHtml(meta.badge)}</span>
           <span class="erp-staff-history-change">${escapeHtml(meta.change)}</span>
         </div>
+        ${adminActions}
       </div>
     </div>`;
   }).join('');
 }
 function buildStaffStatusBadgeHtml(status) {
-  const st = String(status || '在職').trim() || '在職';
-  let cls = '';
-  if (st === '留停') cls = 'is-leave';
-  else if (st === '調出' || st === '離職') cls = 'is-out';
+  const st = String(status || '').trim() || STAFF_LEGACY_ACTIVE_STATUS;
+  const cls = staffStatusVisualClass(st);
   return `<span class="erp-staff-status-badge ${cls}"><span class="erp-staff-status-dot"></span>${escapeHtml(st)}</span>`;
 }
 function setStaffDetailPaneOpen(open) {
@@ -5380,7 +6270,7 @@ function openStaffPersonnelEditor(personnelId, effectiveDate, options = {}) {
   if (options.startEditing) enterStaffFormEditing();
 }
 function populateStaffFilterOptions() {
-  const ref = getScheduleReferenceDate();
+  const ref = getStaffListReferenceDate();
   const statuses = new Set();
   const groups = new Set();
   const levels = new Set();
@@ -5462,7 +6352,7 @@ function upsertStaffPersonnelEvent(personnelId, patch, replaceDate) {
     fullName: String(patch.fullName ?? base.fullName ?? '').trim(),
     group: cleanStaffGroupValue(patch.group ?? base.group),
     level: String(patch.level ?? base.level ?? '').trim(),
-    status: String(patch.status ?? base.status ?? '在職').trim() || '在職',
+    status: String(patch.status ?? base.status ?? STAFF_LEGACY_ACTIVE_STATUS).trim() || STAFF_LEGACY_ACTIVE_STATUS,
     restrictions: String(patch.restrictions ?? base.restrictions ?? '').trim()
   };
   const idx = (rec.events || []).findIndex(ev => ev.effectiveDate === eff);
@@ -5518,7 +6408,7 @@ function selectStaffPersonnelEditor(personnelId, effectiveDate, options = {}) {
   }
 }
 function renderStaffPersonnelEditor() {
-  const ref = getScheduleReferenceDate();
+  const ref = getStaffListReferenceDate();
   if (!selectedStaffPersonnelId) return;
   const rec = getStaffPersonnelRecord(selectedStaffPersonnelId);
   if (!rec) {
@@ -5536,29 +6426,21 @@ function renderStaffPersonnelEditor() {
     || events[events.length - 1]
     || {};
   staffEditorLoadedDate = ev.effectiveDate || loadDate;
-  const displaySt = getStaffDisplayStatus(ev) || ev.status || '在職';
+  const displaySt = getStaffListColumnStatus(ev);
   const pidEl = document.getElementById('erpStaffEditorPid');
   const nameEl = document.getElementById('erpStaffEditorName');
   const pillEl = document.getElementById('erpStaffEditorStatusPill');
   if (pidEl) pidEl.textContent = rec.personnelId;
   if (nameEl) nameEl.textContent = ev.fullName || '';
   if (pillEl) pillEl.innerHTML = buildStaffStatusPillHtml(displaySt);
-  syncStaffEffDateInputs(ev.effectiveDate || ref);
-  const nameInput = document.getElementById('erpStaffFullName');
-  const codeInput = document.getElementById('erpStaffCode');
-  const groupInput = document.getElementById('erpStaffGroup');
-  const levelInput = document.getElementById('erpStaffLevel');
-  const statusInput = document.getElementById('erpStaffStatus');
-  if (nameInput) nameInput.value = ev.fullName || '';
-  if (codeInput) codeInput.value = ev.code || '';
-  if (groupInput) groupInput.value = ev.group || '';
-  if (levelInput) levelInput.value = ev.level || '';
-  if (statusInput) {
-    const st = String(ev.status || '在職').trim() || '在職';
-    statusInput.value = STAFF_STATUS_FORM_OPTIONS.includes(st) ? st : '在職';
+  if (!erpStaffFormEditing) {
+    syncStaffEffDateInputs(ev.effectiveDate || ref);
+    fillStaffFormFromSnapshot(ev, ev.effectiveDate || ref);
   }
-  updateStaffBasicInfoReadonlyView();
   setStaffFormEditing(erpStaffFormEditing);
+  const historyHighlight = erpStaffFormEditing && staffEditMode === 'history'
+    ? staffHistoryReplaceDate
+    : staffEditorLoadedDate;
   const historyEvents = getStaffHistoryDisplayEvents(rec);
   const expandBtn = document.getElementById('erpStaffHistoryExpandBtn');
   if (expandBtn) {
@@ -5577,19 +6459,12 @@ function renderStaffPersonnelEditor() {
   }
   const histList = document.getElementById('erpStaffHistoryList');
   if (histList) {
-    histList.innerHTML = buildStaffHistoryTimelineHtml(events, staffEditorLoadedDate, erpStaffHistoryExpanded, rec);
-    histList.querySelectorAll('.erp-staff-timeline-item').forEach(item => {
-      const go = () => {
-        if (erpStaffFormEditing) exitStaffFormEditing(true);
-        staffEditorLoadedDate = item.dataset.eff;
-        renderStaffPersonnelEditor();
-      };
-      item.addEventListener('click', go);
-      item.addEventListener('keydown', e => {
-        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); }
-      });
+    histList.innerHTML = buildStaffHistoryTimelineHtml(events, historyHighlight, erpStaffHistoryExpanded, rec, {
+      showAdminActions: erpStaffFormEditing && isWorkbenchAdmin()
     });
   }
+  updateStaffHistoryAdminUi(rec);
+  updateStaffEditModeBanner();
 }
 function handleStaffPersonnelFormSubmit(e) {
   e.preventDefault();
@@ -5597,10 +6472,11 @@ function handleStaffPersonnelFormSubmit(e) {
   const eff = document.getElementById('erpStaffEffDatePick')?.value
     || document.getElementById('erpStaffEffDate')?.value;
   if (!isValidISODate(eff)) {
-    alert('請選擇有效的生效日。');
+    appAlert('請選擇有效的生效日。', '無法儲存');
     return;
   }
   syncStaffEffDateInputs(eff);
+  const replaceDate = staffEditMode === 'history' ? staffHistoryReplaceDate : '';
   const ok = upsertStaffPersonnelEvent(selectedStaffPersonnelId, {
     effectiveDate: eff,
     fullName: document.getElementById('erpStaffFullName')?.value,
@@ -5608,19 +6484,21 @@ function handleStaffPersonnelFormSubmit(e) {
     group: document.getElementById('erpStaffGroup')?.value,
     level: document.getElementById('erpStaffLevel')?.value,
     status: document.getElementById('erpStaffStatus')?.value
-  }, staffEditorLoadedDate);
+  }, replaceDate);
   if (!ok) {
-    alert('儲存失敗，請確認資料。');
+    appAlert('儲存失敗，請確認資料。', '無法儲存');
     return;
   }
   saveStaffPersonnelRegistry();
   staffEditorLoadedDate = eff;
+  staffEditMode = null;
+  staffHistoryReplaceDate = null;
   staffFormDraft = null;
   erpStaffFormEditing = false;
   syncStaffListTabForPerson(selectedStaffPersonnelId);
   applyStaffPersonnelEditsToSchedule();
   renderErpStaffTable();
-  if (selectedStaffPersonnelId && !staffRowPassesListTab({ personnelId: selectedStaffPersonnelId }, getScheduleReferenceDate())) {
+  if (selectedStaffPersonnelId && !staffRowPassesListTab({ personnelId: selectedStaffPersonnelId }, getStaffListReferenceDate())) {
     setStaffDetailPaneOpen(false);
     selectedStaffPersonnelId = null;
     return;
@@ -5639,7 +6517,21 @@ function handleStaffAddFormSubmit(e) {
     effectiveDate: document.getElementById('erpStaffAddEffDate')?.value
   });
   if (!result.ok) {
-    alert(result.message || '建立失敗。');
+    if (result.code === 'duplicate_personnel_id') {
+      const pid = result.personnelId || String(document.getElementById('erpStaffAddPid')?.value || '').trim();
+      showAppNotice({
+        type: 'warning',
+        title: '人事代號已存在',
+        message: `人事代號「${pid}」已經存在，請確認後再試一次。`,
+        highlight: pid,
+        details: [
+          { label: '人事代號', value: pid, emphasize: true },
+          { label: '狀態', value: '已存在' }
+        ]
+      });
+    } else {
+      appAlert(result.message || '建立失敗。', '建立失敗');
+    }
     return;
   }
   closeStaffAddDialog();
@@ -5649,7 +6541,13 @@ function handleStaffAddFormSubmit(e) {
 function bindStaffPersonnelEditor() {
   if (bindStaffPersonnelEditor._done) return;
   bindStaffPersonnelEditor._done = true;
+  syncStaffStatusSelectOptions();
+  bindStaffHistoryListInteractions();
+  initAppDateFields();
+  initStaffListRefDatePicker();
+  initStaffEffDateDropPickers();
   document.getElementById('erpStaffTabActive')?.addEventListener('click', () => setStaffListTab('active'));
+  document.getElementById('erpStaffTabLeave')?.addEventListener('click', () => setStaffListTab('leave'));
   document.getElementById('erpStaffTabInactive')?.addEventListener('click', () => setStaffListTab('inactive'));
   document.getElementById('erpStaffAddBtn')?.addEventListener('click', openStaffAddDialog);
   document.getElementById('erpStaffAddCancelBtn')?.addEventListener('click', closeStaffAddDialog);
@@ -5659,10 +6557,6 @@ function bindStaffPersonnelEditor() {
     if (e.target.id === 'erpStaffAddDialog') closeStaffAddDialog();
   });
   document.getElementById('erpStaffEditForm')?.addEventListener('submit', handleStaffPersonnelFormSubmit);
-  document.querySelectorAll('.erp-staff-eff-sync').forEach(el => {
-    el.addEventListener('change', () => syncStaffEffDateInputs(el.value));
-    el.addEventListener('input', () => syncStaffEffDateInputs(el.value));
-  });
   document.getElementById('erpStaffStatus')?.addEventListener('change', updateStaffBasicInfoReadonlyView);
   document.getElementById('erpStaffEditToggleBtn')?.addEventListener('click', () => {
     if (erpStaffFormEditing) {
@@ -5671,19 +6565,24 @@ function bindStaffPersonnelEditor() {
       return;
     }
     enterStaffFormEditing();
+    renderStaffPersonnelEditor();
   });
   document.getElementById('erpStaffHistoryExpandBtn')?.addEventListener('click', () => {
     erpStaffHistoryExpanded = !erpStaffHistoryExpanded;
     renderStaffPersonnelEditor();
   });
-  document.getElementById('erpStaffDeletePersonBtn')?.addEventListener('click', () => {
+  document.getElementById('erpStaffDeletePersonBtn')?.addEventListener('click', async () => {
     if (!selectedStaffPersonnelId || !isWorkbenchAdmin()) return;
     const rec = getStaffPersonnelRecord(selectedStaffPersonnelId);
     const snap = rec?.events?.slice().sort((a, b) => compareIsoDate(a.effectiveDate, b.effectiveDate)).pop();
     const label = [selectedStaffPersonnelId, snap?.fullName].filter(Boolean).join(' ');
-    if (!confirm(`【管理員】確定刪除此人員 ${label}？\n將從人員主檔完全移除，此操作無法復原。`)) return;
+    const ok = await appConfirm(
+      `【管理員】確定刪除此人員 ${label}？\n將從人員主檔完全移除，此操作無法復原。`,
+      { title: '刪除此人員', confirmText: '確定刪除' }
+    );
+    if (!ok) return;
     if (!deleteStaffPersonnelRecord(selectedStaffPersonnelId)) {
-      alert('刪除失敗。');
+      appAlert('刪除失敗。', '刪除失敗');
       return;
     }
     saveStaffPersonnelRegistry();
@@ -5694,22 +6593,6 @@ function bindStaffPersonnelEditor() {
     applyStaffPersonnelEditsToSchedule();
     setStaffDetailPaneOpen(false);
     renderErpStaffTable();
-  });
-  document.getElementById('erpStaffDeleteEventBtn')?.addEventListener('click', () => {
-    if (!selectedStaffPersonnelId) return;
-    const eff = document.getElementById('erpStaffEffDate')?.value;
-    if (!confirm(`刪除 ${formatScheduleDateDisplay(eff) || eff} 這筆生效紀錄？`)) return;
-    if (!deleteStaffPersonnelEventAt(selectedStaffPersonnelId, eff)) {
-      alert('無法刪除（至少需保留一筆紀錄）。');
-      return;
-    }
-    saveStaffPersonnelRegistry();
-    staffEditorLoadedDate = null;
-    staffFormDraft = null;
-    erpStaffFormEditing = false;
-    applyStaffPersonnelEditsToSchedule();
-    renderErpStaffTable();
-    renderStaffPersonnelEditor();
   });
   document.getElementById('erpStaffSearchInput')?.addEventListener('input', () => renderErpStaffTable());
   document.getElementById('erpStaffApplyFilterBtn')?.addEventListener('click', () => renderErpStaffTable());
@@ -5996,7 +6879,7 @@ function renderWorkbenchDashboard() {
   const dateText = formatScheduleDateDisplay(selectedDate);
   if (statusEl) {
     if (!role) {
-      statusEl.textContent = `已選擇班表日期：${dateText}。請選擇登入角色以顯示功能入口。`;
+      statusEl.textContent = '請選擇登入角色以顯示功能入口。';
     } else {
       const roleLabel = { admin: '管理員', scheduler: '排班人', supervisor: '督導', employee: '一般員工' }[role];
       statusEl.textContent = `${dateText}｜${roleLabel} — 以下為您可使用的功能：`;
@@ -6020,7 +6903,7 @@ function renderWorkbenchDashboard() {
       const mod = btn.dataset.entryModule;
       const action = btn.dataset.entryAction;
       if (!canAccessErpModule(mod)) {
-        alert('請先於首頁選擇角色。');
+        appAlert('請先於首頁選擇角色。', '尚未選擇角色', 'info');
         switchErpModule('home');
         return;
       }
@@ -6045,12 +6928,7 @@ function renderWorkbenchDashboard() {
 }
 function syncAllDatePickerDisplays() {
   syncScheduleDatePickerUI();
-  const homeVal = document.getElementById('homeDateValue');
-  if (homeVal) homeVal.textContent = formatScheduleDateDisplay(selectedDate);
-  if (isHomeDatePanelEmbedded()) {
-    pickerPendingDate = selectedDate;
-    renderHomeDateGrid();
-  }
+  document.getElementById('scheduleDatePicker')?.refreshInlineDateDrop?.();
 }
 function erpRememberHome(el) {
   if (!el || erpHomeSlots.has(el)) return;
@@ -6199,7 +7077,8 @@ function erpInitSlots() {
 function renderErpStaffTable() {
   const tbody = document.getElementById('erpStaffTableBody');
   if (!tbody) return;
-  const ref = getScheduleReferenceDate();
+  syncStaffListRefDateDisplay();
+  const ref = getStaffListReferenceDate();
   if (!staffPersonnelRegistry?.people?.length) {
     tbody.innerHTML = '<tr><td colspan="7" style="color:#64748b;">尚無人員主檔，請按「匯入代號/戰力」上傳 Excel（整合版）。</td></tr>';
     populateStaffFilterOptions();
@@ -6221,19 +7100,21 @@ function renderErpStaffTable() {
     const sb = getStaffSnapshotAtDate(b.personnelId, ref);
     return String(sa?.fullName || a.personnelId).localeCompare(String(sb?.fullName || b.personnelId), 'zh-Hant');
   });
-  const tabLabel = erpStaffListTab === 'inactive' ? '停用人員' : '在職人員';
+  const tabLabel = STAFF_LIST_TAB_LABELS[erpStaffListTab] || STAFF_LIST_TAB_LABELS.active;
   const tabTotal = staffPersonnelRegistry.people.filter(rec => staffRowPassesListTab(rec, ref)).length;
   const countEl = document.getElementById('erpStaffListCount');
   if (countEl) {
-    countEl.textContent = rows.length === tabTotal
+    const refText = formatScheduleDateDisplay(ref) || ref;
+    const countPart = rows.length === tabTotal
       ? `${tabLabel} 共 ${tabTotal} 人`
       : `${tabLabel} ${rows.length} / ${tabTotal} 人`;
+    countEl.textContent = `${countPart}（基準日 ${refText}）`;
   }
   updateErpStaffSortIndicator();
   tbody.innerHTML = rows.slice(0, 500).map(rec => {
     const snap = getStaffSnapshotAtDate(rec.personnelId, ref) || {};
-    const latest = getStaffLatestAdjustmentSummary(rec);
-    const st = getStaffDisplayStatus(snap) || snap.status || '';
+    const latest = getStaffLatestAdjustmentSummary(rec, ref);
+    const st = getStaffListColumnStatus(snap);
     const sel = rec.personnelId === selectedStaffPersonnelId;
     const latestTitle = latest.title ? ` title="${escapeHtml(latest.title)}"` : '';
     return `<tr class="${sel ? 'is-selected' : ''}" data-personnel-id="${escapeHtml(rec.personnelId)}">
@@ -6247,9 +7128,7 @@ function renderErpStaffTable() {
     </tr>`;
   }).join('');
   if (!rows.length) {
-    const emptyMsg = erpStaffListTab === 'inactive'
-      ? '沒有停用人員，或不符合搜尋／篩選條件。'
-      : '沒有在職人員，或不符合搜尋／篩選條件。';
+    const emptyMsg = STAFF_LIST_TAB_EMPTY_MSG[erpStaffListTab] || STAFF_LIST_TAB_EMPTY_MSG.active;
     tbody.innerHTML = `<tr><td colspan="7" style="color:#64748b;">${emptyMsg}</td></tr>`;
   }
   tbody.querySelectorAll('tr[data-personnel-id]').forEach(tr => {
@@ -6265,7 +7144,7 @@ function switchErpModule(moduleKey, options = {}) {
   if (!ERP_MODULE_PAGES[moduleKey]) return;
   if (!canAccessErpModule(moduleKey)) {
     switchErpModule('home', options);
-    if (moduleKey !== 'home') alert('請先於工作台首頁選擇角色。');
+    if (moduleKey !== 'home') appAlert('請先於工作台首頁選擇角色。', '尚未選擇角色', 'info');
     return;
   }
   activeErpModule = moduleKey;
@@ -6284,10 +7163,14 @@ function switchErpModule(moduleKey, options = {}) {
   erpRestoreAll();
   if (moduleKey === 'home') {
     renderWorkbenchDashboard();
-    syncHomeInlineDateCalendar();
-    setScheduleDatePanelOpen(false);
     requestAnimationFrame(() => syncErpNavArrowLayout());
   } else {
+  if (moduleKey !== 'schedule') closeInlineAppDateDrop('scheduleDatePicker');
+  if (moduleKey !== 'staff') {
+    closeInlineAppDateDrop('staffListRefDatePicker');
+    closeInlineAppDateDrop('erpStaffEffDatePicker');
+    closeInlineAppDateDrop('erpStaffAddEffDatePicker');
+  }
   if (moduleKey === 'staff') {
     erpMountEl(document.getElementById('importStaffDbBtn'), document.getElementById('erpStaffMount'));
     erpMountEl(document.getElementById('staffDbImportInput'), document.getElementById('erpStaffMount'));
@@ -6328,8 +7211,6 @@ function switchErpModule(moduleKey, options = {}) {
   if (moduleKey === 'my-duty') {
     renderWorkbenchDashboard();
   }
-    setScheduleDatePanelOpen(false);
-    setHomeDatePanelOpen(false);
   }
   if (skipNavCollapse) syncErpNavArrowLayout();
   else setErpNavClosed(true);
@@ -6341,129 +7222,6 @@ function initWorkbenchRolePicker() {
   const saved = getWorkbenchRole();
   if (saved) setWorkbenchRole(saved);
   else updateErpNavForRole();
-}
-function isHomeDatePanelEmbedded() {
-  return document.getElementById('homeDatePanel')?.classList.contains('schedule-date-panel--embedded');
-}
-function updateHomeDateConfirmBtnVisibility() {
-  const btn = document.getElementById('homeDateConfirmBtn');
-  if (!btn || !isHomeDatePanelEmbedded()) return;
-  btn.hidden = !(pickerPendingDate && pickerPendingDate !== selectedDate);
-}
-function applyHomeDateSelection(iso) {
-  if (!iso || !isValidISODate(iso)) return;
-  pickerPendingDate = iso;
-  try {
-    if (iso !== selectedDate) switchScheduleDate(iso);
-    else syncAllDatePickerDisplays();
-    renderHomeDateGrid();
-    renderWorkbenchDashboard();
-    updateHomeDateConfirmBtnVisibility();
-  } catch (err) {
-    console.error('applyHomeDateSelection', err);
-  }
-}
-function syncHomeInlineDateCalendar() {
-  pickerPendingDate = selectedDate;
-  const parts = parseISODateParts(selectedDate);
-  pickerViewYear = parts.y;
-  pickerViewMonth = parts.m;
-  renderHomeDateGrid();
-  updateHomeDateConfirmBtnVisibility();
-}
-function initHomeWorkbenchDatePicker() {
-  const picker = document.getElementById('homeDatePicker');
-  const panel = document.getElementById('homeDatePanel');
-  if (!picker || !panel) return;
-  syncHomeInlineDateCalendar();
-  document.getElementById('homeDatePrevMonth')?.addEventListener('click', (e) => {
-    e.stopPropagation();
-    pickerViewMonth--;
-    if (pickerViewMonth < 0) { pickerViewMonth = 11; pickerViewYear--; }
-    renderHomeDateGrid();
-  });
-  document.getElementById('homeDateNextMonth')?.addEventListener('click', (e) => {
-    e.stopPropagation();
-    pickerViewMonth++;
-    if (pickerViewMonth > 11) { pickerViewMonth = 0; pickerViewYear++; }
-    renderHomeDateGrid();
-  });
-  document.getElementById('homeDateConfirmBtn')?.addEventListener('click', (e) => {
-    e.stopPropagation();
-    applyHomeDateSelection(pickerPendingDate || selectedDate);
-  });
-}
-let homeDateOnOpen = selectedDate;
-function renderHomeDateGrid() {
-  const grid = document.getElementById('homeDateGrid');
-  const label = document.getElementById('homeDateMonthLabel');
-  if (!grid || !label) return;
-  label.textContent = `${pickerViewYear}年${String(pickerViewMonth + 1).padStart(2, '0')}月`;
-  const todayIso = getLocalDateISO();
-  const startDay = new Date(pickerViewYear, pickerViewMonth, 1).getDay();
-  const daysInMonth = new Date(pickerViewYear, pickerViewMonth + 1, 0).getDate();
-  const prevMonthDays = new Date(pickerViewYear, pickerViewMonth, 0).getDate();
-  grid.innerHTML = '';
-  for (let i = 0; i < 42; i++) {
-    let y = pickerViewYear, m = pickerViewMonth, day, otherMonth = false;
-    if (i < startDay) {
-      day = prevMonthDays - startDay + i + 1;
-      m = pickerViewMonth - 1;
-      if (m < 0) { m = 11; y--; }
-      otherMonth = true;
-    } else if (i >= startDay + daysInMonth) {
-      day = i - startDay - daysInMonth + 1;
-      m = pickerViewMonth + 1;
-      if (m > 11) { m = 0; y++; }
-      otherMonth = true;
-    } else {
-      day = i - startDay + 1;
-    }
-    const iso = isoFromParts(y, m, day);
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    btn.className = 'schedule-date-day';
-    if (otherMonth) btn.classList.add('other-month');
-    if (iso === todayIso) btn.classList.add('today');
-    if (isHomeDatePanelEmbedded()) {
-      if (iso === selectedDate) btn.classList.add('confirmed');
-      if (pickerPendingDate && iso === pickerPendingDate && iso !== selectedDate) btn.classList.add('pending');
-    } else if (pickerPendingDate && iso === pickerPendingDate) {
-      btn.classList.add('pending');
-    }
-    btn.textContent = String(day);
-    btn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      pickerPendingDate = iso;
-      renderHomeDateGrid();
-      updateHomeDateConfirmBtnVisibility();
-    });
-    grid.appendChild(btn);
-  }
-  updateHomeDateConfirmBtnVisibility();
-}
-function setHomeDatePanelOpen(open) {
-  if (isHomeDatePanelEmbedded()) {
-    if (open) syncHomeInlineDateCalendar();
-    return;
-  }
-  const panel = document.getElementById('homeDatePanel');
-  const trigger = document.getElementById('homeDateTrigger');
-  if (!panel || !trigger) return;
-  if (open) {
-    homeDateOnOpen = selectedDate;
-    pickerDateOnOpen = selectedDate;
-    pickerPendingDate = selectedDate;
-    const parts = parseISODateParts(pickerPendingDate);
-    pickerViewYear = parts.y;
-    pickerViewMonth = parts.m;
-    renderHomeDateGrid();
-    panel.classList.remove('hidden');
-    trigger.setAttribute('aria-expanded', 'true');
-  } else {
-    panel.classList.add('hidden');
-    trigger.setAttribute('aria-expanded', 'false');
-  }
 }
 function initErpNavigation() {
   initErpNavIcons();
@@ -6480,7 +7238,6 @@ function initErpNavigation() {
     btn.addEventListener('click', () => document.getElementById('toggleRollCallBtn')?.click());
   });
   initWorkbenchRolePicker();
-  initHomeWorkbenchDatePicker();
   if (!ERP_MODULE_PAGES[activeErpModule]) activeErpModule = 'home';
   if (!canAccessErpModule(activeErpModule)) activeErpModule = 'home';
   switchErpModule(activeErpModule, { skipNavCollapse: true });
@@ -7182,6 +7939,126 @@ function escapeHtml(s) {
     .replace(/"/g, '&quot;');
 }
 
+const APP_NOTICE_ICONS = {
+  warning: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4M12 17h.01"/><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>',
+  success: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>',
+  info: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>'
+};
+let appNoticeResolve = null;
+
+function buildAppNoticeMessageHtml(message, highlight) {
+  const text = String(message || '');
+  if (!text) return '';
+  const esc = escapeHtml(text);
+  if (!highlight) return esc.replace(/\n/g, '<br>');
+  const h = escapeHtml(String(highlight));
+  const quoted = `「${h}」`;
+  if (esc.includes(quoted)) {
+    return esc.replace(quoted, `「<span class="app-notice-hl">${h}</span>」`).replace(/\n/g, '<br>');
+  }
+  if (esc.includes(h)) return esc.replace(h, `<span class="app-notice-hl">${h}</span>`).replace(/\n/g, '<br>');
+  return esc.replace(/\n/g, '<br>');
+}
+
+function renderAppNoticeDetails(details) {
+  if (!details?.length) return '';
+  return details.map(row => `
+    <div class="app-notice-detail-row">
+      <span class="app-notice-detail-label">${escapeHtml(row.label || '')}</span>
+      <span class="app-notice-detail-value${row.emphasize ? ' is-em' : ''}">${escapeHtml(row.value ?? '')}</span>
+    </div>
+  `).join('');
+}
+
+function closeAppNotice(confirmed) {
+  const dlg = document.getElementById('appNoticeDialog');
+  if (dlg) dlg.hidden = true;
+  const resolve = appNoticeResolve;
+  appNoticeResolve = null;
+  if (resolve) resolve(!!confirmed);
+}
+
+function initAppNoticeDialog() {
+  if (initAppNoticeDialog._done) return;
+  initAppNoticeDialog._done = true;
+  const dlg = document.getElementById('appNoticeDialog');
+  if (!dlg) return;
+  document.getElementById('appNoticeConfirmBtn')?.addEventListener('click', () => closeAppNotice(true));
+  document.getElementById('appNoticeCancelBtn')?.addEventListener('click', () => closeAppNotice(false));
+  document.getElementById('appNoticeCloseBtn')?.addEventListener('click', () => closeAppNotice(false));
+  dlg.querySelectorAll('[data-app-notice-dismiss]').forEach(el => {
+    el.addEventListener('click', () => closeAppNotice(false));
+  });
+  dlg.addEventListener('click', e => {
+    if (e.target === dlg) closeAppNotice(false);
+  });
+  document.addEventListener('keydown', e => {
+    if (dlg.hidden || !appNoticeResolve) return;
+    if (e.key === 'Escape') { e.preventDefault(); closeAppNotice(false); }
+    if (e.key === 'Enter' && !e.isComposing) { e.preventDefault(); closeAppNotice(true); }
+  });
+}
+
+function showAppNotice(opts) {
+  initAppNoticeDialog();
+  const o = typeof opts === 'string' ? { message: opts } : (opts || {});
+  const type = o.type || 'warning';
+  const dlg = document.getElementById('appNoticeDialog');
+  const titleEl = document.getElementById('appNoticeTitle');
+  const msgEl = document.getElementById('appNoticeMessage');
+  const iconEl = document.getElementById('appNoticeIcon');
+  const detailsEl = document.getElementById('appNoticeDetails');
+  const cancelBtn = document.getElementById('appNoticeCancelBtn');
+  const confirmBtn = document.getElementById('appNoticeConfirmBtn');
+  if (!dlg || !titleEl || !msgEl) return Promise.resolve(true);
+  return new Promise(resolve => {
+    appNoticeResolve = resolve;
+    dlg.classList.remove('is-warning', 'is-success', 'is-info');
+    dlg.classList.add(type === 'success' ? 'is-success' : type === 'info' ? 'is-info' : 'is-warning');
+    if (iconEl) iconEl.innerHTML = APP_NOTICE_ICONS[type] || APP_NOTICE_ICONS.warning;
+    titleEl.textContent = o.title || (type === 'success' ? '完成' : '提示');
+    msgEl.innerHTML = o.messageHtml || buildAppNoticeMessageHtml(o.message, o.highlight);
+    if (detailsEl) {
+      const rows = o.details || [];
+      if (rows.length) {
+        detailsEl.innerHTML = renderAppNoticeDetails(rows);
+        detailsEl.hidden = false;
+      } else {
+        detailsEl.innerHTML = '';
+        detailsEl.hidden = true;
+      }
+    }
+    const showCancel = !!o.showCancel;
+    if (cancelBtn) cancelBtn.hidden = !showCancel;
+    if (confirmBtn) confirmBtn.textContent = o.confirmText || '確定';
+    if (cancelBtn) cancelBtn.textContent = o.cancelText || '取消';
+    dlg.hidden = false;
+    requestAnimationFrame(() => (showCancel ? cancelBtn : confirmBtn)?.focus());
+  });
+}
+
+function appAlert(message, title = '提示', type = 'warning') {
+  return showAppNotice({ type, title, message });
+}
+
+function appSuccess(message, title = '完成') {
+  return showAppNotice({ type: 'success', title, message });
+}
+
+function appConfirm(message, opts = {}) {
+  const o = typeof opts === 'object' && opts !== null ? opts : {};
+  return showAppNotice({
+    type: o.type || 'warning',
+    title: o.title || '請確認',
+    message,
+    showCancel: true,
+    confirmText: o.confirmText || '確定',
+    cancelText: o.cancelText || '取消',
+    highlight: o.highlight,
+    details: o.details
+  });
+}
+
 function renderAssignmentTableFromFlightDefs() {
   const depBody = document.getElementById('assignmentDepBody') || document.querySelectorAll('.assignment-table tbody')[0];
   const arrBody = document.getElementById('assignmentArrBody') || document.querySelectorAll('.assignment-table tbody')[1];
@@ -7422,38 +8299,42 @@ function parseISODateParts(iso) {
 function isoFromParts(y, m, d) {
   return `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
 }
-let pickerPendingDate = selectedDate;
-let pickerDateOnOpen = selectedDate;
-let pickerViewYear = 0;
-let pickerViewMonth = 0;
-function syncScheduleDatePickerUI() {
-  const valueEl = document.getElementById('scheduleDateValue');
-  if (valueEl) valueEl.textContent = formatScheduleDateDisplay(selectedDate);
-  pickerPendingDate = selectedDate;
-  const parts = parseISODateParts(selectedDate);
-  pickerViewYear = parts.y;
-  pickerViewMonth = parts.m;
+const APP_DATE_MONTH_LABELS = ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'];
+let appDatePickerPending = '';
+let appDatePickerOnOpen = '';
+let appDatePickerViewYear = 0;
+let appDatePickerViewMonth = 0;
+let appDatePickerMonthYear = 0;
+let appDatePickerMonthMonth = 0;
+let appDatePickerExpandedYear = 0;
+let appDatePickerOnConfirm = null;
+function formatAppDateMonthLabel(y, m) {
+  return `${y}年${String(m + 1).padStart(2, '0')}月`;
 }
-function renderScheduleDateGrid() {
-  const grid = document.getElementById('scheduleDateGrid');
-  const label = document.getElementById('scheduleDateMonthLabel');
-  if (!grid || !label) return;
-  label.textContent = `${pickerViewYear}年${String(pickerViewMonth + 1).padStart(2, '0')}月`;
+function setAppDatePickerView(view) {
+  const dayView = document.getElementById('appDateDayView');
+  const monthView = document.getElementById('appDateMonthView');
+  if (dayView) dayView.classList.toggle('hidden', view !== 'day');
+  if (monthView) monthView.classList.toggle('hidden', view !== 'month');
+}
+function renderAppDateCalendarGrid(grid, { viewYear, viewMonth, selectedIso, pendingIso, onSelect }) {
+  if (!grid) return;
   const todayIso = getLocalDateISO();
-  const startDay = new Date(pickerViewYear, pickerViewMonth, 1).getDay();
-  const daysInMonth = new Date(pickerViewYear, pickerViewMonth + 1, 0).getDate();
-  const prevMonthDays = new Date(pickerViewYear, pickerViewMonth, 0).getDate();
+  const highlightIso = pendingIso || selectedIso || '';
+  const startDay = new Date(viewYear, viewMonth, 1).getDay();
+  const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
+  const prevMonthDays = new Date(viewYear, viewMonth, 0).getDate();
   grid.innerHTML = '';
   for (let i = 0; i < 42; i++) {
-    let y = pickerViewYear, m = pickerViewMonth, day, otherMonth = false;
+    let y = viewYear, m = viewMonth, day, otherMonth = false;
     if (i < startDay) {
       day = prevMonthDays - startDay + i + 1;
-      m = pickerViewMonth - 1;
+      m = viewMonth - 1;
       if (m < 0) { m = 11; y--; }
       otherMonth = true;
     } else if (i >= startDay + daysInMonth) {
       day = i - startDay - daysInMonth + 1;
-      m = pickerViewMonth + 1;
+      m = viewMonth + 1;
       if (m > 11) { m = 0; y++; }
       otherMonth = true;
     } else {
@@ -7462,91 +8343,251 @@ function renderScheduleDateGrid() {
     const iso = isoFromParts(y, m, day);
     const btn = document.createElement('button');
     btn.type = 'button';
-    btn.className = 'schedule-date-day';
+    btn.className = 'app-date-day';
     if (otherMonth) btn.classList.add('other-month');
     if (iso === todayIso) btn.classList.add('today');
-    if (pickerPendingDate && iso === pickerPendingDate) btn.classList.add('pending');
+    if (highlightIso && iso === highlightIso) btn.classList.add('selected');
     btn.textContent = String(day);
-    btn.addEventListener('click', (e) => {
+    btn.addEventListener('click', e => {
       e.stopPropagation();
-      pickerPendingDate = iso;
-      renderScheduleDateGrid();
+      if (typeof onSelect === 'function') onSelect(iso);
     });
     grid.appendChild(btn);
   }
 }
-function setScheduleDatePanelOpen(open) {
-  const panel = document.getElementById('scheduleDatePanel');
-  const trigger = document.getElementById('scheduleDateTrigger');
-  if (!panel || !trigger) return;
-  if (open) {
-    pickerDateOnOpen = selectedDate;
-    pickerPendingDate = selectedDate;
-    const parts = parseISODateParts(pickerPendingDate);
-    pickerViewYear = parts.y;
-    pickerViewMonth = parts.m;
-    renderScheduleDateGrid();
-    panel.classList.remove('hidden');
-    trigger.setAttribute('aria-expanded', 'true');
-  } else {
-    panel.classList.add('hidden');
-    trigger.setAttribute('aria-expanded', 'false');
+function renderAppDatePickerGrid() {
+  const grid = document.getElementById('appDateGrid');
+  const label = document.getElementById('appDateMonthLabel');
+  if (!grid || !label) return;
+  label.textContent = formatAppDateMonthLabel(appDatePickerViewYear, appDatePickerViewMonth);
+  renderAppDateCalendarGrid(grid, {
+    viewYear: appDatePickerViewYear,
+    viewMonth: appDatePickerViewMonth,
+    pendingIso: appDatePickerPending,
+    onSelect: iso => {
+      appDatePickerPending = iso;
+      renderAppDatePickerGrid();
+    }
+  });
+}
+function renderAppDatePickerMonthView() {
+  const list = document.getElementById('appDateYearList');
+  if (!list) return;
+  const todayParts = parseISODateParts(getLocalDateISO());
+  const startYear = todayParts.y - 2;
+  const endYear = todayParts.y + 8;
+  list.innerHTML = '';
+  for (let y = startYear; y <= endYear; y++) {
+    const block = document.createElement('div');
+    block.className = 'app-date-year-block';
+    const row = document.createElement('button');
+    row.type = 'button';
+    row.className = 'app-date-year-row' + (y === appDatePickerExpandedYear ? ' is-expanded' : '');
+    row.innerHTML = `<span>${y}年</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>`;
+    row.addEventListener('click', e => {
+      e.stopPropagation();
+      appDatePickerExpandedYear = appDatePickerExpandedYear === y ? 0 : y;
+      renderAppDatePickerMonthView();
+    });
+    block.appendChild(row);
+    if (y === appDatePickerExpandedYear) {
+      const grid = document.createElement('div');
+      grid.className = 'app-date-month-grid';
+      APP_DATE_MONTH_LABELS.forEach((label, mi) => {
+        const cell = document.createElement('button');
+        cell.type = 'button';
+        cell.className = 'app-date-month-cell';
+        if (y === appDatePickerMonthYear && mi === appDatePickerMonthMonth) cell.classList.add('is-selected');
+        cell.textContent = label;
+        cell.addEventListener('click', e => {
+          e.stopPropagation();
+          appDatePickerMonthYear = y;
+          appDatePickerMonthMonth = mi;
+          renderAppDatePickerMonthView();
+        });
+        grid.appendChild(cell);
+      });
+      block.appendChild(grid);
+    }
+    list.appendChild(block);
   }
 }
-function initScheduleDatePicker() {
-  const picker = document.getElementById('scheduleDatePicker');
-  const trigger = document.getElementById('scheduleDateTrigger');
-  const panel = document.getElementById('scheduleDatePanel');
-  syncScheduleDatePickerUI();
-  trigger?.addEventListener('click', (e) => {
+let appDatePickerActiveTrigger = null;
+function closeAppDatePicker(revert) {
+  const backdrop = document.getElementById('appDateDialogBackdrop');
+  if (revert) appDatePickerPending = appDatePickerOnOpen;
+  if (backdrop) {
+    backdrop.classList.add('hidden');
+    backdrop.setAttribute('aria-hidden', 'true');
+  }
+  if (appDatePickerActiveTrigger) {
+    appDatePickerActiveTrigger.setAttribute('aria-expanded', 'false');
+    appDatePickerActiveTrigger = null;
+  }
+  setAppDatePickerView('day');
+  appDatePickerOnConfirm = null;
+}
+function openAppDatePicker(options = {}) {
+  const backdrop = document.getElementById('appDateDialogBackdrop');
+  if (!backdrop) return;
+  initAppDatePicker();
+  appDatePickerOnConfirm = typeof options.onConfirm === 'function' ? options.onConfirm : null;
+  appDatePickerPending = isValidISODate(options.value) ? options.value : getLocalDateISO();
+  appDatePickerOnOpen = appDatePickerPending;
+  const parts = parseISODateParts(appDatePickerPending);
+  appDatePickerViewYear = parts.y;
+  appDatePickerViewMonth = parts.m;
+  appDatePickerMonthYear = parts.y;
+  appDatePickerMonthMonth = parts.m;
+  appDatePickerExpandedYear = parts.y;
+  const title = document.getElementById('appDateDialogTitle');
+  if (title) title.textContent = options.title || '選擇日期';
+  setAppDatePickerView('day');
+  renderAppDatePickerGrid();
+  backdrop.classList.remove('hidden');
+  backdrop.setAttribute('aria-hidden', 'false');
+  appDatePickerActiveTrigger = options.triggerEl || null;
+  if (appDatePickerActiveTrigger) appDatePickerActiveTrigger.setAttribute('aria-expanded', 'true');
+}
+function bindAppDateField({ triggerId, hiddenId, displayId, getValue, formatDisplay, onConfirm, title }) {
+  const trigger = document.getElementById(triggerId);
+  if (!trigger || trigger.dataset.appDateBound === '1') return;
+  trigger.dataset.appDateBound = '1';
+  const syncDisplay = () => {
+    const iso = typeof getValue === 'function' ? getValue() : '';
+    if (hiddenId) {
+      const hidden = document.getElementById(hiddenId);
+      if (hidden) hidden.value = isValidISODate(iso) ? iso : '';
+    }
+    if (displayId) {
+      const display = document.getElementById(displayId);
+      if (display) {
+        display.textContent = typeof formatDisplay === 'function'
+          ? (formatDisplay(iso) || '—')
+          : (isValidISODate(iso) ? formatStaffRefDateDisplay(iso) : '—');
+      }
+    }
+  };
+  trigger.addEventListener('click', e => {
     e.stopPropagation();
-    setScheduleDatePanelOpen(panel.classList.contains('hidden'));
+    openAppDatePicker({
+      title: title || '選擇日期',
+      value: typeof getValue === 'function' ? getValue() : '',
+      triggerEl: trigger,
+      onConfirm: iso => {
+        if (typeof onConfirm === 'function') onConfirm(iso);
+        syncDisplay();
+      }
+    });
   });
-  document.addEventListener('click', (e) => {
-    if (!picker || picker.contains(e.target)) return;
-    setScheduleDatePanelOpen(false);
+  syncDisplay();
+}
+function initAppDateFields() {
+  if (initAppDateFields._done) return;
+  initAppDateFields._done = true;
+  initAppDatePicker();
+}
+function initAppDatePicker() {
+  if (initAppDatePicker._done) return;
+  initAppDatePicker._done = true;
+  const backdrop = document.getElementById('appDateDialogBackdrop');
+  document.getElementById('appDateDialogCloseBtn')?.addEventListener('click', () => closeAppDatePicker(true));
+  document.getElementById('appDateMonthCloseBtn')?.addEventListener('click', () => closeAppDatePicker(true));
+  backdrop?.addEventListener('click', e => {
+    if (e.target === backdrop) closeAppDatePicker(true);
   });
-  document.getElementById('scheduleDatePrevDay')?.addEventListener('click', (e) => {
+  document.getElementById('appDatePrevMonth')?.addEventListener('click', e => {
+    e.stopPropagation();
+    appDatePickerViewMonth--;
+    if (appDatePickerViewMonth < 0) { appDatePickerViewMonth = 11; appDatePickerViewYear--; }
+    renderAppDatePickerGrid();
+  });
+  document.getElementById('appDateNextMonth')?.addEventListener('click', e => {
+    e.stopPropagation();
+    appDatePickerViewMonth++;
+    if (appDatePickerViewMonth > 11) { appDatePickerViewMonth = 0; appDatePickerViewYear++; }
+    renderAppDatePickerGrid();
+  });
+  document.getElementById('appDateMonthTrigger')?.addEventListener('click', e => {
+    e.stopPropagation();
+    appDatePickerMonthYear = appDatePickerViewYear;
+    appDatePickerMonthMonth = appDatePickerViewMonth;
+    appDatePickerExpandedYear = appDatePickerViewYear;
+    renderAppDatePickerMonthView();
+    setAppDatePickerView('month');
+  });
+  document.getElementById('appDateClearBtn')?.addEventListener('click', e => {
+    e.stopPropagation();
+    appDatePickerPending = getLocalDateISO();
+    const parts = parseISODateParts(appDatePickerPending);
+    appDatePickerViewYear = parts.y;
+    appDatePickerViewMonth = parts.m;
+    renderAppDatePickerGrid();
+  });
+  document.getElementById('appDateCancelBtn')?.addEventListener('click', e => {
+    e.stopPropagation();
+    closeAppDatePicker(true);
+  });
+  document.getElementById('appDateConfirmBtn')?.addEventListener('click', e => {
+    e.stopPropagation();
+    if (!isValidISODate(appDatePickerPending)) return;
+    const cb = appDatePickerOnConfirm;
+    const iso = appDatePickerPending;
+    closeAppDatePicker(false);
+    if (cb) cb(iso);
+  });
+  document.getElementById('appDateMonthCancelBtn')?.addEventListener('click', e => {
+    e.stopPropagation();
+    closeAppDatePicker(true);
+  });
+  document.getElementById('appDateMonthConfirmBtn')?.addEventListener('click', e => {
+    e.stopPropagation();
+    appDatePickerViewYear = appDatePickerMonthYear;
+    appDatePickerViewMonth = appDatePickerMonthMonth;
+    setAppDatePickerView('day');
+    renderAppDatePickerGrid();
+  });
+}
+function syncScheduleDatePickerUI() {
+  const valueEl = document.getElementById('scheduleDateValue');
+  if (valueEl) valueEl.textContent = formatScheduleDateDisplay(selectedDate);
+}
+function initScheduleDatePicker() {
+  if (initScheduleDatePicker._done) return;
+  initScheduleDatePicker._done = true;
+  initAppDateFields();
+  syncScheduleDatePickerUI();
+  initInlineAppDateDrop({
+    pickerId: 'scheduleDatePicker',
+    panelId: 'scheduleDateDropPanel',
+    triggerId: 'scheduleDateTrigger',
+    dayWrapId: 'scheduleDateInlineDay',
+    monthWrapId: 'scheduleDateInlineMonth',
+    gridId: 'scheduleDateInlineGrid',
+    monthLabelId: 'scheduleDateInlineMonthLabel',
+    yearListId: 'scheduleDateInlineYearList',
+    todayBtnId: 'scheduleDateInlineTodayBtn',
+    cancelBtnId: 'scheduleDateInlineCancelBtn',
+    confirmBtnId: 'scheduleDateInlineConfirmBtn',
+    prevMonthId: 'scheduleDateInlinePrevMonth',
+    nextMonthId: 'scheduleDateInlineNextMonth',
+    monthTriggerId: 'scheduleDateInlineMonthTrigger',
+    getValue: () => selectedDate,
+    getSelectedIso: () => selectedDate,
+    onConfirm: iso => {
+      if (iso !== selectedDate) switchScheduleDate(iso);
+      else syncAllDatePickerDisplays();
+    }
+  });
+  document.getElementById('scheduleDatePrevDay')?.addEventListener('click', e => {
     e.stopPropagation();
     const prev = shiftScheduleISODate(selectedDate, -1);
     if (prev !== selectedDate) switchScheduleDate(prev);
   });
-  document.getElementById('scheduleDateNextDay')?.addEventListener('click', (e) => {
+  document.getElementById('scheduleDateNextDay')?.addEventListener('click', e => {
     e.stopPropagation();
     const next = shiftScheduleISODate(selectedDate, 1);
     if (next !== selectedDate) switchScheduleDate(next);
-  });
-  document.getElementById('scheduleDatePrevMonth')?.addEventListener('click', (e) => {
-    e.stopPropagation();
-    pickerViewMonth--;
-    if (pickerViewMonth < 0) { pickerViewMonth = 11; pickerViewYear--; }
-    renderScheduleDateGrid();
-  });
-  document.getElementById('scheduleDateNextMonth')?.addEventListener('click', (e) => {
-    e.stopPropagation();
-    pickerViewMonth++;
-    if (pickerViewMonth > 11) { pickerViewMonth = 0; pickerViewYear++; }
-    renderScheduleDateGrid();
-  });
-  document.getElementById('scheduleDateCancelBtn')?.addEventListener('click', (e) => {
-    e.stopPropagation();
-    pickerPendingDate = pickerDateOnOpen || selectedDate;
-    setScheduleDatePanelOpen(false);
-  });
-  document.getElementById('scheduleDateTodayBtn')?.addEventListener('click', (e) => {
-    e.stopPropagation();
-    pickerPendingDate = getLocalDateISO();
-    const parts = parseISODateParts(pickerPendingDate);
-    pickerViewYear = parts.y;
-    pickerViewMonth = parts.m;
-    renderScheduleDateGrid();
-  });
-  document.getElementById('scheduleDateConfirmBtn')?.addEventListener('click', (e) => {
-    e.stopPropagation();
-    if (!pickerPendingDate || !isValidISODate(pickerPendingDate)) return;
-    setScheduleDatePanelOpen(false);
-    if (pickerPendingDate === selectedDate) return;
-    switchScheduleDate(pickerPendingDate);
   });
 }
 function refreshScheduleViewsAfterDateChange() {
@@ -8967,7 +10008,7 @@ document.getElementById('excelImportInput').addEventListener('change', async (e)
   const file = e.target.files && e.target.files[0];
   if (!file) return;
   if (typeof XLSX === 'undefined') {
-    alert('Excel 讀取套件尚未載入。請確認網路連線後重新整理頁面。');
+    appAlert('Excel 讀取套件尚未載入。請確認網路連線後重新整理頁面。', '無法匯入');
     return;
   }
   const buffer = await file.arrayBuffer();
@@ -8977,7 +10018,7 @@ document.getElementById('excelImportInput').addEventListener('change', async (e)
   const staffSheetName = workbook.SheetNames.find(n => /staff|人員|名單|戰力|代號/i.test(String(n)));
 
   if (!flightSheetName || !staffSheetName) {
-    alert('Excel 需要包含 Flights 和 Staff（或人員）工作表。');
+    appAlert('Excel 需要包含 Flights 和 Staff（或人員）工作表。', '無法匯入');
     return;
   }
 
@@ -8988,25 +10029,29 @@ document.getElementById('excelImportInput').addEventListener('change', async (e)
   const newPeople = mergePeopleWithStaffDirectory(buildPeopleFromRows(staffRows));
 
   if (!newFlightDefs.length) {
-    alert('Flights 工作表沒有可讀取的航班資料。');
+    appAlert('Flights 工作表沒有可讀取的航班資料。', '無法匯入');
     return;
   }
   if (!newPeople.length) {
-    alert('Staff 工作表沒有可讀取的人員資料。');
+    appAlert('Staff 工作表沒有可讀取的人員資料。', '無法匯入');
     return;
   }
 
-  if (!confirm(`即將匯入 ${newFlightDefs.length} 筆航班、${newPeople.length} 位人員。\n目前已排的 duty 會清空，確定匯入嗎？`)) return;
+  const importOk = await appConfirm(
+    `即將匯入 ${newFlightDefs.length} 筆航班、${newPeople.length} 位人員。\n目前已排的 duty 會清空，確定匯入嗎？`,
+    { title: '匯入 Excel', confirmText: '確定匯入' }
+  );
+  if (!importOk) return;
 
   rebuildAfterExcelImport(newFlightDefs, newPeople);
-  alert('Excel 匯入完成，已依新規則產生 duty 區塊。請按「同步」上傳雲端。');
+  appSuccess('Excel 匯入完成，已依新規則產生 duty 區塊。請按「同步」上傳雲端。', '匯入完成');
   e.target.value = '';
 });
 document.getElementById('staffDbImportInput').addEventListener('change', async (e) => {
   const file = e.target.files && e.target.files[0];
   if (!file) return;
   if (typeof XLSX === 'undefined') {
-    alert('Excel 讀取套件尚未載入。請確認網路連線後重新整理頁面。');
+    appAlert('Excel 讀取套件尚未載入。請確認網路連線後重新整理頁面。', '無法匯入');
     return;
   }
   const buffer = await file.arrayBuffer();
@@ -9015,7 +10060,7 @@ document.getElementById('staffDbImportInput').addEventListener('change', async (
     || workbook.SheetNames.find(n => /staff|人員|名單|戰力|代號/i.test(String(n)))
     || workbook.SheetNames[0];
   if (!sheetName) {
-    alert('找不到可讀取的人員資料工作表。');
+    appAlert('找不到可讀取的人員資料工作表。', '無法匯入');
     return;
   }
   const rows = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], { defval: '' });
@@ -9033,7 +10078,7 @@ document.getElementById('staffDbImportInput').addEventListener('change', async (
     })), historyYear);
   }
   if (!imported.length) {
-    alert('人員主檔沒有可讀取資料，請確認含有「人事代號」與「姓名」。');
+    appAlert('人員主檔沒有可讀取資料，請確認含有「人事代號」與「姓名」。', '無法匯入');
     return;
   }
   importStaffPersonnelRegistry(imported, { source: file.name, historyYear });
@@ -9045,19 +10090,19 @@ document.getElementById('staffDbImportInput').addEventListener('change', async (
   renderErpStaffTable();
   markUnsynced();
   const withHist = imported.filter(x => (x.events?.length || 0) > 1).length;
-  alert(`人員主檔已更新，共 ${imported.length} 人（${withHist} 人有生效日歷史）。`);
+  appSuccess(`人員主檔已更新，共 ${imported.length} 人（${withHist} 人有生效日歷史）。`, '匯入完成');
   e.target.value = '';
 });
 
 document.getElementById('undoBtn')?.addEventListener('click', () => undoLastChange());
-document.getElementById('resetBtn').addEventListener('click', () => {
-  if (confirm('要清空目前排班嗎？')) {
-    pushUndoSnapshot();
-    schedule = [];
-    selectedBlockId = null;
-    markUnsynced();
-    renderPalette(); renderRows();
-  }
+document.getElementById('resetBtn').addEventListener('click', async () => {
+  const ok = await appConfirm('要清空目前排班嗎？', { title: '清空排班', confirmText: '確定清空' });
+  if (!ok) return;
+  pushUndoSnapshot();
+  schedule = [];
+  selectedBlockId = null;
+  markUnsynced();
+  renderPalette(); renderRows();
 });
 document.getElementById('toggleOvertimeBtn')?.addEventListener('click', toggleOvertimePanel);
 document.getElementById('toggleOvertimeToolbarBtn')?.addEventListener('click', toggleOvertimePanel);
@@ -9068,7 +10113,7 @@ document.getElementById('saveBtn').addEventListener('click', () => {
   setTimeout(() => {
     saveLocal();
     saveCloudNow();
-    alert('已儲存並同步');
+    appSuccess('已儲存並同步', '儲存完成');
   }, 0);
 });
 
@@ -9092,7 +10137,7 @@ function submitCustomDutyForm() {
 
   const tpl = createCustomTemplate(name, start, duration);
   if (!tpl) {
-    alert('請輸入正確的名稱、開始時間（例如 08:30）和時間長度（5 分鐘倍數）');
+    appAlert('請輸入正確的名稱、開始時間（例如 08:30）和時間長度（5 分鐘倍數）', '無法新增');
     return false;
   }
 

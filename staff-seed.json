@@ -1,0 +1,2410 @@
+[
+  {
+    "code": "曉",
+    "fullName": "張曉恩",
+    "group": "A",
+    "personnelId": "E07415",
+    "level": "DIC",
+    "status": "在職"
+  },
+  {
+    "code": "瑋",
+    "fullName": "魏瑋軒",
+    "group": "A",
+    "personnelId": "F77859",
+    "level": "DIC",
+    "status": "在職"
+  },
+  {
+    "code": "亞",
+    "fullName": "楊亞璇",
+    "group": "A",
+    "personnelId": "G09412",
+    "level": "M",
+    "status": "在職"
+  },
+  {
+    "code": "伃",
+    "fullName": "林晏伃",
+    "group": "A",
+    "personnelId": "G09250",
+    "level": "M",
+    "status": "在職"
+  },
+  {
+    "code": "宜",
+    "fullName": "劉姿宜",
+    "group": "A",
+    "personnelId": "E08956",
+    "level": "M",
+    "status": "在職"
+  },
+  {
+    "code": "謙",
+    "fullName": "李　謙",
+    "group": "A",
+    "personnelId": "E72699",
+    "level": "M",
+    "status": "在職"
+  },
+  {
+    "code": "曦",
+    "fullName": "陳致曦",
+    "group": "A",
+    "personnelId": "G08409",
+    "level": "M",
+    "status": "在職"
+  },
+  {
+    "code": "樺",
+    "fullName": "鍾宛樺",
+    "group": "A",
+    "personnelId": "G87341",
+    "level": "M",
+    "status": "在職"
+  },
+  {
+    "code": "展",
+    "fullName": "黃郁展",
+    "group": "A",
+    "personnelId": "G87517",
+    "level": "M",
+    "status": "在職"
+  },
+  {
+    "code": "嫺",
+    "fullName": "楊子嫺",
+    "group": "A",
+    "personnelId": "I63413",
+    "level": "m-",
+    "status": "在職"
+  },
+  {
+    "code": "凱",
+    "fullName": "黃郁凱",
+    "group": "A",
+    "personnelId": "H41736",
+    "level": "m",
+    "status": "在職"
+  },
+  {
+    "code": "渝",
+    "fullName": "王渝雯",
+    "group": "A",
+    "personnelId": "E74840",
+    "level": "2A",
+    "status": "在職"
+  },
+  {
+    "code": "芩",
+    "fullName": "謝雨芩",
+    "group": "A",
+    "personnelId": "I63912",
+    "level": "m",
+    "status": "在職"
+  },
+  {
+    "code": "學",
+    "fullName": "徐學鴻",
+    "group": "A",
+    "personnelId": "I63324",
+    "level": "m",
+    "status": "在職"
+  },
+  {
+    "code": "憶",
+    "fullName": "潘昕憶",
+    "group": "A",
+    "personnelId": "G07594",
+    "level": "2A-",
+    "status": "在職"
+  },
+  {
+    "code": "燁",
+    "fullName": "江致燁",
+    "group": "A",
+    "personnelId": "Z04180",
+    "level": "學生",
+    "status": "在職"
+  },
+  {
+    "code": "姜",
+    "fullName": "范姜宇玄",
+    "group": "A",
+    "personnelId": "H41825",
+    "level": "1A-",
+    "status": "在職"
+  },
+  {
+    "code": "友",
+    "fullName": "蔡友白",
+    "group": "B",
+    "personnelId": "E67691",
+    "level": "DIC",
+    "status": "在職"
+  },
+  {
+    "code": "季",
+    "fullName": "莊季維",
+    "group": "B",
+    "personnelId": "G06860",
+    "level": "DIC",
+    "status": "在職"
+  },
+  {
+    "code": "昱",
+    "fullName": "游騰昱",
+    "group": "B",
+    "personnelId": "E09193",
+    "level": "M!",
+    "status": "在職"
+  },
+  {
+    "code": "濬",
+    "fullName": "廖宸濬",
+    "group": "B",
+    "personnelId": "G87313",
+    "level": "M",
+    "status": "在職"
+  },
+  {
+    "code": "尚",
+    "fullName": "莊尚洋",
+    "group": "B",
+    "personnelId": "G87428",
+    "level": "M",
+    "status": "在職"
+  },
+  {
+    "code": "文",
+    "fullName": "林怡文",
+    "group": "B",
+    "personnelId": "H42253",
+    "level": "m",
+    "status": "在職"
+  },
+  {
+    "code": "景",
+    "fullName": "王景渙",
+    "group": "B",
+    "personnelId": "I63454",
+    "level": "m!",
+    "status": "在職"
+  },
+  {
+    "code": "榕",
+    "fullName": "劉曉榕",
+    "group": "B",
+    "personnelId": "I63877",
+    "level": "m",
+    "status": "在職"
+  },
+  {
+    "code": "權",
+    "fullName": "陳哲權",
+    "group": "B",
+    "personnelId": "G07095",
+    "level": "2A-",
+    "status": "在職"
+  },
+  {
+    "code": "綵",
+    "fullName": "黃綵翎",
+    "group": "B",
+    "personnelId": "Z04152",
+    "level": "學生",
+    "status": "在職"
+  },
+  {
+    "code": "洋",
+    "fullName": "鄭名洋",
+    "group": "B",
+    "personnelId": "I67519",
+    "level": "2A*",
+    "status": "在職"
+  },
+  {
+    "code": "坤",
+    "fullName": "李坤翰",
+    "group": "B",
+    "personnelId": "I67636",
+    "level": "1A-",
+    "status": "在職"
+  },
+  {
+    "code": "頡",
+    "fullName": "陳頡祐",
+    "group": "B",
+    "personnelId": "G83440",
+    "level": "見習",
+    "status": "在職"
+  },
+  {
+    "code": "亭",
+    "fullName": "陳亭蓉",
+    "group": "B",
+    "personnelId": "G06101",
+    "level": "1A",
+    "status": "在職"
+  },
+  {
+    "code": "歡",
+    "fullName": "呂庭歡",
+    "group": "C",
+    "personnelId": "E07504",
+    "level": "DIC",
+    "status": "在職"
+  },
+  {
+    "code": "瀚",
+    "fullName": "劉柏瀚",
+    "group": "C",
+    "personnelId": "E72721",
+    "level": "DIC",
+    "status": "在職"
+  },
+  {
+    "code": "効",
+    "fullName": "孫効群",
+    "group": "C",
+    "personnelId": "G82716",
+    "level": "M",
+    "status": "在職"
+  },
+  {
+    "code": "男",
+    "fullName": "陳俊男",
+    "group": "C",
+    "personnelId": "853074",
+    "level": "M",
+    "status": "在職"
+  },
+  {
+    "code": "晞",
+    "fullName": "許晞均",
+    "group": "C",
+    "personnelId": "E74532",
+    "level": "M-",
+    "status": "在職"
+  },
+  {
+    "code": "雪",
+    "fullName": "楊英雪",
+    "group": "C",
+    "personnelId": "G08964",
+    "level": "M",
+    "status": "在職"
+  },
+  {
+    "code": "妍",
+    "fullName": "賴妍希",
+    "group": "C",
+    "personnelId": "H42301",
+    "level": "m",
+    "status": "在職"
+  },
+  {
+    "code": "愉",
+    "fullName": "鄭愉馨",
+    "group": "C",
+    "personnelId": "I63979",
+    "level": "m",
+    "status": "在職"
+  },
+  {
+    "code": "伶",
+    "fullName": "蔡昀伶",
+    "group": "C",
+    "personnelId": "I63309",
+    "level": "m-",
+    "status": "在職"
+  },
+  {
+    "code": "翰",
+    "fullName": "彭柏翰",
+    "group": "C",
+    "personnelId": "I63543",
+    "level": "2A",
+    "status": "在職"
+  },
+  {
+    "code": "澄",
+    "fullName": "翁子澄",
+    "group": "C",
+    "personnelId": "G88327",
+    "level": "2A-",
+    "status": "在職"
+  },
+  {
+    "code": "浥",
+    "fullName": "林浥凡",
+    "group": "C",
+    "personnelId": "Z04181",
+    "level": "學生",
+    "status": "在職"
+  },
+  {
+    "code": "澤",
+    "fullName": "陳　澤",
+    "group": "C",
+    "personnelId": "I67664",
+    "level": "1A",
+    "status": "在職"
+  },
+  {
+    "code": "釗",
+    "fullName": "古孟釗",
+    "group": "C",
+    "personnelId": "B82499",
+    "level": "1A",
+    "status": "在職"
+  },
+  {
+    "code": "小",
+    "fullName": "傅小庭",
+    "group": "D",
+    "personnelId": "G08671",
+    "level": "DIC",
+    "status": "在職"
+  },
+  {
+    "code": "杉",
+    "fullName": "劉柏杉",
+    "group": "D",
+    "personnelId": "G07655",
+    "level": "DIC",
+    "status": "在職"
+  },
+  {
+    "code": "周",
+    "fullName": "周采穎",
+    "group": "D",
+    "personnelId": "F46058",
+    "level": "M",
+    "status": "在職"
+  },
+  {
+    "code": "孝",
+    "fullName": "張孝晨",
+    "group": "D",
+    "personnelId": "G83391",
+    "level": "M",
+    "status": "在職"
+  },
+  {
+    "code": "黎",
+    "fullName": "黎軒豪",
+    "group": "D",
+    "personnelId": "F79084",
+    "level": "M-",
+    "status": "在職"
+  },
+  {
+    "code": "祥",
+    "fullName": "林裕祥",
+    "group": "D",
+    "personnelId": "H41930",
+    "level": "m",
+    "status": "在職"
+  },
+  {
+    "code": "聖",
+    "fullName": "王聖翔",
+    "group": "D",
+    "personnelId": "H41914",
+    "level": "m",
+    "status": "在職"
+  },
+  {
+    "code": "斯",
+    "fullName": "張斯涵",
+    "group": "D",
+    "personnelId": "I63467",
+    "level": "m",
+    "status": "在職"
+  },
+  {
+    "code": "皓",
+    "fullName": "王亭皓",
+    "group": "D",
+    "personnelId": "H41970",
+    "level": "m",
+    "status": "在職"
+  },
+  {
+    "code": "旖",
+    "fullName": "陳芊旖",
+    "group": "D",
+    "personnelId": "G08720",
+    "level": "m-",
+    "status": "在職"
+  },
+  {
+    "code": "臻",
+    "fullName": "黃妤臻",
+    "group": "D",
+    "personnelId": "Z04163",
+    "level": "學生",
+    "status": "在職"
+  },
+  {
+    "code": "林",
+    "fullName": "林姸伶",
+    "group": "D",
+    "personnelId": "Z04190",
+    "level": "學生",
+    "status": "在職"
+  },
+  {
+    "code": "夢",
+    "fullName": "劉夢瀅",
+    "group": "D",
+    "personnelId": "F46366",
+    "level": "m",
+    "status": "在職"
+  },
+  {
+    "code": "華",
+    "fullName": "張心華",
+    "group": "D",
+    "personnelId": "I63851",
+    "level": "1A-",
+    "status": "在職"
+  },
+  {
+    "code": "欣",
+    "fullName": "周欣潔",
+    "group": "E",
+    "personnelId": "855328",
+    "level": "DIC",
+    "status": "在職"
+  },
+  {
+    "code": "劉",
+    "fullName": "劉庭君",
+    "group": "E",
+    "personnelId": "G06804",
+    "level": "DIC",
+    "status": "在職"
+  },
+  {
+    "code": "可",
+    "fullName": "黃邁可",
+    "group": "E",
+    "personnelId": "G82760",
+    "level": "M",
+    "status": "在職"
+  },
+  {
+    "code": "杜",
+    "fullName": "杜氏麟",
+    "group": "E",
+    "personnelId": "F47927",
+    "level": "m",
+    "status": "在職"
+  },
+  {
+    "code": "范",
+    "fullName": "范語庭",
+    "group": "E",
+    "personnelId": "F46147",
+    "level": "M",
+    "status": "在職"
+  },
+  {
+    "code": "珈",
+    "fullName": "莊沛珈",
+    "group": "E",
+    "personnelId": "G83030",
+    "level": "M",
+    "status": "在職"
+  },
+  {
+    "code": "心",
+    "fullName": "蘇心妤",
+    "group": "E",
+    "personnelId": "E75021",
+    "level": "M",
+    "status": "在職"
+  },
+  {
+    "code": "律",
+    "fullName": "陳律安",
+    "group": "E",
+    "personnelId": "G87046",
+    "level": "M",
+    "status": "在職"
+  },
+  {
+    "code": "徐",
+    "fullName": "徐秉澤",
+    "group": "E",
+    "personnelId": "H42075",
+    "level": "M",
+    "status": "在職"
+  },
+  {
+    "code": "子",
+    "fullName": "羅子碩",
+    "group": "E",
+    "personnelId": "F77731",
+    "level": "m-",
+    "status": "在職"
+  },
+  {
+    "code": "晨",
+    "fullName": "李宇晨",
+    "group": "E",
+    "personnelId": "I63673",
+    "level": "m-",
+    "status": "在職"
+  },
+  {
+    "code": "温",
+    "fullName": "温啟廷",
+    "group": "E",
+    "personnelId": "H41800",
+    "level": "2A*",
+    "status": "在職"
+  },
+  {
+    "code": "尹",
+    "fullName": "王　尹",
+    "group": "E",
+    "personnelId": "F47224",
+    "level": "m",
+    "status": "在職"
+  },
+  {
+    "code": "茹",
+    "fullName": "羅筱茹",
+    "group": "E",
+    "personnelId": "F46468",
+    "level": "M",
+    "status": "在職"
+  },
+  {
+    "code": "育",
+    "fullName": "詹宜育",
+    "group": "E",
+    "personnelId": "Z04242",
+    "level": "學生",
+    "status": "在職"
+  },
+  {
+    "code": "恩",
+    "fullName": "張碩恩",
+    "group": "E",
+    "personnelId": "I67781",
+    "level": "1A-",
+    "status": "在職"
+  },
+  {
+    "code": "玄",
+    "fullName": "王佳玄",
+    "group": "F",
+    "personnelId": "E69932",
+    "level": "DIC",
+    "status": "在職"
+  },
+  {
+    "code": "璥",
+    "fullName": "蔡璥年",
+    "group": "F",
+    "personnelId": "F47135",
+    "level": "DIC",
+    "status": "在職"
+  },
+  {
+    "code": "涵",
+    "fullName": "王琪涵",
+    "group": "F",
+    "personnelId": "F45953",
+    "level": "M",
+    "status": "在職"
+  },
+  {
+    "code": "柳",
+    "fullName": "柳氏銀玄",
+    "group": "F",
+    "personnelId": "H39581",
+    "level": "2A",
+    "status": "在職"
+  },
+  {
+    "code": "嬡",
+    "fullName": "張簡嬡",
+    "group": "F",
+    "personnelId": "H42314",
+    "level": "M",
+    "status": "在職"
+  },
+  {
+    "code": "池",
+    "fullName": "詹彗池",
+    "group": "F",
+    "personnelId": "H42180",
+    "level": "m-",
+    "status": "在職"
+  },
+  {
+    "code": "順",
+    "fullName": "蔡順安",
+    "group": "F",
+    "personnelId": "I63836",
+    "level": "m",
+    "status": "在職"
+  },
+  {
+    "code": "佾",
+    "fullName": "莊景佾",
+    "group": "F",
+    "personnelId": "I63775",
+    "level": "m",
+    "status": "在職"
+  },
+  {
+    "code": "連",
+    "fullName": "連韋菱",
+    "group": "F",
+    "personnelId": "I63953",
+    "level": "2A",
+    "status": "在職"
+  },
+  {
+    "code": "翁",
+    "fullName": "翁靖渝",
+    "group": "F",
+    "personnelId": "I64032",
+    "level": "2A*",
+    "status": "在職"
+  },
+  {
+    "code": "而",
+    "fullName": "馮而辰",
+    "group": "F",
+    "personnelId": "G07408",
+    "level": "1A-",
+    "status": "在職"
+  },
+  {
+    "code": "敬",
+    "fullName": "呂敬澤",
+    "group": "F",
+    "personnelId": "F45994",
+    "level": "1A",
+    "status": "在職"
+  },
+  {
+    "code": "甄",
+    "fullName": "周芃甄",
+    "group": "F",
+    "personnelId": "Z04184",
+    "level": "學生",
+    "status": "在職"
+  },
+  {
+    "code": "蕭",
+    "fullName": "蕭宇謙",
+    "group": "G",
+    "personnelId": "E07634",
+    "level": "DIC",
+    "status": "在職"
+  },
+  {
+    "code": "伍",
+    "fullName": "卓哲伍",
+    "group": "G",
+    "personnelId": "G07449",
+    "level": "DIC",
+    "status": "在職"
+  },
+  {
+    "code": "何",
+    "fullName": "何祥琪",
+    "group": "G",
+    "personnelId": "E75108",
+    "level": "M!",
+    "status": "在職"
+  },
+  {
+    "code": "世",
+    "fullName": "陳世軒",
+    "group": "G",
+    "personnelId": "G06886",
+    "level": "M",
+    "status": "在職"
+  },
+  {
+    "code": "古",
+    "fullName": "古佳欣",
+    "group": "G",
+    "personnelId": "E75088",
+    "level": "M",
+    "status": "在職"
+  },
+  {
+    "code": "芷",
+    "fullName": "邱芷薇",
+    "group": "G",
+    "personnelId": "F78964",
+    "level": "M",
+    "status": "在職"
+  },
+  {
+    "code": "蕾",
+    "fullName": "唐　蕾",
+    "group": "G",
+    "personnelId": "G88691",
+    "level": "M",
+    "status": "在職"
+  },
+  {
+    "code": "義",
+    "fullName": "張義杰",
+    "group": "G",
+    "personnelId": "I63248",
+    "level": "m",
+    "status": "在職"
+  },
+  {
+    "code": "絨",
+    "fullName": "黃郁絨",
+    "group": "G",
+    "personnelId": "I64366",
+    "level": "m-",
+    "status": "在職"
+  },
+  {
+    "code": "魏",
+    "fullName": "魏湧恩",
+    "group": "G",
+    "personnelId": "G08478",
+    "level": "2A",
+    "status": "在職"
+  },
+  {
+    "code": "璇",
+    "fullName": "蔡佳璇",
+    "group": "G",
+    "personnelId": "E74930",
+    "level": "2A",
+    "status": "在職"
+  },
+  {
+    "code": "瑛",
+    "fullName": "莊妤瑛",
+    "group": "G",
+    "personnelId": "Z04177",
+    "level": "學生",
+    "status": "在職"
+  },
+  {
+    "code": "陳",
+    "fullName": "陳佳翎",
+    "group": "G",
+    "personnelId": "F77760",
+    "level": "2A*",
+    "status": "在職"
+  },
+  {
+    "code": "靜",
+    "fullName": "陳靜慧",
+    "group": "G",
+    "personnelId": "F77729",
+    "level": "1A-",
+    "status": "在職"
+  },
+  {
+    "code": "芃",
+    "fullName": "王云芃",
+    "group": "H",
+    "personnelId": "E02757",
+    "level": "DIC!",
+    "status": "在職"
+  },
+  {
+    "code": "以",
+    "fullName": "張以寰",
+    "group": "H",
+    "personnelId": "E09089",
+    "level": "DIC",
+    "status": "在職"
+  },
+  {
+    "code": "紘",
+    "fullName": "李宜紘",
+    "group": "H",
+    "personnelId": "G06114",
+    "level": "DIC",
+    "status": "在職"
+  },
+  {
+    "code": "富",
+    "fullName": "詹富丞",
+    "group": "H",
+    "personnelId": "E07751",
+    "level": "M",
+    "status": "在職"
+  },
+  {
+    "code": "紹",
+    "fullName": "王紹瑋",
+    "group": "H",
+    "personnelId": "G07286",
+    "level": "M",
+    "status": "在職"
+  },
+  {
+    "code": "奕",
+    "fullName": "黃奕瑋",
+    "group": "H",
+    "personnelId": "F47087",
+    "level": "M-",
+    "status": "在職"
+  },
+  {
+    "code": "致",
+    "fullName": "賴致光",
+    "group": "H",
+    "personnelId": "G87163",
+    "level": "M",
+    "status": "在職"
+  },
+  {
+    "code": "姿",
+    "fullName": "蘇姿瑜",
+    "group": "H",
+    "personnelId": "H42225",
+    "level": "M",
+    "status": "在職"
+  },
+  {
+    "code": "汶",
+    "fullName": "蔡汶諺",
+    "group": "H",
+    "personnelId": "H41927",
+    "level": "m!",
+    "status": "在職"
+  },
+  {
+    "code": "悅",
+    "fullName": "楊悅敏",
+    "group": "H",
+    "personnelId": "F76142",
+    "level": "m-",
+    "status": "在職"
+  },
+  {
+    "code": "章",
+    "fullName": "章嘉豪",
+    "group": "H",
+    "personnelId": "I63337",
+    "level": "m",
+    "status": "在職"
+  },
+  {
+    "code": "葳",
+    "fullName": "吳芷葳",
+    "group": "H",
+    "personnelId": "I63190",
+    "level": "m",
+    "status": "在職"
+  },
+  {
+    "code": "惠",
+    "fullName": "盧佳惠",
+    "group": "H",
+    "personnelId": "F46401",
+    "level": "2A-",
+    "status": "在職"
+  },
+  {
+    "code": "郁",
+    "fullName": "王郁婷",
+    "group": "H",
+    "personnelId": "Z04179",
+    "level": "學生",
+    "status": "在職"
+  },
+  {
+    "code": "怡",
+    "fullName": "陳怡潔",
+    "group": "H",
+    "personnelId": "I63808",
+    "level": "m",
+    "status": "在職"
+  },
+  {
+    "code": "玉",
+    "fullName": "陳玉貞",
+    "group": "H",
+    "personnelId": "301890",
+    "level": "1A",
+    "status": "在職"
+  },
+  {
+    "code": "治",
+    "fullName": "陳治宇",
+    "group": "I",
+    "personnelId": "E02054",
+    "level": "DIC",
+    "status": "在職"
+  },
+  {
+    "code": "峰",
+    "fullName": "吳丞峰",
+    "group": "I",
+    "personnelId": "E09677",
+    "level": "DIC",
+    "status": "在職"
+  },
+  {
+    "code": "朱",
+    "fullName": "朱冠臻",
+    "group": "I",
+    "personnelId": "E68855",
+    "level": "M",
+    "status": "在職"
+  },
+  {
+    "code": "原",
+    "fullName": "翁紹原",
+    "group": "I",
+    "personnelId": "F46544",
+    "level": "M",
+    "status": "在職"
+  },
+  {
+    "code": "費",
+    "fullName": "費浩瑋",
+    "group": "I",
+    "personnelId": "F77818",
+    "level": "M",
+    "status": "在職"
+  },
+  {
+    "code": "蔡",
+    "fullName": "蔡品軒",
+    "group": "I",
+    "personnelId": "G88498",
+    "level": "2A",
+    "status": "在職"
+  },
+  {
+    "code": "錢",
+    "fullName": "錢怡廷",
+    "group": "I",
+    "personnelId": "H42327",
+    "level": "M",
+    "status": "在職"
+  },
+  {
+    "code": "宇",
+    "fullName": "周柏宇",
+    "group": "I",
+    "personnelId": "I63584",
+    "level": "m!",
+    "status": "在職"
+  },
+  {
+    "code": "浩",
+    "fullName": "楊浩文",
+    "group": "I",
+    "personnelId": "I63250",
+    "level": "m",
+    "status": "在職"
+  },
+  {
+    "code": "玲",
+    "fullName": "林佩玲",
+    "group": "I",
+    "personnelId": "F78014",
+    "level": "m-",
+    "status": "在職"
+  },
+  {
+    "code": "董",
+    "fullName": "董怡凌",
+    "group": "I",
+    "personnelId": "Z03855",
+    "level": "2A*",
+    "status": "在職"
+  },
+  {
+    "code": "靖",
+    "fullName": "蘇靖翔",
+    "group": "I",
+    "personnelId": "Z04216",
+    "level": "學生",
+    "status": "在職"
+  },
+  {
+    "code": "祐",
+    "fullName": "陳立祐",
+    "group": "I",
+    "personnelId": "Z04230",
+    "level": "學生",
+    "status": "在職"
+  },
+  {
+    "code": "稟",
+    "fullName": "張稟紳",
+    "group": "I",
+    "personnelId": "E07148",
+    "level": "2A*",
+    "status": "在職"
+  },
+  {
+    "code": "黃",
+    "fullName": "黃宇恩",
+    "group": "I",
+    "personnelId": "I63556",
+    "level": "1A-",
+    "status": "在職"
+  },
+  {
+    "code": "先",
+    "fullName": "陳先勇",
+    "group": "J",
+    "personnelId": "E04071",
+    "level": "DIC",
+    "status": "在職"
+  },
+  {
+    "code": "晟",
+    "fullName": "陳瑋晟",
+    "group": "J",
+    "personnelId": "G07798",
+    "level": "DIC",
+    "status": "在職"
+  },
+  {
+    "code": "銘",
+    "fullName": "陳彥銘",
+    "group": "J",
+    "personnelId": "F47033",
+    "level": "M",
+    "status": "在職"
+  },
+  {
+    "code": "媛",
+    "fullName": "陳秀媛",
+    "group": "J",
+    "personnelId": "G85031",
+    "level": "M",
+    "status": "在職"
+  },
+  {
+    "code": "炘",
+    "fullName": "廖冠炘",
+    "group": "J",
+    "personnelId": "G87122",
+    "level": "M",
+    "status": "在職"
+  },
+  {
+    "code": "桄",
+    "fullName": "張桄銪",
+    "group": "J",
+    "personnelId": "G87749",
+    "level": "M",
+    "status": "在職"
+  },
+  {
+    "code": "婕",
+    "fullName": "李婕瑄",
+    "group": "J",
+    "personnelId": "G87894",
+    "level": "M-",
+    "status": "在職"
+  },
+  {
+    "code": "佩",
+    "fullName": "莊佩璇",
+    "group": "J",
+    "personnelId": "H35137",
+    "level": "M-",
+    "status": "在職"
+  },
+  {
+    "code": "彭",
+    "fullName": "彭宇慈",
+    "group": "J",
+    "personnelId": "I63981",
+    "level": "m",
+    "status": "在職"
+  },
+  {
+    "code": "賴",
+    "fullName": "賴奕霖",
+    "group": "J",
+    "personnelId": "I63400",
+    "level": "m",
+    "status": "在職"
+  },
+  {
+    "code": "諺",
+    "fullName": "吳政諺",
+    "group": "J",
+    "personnelId": "G82785",
+    "level": "2A",
+    "status": "在職"
+  },
+  {
+    "code": "羽",
+    "fullName": "陳識羽",
+    "group": "J",
+    "personnelId": "Z04199",
+    "level": "學生",
+    "status": "在職"
+  },
+  {
+    "code": "淵",
+    "fullName": "鍾緒淵",
+    "group": "J",
+    "personnelId": "I67460",
+    "level": "2A*",
+    "status": "在職"
+  },
+  {
+    "code": "彥",
+    "fullName": "林彥廷",
+    "group": "J",
+    "personnelId": "H35063",
+    "level": "1A-",
+    "status": "在職"
+  },
+  {
+    "code": "齊",
+    "fullName": "黃鈺齊",
+    "group": "J",
+    "personnelId": "G07220",
+    "level": "1A-",
+    "status": "在職"
+  },
+  {
+    "code": "雅",
+    "fullName": "陳雅雯",
+    "group": "K",
+    "personnelId": "E02436",
+    "level": "DIC",
+    "status": "在職"
+  },
+  {
+    "code": "維",
+    "fullName": "陳柏維",
+    "group": "K",
+    "personnelId": "F47046",
+    "level": "DIC",
+    "status": "在職"
+  },
+  {
+    "code": "會",
+    "fullName": "王會宇",
+    "group": "K",
+    "personnelId": "E70409",
+    "level": "M-",
+    "status": "在職"
+  },
+  {
+    "code": "依",
+    "fullName": "吳依穎",
+    "group": "K",
+    "personnelId": "G08541",
+    "level": "M",
+    "status": "在職"
+  },
+  {
+    "code": "誌",
+    "fullName": "蘇偉誌",
+    "group": "K",
+    "personnelId": "G07321",
+    "level": "M",
+    "status": "在職"
+  },
+  {
+    "code": "熊",
+    "fullName": "熊品豪",
+    "group": "K",
+    "personnelId": "G87087",
+    "level": "M-",
+    "status": "在職"
+  },
+  {
+    "code": "項",
+    "fullName": "項樺恩",
+    "group": "K",
+    "personnelId": "H41780",
+    "level": "M",
+    "status": "在職"
+  },
+  {
+    "code": "茂",
+    "fullName": "杜茂昇",
+    "group": "K",
+    "personnelId": "H41777",
+    "level": "m",
+    "status": "在職"
+  },
+  {
+    "code": "葶",
+    "fullName": "鍾宜葶",
+    "group": "K",
+    "personnelId": "I63940",
+    "level": "m",
+    "status": "在職"
+  },
+  {
+    "code": "威",
+    "fullName": "陳宇威",
+    "group": "K",
+    "personnelId": "I63569",
+    "level": "m",
+    "status": "在職"
+  },
+  {
+    "code": "東",
+    "fullName": "林東慶",
+    "group": "K",
+    "personnelId": "F76298",
+    "level": "m-",
+    "status": "在職"
+  },
+  {
+    "code": "凌",
+    "fullName": "謝睿凌",
+    "group": "K",
+    "personnelId": "H43140",
+    "level": "2A",
+    "status": "在職"
+  },
+  {
+    "code": "澔",
+    "fullName": "王柏澔",
+    "group": "K",
+    "personnelId": "Z04231",
+    "level": "學生",
+    "status": "在職"
+  },
+  {
+    "code": "易",
+    "fullName": "劉東易",
+    "group": "K",
+    "personnelId": "E70205",
+    "level": "2A*-",
+    "status": "在職"
+  },
+  {
+    "code": "暐",
+    "fullName": "陳　暐",
+    "group": "L",
+    "personnelId": "E06900",
+    "level": "DIC",
+    "status": "在職"
+  },
+  {
+    "code": "許",
+    "fullName": "許庭碩",
+    "group": "L",
+    "personnelId": "G08437",
+    "level": "DIC",
+    "status": "在職"
+  },
+  {
+    "code": "雨",
+    "fullName": "林雨儂",
+    "group": "L",
+    "personnelId": "E87886",
+    "level": "M",
+    "status": "在職"
+  },
+  {
+    "code": "鸞",
+    "fullName": "陳青鸞",
+    "group": "L",
+    "personnelId": "F47930",
+    "level": "M",
+    "status": "在職"
+  },
+  {
+    "code": "顥",
+    "fullName": "張　顥",
+    "group": "L",
+    "personnelId": "G87881",
+    "level": "M-",
+    "status": "在職"
+  },
+  {
+    "code": "馮",
+    "fullName": "馮程羚",
+    "group": "L",
+    "personnelId": "H42294",
+    "level": "M",
+    "status": "在職"
+  },
+  {
+    "code": "儒",
+    "fullName": "江宜儒",
+    "group": "L",
+    "personnelId": "G09349",
+    "level": "m",
+    "status": "在職"
+  },
+  {
+    "code": "岱",
+    "fullName": "何岱哲",
+    "group": "L",
+    "personnelId": "I63380",
+    "level": "m",
+    "status": "在職"
+  },
+  {
+    "code": "詒",
+    "fullName": "王詒佳",
+    "group": "L",
+    "personnelId": "E10480",
+    "level": "2A",
+    "status": "在職"
+  },
+  {
+    "code": "鋒",
+    "fullName": "林高鋒",
+    "group": "L",
+    "personnelId": "C93698",
+    "level": "m",
+    "status": "在職"
+  },
+  {
+    "code": "冠",
+    "fullName": "邱冠瑜",
+    "group": "L",
+    "personnelId": "Z04215",
+    "level": "學生",
+    "status": "在職"
+  },
+  {
+    "code": "平",
+    "fullName": "彭瀚平",
+    "group": "L",
+    "personnelId": "I67404",
+    "level": "2A*",
+    "status": "在職"
+  },
+  {
+    "code": "廖",
+    "fullName": "廖瑩儒",
+    "group": "L",
+    "personnelId": "G87020",
+    "level": "1A-",
+    "status": "在職"
+  },
+  {
+    "code": "胡",
+    "fullName": "胡世軒",
+    "group": "L",
+    "personnelId": "E07341",
+    "level": "m",
+    "status": "在職"
+  },
+  {
+    "code": "裕",
+    "fullName": "林裕祥",
+    "group": "L",
+    "personnelId": "B83843",
+    "level": "見習",
+    "status": "在職"
+  },
+  {
+    "code": "丞",
+    "fullName": "蕭丞謙",
+    "group": "M",
+    "personnelId": "E72620",
+    "level": "DIC",
+    "status": "在職"
+  },
+  {
+    "code": "翎",
+    "fullName": "許鈺翎",
+    "group": "M",
+    "personnelId": "G82989",
+    "level": "DIC",
+    "status": "在職"
+  },
+  {
+    "code": "洪",
+    "fullName": "洪裕誠",
+    "group": "M",
+    "personnelId": "D27800",
+    "level": "m",
+    "status": "在職"
+  },
+  {
+    "code": "碩",
+    "fullName": "張　碩",
+    "group": "M",
+    "personnelId": "E09282",
+    "level": "M",
+    "status": "在職"
+  },
+  {
+    "code": "蘇",
+    "fullName": "蘇郁順",
+    "group": "M",
+    "personnelId": "E05439",
+    "level": "m",
+    "status": "在職"
+  },
+  {
+    "code": "詹",
+    "fullName": "詹智全",
+    "group": "M",
+    "personnelId": "H41840",
+    "level": "m",
+    "status": "在職"
+  },
+  {
+    "code": "戴",
+    "fullName": "戴崇候",
+    "group": "M",
+    "personnelId": "F76489",
+    "level": "m!-",
+    "status": "在職"
+  },
+  {
+    "code": "彬",
+    "fullName": "魏文彬",
+    "group": "M",
+    "personnelId": "H45011",
+    "level": "m",
+    "status": "在職"
+  },
+  {
+    "code": "政",
+    "fullName": "劉政延",
+    "group": "M",
+    "personnelId": "G09336",
+    "level": "m-",
+    "status": "在職"
+  },
+  {
+    "code": "倢",
+    "fullName": "吳依倢",
+    "group": "M",
+    "personnelId": "F45966",
+    "level": "2A-",
+    "status": "在職"
+  },
+  {
+    "code": "純",
+    "fullName": "蔡嘉純",
+    "group": "M",
+    "personnelId": "Z04183",
+    "level": "學生",
+    "status": "在職"
+  },
+  {
+    "code": "鍾",
+    "fullName": "鍾柔暄",
+    "group": "M",
+    "personnelId": "Z04221",
+    "level": "學生",
+    "status": "在職"
+  },
+  {
+    "code": "莊",
+    "fullName": "莊景勛",
+    "group": "M",
+    "personnelId": "G88383",
+    "level": "2A*",
+    "status": "在職"
+  },
+  {
+    "code": "柔",
+    "fullName": "陳　柔",
+    "group": "M",
+    "personnelId": "G84438",
+    "level": "見習",
+    "status": "在職"
+  },
+  {
+    "code": "強",
+    "fullName": "張智強",
+    "group": "N",
+    "personnelId": "B82404",
+    "level": "DIC",
+    "status": "在職"
+  },
+  {
+    "code": "珍",
+    "fullName": "張于珍",
+    "group": "N",
+    "personnelId": "E74430",
+    "level": "DIC",
+    "status": "在職"
+  },
+  {
+    "code": "承",
+    "fullName": "林承賢",
+    "group": "N",
+    "personnelId": "E67177",
+    "level": "M-",
+    "status": "在職"
+  },
+  {
+    "code": "秉",
+    "fullName": "邱秉德",
+    "group": "N",
+    "personnelId": "G07935",
+    "level": "M",
+    "status": "在職"
+  },
+  {
+    "code": "賓",
+    "fullName": "劉享賓",
+    "group": "N",
+    "personnelId": "H42050",
+    "level": "M",
+    "status": "在職"
+  },
+  {
+    "code": "振",
+    "fullName": "張振睿",
+    "group": "N",
+    "personnelId": "I63441",
+    "level": "m",
+    "status": "在職"
+  },
+  {
+    "code": "琮",
+    "fullName": "林琮凱",
+    "group": "N",
+    "personnelId": "H41838",
+    "level": "m",
+    "status": "在職"
+  },
+  {
+    "code": "勛",
+    "fullName": "洪翊勛",
+    "group": "N",
+    "personnelId": "I63571",
+    "level": "m",
+    "status": "在職"
+  },
+  {
+    "code": "思",
+    "fullName": "張思涵",
+    "group": "N",
+    "personnelId": "G87469",
+    "level": "2A",
+    "status": "在職"
+  },
+  {
+    "code": "屈",
+    "fullName": "屈育伶",
+    "group": "N",
+    "personnelId": "Z04218",
+    "level": "學生",
+    "status": "在職"
+  },
+  {
+    "code": "翊",
+    "fullName": "陳翊欣",
+    "group": "N",
+    "personnelId": "Z04237",
+    "level": "學生",
+    "status": "在職"
+  },
+  {
+    "code": "伯",
+    "fullName": "林伯翰",
+    "group": "N",
+    "personnelId": "G07041",
+    "level": "2A*",
+    "status": "在職"
+  },
+  {
+    "code": "家",
+    "fullName": "黃家萱",
+    "group": "N",
+    "personnelId": "G87382",
+    "level": "1A-",
+    "status": "在職"
+  },
+  {
+    "code": "良",
+    "fullName": "陳彥良",
+    "group": "N",
+    "personnelId": "F47020",
+    "level": "1A-",
+    "status": "在職"
+  },
+  {
+    "code": "諭",
+    "fullName": "蕭　諭",
+    "group": "N",
+    "personnelId": "E73516",
+    "level": "1A",
+    "status": "在職"
+  },
+  {
+    "code": "瑩",
+    "fullName": "陳亞瑩",
+    "group": "O",
+    "personnelId": "A94461",
+    "level": "DIC",
+    "status": "在職"
+  },
+  {
+    "code": "明",
+    "fullName": "蔡明儒",
+    "group": "O",
+    "personnelId": "E72734",
+    "level": "DIC",
+    "status": "在職"
+  },
+  {
+    "code": "王",
+    "fullName": "王奕婷",
+    "group": "O",
+    "personnelId": "G09351",
+    "level": "DIC",
+    "status": "在職"
+  },
+  {
+    "code": "充",
+    "fullName": "陳彥充",
+    "group": "O",
+    "personnelId": "E72925",
+    "level": "M",
+    "status": "在職"
+  },
+  {
+    "code": "芳",
+    "fullName": "呂佳芳",
+    "group": "O",
+    "personnelId": "E69945",
+    "level": "M-",
+    "status": "在職"
+  },
+  {
+    "code": "安",
+    "fullName": "蘇怡安",
+    "group": "O",
+    "personnelId": "F46483",
+    "level": "M-",
+    "status": "在職"
+  },
+  {
+    "code": "勇",
+    "fullName": "陳勇聖",
+    "group": "O",
+    "personnelId": "G87110",
+    "level": "M-",
+    "status": "在職"
+  },
+  {
+    "code": "芝",
+    "fullName": "潘氏芝",
+    "group": "O",
+    "personnelId": "H39594",
+    "level": "M",
+    "status": "在職"
+  },
+  {
+    "code": "石",
+    "fullName": "石偉婷",
+    "group": "O",
+    "personnelId": "H42200",
+    "level": "m",
+    "status": "在職"
+  },
+  {
+    "code": "湧",
+    "fullName": "范詩湧",
+    "group": "O",
+    "personnelId": "460207",
+    "level": "m",
+    "status": "在職"
+  },
+  {
+    "code": "晴",
+    "fullName": "王怡晴",
+    "group": "O",
+    "personnelId": "F45940",
+    "level": "m",
+    "status": "在職"
+  },
+  {
+    "code": "奇",
+    "fullName": "任峻奇",
+    "group": "O",
+    "personnelId": "I67420",
+    "level": "2A*",
+    "status": "在職"
+  },
+  {
+    "code": "竹",
+    "fullName": "陳韻竹",
+    "group": "O",
+    "personnelId": "I67868",
+    "level": "1A",
+    "status": "在職"
+  },
+  {
+    "code": "寧",
+    "fullName": "李軒寧",
+    "group": "O",
+    "personnelId": "G07512",
+    "level": "1A-",
+    "status": "在職"
+  },
+  {
+    "code": "達",
+    "fullName": "陳達緯",
+    "group": "O",
+    "personnelId": "G82668",
+    "level": "1A",
+    "status": "在職"
+  },
+  {
+    "code": "薇",
+    "fullName": "蕭士薇",
+    "group": "P",
+    "personnelId": "C91922",
+    "level": "DIC",
+    "status": "在職"
+  },
+  {
+    "code": "韻",
+    "fullName": "王韻涵",
+    "group": "P",
+    "personnelId": "G06081",
+    "level": "DIC",
+    "status": "在職"
+  },
+  {
+    "code": "氏",
+    "fullName": "范氏蓉",
+    "group": "P",
+    "personnelId": "C94808",
+    "level": "M",
+    "status": "在職"
+  },
+  {
+    "code": "渟",
+    "fullName": "黃芷渟",
+    "group": "P",
+    "personnelId": "C93173",
+    "level": "M",
+    "status": "在職"
+  },
+  {
+    "code": "趙",
+    "fullName": "趙威智",
+    "group": "P",
+    "personnelId": "G87209",
+    "level": "M",
+    "status": "在職"
+  },
+  {
+    "code": "佳",
+    "fullName": "范佳穎",
+    "group": "P",
+    "personnelId": "G87293",
+    "level": "M",
+    "status": "在職"
+  },
+  {
+    "code": "潔",
+    "fullName": "蔡明潔",
+    "group": "P",
+    "personnelId": "H42240",
+    "level": "M",
+    "status": "在職"
+  },
+  {
+    "code": "姵",
+    "fullName": "劉姵汝",
+    "group": "P",
+    "personnelId": "G83500",
+    "level": "M",
+    "status": "在職"
+  },
+  {
+    "code": "品",
+    "fullName": "杜品臻",
+    "group": "P",
+    "personnelId": "I63810",
+    "level": "m",
+    "status": "在職"
+  },
+  {
+    "code": "苡",
+    "fullName": "翁苡婷",
+    "group": "P",
+    "personnelId": "G84288",
+    "level": "m",
+    "status": "在職"
+  },
+  {
+    "code": "嬛",
+    "fullName": "鄒宜嬛",
+    "group": "P",
+    "personnelId": "F46280",
+    "level": "2A-",
+    "status": "在職"
+  },
+  {
+    "code": "柏",
+    "fullName": "周柏瑄",
+    "group": "P",
+    "personnelId": "Z04170",
+    "level": "學生",
+    "status": "在職"
+  },
+  {
+    "code": "鉉",
+    "fullName": "陳煥鉉",
+    "group": "P",
+    "personnelId": "I67827",
+    "level": "2A*",
+    "status": "在職"
+  },
+  {
+    "code": "傑",
+    "fullName": "張智傑",
+    "group": "P",
+    "personnelId": "H42870",
+    "level": "1A-",
+    "status": "在職"
+  },
+  {
+    "code": "禹",
+    "fullName": "陳禹丞",
+    "group": "P",
+    "personnelId": "E67212",
+    "level": "2A*-",
+    "status": "在職"
+  },
+  {
+    "code": "圳",
+    "fullName": "陳喭圳",
+    "group": "Q",
+    "personnelId": "D27752",
+    "level": "DIC!",
+    "status": "在職"
+  },
+  {
+    "code": "羅",
+    "fullName": "蘇羅恩",
+    "group": "Q",
+    "personnelId": "G07039",
+    "level": "DIC",
+    "status": "在職"
+  },
+  {
+    "code": "青",
+    "fullName": "阮青玄",
+    "group": "Q",
+    "personnelId": "C94823",
+    "level": "M",
+    "status": "在職"
+  },
+  {
+    "code": "恬",
+    "fullName": "林妤恬",
+    "group": "Q",
+    "personnelId": "H42108",
+    "level": "M",
+    "status": "在職"
+  },
+  {
+    "code": "享",
+    "fullName": "賴佩享",
+    "group": "Q",
+    "personnelId": "H42164",
+    "level": "M",
+    "status": "在職"
+  },
+  {
+    "code": "誠",
+    "fullName": "葉子誠",
+    "group": "Q",
+    "personnelId": "I63482",
+    "level": "m",
+    "status": "在職"
+  },
+  {
+    "code": "妤",
+    "fullName": "林佳妤",
+    "group": "Q",
+    "personnelId": "H43178",
+    "level": "m-",
+    "status": "在職"
+  },
+  {
+    "code": "暄",
+    "fullName": "陳暄淇",
+    "group": "Q",
+    "personnelId": "I64455",
+    "level": "m",
+    "status": "在職"
+  },
+  {
+    "code": "方",
+    "fullName": "鐘方妤",
+    "group": "Q",
+    "personnelId": "F77477",
+    "level": "2A-",
+    "status": "在職"
+  },
+  {
+    "code": "皆",
+    "fullName": "阮皆升",
+    "group": "Q",
+    "personnelId": "Z04245",
+    "level": "學生",
+    "status": "在職"
+  },
+  {
+    "code": "崇",
+    "fullName": "陳崇皓",
+    "group": "Q",
+    "personnelId": "I67486",
+    "level": "2A*-",
+    "status": "在職"
+  },
+  {
+    "code": "庭",
+    "fullName": "胡庭瑄",
+    "group": "Q",
+    "personnelId": "G08500",
+    "level": "1A-",
+    "status": "在職"
+  },
+  {
+    "code": "菡",
+    "fullName": "周筱菡",
+    "group": "Q",
+    "personnelId": "340152",
+    "level": "1A-",
+    "status": "在職"
+  },
+  {
+    "code": "任",
+    "fullName": "張伯任",
+    "group": "R",
+    "personnelId": "A93226",
+    "level": "DIC",
+    "status": "在職"
+  },
+  {
+    "code": "賀",
+    "fullName": "梁賀閔",
+    "group": "R",
+    "personnelId": "G07818",
+    "level": "DIC",
+    "status": "在職"
+  },
+  {
+    "code": "若",
+    "fullName": "廖若珉",
+    "group": "R",
+    "personnelId": "F47252",
+    "level": "M",
+    "status": "在職"
+  },
+  {
+    "code": "邱",
+    "fullName": "邱意珊",
+    "group": "R",
+    "personnelId": "G08198",
+    "level": "M",
+    "status": "在職"
+  },
+  {
+    "code": "唐",
+    "fullName": "李岳唐",
+    "group": "R",
+    "personnelId": "F77581",
+    "level": "M-",
+    "status": "在職"
+  },
+  {
+    "code": "沈",
+    "fullName": "沈郁芬",
+    "group": "R",
+    "personnelId": "F78977",
+    "level": "M-",
+    "status": "在職"
+  },
+  {
+    "code": "映",
+    "fullName": "陳映儒",
+    "group": "R",
+    "personnelId": "H42192",
+    "level": "m",
+    "status": "在職"
+  },
+  {
+    "code": "張",
+    "fullName": "張碩強",
+    "group": "R",
+    "personnelId": "F76079",
+    "level": "m-",
+    "status": "在職"
+  },
+  {
+    "code": "沛",
+    "fullName": "劉沛宣",
+    "group": "R",
+    "personnelId": "I63207",
+    "level": "m",
+    "status": "在職"
+  },
+  {
+    "code": "縉",
+    "fullName": "任威縉",
+    "group": "R",
+    "personnelId": "F77350",
+    "level": "m-",
+    "status": "在職"
+  },
+  {
+    "code": "淣",
+    "fullName": "廖婇淣",
+    "group": "R",
+    "personnelId": "I64470",
+    "level": "m",
+    "status": "在職"
+  },
+  {
+    "code": "意",
+    "fullName": "洪意晴",
+    "group": "R",
+    "personnelId": "Z03849",
+    "level": "2A*",
+    "status": "在職"
+  },
+  {
+    "code": "又",
+    "fullName": "郭又嘉",
+    "group": "R",
+    "personnelId": "E05620",
+    "level": "m",
+    "status": "在職"
+  },
+  {
+    "code": "予",
+    "fullName": "陳亭予",
+    "group": "R",
+    "personnelId": "Z04167",
+    "level": "學生",
+    "status": "在職"
+  },
+  {
+    "code": "昕",
+    "fullName": "黃睿昕",
+    "group": "R",
+    "personnelId": "I67651",
+    "level": "1A-",
+    "status": "在職"
+  },
+  {
+    "code": "游",
+    "fullName": "游欣樺",
+    "group": "S",
+    "personnelId": "D27559",
+    "level": "DIC",
+    "status": "在職"
+  },
+  {
+    "code": "俊",
+    "fullName": "余俊穎",
+    "group": "S",
+    "personnelId": "D27826",
+    "level": "DIC",
+    "status": "在職"
+  },
+  {
+    "code": "申",
+    "fullName": "申傳勝",
+    "group": "S",
+    "personnelId": "G83437",
+    "level": "M",
+    "status": "在職"
+  },
+  {
+    "code": "妮",
+    "fullName": "李采妮",
+    "group": "S",
+    "personnelId": "G88472",
+    "level": "M",
+    "status": "在職"
+  },
+  {
+    "code": "宸",
+    "fullName": "李懿宸",
+    "group": "S",
+    "personnelId": "H41968",
+    "level": "m",
+    "status": "在職"
+  },
+  {
+    "code": "晏",
+    "fullName": "張晏華",
+    "group": "S",
+    "personnelId": "H42238",
+    "level": "m",
+    "status": "在職"
+  },
+  {
+    "code": "毅",
+    "fullName": "陳宏毅",
+    "group": "S",
+    "personnelId": "I63686",
+    "level": "m",
+    "status": "在職"
+  },
+  {
+    "code": "余",
+    "fullName": "余芷璇",
+    "group": "S",
+    "personnelId": "I64379",
+    "level": "m",
+    "status": "在職"
+  },
+  {
+    "code": "瑄",
+    "fullName": "陳怡瑄",
+    "group": "S",
+    "personnelId": "H43076",
+    "level": "m",
+    "status": "在職"
+  },
+  {
+    "code": "宏",
+    "fullName": "全宏凌",
+    "group": "S",
+    "personnelId": "Z03841",
+    "level": "2A*",
+    "status": "在職"
+  },
+  {
+    "code": "瑮",
+    "fullName": "林愷瑮",
+    "group": "S",
+    "personnelId": "Z04165",
+    "level": "學生",
+    "status": "在職"
+  },
+  {
+    "code": "嚴",
+    "fullName": "嚴敏華",
+    "group": "S",
+    "personnelId": "G08261",
+    "level": "2A*-",
+    "status": "在職"
+  },
+  {
+    "code": "淳",
+    "fullName": "鄧淳安",
+    "group": "S",
+    "personnelId": "G87415",
+    "level": "1A-",
+    "status": "在職"
+  },
+  {
+    "code": "慈",
+    "fullName": "林慈怡",
+    "group": "事務員",
+    "personnelId": "G10279",
+    "level": "事務員",
+    "status": "在職"
+  },
+  {
+    "code": "吟",
+    "fullName": "陳芝吟",
+    "group": "事務員",
+    "personnelId": "G10281",
+    "level": "事務員",
+    "status": "在職"
+  },
+  {
+    "code": "娟",
+    "fullName": "簡莉娟",
+    "group": "業督",
+    "personnelId": "185543",
+    "level": "業督",
+    "status": "在職"
+  },
+  {
+    "code": "亨",
+    "fullName": "洪瑞亨",
+    "group": "業督",
+    "personnelId": "A93152",
+    "level": "業督",
+    "status": "在職"
+  },
+  {
+    "code": "婷",
+    "fullName": "王姿婷",
+    "group": "業督",
+    "personnelId": "E02874",
+    "level": "業督",
+    "status": "在職"
+  },
+  {
+    "code": "敏",
+    "fullName": "蕭薇敏",
+    "group": "業督",
+    "personnelId": "D27709",
+    "level": "業督",
+    "status": "在職"
+  },
+  {
+    "code": "崴",
+    "fullName": "徐士崴",
+    "group": "業督",
+    "personnelId": "D38640",
+    "level": "業督",
+    "status": "在職"
+  },
+  {
+    "code": "阮",
+    "fullName": "阮俊彥",
+    "group": "業督",
+    "personnelId": "E06982",
+    "level": "業督",
+    "status": "在職"
+  },
+  {
+    "code": "樂",
+    "fullName": "黃樂怡",
+    "group": "業督",
+    "personnelId": "E07723",
+    "level": "業督",
+    "status": "在職"
+  },
+  {
+    "code": "翔",
+    "fullName": "葉書翔",
+    "group": "業督",
+    "personnelId": "E09700",
+    "level": "業督",
+    "status": "在職"
+  },
+  {
+    "code": "遠",
+    "fullName": "鄭思遠",
+    "group": "業督",
+    "personnelId": "E02579",
+    "level": "業督",
+    "status": "調出"
+  },
+  {
+    "code": "聿",
+    "fullName": "鍾　聿",
+    "group": "留停",
+    "personnelId": "G07436",
+    "level": "M*",
+    "status": "留停"
+  },
+  {
+    "code": "筠",
+    "fullName": "王雅筠",
+    "group": "留停",
+    "personnelId": "G09392",
+    "level": "2A",
+    "status": "留停"
+  },
+  {
+    "code": "智",
+    "fullName": "邱智婕",
+    "group": "留停",
+    "personnelId": "E74300",
+    "level": "2A",
+    "status": "留停"
+  },
+  {
+    "code": "昀",
+    "fullName": "王昀涵",
+    "group": "留停",
+    "personnelId": "G83480",
+    "level": "2A",
+    "status": "留停"
+  },
+  {
+    "code": "李",
+    "fullName": "李虹妮",
+    "group": "留停",
+    "personnelId": "F46017",
+    "level": "2A",
+    "status": "留停"
+  },
+  {
+    "code": "軒",
+    "fullName": "杜季軒",
+    "group": "留停",
+    "personnelId": "F77566",
+    "level": "M",
+    "status": "留停"
+  },
+  {
+    "code": "孫",
+    "fullName": "孫若文",
+    "group": "",
+    "personnelId": "G06578",
+    "level": "DIC",
+    "status": "調出"
+  },
+  {
+    "code": "君",
+    "fullName": "張君嘉",
+    "group": "",
+    "personnelId": "G06820",
+    "level": "M",
+    "status": "調出"
+  },
+  {
+    "code": "葉",
+    "fullName": "葉佳琪",
+    "group": "",
+    "personnelId": "G06155",
+    "level": "M",
+    "status": "調出"
+  },
+  {
+    "code": "崨",
+    "fullName": "廖　崨",
+    "group": "",
+    "personnelId": "G07833",
+    "level": "M",
+    "status": "調出"
+  },
+  {
+    "code": "溱",
+    "fullName": "范溱瑩",
+    "group": "",
+    "personnelId": "G08144",
+    "level": "M",
+    "status": "調出"
+  },
+  {
+    "code": "采",
+    "fullName": "林采儒",
+    "group": "",
+    "personnelId": "G08160",
+    "level": "M",
+    "status": "調出"
+  },
+  {
+    "code": "紜",
+    "fullName": "黃思紜",
+    "group": "",
+    "personnelId": "Z03851",
+    "level": "2A*",
+    "status": "調出"
+  }
+]
