@@ -2785,18 +2785,116 @@
   }
   .erp-staff-page-head h1 { margin: 0 0 4px; font-size: 20px; font-weight: 800; color: #0f172a; }
   .erp-staff-page-head p { margin: 0; font-size: 13px; color: #64748b; line-height: 1.4; }
-  .erp-staff-page-head .erp-module-actions { margin: 0; flex-shrink: 0; gap: 8px; }
-  .erp-staff-page-head .erp-module-actions .toolbar-icon-btn {
-    width: auto; height: auto; min-height: 36px; padding: 0 14px; border-radius: 8px;
-    border: 1px solid #e2e8f0; background: #fff; box-shadow: none;
+  .erp-staff-page-head .erp-module-actions {
+    margin: 0; flex-shrink: 0; gap: 8px; display: flex; flex-wrap: wrap; align-items: center;
   }
-  .erp-staff-page-head .erp-module-actions .toolbar-icon-btn__icon { width: 16px; height: 16px; }
+  .erp-staff-page-head .erp-module-actions .toolbar-icon-btn {
+    width: auto; min-width: auto; height: auto; min-height: 36px; padding: 0 14px; border-radius: 8px;
+    border: 1px solid #e2e8f0; background: #fff; box-shadow: none;
+    display: inline-flex; flex-direction: row; align-items: center; gap: 6px;
+  }
+  .erp-staff-page-head .erp-module-actions .toolbar-icon-btn__icon { width: 16px; height: 16px; flex-shrink: 0; }
   .erp-staff-page-head .erp-module-actions .toolbar-icon-btn__tip {
-    position: static; opacity: 1; transform: none; pointer-events: auto;
+    position: static; opacity: 1; visibility: visible; transform: none; pointer-events: auto;
     padding: 0; background: transparent; color: #334155; font-size: 14px; font-weight: 600;
     box-shadow: none; white-space: nowrap;
   }
+  .erp-staff-page-head .erp-module-actions .toolbar-icon-btn__tip::before { display: none; }
   .erp-staff-page-head .erp-module-actions .toolbar-icon-btn:hover .toolbar-icon-btn__tip { color: #0f172a; }
+  .erp-staff-page-head .erp-module-actions .erp-staff-action-btn {
+    flex-shrink: 0; white-space: nowrap;
+    min-height: 36px; padding: 0 14px; border-radius: 8px; font-size: 14px; font-weight: 600;
+    cursor: pointer; border: 1px solid #e2e8f0; background: #fff; color: #334155;
+  }
+  .erp-staff-page-head .erp-module-actions .erp-staff-action-btn:hover {
+    border-color: #cbd5e1; background: #f8fafc;
+  }
+  .erp-staff-page-head .erp-module-actions .erp-staff-action-btn--primary,
+  .erp-staff-page-head .erp-module-actions #erpStaffAddBtn {
+    background: #2563eb; color: #fff; border-color: #2563eb;
+  }
+  .erp-staff-page-head .erp-module-actions .erp-staff-action-btn--primary:hover,
+  .erp-staff-page-head .erp-module-actions #erpStaffAddBtn:hover {
+    background: #1d4ed8; border-color: #1d4ed8; color: #fff;
+  }
+  .erp-staff-action-btn {
+    min-height: 36px; padding: 0 14px; border-radius: 8px; font-size: 14px; font-weight: 600;
+    cursor: pointer; border: 1px solid #e2e8f0; background: #fff; color: #334155;
+  }
+  .erp-staff-action-btn:hover { border-color: #cbd5e1; background: #f8fafc; }
+  .erp-staff-action-btn--primary {
+    background: #2563eb; color: #fff; border-color: #2563eb;
+  }
+  .erp-staff-action-btn--primary:hover { background: #1d4ed8; border-color: #1d4ed8; }
+  .erp-staff-add-dialog {
+    position: fixed; inset: 0; z-index: 1200; display: flex; align-items: center; justify-content: center;
+    padding: 20px 16px; background: rgba(15, 23, 42, 0.45);
+  }
+  .erp-staff-add-dialog[hidden] { display: none !important; }
+  .erp-staff-add-panel {
+    width: min(520px, 100%); max-height: min(92vh, 720px); overflow: hidden;
+    background: #fff; border-radius: 14px; box-shadow: 0 24px 60px rgba(15, 23, 42, 0.22);
+    display: flex; flex-direction: column;
+  }
+  .erp-staff-add-head {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    padding: 16px 18px 12px; flex-shrink: 0;
+  }
+  .erp-staff-add-head-title { min-width: 0; }
+  .erp-staff-add-head h3 { margin: 0; font-size: 18px; font-weight: 800; color: #0f172a; }
+  .erp-staff-add-close {
+    width: 32px; height: 32px; border: 0; border-radius: 8px; background: transparent;
+    color: #94a3b8; font-size: 22px; line-height: 1; cursor: pointer; flex-shrink: 0;
+  }
+  .erp-staff-add-close:hover { background: #f1f5f9; color: #0f172a; }
+  .erp-staff-add-body {
+    flex: 1; min-height: 0; overflow: auto; margin: 0 18px; padding: 14px 16px 16px;
+    border: 1px solid #e8edf3; border-radius: 12px; background: #fafbfc;
+  }
+  .erp-staff-add-section-title {
+    margin: 0 0 14px; padding-left: 10px; border-left: 3px solid #2563eb;
+    font-size: 14px; font-weight: 800; color: #0f172a; line-height: 1.3;
+  }
+  .erp-staff-add-form-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 12px 14px;
+  }
+  .erp-staff-add-field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+  .erp-staff-add-field.is-span-2 { grid-column: 1 / -1; }
+  .erp-staff-add-label { font-size: 13px; font-weight: 700; color: #475569; }
+  .erp-staff-add-label .req { color: #dc2626; font-weight: 800; }
+  .erp-staff-add-input-wrap {
+    display: flex; align-items: center; gap: 0; min-height: 40px;
+    border: 1px solid #d1d5db; border-radius: 8px; background: #fff; overflow: hidden;
+  }
+  .erp-staff-add-input-wrap:focus-within { border-color: #93c5fd; box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12); }
+  .erp-staff-add-input-wrap input {
+    flex: 1; min-width: 0; width: 100%; border: 0; padding: 9px 11px; font-size: 14px; background: transparent;
+    outline: none; color: #0f172a;
+  }
+  .erp-staff-add-status-locked {
+    display: flex; align-items: center; gap: 8px;
+    min-height: 40px; padding: 0 12px; border: 1px solid #e2e8f0; border-radius: 8px;
+    background: #f8fafc; color: #64748b;
+  }
+  .erp-staff-add-status-pill {
+    display: inline-flex; padding: 4px 12px; border-radius: 999px; font-size: 13px; font-weight: 700;
+    background: #dbeafe; color: #1d4ed8;
+  }
+  .erp-staff-add-foot {
+    flex-shrink: 0; display: flex; justify-content: flex-end; align-items: center; gap: 10px;
+    padding: 14px 18px 16px; border-top: 1px solid #f1f5f9;
+  }
+  .erp-staff-add-foot .erp-staff-action-btn { min-width: 88px; justify-content: center; }
+  .erp-staff-add-foot .erp-staff-action-btn--primary { min-width: 96px; }
+  .erp-staff-list-tabs {
+    display: flex; gap: 0; margin-bottom: 10px; border-bottom: 1px solid #e2e8f0; flex-shrink: 0;
+  }
+  .erp-staff-list-tabs button {
+    border: 0; background: transparent; padding: 10px 16px; font-size: 14px; font-weight: 700;
+    color: #64748b; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px;
+  }
+  .erp-staff-list-tabs button:hover { color: #0f172a; }
+  .erp-staff-list-tabs button.is-active { color: #2563eb; border-bottom-color: #2563eb; }
   .erp-staff-filters {
     display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 10px; flex-shrink: 0;
     padding: 0;
@@ -2841,14 +2939,14 @@
   .erp-staff-table .erp-staff-col-group { width: 60px; }
   .erp-staff-table .erp-staff-col-level { width: 80px; }
   .erp-staff-table .erp-staff-col-status { width: 80px; }
-  .erp-staff-table .erp-staff-col-hist { width: 108px; }
+  .erp-staff-table .erp-staff-col-hist { width: 200px; min-width: 168px; }
   .erp-staff-table tbody tr { cursor: pointer; transition: background 0.12s; }
   .erp-staff-table tbody tr:hover { background: #f8fafc; }
   .erp-staff-table tbody tr.is-selected { background: #eff6ff; }
   .erp-staff-th-sort { cursor: pointer; user-select: none; }
   .erp-staff-th-sort:hover { color: #2563eb; }
   .erp-staff-sort-icon { margin-left: 4px; font-size: 10px; color: #2563eb; }
-  .erp-staff-col-latest { font-size: 13px; color: #475569; font-weight: 600; }
+  .erp-staff-col-latest { font-size: 13px; color: #475569; font-weight: 600; line-height: 1.4; white-space: normal; }
   .erp-staff-status-badge {
     display: inline-flex; align-items: center; gap: 5px; font-size: 14px; font-weight: 600; color: #334155;
   }
@@ -3005,7 +3103,7 @@
   }
   .erp-staff-history-count[hidden] { display: none !important; }
   .erp-staff-modal-footer {
-    flex-shrink: 0; display: flex; justify-content: flex-end; align-items: center; gap: 8px;
+    flex-shrink: 0; display: flex; justify-content: space-between; align-items: center; gap: 8px;
     padding: 10px 16px 12px; border-top: 1px solid #e8edf3; background: #fff;
   }
   .erp-staff-modal-footer[hidden] { display: none !important; }
@@ -3015,6 +3113,12 @@
   }
   .erp-staff-modal-footer button.erp-btn-primary {
     background: #2563eb; color: #fff; border-color: #2563eb;
+  }
+  .erp-staff-modal-footer .erp-staff-delete-person-btn {
+    color: #fff; border-color: #dc2626; background: #dc2626;
+  }
+  .erp-staff-modal-footer .erp-staff-delete-person-btn:hover {
+    background: #b91c1c; border-color: #b91c1c; color: #fff;
   }
   .erp-staff-modal-footer button[hidden] { display: none !important; }
   .erp-staff-history-delete {
@@ -3213,22 +3317,22 @@
         <span class="erp-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 10.5 12 4l9 6.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1v-9.5z"/></svg></span>
         <span class="erp-nav-label">工作台</span>
       </button>
-      <div class="erp-nav-group" data-erp-nav-roles="scheduler,supervisor">
+      <div class="erp-nav-group" data-erp-nav-roles="scheduler,supervisor,admin">
         <div class="erp-nav-group-label">排班中心</div>
         <button type="button" class="erp-nav-btn erp-nav-sub" data-erp-module="schedule-ops">
           <span class="erp-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01M16 18h.01"/></svg></span>
           <span class="erp-nav-label">排班作業</span>
         </button>
       </div>
-      <button type="button" class="erp-nav-btn erp-nav-hidden" data-erp-module="flights" data-erp-nav-roles="scheduler,supervisor">
+      <button type="button" class="erp-nav-btn erp-nav-hidden" data-erp-module="flights" data-erp-nav-roles="scheduler,supervisor,admin">
         <span class="erp-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16v-2l-8-5V3.5a1.5 1.5 0 0 0-3 0V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/></svg></span>
         <span class="erp-nav-label">航班管理</span>
       </button>
-      <button type="button" class="erp-nav-btn erp-nav-hidden" data-erp-module="staff" data-erp-nav-roles="scheduler">
+      <button type="button" class="erp-nav-btn erp-nav-hidden" data-erp-module="staff" data-erp-nav-roles="scheduler,admin">
         <span class="erp-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3"/><circle cx="17" cy="9" r="2.5"/><path d="M2 20c0-3.3 3.1-5 7-5s7 1.7 7 5M14 20c0-2.5 2.2-4 5-4"/></svg></span>
         <span class="erp-nav-label">人員管理</span>
       </button>
-      <button type="button" class="erp-nav-btn erp-nav-hidden" data-erp-module="rules" data-erp-nav-roles="scheduler">
+      <button type="button" class="erp-nav-btn erp-nav-hidden" data-erp-module="rules" data-erp-nav-roles="scheduler,admin">
         <span class="erp-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3h7l5 5v13a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/><path d="M15 3v5h5"/><path d="M8 11.5 9.5 13 12.5 10"/><path d="M14 11.5h5"/><path d="M8 15.5 9.5 17 12.5 14"/><path d="M14 15.5h5"/><path d="M8 19.5 9.5 21 12.5 18"/><path d="M14 19.5h4"/></svg></span>
         <span class="erp-nav-label">規則中心</span>
       </button>
@@ -3240,7 +3344,7 @@
         <span class="erp-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c0-3.5 3.1-6 7-6s7 2.5 7 6"/></svg></span>
         <span class="erp-nav-label">我的值班</span>
       </button>
-      <button type="button" class="erp-nav-btn erp-nav-hidden" data-erp-module="settings" data-erp-nav-roles="scheduler">
+      <button type="button" class="erp-nav-btn erp-nav-hidden" data-erp-module="settings" data-erp-nav-roles="scheduler,admin">
         <span class="erp-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span>
         <span class="erp-nav-label">系統設定</span>
       </button>
@@ -3295,6 +3399,10 @@
             <div class="workbench-panel">
               <div class="workbench-panel-title">登入角色</div>
               <div class="workbench-role-list" id="workbenchRoleList">
+                <label class="workbench-role-option" data-role="admin">
+                  <input type="radio" name="workbenchRole" value="admin" />
+                  <div><strong>管理員</strong><span>人員主檔維護、匯入資料；可刪除測試用人員。</span></div>
+                </label>
                 <label class="workbench-role-option" data-role="scheduler">
                   <input type="radio" name="workbenchRole" value="scheduler" />
                   <div><strong>排班人</strong><span>匯入航班／人員、調整戰力與 duty、拖曳排班、發布班表。</span></div>
@@ -3721,10 +3829,78 @@
               <h1>人員管理</h1>
               <p>管理人員基本資料、戰力與組別，並留存歷史紀錄。</p>
             </div>
-            <div class="erp-module-actions" id="erpStaffMount"></div>
+            <div class="erp-module-actions" id="erpStaffMount">
+              <button type="button" class="erp-staff-action-btn erp-staff-action-btn--primary" id="erpStaffAddBtn">新增人員</button>
+            </div>
           </header>
+          <div id="erpStaffAddDialog" class="erp-staff-add-dialog" hidden>
+            <div class="erp-staff-add-panel" role="dialog" aria-labelledby="erpStaffAddTitle" aria-modal="true">
+              <header class="erp-staff-add-head">
+                <div class="erp-staff-add-head-title">
+                  <h3 id="erpStaffAddTitle">新增人員</h3>
+                </div>
+                <button type="button" class="erp-staff-add-close" id="erpStaffAddCloseBtn" aria-label="關閉">×</button>
+              </header>
+              <div class="erp-staff-add-body">
+                <h4 class="erp-staff-add-section-title">基本資料</h4>
+                <form class="erp-staff-add-form-grid" id="erpStaffAddForm">
+                  <input type="hidden" id="erpStaffAddStatus" value="在職" />
+                  <div class="erp-staff-add-field">
+                    <span class="erp-staff-add-label">人事代號 <span class="req">*</span></span>
+                    <div class="erp-staff-add-input-wrap">
+                      <input type="text" id="erpStaffAddPid" required autocomplete="off" />
+                    </div>
+                  </div>
+                  <div class="erp-staff-add-field">
+                    <span class="erp-staff-add-label">姓名 <span class="req">*</span></span>
+                    <div class="erp-staff-add-input-wrap">
+                      <input type="text" id="erpStaffAddFullName" required autocomplete="off" />
+                    </div>
+                  </div>
+                  <div class="erp-staff-add-field">
+                    <span class="erp-staff-add-label">代號 <span class="req">*</span></span>
+                    <div class="erp-staff-add-input-wrap">
+                      <input type="text" id="erpStaffAddCode" required autocomplete="off" />
+                    </div>
+                  </div>
+                  <div class="erp-staff-add-field">
+                    <span class="erp-staff-add-label">組別 <span class="req">*</span></span>
+                    <div class="erp-staff-add-input-wrap">
+                      <input type="text" id="erpStaffAddGroup" required autocomplete="off" />
+                    </div>
+                  </div>
+                  <div class="erp-staff-add-field">
+                    <span class="erp-staff-add-label">戰力 <span class="req">*</span></span>
+                    <div class="erp-staff-add-input-wrap">
+                      <input type="text" id="erpStaffAddLevel" required autocomplete="off" />
+                    </div>
+                  </div>
+                  <div class="erp-staff-add-field">
+                    <span class="erp-staff-add-label">狀態 <span class="req">*</span></span>
+                    <div class="erp-staff-add-status-locked" title="調入人員固定為在職，並標記為調入紀錄">
+                      <span class="erp-staff-add-status-pill">調入</span>
+                    </div>
+                  </div>
+                  <div class="erp-staff-add-field is-span-2">
+                    <span class="erp-staff-add-label">生效日 <span class="req">*</span></span>
+                    <div class="erp-staff-add-input-wrap">
+                      <input type="date" id="erpStaffAddEffDate" required />
+                    </div>
+                  </div>
+                </form>
+              </div>
+              <footer class="erp-staff-add-foot">
+                <button type="button" class="erp-staff-action-btn" id="erpStaffAddCancelBtn">取消</button>
+                <button type="submit" form="erpStaffAddForm" class="erp-staff-action-btn erp-staff-action-btn--primary">建立</button>
+              </footer>
+            </div>
+          </div>
           <div class="erp-staff-split">
             <div class="erp-staff-list-pane">
+              <div class="erp-staff-list-tabs" role="tablist" aria-label="人員列表分類">
+                <button type="button" role="tab" id="erpStaffTabActive" class="is-active" aria-selected="true">在職人員</button>
+                <button type="button" role="tab" id="erpStaffTabInactive" aria-selected="false">停用人員</button>
+              </div>
               <div class="erp-staff-filters">
                 <label class="erp-staff-search-wrap">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
@@ -3831,6 +4007,7 @@
               </section>
             </div>
             <footer class="erp-staff-modal-footer" id="erpStaffEditFooter" hidden>
+              <button type="button" id="erpStaffDeletePersonBtn" class="erp-staff-delete-person-btn" hidden>刪除此人員</button>
               <button type="submit" form="erpStaffEditForm" id="erpStaffSaveBtn" class="erp-btn-primary">儲存變更</button>
             </footer>
           </div>
@@ -4483,6 +4660,7 @@ const LS_KEYS_GLOBAL = {
 };
 const STAFF_PERSONNEL_BASELINE = '2026-01-01';
 const STAFF_ALERT_STATUSES = new Set(['留停', '調出', '離職']);
+const STAFF_INACTIVE_STATUSES = new Set(['留停', '調出', '離職']);
 function getLocalDateISO() {
   const d = new Date();
   const y = d.getFullYear();
@@ -4815,6 +4993,65 @@ function importStaffPersonnelRegistry(people, meta = {}) {
   normalizeStaffPersonnelBaselines(staffPersonnelRegistry);
   saveStaffPersonnelRegistry();
 }
+function ensureStaffPersonnelRegistry() {
+  if (staffPersonnelRegistry?.people) return;
+  const y = new Date().getFullYear();
+  staffPersonnelRegistry = {
+    version: 1,
+    source: 'manual',
+    historyYear: y,
+    importedAt: new Date().toISOString(),
+    historyStripped: true,
+    historyBaselineNormalized: true,
+    people: []
+  };
+}
+function createStaffPersonnelRecord(patch) {
+  const pid = String(patch.personnelId || '').trim();
+  if (!pid) return { ok: false, message: '請輸入人事代號。' };
+  if (getStaffPersonnelRecord(pid)) return { ok: false, message: `人事代號 ${pid} 已存在。` };
+  const eff = String(patch.effectiveDate || '').trim();
+  if (!isValidISODate(eff)) return { ok: false, message: '請選擇有效的生效日。' };
+  const fullName = String(patch.fullName || '').trim();
+  if (!fullName) return { ok: false, message: '請輸入姓名。' };
+  const code = String(patch.code || '').trim();
+  if (!code) return { ok: false, message: '請輸入代號。' };
+  const group = cleanStaffGroupValue(patch.group);
+  if (!group) return { ok: false, message: '請輸入組別。' };
+  const level = String(patch.level || '').trim();
+  if (!level) return { ok: false, message: '請輸入戰力。' };
+  ensureStaffPersonnelRegistry();
+  const snap = {
+    effectiveDate: eff,
+    fullName,
+    code,
+    group,
+    level,
+    status: String(patch.status || '在職').trim() || '在職',
+    restrictions: '',
+    isTransferIn: true,
+    source: 'transfer-in'
+  };
+  staffPersonnelRegistry.people.push({ personnelId: pid, events: [snap] });
+  saveStaffPersonnelRegistry();
+  return { ok: true, personnelId: pid, effectiveDate: eff };
+}
+function openStaffAddDialog() {
+  const dlg = document.getElementById('erpStaffAddDialog');
+  const form = document.getElementById('erpStaffAddForm');
+  if (!dlg || !form) return;
+  form.reset();
+  const eff = document.getElementById('erpStaffAddEffDate');
+  if (eff) eff.value = getScheduleReferenceDate();
+  const st = document.getElementById('erpStaffAddStatus');
+  if (st) st.value = '在職';
+  dlg.hidden = false;
+  document.getElementById('erpStaffAddPid')?.focus();
+}
+function closeStaffAddDialog() {
+  const dlg = document.getElementById('erpStaffAddDialog');
+  if (dlg) dlg.hidden = true;
+}
 const STAFF_STATUS_FORM_OPTIONS = ['在職', '留停', '調出', '離職'];
 let selectedStaffPersonnelId = null;
 let staffEditorLoadedDate = null;
@@ -4823,6 +5060,66 @@ let erpStaffSortAsc = true;
 let erpStaffHistoryExpanded = false;
 let erpStaffFormEditing = false;
 let staffFormDraft = null;
+let erpStaffListTab = 'active';
+function isWorkbenchAdmin() {
+  return getWorkbenchRole() === 'admin';
+}
+function isStaffInactiveSnapshot(snap) {
+  if (!snap) return false;
+  const st = getStaffDisplayStatus(snap) || String(snap.status || '').trim();
+  return STAFF_INACTIVE_STATUSES.has(st);
+}
+function isStaffInactiveAtDate(personnelId, refDateISO) {
+  const snap = getStaffSnapshotAtDate(personnelId, refDateISO);
+  return isStaffInactiveSnapshot(snap);
+}
+function staffRowPassesListTab(rec, ref) {
+  const inactive = isStaffInactiveAtDate(rec.personnelId, ref);
+  return erpStaffListTab === 'inactive' ? inactive : !inactive;
+}
+function updateStaffListTabsUi() {
+  const activeBtn = document.getElementById('erpStaffTabActive');
+  const inactiveBtn = document.getElementById('erpStaffTabInactive');
+  const isActive = erpStaffListTab === 'active';
+  if (activeBtn) {
+    activeBtn.classList.toggle('is-active', isActive);
+    activeBtn.setAttribute('aria-selected', isActive ? 'true' : 'false');
+  }
+  if (inactiveBtn) {
+    inactiveBtn.classList.toggle('is-active', !isActive);
+    inactiveBtn.setAttribute('aria-selected', !isActive ? 'true' : 'false');
+  }
+  const addBtn = document.getElementById('erpStaffAddBtn');
+  if (addBtn) {
+    addBtn.hidden = false;
+    addBtn.style.display = isActive ? '' : 'none';
+  }
+}
+function setStaffListTab(tab) {
+  const next = tab === 'inactive' ? 'inactive' : 'active';
+  if (erpStaffListTab === next) return;
+  erpStaffListTab = next;
+  updateStaffListTabsUi();
+  if (selectedStaffPersonnelId) {
+    const ref = getScheduleReferenceDate();
+    if (!staffRowPassesListTab({ personnelId: selectedStaffPersonnelId }, ref)) {
+      selectedStaffPersonnelId = null;
+      staffEditorLoadedDate = null;
+      erpStaffFormEditing = false;
+      staffFormDraft = null;
+      setStaffDetailPaneOpen(false);
+    }
+  }
+  renderErpStaffTable();
+}
+function syncStaffListTabForPerson(personnelId) {
+  const inactive = isStaffInactiveAtDate(personnelId, getScheduleReferenceDate());
+  const want = inactive ? 'inactive' : 'active';
+  if (erpStaffListTab !== want) {
+    erpStaffListTab = want;
+    updateStaffListTabsUi();
+  }
+}
 function buildStaffStatusPillHtml(status) {
   const st = String(status || '在職').trim() || '在職';
   let cls = '';
@@ -4865,17 +5162,19 @@ function applyStaffFormSnapshot(snap) {
 }
 function updateStaffEditorFooter() {
   const footer = document.getElementById('erpStaffEditFooter');
-  const delBtn = document.getElementById('erpStaffDeleteEventBtn');
+  const delEventBtn = document.getElementById('erpStaffDeleteEventBtn');
+  const delPersonBtn = document.getElementById('erpStaffDeletePersonBtn');
   if (footer) footer.hidden = !erpStaffFormEditing;
   const rec = selectedStaffPersonnelId ? getStaffPersonnelRecord(selectedStaffPersonnelId) : null;
   const eventCount = (rec?.events || []).length;
-  const canDelete = erpStaffFormEditing && eventCount > 1
+  const canDeleteEvent = erpStaffFormEditing && eventCount > 1
     && !isStaffImportBaselineEvent(
       rec?.events?.find(e => e.effectiveDate === staffEditorLoadedDate),
       staffPersonnelRegistry,
       rec
     );
-  if (delBtn) delBtn.hidden = !canDelete;
+  if (delEventBtn) delEventBtn.hidden = !canDeleteEvent;
+  if (delPersonBtn) delPersonBtn.hidden = !(erpStaffFormEditing && isWorkbenchAdmin());
 }
 function enterStaffFormEditing() {
   staffFormDraft = captureStaffFormSnapshot();
@@ -4961,6 +5260,11 @@ function repairStaffPersonnelMissingBaselines() {
   });
   return changed;
 }
+function formatStaffAdjustmentDate(iso) {
+  if (!isValidISODate(iso)) return '';
+  const [y, m, d] = iso.split('-');
+  return `${y}/${m}/${d}`;
+}
 function getStaffLatestAdjustmentSummary(rec) {
   const display = getStaffHistoryDisplayEvents(rec);
   if (!display.length) return { label: '—', title: '' };
@@ -4970,8 +5274,11 @@ function getStaffLatestAdjustmentSummary(rec) {
   const latest = asc[asc.length - 1];
   const prev = asc.length > 1 ? asc[asc.length - 2] : importBaseline;
   const meta = getStaffHistoryEventMeta(latest, prev);
-  const dateText = formatScheduleDateDisplay(latest.effectiveDate) || latest.effectiveDate;
-  return { label: meta.badge, title: `${dateText} · ${meta.change}` };
+  const dateText = formatStaffAdjustmentDate(latest.effectiveDate) || String(latest.effectiveDate || '').trim();
+  const detail = String(meta.change || '').trim();
+  const reason = `${meta.badge}：${detail}`;
+  const label = dateText ? `${dateText}  ${reason}` : reason;
+  return { label, title: detail && detail !== meta.badge ? detail : '' };
 }
 function getStaffHistoryEventMeta(curr, prev) {
   const currSt = getStaffDisplayStatus(curr) || String(curr.status || '').trim() || '在職';
@@ -4983,6 +5290,9 @@ function getStaffHistoryEventMeta(curr, prev) {
   const currCode = String(curr.code || '').trim();
   const prevCode = prev ? String(prev.code || '').trim() : '';
   if (!prev) {
+    if (curr.isTransferIn || curr.source === 'transfer-in') {
+      return { tone: 'blue', badge: '調入', change: '調入' };
+    }
     return { tone: 'green', badge: '到職（新進）', change: '新進' };
   }
   if (prevSt === '留停' && currSt === '在職') {
@@ -5065,6 +5375,7 @@ function styleStaffPageToolbar() {
 }
 function openStaffPersonnelEditor(personnelId, effectiveDate, options = {}) {
   erpStaffHistoryExpanded = false;
+  syncStaffListTabForPerson(personnelId);
   selectStaffPersonnelEditor(personnelId, effectiveDate, { openModal: true, keepEditing: !!options.startEditing });
   if (options.startEditing) enterStaffFormEditing();
 }
@@ -5074,6 +5385,7 @@ function populateStaffFilterOptions() {
   const groups = new Set();
   const levels = new Set();
   (staffPersonnelRegistry?.people || []).forEach(rec => {
+    if (!staffRowPassesListTab(rec, ref)) return;
     const snap = getStaffSnapshotAtDate(rec.personnelId, ref) || {};
     const st = getStaffDisplayStatus(snap) || snap.status || '';
     if (st) statuses.add(st);
@@ -5092,6 +5404,7 @@ function populateStaffFilterOptions() {
   fill(document.getElementById('erpStaffFilterLevel'), '戰力', levels);
 }
 function staffRowPassesFilters(rec, ref) {
+  if (!staffRowPassesListTab(rec, ref)) return false;
   const snap = getStaffSnapshotAtDate(rec.personnelId, ref) || {};
   const st = getStaffDisplayStatus(snap) || snap.status || '';
   const fs = document.getElementById('erpStaffFilterStatus')?.value || '';
@@ -5168,6 +5481,13 @@ function deleteStaffPersonnelEventAt(personnelId, effectiveDate) {
   rec.events = next;
   sortStaffPersonnelEvents(rec);
   return true;
+}
+function deleteStaffPersonnelRecord(personnelId) {
+  const pid = String(personnelId || '').trim();
+  if (!pid || !staffPersonnelRegistry?.people?.length) return false;
+  const before = staffPersonnelRegistry.people.length;
+  staffPersonnelRegistry.people = staffPersonnelRegistry.people.filter(p => p.personnelId !== pid);
+  return staffPersonnelRegistry.people.length < before;
 }
 function staffPersonnelSearchHaystack(rec, refDateISO) {
   const snap = getStaffSnapshotAtDate(rec.personnelId, refDateISO) || {};
@@ -5297,13 +5617,47 @@ function handleStaffPersonnelFormSubmit(e) {
   staffEditorLoadedDate = eff;
   staffFormDraft = null;
   erpStaffFormEditing = false;
+  syncStaffListTabForPerson(selectedStaffPersonnelId);
   applyStaffPersonnelEditsToSchedule();
   renderErpStaffTable();
+  if (selectedStaffPersonnelId && !staffRowPassesListTab({ personnelId: selectedStaffPersonnelId }, getScheduleReferenceDate())) {
+    setStaffDetailPaneOpen(false);
+    selectedStaffPersonnelId = null;
+    return;
+  }
   renderStaffPersonnelEditor();
+}
+function handleStaffAddFormSubmit(e) {
+  e.preventDefault();
+  const result = createStaffPersonnelRecord({
+    personnelId: document.getElementById('erpStaffAddPid')?.value,
+    fullName: document.getElementById('erpStaffAddFullName')?.value,
+    code: document.getElementById('erpStaffAddCode')?.value,
+    group: document.getElementById('erpStaffAddGroup')?.value,
+    level: document.getElementById('erpStaffAddLevel')?.value,
+    status: document.getElementById('erpStaffAddStatus')?.value,
+    effectiveDate: document.getElementById('erpStaffAddEffDate')?.value
+  });
+  if (!result.ok) {
+    alert(result.message || '建立失敗。');
+    return;
+  }
+  closeStaffAddDialog();
+  applyStaffPersonnelEditsToSchedule();
+  openStaffPersonnelEditor(result.personnelId, result.effectiveDate, { startEditing: false });
 }
 function bindStaffPersonnelEditor() {
   if (bindStaffPersonnelEditor._done) return;
   bindStaffPersonnelEditor._done = true;
+  document.getElementById('erpStaffTabActive')?.addEventListener('click', () => setStaffListTab('active'));
+  document.getElementById('erpStaffTabInactive')?.addEventListener('click', () => setStaffListTab('inactive'));
+  document.getElementById('erpStaffAddBtn')?.addEventListener('click', openStaffAddDialog);
+  document.getElementById('erpStaffAddCancelBtn')?.addEventListener('click', closeStaffAddDialog);
+  document.getElementById('erpStaffAddCloseBtn')?.addEventListener('click', closeStaffAddDialog);
+  document.getElementById('erpStaffAddForm')?.addEventListener('submit', handleStaffAddFormSubmit);
+  document.getElementById('erpStaffAddDialog')?.addEventListener('click', e => {
+    if (e.target.id === 'erpStaffAddDialog') closeStaffAddDialog();
+  });
   document.getElementById('erpStaffEditForm')?.addEventListener('submit', handleStaffPersonnelFormSubmit);
   document.querySelectorAll('.erp-staff-eff-sync').forEach(el => {
     el.addEventListener('change', () => syncStaffEffDateInputs(el.value));
@@ -5322,10 +5676,29 @@ function bindStaffPersonnelEditor() {
     erpStaffHistoryExpanded = !erpStaffHistoryExpanded;
     renderStaffPersonnelEditor();
   });
+  document.getElementById('erpStaffDeletePersonBtn')?.addEventListener('click', () => {
+    if (!selectedStaffPersonnelId || !isWorkbenchAdmin()) return;
+    const rec = getStaffPersonnelRecord(selectedStaffPersonnelId);
+    const snap = rec?.events?.slice().sort((a, b) => compareIsoDate(a.effectiveDate, b.effectiveDate)).pop();
+    const label = [selectedStaffPersonnelId, snap?.fullName].filter(Boolean).join(' ');
+    if (!confirm(`【管理員】確定刪除此人員 ${label}？\n將從人員主檔完全移除，此操作無法復原。`)) return;
+    if (!deleteStaffPersonnelRecord(selectedStaffPersonnelId)) {
+      alert('刪除失敗。');
+      return;
+    }
+    saveStaffPersonnelRegistry();
+    selectedStaffPersonnelId = null;
+    staffEditorLoadedDate = null;
+    staffFormDraft = null;
+    erpStaffFormEditing = false;
+    applyStaffPersonnelEditsToSchedule();
+    setStaffDetailPaneOpen(false);
+    renderErpStaffTable();
+  });
   document.getElementById('erpStaffDeleteEventBtn')?.addEventListener('click', () => {
     if (!selectedStaffPersonnelId) return;
     const eff = document.getElementById('erpStaffEffDate')?.value;
-    if (!confirm(`刪除 ${formatScheduleDateDisplay(eff) || eff} 這筆資料？`)) return;
+    if (!confirm(`刪除 ${formatScheduleDateDisplay(eff) || eff} 這筆生效紀錄？`)) return;
     if (!deleteStaffPersonnelEventAt(selectedStaffPersonnelId, eff)) {
       alert('無法刪除（至少需保留一筆紀錄）。');
       return;
@@ -5546,11 +5919,18 @@ const LS_WORKBENCH_ROLE = `${LS_PREFIX}_workbench_role`;
 const LS_ERP_NAV_CLOSED = `${LS_PREFIX}_erp_nav_closed`;
 const LS_ERP_NAV_OPEN_TOP_REF = `${LS_PREFIX}_erp_nav_open_top_ref`;
 const ROLE_ALLOWED_MODULES = {
+  admin: ['home', 'schedule-ops', 'staff', 'flights', 'rules', 'settings'],
   scheduler: ['home', 'schedule-ops', 'staff', 'flights', 'rules', 'settings'],
   supervisor: ['home', 'schedule-ops', 'supervisor-hub'],
   employee: ['home', 'my-duty']
 };
 const WORKBENCH_ENTRIES = {
+  admin: [
+    { title: '人員管理', desc: '在職／停用人員、調入與狀態變更；可刪除測試人員。', module: 'staff', tag: '人員' },
+    { title: '匯入人員', desc: '更新代號／戰力主檔（Excel）。', module: 'staff', tag: '匯入' },
+    { title: '匯入航班', desc: '匯入當日航班與人員 Excel。', module: 'flights', tag: '航班' },
+    { title: '排班作業', desc: '進入完整排班畫面。', module: 'schedule-ops', tag: '排班' }
+  ],
   scheduler: [
     { title: '匯入航班', desc: '匯入當日航班與人員 Excel。', module: 'flights', tag: '航班' },
     { title: '匯入人員', desc: '更新上班人員名單。', module: 'flights', tag: '人員' },
@@ -5618,7 +5998,7 @@ function renderWorkbenchDashboard() {
     if (!role) {
       statusEl.textContent = `已選擇班表日期：${dateText}。請選擇登入角色以顯示功能入口。`;
     } else {
-      const roleLabel = { scheduler: '排班人', supervisor: '督導', employee: '一般員工' }[role];
+      const roleLabel = { admin: '管理員', scheduler: '排班人', supervisor: '督導', employee: '一般員工' }[role];
       statusEl.textContent = `${dateText}｜${roleLabel} — 以下為您可使用的功能：`;
     }
   }
@@ -5826,6 +6206,7 @@ function renderErpStaffTable() {
     updateErpStaffSortIndicator();
     return;
   }
+  updateStaffListTabsUi();
   populateStaffFilterOptions();
   const q = (document.getElementById('erpStaffSearchInput')?.value || '').trim().toLowerCase();
   let rows = staffPersonnelRegistry.people.slice();
@@ -5840,9 +6221,14 @@ function renderErpStaffTable() {
     const sb = getStaffSnapshotAtDate(b.personnelId, ref);
     return String(sa?.fullName || a.personnelId).localeCompare(String(sb?.fullName || b.personnelId), 'zh-Hant');
   });
-  const total = staffPersonnelRegistry.people.length;
+  const tabLabel = erpStaffListTab === 'inactive' ? '停用人員' : '在職人員';
+  const tabTotal = staffPersonnelRegistry.people.filter(rec => staffRowPassesListTab(rec, ref)).length;
   const countEl = document.getElementById('erpStaffListCount');
-  if (countEl) countEl.textContent = `共 ${rows.length === total ? total : `${rows.length} / ${total}`} 人`;
+  if (countEl) {
+    countEl.textContent = rows.length === tabTotal
+      ? `${tabLabel} 共 ${tabTotal} 人`
+      : `${tabLabel} ${rows.length} / ${tabTotal} 人`;
+  }
   updateErpStaffSortIndicator();
   tbody.innerHTML = rows.slice(0, 500).map(rec => {
     const snap = getStaffSnapshotAtDate(rec.personnelId, ref) || {};
@@ -5861,7 +6247,10 @@ function renderErpStaffTable() {
     </tr>`;
   }).join('');
   if (!rows.length) {
-    tbody.innerHTML = '<tr><td colspan="7" style="color:#64748b;">沒有符合搜尋條件的人員。</td></tr>';
+    const emptyMsg = erpStaffListTab === 'inactive'
+      ? '沒有停用人員，或不符合搜尋／篩選條件。'
+      : '沒有在職人員，或不符合搜尋／篩選條件。';
+    tbody.innerHTML = `<tr><td colspan="7" style="color:#64748b;">${emptyMsg}</td></tr>`;
   }
   tbody.querySelectorAll('tr[data-personnel-id]').forEach(tr => {
     const pid = tr.dataset.personnelId;
@@ -5904,6 +6293,7 @@ function switchErpModule(moduleKey, options = {}) {
     erpMountEl(document.getElementById('staffDbImportInput'), document.getElementById('erpStaffMount'));
     styleStaffPageToolbar();
     bindStaffPersonnelEditor();
+    updateStaffListTabsUi();
     renderErpStaffTable();
   }
   if (moduleKey === 'flights') {
