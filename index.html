@@ -4593,6 +4593,10 @@
             <strong>系統設定</strong>
             <div class="erp-module-sub">資料重置與顯示模式（沿用既有按鈕與邏輯）。</div>
           </div>
+          <div class="erp-module-actions">
+            <button type="button" id="restoreLocalBackupBtn">一鍵匯入 localstorage-backup</button>
+            <input id="restoreLocalBackupInput" type="file" accept=".json,application/json" hidden />
+          </div>
           <div class="erp-module-actions" id="erpSettingsMount"></div>
           <div class="erp-module-actions">
             <button type="button" class="js-erp-proxy-shift">顯示：早班</button>
@@ -5295,6 +5299,30 @@ function readJsonLS(key, fallback) {
   } catch {
     return fallback;
   }
+}
+function listLocalStorageKeysByPrefix(prefix) {
+  const out = [];
+  const p = String(prefix || '').trim();
+  if (!p) return out;
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (key && key.startsWith(p)) out.push(key);
+  }
+  return out;
+}
+function restoreCursorLocalStorageBackup(payload) {
+  if (!payload || typeof payload !== 'object' || !payload.data || typeof payload.data !== 'object') {
+    throw new Error('備份檔格式錯誤，缺少 data 欄位。');
+  }
+  const prefix = `${LS_PREFIX}`;
+  const incoming = Object.entries(payload.data).filter(([k]) => typeof k === 'string' && k.startsWith(prefix));
+  if (!incoming.length) throw new Error(`備份檔內找不到 ${prefix} 資料。`);
+  const existing = listLocalStorageKeysByPrefix(prefix);
+  existing.forEach(k => localStorage.removeItem(k));
+  incoming.forEach(([k, v]) => {
+    localStorage.setItem(k, typeof v === 'string' ? v : JSON.stringify(v));
+  });
+  return { restoredCount: incoming.length, removedCount: existing.length };
 }
 function dayStorageKeys(dateStr) {
   const d = String(dateStr || '').trim();
@@ -11478,6 +11506,36 @@ document.getElementById('staffDbImportInput').addEventListener('change', async (
   const withHist = imported.filter(x => (x.events?.length || 0) > 1).length;
   appSuccess(`人員主檔已更新，共 ${imported.length} 人（${withHist} 人有生效日歷史）。`, '匯入完成');
   e.target.value = '';
+});
+document.getElementById('restoreLocalBackupBtn')?.addEventListener('click', () => {
+  document.getElementById('restoreLocalBackupInput')?.click();
+});
+document.getElementById('restoreLocalBackupInput')?.addEventListener('change', async (e) => {
+  const input = e.target;
+  const file = input?.files && input.files[0];
+  if (!file) return;
+  try {
+    const text = await file.text();
+    const payload = JSON.parse(text);
+    const count = payload && payload.data && typeof payload.data === 'object'
+      ? Object.keys(payload.data).filter(k => k.startsWith(`${LS_PREFIX}`)).length
+      : 0;
+    const ok = await appConfirm(
+      `即將還原 localStorage 備份（${count} 筆 cursor_v1 資料）。\n目前頁面暫存資料會被覆蓋，確定繼續嗎？`,
+      { title: '還原 localStorage 備份', confirmText: '確定還原' }
+    );
+    if (!ok) return;
+    const result = restoreCursorLocalStorageBackup(payload);
+    await appSuccess(
+      `已還原 ${result.restoredCount} 筆資料（清除舊資料 ${result.removedCount} 筆）。\n按下確定後將重新整理頁面套用。`,
+      '還原完成'
+    );
+    window.location.reload();
+  } catch (err) {
+    appAlert(`無法還原備份：${err?.message || err}`, '還原失敗');
+  } finally {
+    if (input) input.value = '';
+  }
 });
 
 document.getElementById('undoBtn')?.addEventListener('click', () => undoLastChange());
