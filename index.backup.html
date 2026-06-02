@@ -1,0 +1,2089 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
+<title>今天的完整拖拉管制表 v2</title>
+<style>
+  :root {
+    --sidebar-width: 420px;
+    --header-height: 44px;
+    --row-height: 46px;
+    --px-per-minute: 1.4;
+    --timeline-width: 1764px;
+    --bg: #f5f7fb;
+    --line: #d6dbe6;
+    --text: #1f2937;
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang TC","Microsoft JhengHei",sans-serif; color:var(--text); background:var(--bg); }
+  .app { display:grid; grid-template-columns:var(--sidebar-width) 1fr; height:100vh; }
+  .sidebar {
+    border-right:1px solid var(--line); background:#fff; display:flex; flex-direction:column; min-width:420px;
+    position: sticky; top: 0; height: 100vh; overflow: hidden;
+  }
+  .panel-title { font-weight:800; padding:16px 16px 8px; font-size:20px; }
+  .panel-sub { color:#6b7280; padding:0 16px 12px; font-size:13px; line-height:1.5; }
+  .controls { padding:0 16px 10px; display:grid; gap:8px; }
+  .controls input,.controls select,.controls button,.editor-controls input,.editor-controls select,.editor-row input,.toolbar input {
+    width:100%; padding:9px 10px; border:1px solid #d1d5db; border-radius:8px; font-size:13px; background:#fff;
+  }
+  .controls button,.toolbar button,.tab-btn,.collapse-btn { cursor:pointer; font-weight:700; }
+  .hint { color:#6b7280; font-size:12px; padding:4px 16px 10px; line-height:1.5; }
+  .palette-tabs { display:flex; gap:8px; padding:10px 12px 0; border-top:1px solid var(--line); background:#fff; flex: 0 0 auto; }
+  .tab-btn { border:1px solid #cfd6e4; background:#fff; border-radius:999px; padding:8px 12px; font-size:13px; }
+  .tab-btn.active { background:#111827; color:#fff; border-color:#111827; }
+  .palette-view { overflow:auto; padding:10px 12px 16px; max-height:28vh; flex: 0 0 auto; }
+  .group-title { margin:12px 4px 8px; font-weight:800; font-size:13px; color:#374151; }
+  .timeline-list-title { margin:4px 4px 10px; font-size:12px; color:#6b7280; font-weight:700; }
+  .duty-chip {
+    display:inline-flex; align-items:center; gap:8px; margin:4px; padding:8px 10px; border-radius:999px; border:1px solid #cbd5e1;
+    background:#fff; cursor:grab; font-size:13px; user-select:none;
+  }
+  .duty-chip strong { font-size:15px; }
+  .duty-chip small,.mini,.editor-sub,.panel-sub,.empty-msg { color:#6b7280; }
+  .empty-msg { font-size:13px; padding:6px 4px 2px; }
+  .role-RC { background:#e0f2fe; } .role-BG { background:#dcfce7; } .role-ABG { background:#fef3c7; } .role-接機RC { background:#ede9fe; } .role-接機C { background:#fde2e8; } .role-PPT { background:#ffe4e6; }
+  .flight-editor { border-top:1px solid var(--line); padding:8px 12px 12px; overflow:auto; flex:1 1 auto; min-height:0; }
+  .flight-editor.collapsed { flex:0 0 auto; overflow:hidden; padding-bottom:8px; }
+  .editor-topbar { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:8px; }
+  .editor-title { font-weight:800; font-size:15px; margin:0 4px 0 0; }
+  .editor-sub { font-size:12px; margin:0 4px 10px; }
+  .collapse-btn { border:1px solid #cfd6e4; background:#fff; border-radius:999px; padding:6px 10px; font-size:12px; }
+  .editor-body.hidden { display:none; }
+  .editor-controls { display:grid; grid-template-columns:1fr 120px; gap:8px; padding:0 4px 10px; }
+  .editor-group-title { margin:12px 4px 6px; font-size:12px; font-weight:800; color:#6b7280; }
+  .editor-head,.editor-row { display:grid; grid-template-columns:74px 52px 80px 78px 78px 64px; gap:6px; align-items:center; padding:6px; }
+  .editor-head { font-size:12px; color:#6b7280; font-weight:700; padding-top:4px; padding-bottom:4px; }
+  .editor-row:hover { background:#f8fafc; border-radius:8px; }
+  .workspace { overflow: auto; position: relative; height: 100vh; isolation: isolate; padding-top: 56px; }
+  .toolbar {
+    position:sticky; top:0; left:0; z-index:60; display:flex; gap:8px; align-items:center; padding:10px 14px;
+    border-bottom:1px solid var(--line); background:rgba(255,255,255,.97); backdrop-filter:blur(6px); flex-wrap:wrap;
+    width:100%; box-sizing:border-box;
+  }
+  .toolbar .search-wrap { width:260px; }
+  .board {
+    position: relative;
+    min-width: calc(240px + var(--timeline-width));
+    overflow: visible;
+    background: linear-gradient(to right,transparent 0,transparent 239px,#cfd6e4 239px,#cfd6e4 240px),linear-gradient(to bottom,#fff,#fff);
+  }
+  .header {
+    position: sticky;
+    top: 60px;
+    z-index: 100;
+    display: grid;
+    grid-template-columns: 240px var(--timeline-width);
+    background: #fff;
+    border-bottom: 1px solid var(--line);
+    box-shadow: 0 1px 0 rgba(0,0,0,0.04);
+  }
+  .name-col {
+    position: sticky;
+    left: 0;
+    z-index: 110;
+    height: var(--header-height);
+    display: flex;
+    align-items: center;
+    padding: 0 12px;
+    font-weight: 800;
+    border-right: 1px solid var(--line);
+    background: #fff;
+  }
+  .times {
+    position: relative;
+    z-index: 105;
+    height: var(--header-height);
+    width: var(--timeline-width);
+    background: #fff;
+    background-image: repeating-linear-gradient(to right,#e5e7eb 0,#e5e7eb 1px,transparent 1px,transparent calc(60 * var(--px-per-minute) * 1px)),
+                      repeating-linear-gradient(to right,#f3f4f6 0,#f3f4f6 1px,transparent 1px,transparent calc(30 * var(--px-per-minute) * 1px));
+  }
+  .time-label { position:absolute; top:10px; transform:translateX(-50%); font-size:12px; color:#4b5563; font-weight:700; }
+  .row { display:grid; grid-template-columns:240px var(--timeline-width); height:var(--row-height); border-bottom:1px solid var(--line); background:#fff; }
+  .person-cell {
+    position: sticky; left: 0; z-index: 5; border-right:1px solid var(--line); padding:5px 8px; display:flex;
+    align-items:center; gap:6px; overflow:hidden; cursor:grab; background:#fff;
+  }
+  .person-cell.dragging { opacity:.5; } .person-cell.over { background:#eef6ff; }
+  .drag-icon { color:#9ca3af; font-size:16px; flex:0 0 auto; }
+  .badge { min-width:28px; padding:3px 6px; border-radius:999px; background:#eef2ff; color:#4338ca; font-size:12px; text-align:center; font-weight:800; }
+  .person-name { font-weight:800; white-space:nowrap; display:inline-flex; align-items:center; gap:5px; min-width:0; }
+  .person-short-name { color:#4338ca; font-weight:900; }
+  .person-full-name { color:#0f172a; font-weight:800; }
+  .timeline {
+    position:relative; width:var(--timeline-width); height:100%;
+    background-image:repeating-linear-gradient(to right,#eceff5 0,#eceff5 1px,transparent 1px,transparent calc(60 * var(--px-per-minute) * 1px)),
+                     repeating-linear-gradient(to right,#f6f7fb 0,#f6f7fb 1px,transparent 1px,transparent calc(30 * var(--px-per-minute) * 1px));
+  }
+  .timeline.drag-over { background-color:#f0f9ff; }
+  .block {
+    position:absolute; top:5px; height:calc(var(--row-height) - 10px); border-radius:10px; border:1px solid rgba(0,0,0,.08);
+    display:flex; align-items:center; padding:0 10px; gap:8px; cursor:move; user-select:none; box-shadow:0 1px 2px rgba(0,0,0,.08); overflow:hidden;
+  }
+  .block .label { white-space:nowrap; font-size:16px; font-weight:900; letter-spacing:.2px; }
+  .block.selected { outline:2px solid #111827; }
+  .block.dimmed { opacity:.18; }
+  .row.flight-match-top .person-cell { background:#fffbea; }
+
+  .person-main { display:flex; align-items:center; gap:6px; min-width:0; flex:1 1 0; overflow:hidden; }
+  .person-meta { display:flex; flex-direction:column; min-width:0; line-height:1.1; flex:1 1 0; overflow:hidden; }
+  .person-name { overflow:hidden; text-overflow:ellipsis; max-width:100%; }
+  .shift-row { display:flex; align-items:center; gap:5px; margin-left:4px; flex:0 0 auto; flex-shrink:0; }
+  .shift-select {
+    width: 58px; padding: 4px 6px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 12px; background:#fff;
+  }
+  .shift-time { display:none; }
+  .timeline { overflow: hidden; }
+  .shift-band {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    height: auto;
+    border-radius: 0;
+    background: rgba(156,163,175,0.18);
+    border: 0;
+    z-index: 1;
+    pointer-events: none;
+  }
+  .shift-band-label { display:none; }
+  .block { z-index: 2; }
+
+  .block-delete-btn {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    width: 22px;
+    height: 22px;
+    border-radius: 999px;
+    border: 1px solid #ef4444;
+    background: #fff;
+    color: #ef4444;
+    font-size: 15px;
+    font-weight: 900;
+    line-height: 18px;
+    cursor: pointer;
+    display: none;
+    z-index: 20;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 6px rgba(0,0,0,.16);
+  }
+  .block.selected .block-delete-btn,
+  .block:hover .block-delete-btn {
+    display: flex;
+  }
+
+
+
+  body { padding-top: 0; }
+  .assignment-overlay-bar {
+    position: fixed;
+    top: 0;
+    left: var(--sidebar-width);
+    right: 0;
+    z-index: 1000;
+    background: rgba(255,255,255,.98);
+    border-bottom: 1px solid #e5e7eb;
+    padding: 10px 14px;
+    display: flex;
+    justify-content: flex-end;
+  }
+  .assignment-toggle-btn {
+    border: 1px solid #cfd6e4;
+    background: #fff;
+    border-radius: 14px;
+    padding: 10px 14px;
+    font-weight: 800;
+    font-size: 15px;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0,0,0,.04);
+  }
+  .assignment-overlay-panel {
+    display: none;
+    position: fixed;
+    top: 56px;
+    left: calc(var(--sidebar-width) + 14px);
+    right: 14px;
+    z-index: 999;
+    background: #fff;
+    border: 1px solid #d6dbe6;
+    border-radius: 14px;
+    box-shadow: 0 10px 30px rgba(0,0,0,.10);
+    overflow: auto;
+    max-height: 42vh;
+  }
+  .assignment-inner { min-width: 1200px; }
+  .assignment-titlebar {
+    display:flex; justify-content:space-between; align-items:center; gap:8px;
+    min-height: 60px;
+    padding:12px 14px; border-bottom:1px solid #e5e7eb;
+    position: sticky; top: 0; background:#fff; z-index: 50;
+  }
+  .assignment-title { font-weight: 800; font-size: 16px; }
+  .assignment-sub { color:#6b7280; font-size:12px; }
+  .assignment-grid { display:grid; grid-template-columns: 1fr 1fr; gap: 0; }
+  .assign-section { border-right: 1px solid #e5e7eb; }
+  .assign-section:last-child { border-right: 0; }
+  .assign-head {
+    background:#f8fafc; padding:10px 12px; border-bottom:1px solid #e5e7eb; font-weight:800;
+    position: sticky; top: 60px; z-index: 30;
+  }
+  .assign-meta { font-size:12px; color:#475569; margin-top:4px; line-height:1.5; }
+  table.assignment-table { width:100%; border-collapse: collapse; font-size: 13px; }
+  .assignment-table th, .assignment-table td {
+    border:1px solid #e5e7eb; padding:6px 8px; text-align:center; white-space:nowrap;
+  }
+  .assignment-table th { background:#f8fafc; position: sticky; top: 118px; z-index: 40; }
+  .memo-cell { text-align:left !important; white-space:normal !important; min-width:120px; }
+  .assignment-clickable { cursor: pointer; background: #fffdfa; }
+  .assignment-clickable:hover { background: #fff3bf; }
+
+
+  body { padding-top: 0; }
+  .workspace {
+    overflow: hidden;
+    position: relative;
+    height: 100vh;
+    isolation: isolate;
+    display: flex;
+    flex-direction: column;
+  }
+  .workspace-topbar {
+    flex: 0 0 auto;
+    padding: 10px 14px 0;
+    display: flex;
+    justify-content: flex-end;
+    background: rgba(255,255,255,.97);
+  }
+  .assignment-toggle-btn {
+    border: 1px solid #cfd6e4;
+    background: #fff;
+    border-radius: 14px;
+    padding: 10px 14px;
+    font-weight: 800;
+    font-size: 15px;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0,0,0,.04);
+  }
+  .assignment-overlay-panel,
+  .assignment-split-panel {
+    display: none;
+    position: relative;
+    left: auto; right: auto; top: auto;
+    z-index: auto;
+    margin: 8px 14px 10px;
+    background: #fff;
+    border: 1px solid #d6dbe6;
+    border-radius: 14px;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.06);
+    overflow: auto;
+    max-height: 38vh;
+    flex: 0 0 auto;
+  }
+  .control-panel {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: auto;
+    display: flex;
+    flex-direction: column;
+    background: transparent;
+  }
+  .control-panel .toolbar {
+    position: sticky;
+    top: 0;
+    left: 0;
+    z-index: 120;
+  }
+  .control-panel .board {
+    position: relative;
+    flex: 0 0 auto;
+  }
+  .control-panel .header {
+    position: sticky;
+    top: 60px;
+    z-index: 110;
+  }
+  .assignment-titlebar {
+    display:flex; justify-content:space-between; align-items:center; gap:8px;
+    min-height: 60px;
+    padding:12px 14px; border-bottom:1px solid #e5e7eb;
+    position: sticky; top: 0; background:#fff; z-index: 50;
+  }
+  .assign-head {
+    background:#f8fafc; padding:10px 12px; border-bottom:1px solid #e5e7eb; font-weight:800;
+    position: sticky; top: 60px; z-index: 30;
+  }
+  .assignment-table th { background:#f8fafc; position: sticky; top: 118px; z-index: 40; }
+
+
+  .pending-rest {
+    display:inline-flex; align-items:center; justify-content:center;
+    margin-left:2px; padding:1px 3px; border-radius:999px;
+    background:#fff7ed; color:#c2410c; font-size:9px; font-weight:800;
+    border:1px solid #fed7aa; flex:0 0 auto;
+  }
+  .role-休 { background:#f3f4f6; }
+
+
+  .rest-60 { background:#e5e7eb !important; border:1px solid #d1d5db !important; } /* 1 hr 灰色 */
+  .rest-30 { background:#ffffff !important; border:1px dashed #cbd5e1 !important; } /* 0.5 hr 白色 */
+
+
+  .palette-view {
+    display: flex;
+    flex-wrap: wrap;
+    align-content: flex-start;
+    gap: 8px;
+  }
+  .group-title, .timeline-list-title, .empty-msg {
+    width: 100%;
+  }
+  .duty-chip {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
+    min-width: 108px;
+    padding: 0 14px;
+    border-radius: 999px;
+    border: 1px solid #cbd5e1;
+    background: #f8fafc;
+    font-size: 14px;
+    font-weight: 800;
+    color: #334155;
+    white-space: nowrap;
+    cursor: grab;
+    user-select: none;
+    box-shadow: 0 1px 3px rgba(15,23,42,0.06);
+    transition: transform .15s ease, box-shadow .15s ease, background .15s ease;
+    margin: 0;
+    gap: 0;
+  }
+  .duty-chip:hover {
+    background: #eef2f7;
+    box-shadow: 0 4px 10px rgba(15,23,42,0.08);
+    transform: translateY(-1px);
+  }
+  .duty-chip strong {
+    font-size: 14px;
+    font-weight: 800;
+    line-height: 1;
+  }
+  .duty-chip small {
+    font-size: 12px;
+    margin-left: 8px;
+    font-weight: 700;
+    color: #64748b;
+  }
+  .duty-chip.role-休 {
+    justify-content: center;
+  }
+  .duty-chip.role-休 strong {
+    font-size: 15px;
+  }
+  .duty-chip.rest-chip-60 {
+    min-width: 120px;
+    background: #e5e7eb;
+    border-color: #d1d5db;
+    color: #1f2937;
+  }
+  .duty-chip.rest-chip-30 {
+    min-width: 96px;
+    background: #ffffff;
+    border: 1px dashed #cbd5e1;
+    color: #334155;
+  }
+
+
+  .custom-duty-box {
+    margin: 10px 16px 10px;
+    padding: 10px;
+    border: 1px solid #d1d5db;
+    border-radius: 12px;
+    background: #fff;
+    display: block;
+  }
+  .custom-duty-title {
+    font-size: 13px;
+    font-weight: 800;
+    margin-bottom: 8px;
+    color: #374151;
+  }
+  .custom-duty-grid {
+    display: grid;
+    grid-template-columns: 1fr 92px 92px auto;
+    gap: 8px;
+    align-items: center;
+  }
+  .custom-duty-grid input {
+    width: 100%;
+    padding: 8px 10px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    font-size: 13px;
+    background: #fff;
+  }
+  .custom-duty-grid button {
+    padding: 8px 10px;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    background: #f8fafc;
+    font-size: 13px;
+    font-weight: 800;
+    cursor: pointer;
+  }
+
+
+  .cloud-status {
+    display:inline-flex; align-items:center; justify-content:center;
+    padding:7px 10px; border-radius:999px;
+    font-size:12px; font-weight:800;
+    background:#eef2ff; color:#3730a3; border:1px solid #c7d2fe;
+  }
+  .cloud-status.offline { background:#fef2f2; color:#991b1b; border-color:#fecaca; }
+  .cloud-status.saving { background:#fff7ed; color:#9a3412; border-color:#fed7aa; }
+  .cloud-status.synced { background:#ecfdf5; color:#065f46; border-color:#a7f3d0; }
+
+
+  .flight-editor {
+    border-top: 1px solid var(--line);
+    padding: 8px 12px 12px;
+    overflow: auto;
+    flex: 0 0 auto;
+    max-height: 32vh;
+    background: #fff;
+    position: sticky;
+    bottom: 0;
+    z-index: 20;
+  }
+  .flight-editor.collapsed {
+    max-height: 54px;
+    overflow: hidden;
+    padding-bottom: 8px;
+  }
+  .palette-view {
+    flex: 1 1 auto;
+    min-height: 120px;
+  }
+
+  /* ===== 修正：人員欄與時間線對齊、往下滑時固定時間軸 ===== */
+  .board {
+    min-width: calc(240px + var(--timeline-width));
+  }
+  .header {
+    grid-template-columns: 240px var(--timeline-width) !important;
+    position: sticky !important;
+    top: 54px !important;
+    z-index: 500 !important;
+  }
+  .name-col {
+    width: 240px;
+    min-width: 240px;
+    z-index: 520 !important;
+  }
+  .times {
+    z-index: 510 !important;
+  }
+  .row {
+    grid-template-columns: 240px var(--timeline-width) !important;
+  }
+  .person-cell {
+    width: 240px;
+    min-width: 240px;
+    z-index: 100 !important;
+  }
+  .control-panel {
+    overflow: auto !important;
+  }
+  .control-panel .toolbar {
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 600 !important;
+    min-height: 54px;
+  }
+  .control-panel .header {
+    top: 54px !important;
+  }
+
+
+  /* UI 優化：移除大段說明，讓畫面更乾淨 */
+  .panel-title {
+    padding: 12px 14px 6px;
+    font-size: 18px;
+    letter-spacing: .2px;
+  }
+  .controls {
+    padding: 0 14px 8px;
+    grid-template-columns: 1fr 1fr;
+  }
+  .controls input,
+  .controls select,
+  .controls button {
+    min-height: 36px;
+  }
+  #searchInput,
+  #roleFilter,
+  #cloudStatus {
+    grid-column: 1 / -1;
+  }
+  .custom-duty-box {
+    margin: 6px 14px 8px;
+    padding: 8px;
+  }
+  .custom-duty-title {
+    margin-bottom: 6px;
+  }
+  .palette-tabs {
+    padding: 8px 10px 0;
+    gap: 6px;
+  }
+  .tab-btn {
+    padding: 7px 10px;
+    font-size: 12px;
+  }
+  .palette-view {
+    padding: 8px 10px 12px;
+    gap: 6px;
+  }
+  .group-title {
+    margin: 8px 2px 4px;
+    font-size: 12px;
+  }
+  .duty-chip {
+    min-height: 38px;
+    min-width: 96px;
+    padding: 0 12px;
+  }
+  .workspace-topbar {
+    padding: 8px 12px 0;
+  }
+  .assignment-toggle-btn {
+    padding: 8px 12px;
+    font-size: 14px;
+  }
+  .toolbar {
+    padding: 8px 12px;
+    gap: 6px;
+    min-height: 52px;
+  }
+  .toolbar .search-wrap {
+    width: 220px;
+  }
+  .toolbar button {
+    width: auto;
+    padding: 8px 10px;
+    border: 1px solid #d1d5db;
+    border-radius: 10px;
+    background: #fff;
+    font-size: 13px;
+  }
+  .header {
+    top: 52px !important;
+  }
+  .name-col {
+    font-size: 15px;
+  }
+  .time-label {
+    font-size: 12px;
+  }
+  .person-cell {
+    padding: 5px 8px;
+  }
+  .pending-rest {
+    font-size: 8px;
+    padding: 1px 3px;
+  }
+  .shift-select {
+    width: 58px;
+    height: 34px;
+  }
+  .block {
+    height: calc(var(--row-height) - 12px);
+    top: 6px;
+    border-radius: 12px;
+  }
+  .block .label {
+    font-size: 15px;
+  }
+  .block-delete-btn {
+    top: -7px;
+    right: -7px;
+    width: 22px;
+    height: 22px;
+    line-height: 18px;
+    box-shadow: 0 2px 8px rgba(239,68,68,.22);
+  }
+  @media (max-width: 900px) {
+    :root { --sidebar-width: 360px; }
+    .sidebar { min-width: 360px; }
+    .custom-duty-grid { grid-template-columns: 1fr 76px 70px auto; }
+    .toolbar .search-wrap { width: 180px; }
+  }
+
+</style>
+</head>
+<body>
+
+<div class="app">
+  <aside class="sidebar">
+    <div class="panel-title">Duty 區塊庫</div>
+    <div class="controls">
+      <input id="searchInput" type="text" placeholder="搜尋 duty / 航班" />
+      <select id="roleFilter">
+        <option value="">全部 duty</option>
+        <option value="RC">只看 RC</option>
+        <option value="BG">只看 BG</option>
+        <option value="ABG">只看 ABG</option>
+        <option value="接機RC">只看 接機RC</option>
+        <option value="接機C">只看 接機C</option>
+        <option value="PPT">只看 PPT</option>
+        <option value="休">只看 休</option>
+      </select>
+      <button id="importExcelBtn">匯入 Excel</button>
+      <button id="importStaffDbBtn">匯入人員資料庫</button>
+      <span id="cloudStatus" class="cloud-status">雲端連線中</span>
+      <input id="excelImportInput" type="file" accept=".xlsx,.xls" style="display:none" />
+      <input id="staffDbImportInput" type="file" accept=".xlsx,.xls" style="display:none" />
+      <button id="resetBtn">清空目前排班</button>
+      <button id="exportBtn">匯出 CSV</button>
+    </div>
+
+    <div class="custom-duty-box">
+      <div class="custom-duty-title">自訂義 duty 區塊</div>
+      <div class="custom-duty-grid">
+        <input id="customDutyName" type="text" placeholder="名稱，例如 支援、協助" />
+        <input id="customDutyStart" type="text" placeholder="08:30" />
+        <input id="customDutyDuration" type="number" min="5" step="5" placeholder="分" />
+        <button id="addCustomDutyBtn">新增</button>
+      </div>
+    </div>
+
+    <div class="palette-tabs">
+      <button class="tab-btn active" data-tab="byRole">依 duty 種類</button>
+      <button class="tab-btn" data-tab="byTime">依時間先後</button>
+      <button class="tab-btn" data-tab="byFunction">功能區塊</button>
+    </div>
+    <div class="palette-view" id="palette"></div>
+    <div class="flight-editor collapsed" id="flightEditorPanel">
+      <div class="editor-topbar">
+        <div class="editor-title">航班時間調整</div>
+        <button class="collapse-btn" id="toggleEditorBtn">展開</button>
+      </div>
+      <div class="editor-body hidden" id="editorBody">
+        <div class="editor-sub">原始 STD / STA 保留；可另外設定提早/延後與延長。</div>
+        <div class="editor-controls">
+          <input id="flightSearchInput" type="text" placeholder="搜尋航班，例如 BR49、49、BR8" />
+          <select id="flightTypeFilter">
+            <option value="">全部</option>
+            <option value="DEP">STD</option>
+            <option value="ARR">STA</option>
+          </select>
+        </div>
+        <div class="editor-group-title">STD</div>
+        <div class="editor-head"><div>航班</div><div>欄位</div><div>原始</div><div>提早/延後</div><div>延長</div><div>目前</div></div>
+        <div id="flightEditorDep"></div>
+        <div class="editor-group-title">STA</div>
+        <div class="editor-head"><div>航班</div><div>欄位</div><div>原始</div><div>提早/延後</div><div>延長</div><div>目前</div></div>
+        <div id="flightEditorArr"></div>
+      </div>
+    </div>
+  </aside>
+  <main class="workspace">
+  <div class="workspace-topbar">
+    <button class="assignment-toggle-btn" id="assignmentToggleBtn">📋 今日航班作業人員分配表</button>
+  </div>
+  <div class="assignment-overlay-panel" id="assignmentPanel">
+  <div class="assignment-inner">
+    <div class="assignment-titlebar">
+      <div>
+        <div class="assignment-title">今日航班作業人員分配表</div>
+        <div class="assignment-sub">航班號碼與 STD / STA 使用你匯入的資料；值日組長、Gate、ETA、接飛、Memo 等未提供欄位先留白。</div>
+      </div>
+      <button class="assignment-toggle-btn" id="assignmentCloseBtn">收合</button>
+    </div>
+    <div class="assignment-grid">
+      <section class="assign-section">
+        <div class="assign-head">
+          出境
+          <div class="assign-meta">
+            值日組長：<br>
+            協勤組長：<br>
+            業督：
+          </div>
+        </div>
+        <table class="assignment-table">
+          <thead>
+            <tr>
+              <th>Flight No</th>
+              <th>STD</th>
+              <th>Gate</th>
+              <th>PPT CHK</th>
+              <th>ABG</th>
+              <th>BG</th>
+              <th>RC</th>
+              <th>Memo</th>
+            </tr>
+          </thead>
+          <tbody id="assignmentDepBody">
+            <tr><td>BR166</td><td>06:15</td><td></td><td data-flight="BR166" data-role="PPT"></td><td data-flight="BR166" data-role="ABG"></td><td data-flight="BR166" data-role="BG"></td><td data-flight="BR166" data-role="RC"></td><td class="memo-cell"></td></tr>
+<tr><td>BR178</td><td>06:30</td><td></td><td data-flight="BR178" data-role="PPT"></td><td data-flight="BR178" data-role="ABG"></td><td data-flight="BR178" data-role="BG"></td><td data-flight="BR178" data-role="RC"></td><td class="memo-cell"></td></tr>
+<tr><td>BR158</td><td>06:35</td><td></td><td data-flight="BR158" data-role="PPT"></td><td data-flight="BR158" data-role="ABG"></td><td data-flight="BR158" data-role="BG"></td><td data-flight="BR158" data-role="RC"></td><td class="memo-cell"></td></tr>
+<tr><td>BR112</td><td>06:55</td><td></td><td data-flight="BR112" data-role="PPT"></td><td data-flight="BR112" data-role="ABG"></td><td data-flight="BR112" data-role="BG"></td><td data-flight="BR112" data-role="RC"></td><td class="memo-cell"></td></tr>
+<tr><td>BR891</td><td>07:00</td><td></td><td data-flight="BR891" data-role="PPT"></td><td data-flight="BR891" data-role="ABG"></td><td data-flight="BR891" data-role="BG"></td><td data-flight="BR891" data-role="RC"></td><td class="memo-cell"></td></tr>
+<tr><td>BR170</td><td>07:05</td><td></td><td data-flight="BR170" data-role="PPT"></td><td data-flight="BR170" data-role="ABG"></td><td data-flight="BR170" data-role="BG"></td><td data-flight="BR170" data-role="RC"></td><td class="memo-cell"></td></tr>
+<tr><td>BR257</td><td>07:20</td><td></td><td data-flight="BR257" data-role="PPT"></td><td data-flight="BR257" data-role="ABG"></td><td data-flight="BR257" data-role="BG"></td><td data-flight="BR257" data-role="RC"></td><td class="memo-cell"></td></tr>
+<tr><td>BR225</td><td>07:25</td><td></td><td data-flight="BR225" data-role="PPT"></td><td data-flight="BR225" data-role="ABG"></td><td data-flight="BR225" data-role="BG"></td><td data-flight="BR225" data-role="RC"></td><td class="memo-cell"></td></tr>
+<tr><td>BR395</td><td>07:40</td><td></td><td data-flight="BR395" data-role="PPT"></td><td data-flight="BR395" data-role="ABG"></td><td data-flight="BR395" data-role="BG"></td><td data-flight="BR395" data-role="RC"></td><td class="memo-cell"></td></tr>
+<tr><td>BR75</td><td>07:40</td><td></td><td data-flight="BR75" data-role="PPT"></td><td data-flight="BR75" data-role="ABG"></td><td data-flight="BR75" data-role="BG"></td><td data-flight="BR75" data-role="RC"></td><td class="memo-cell"></td></tr>
+<tr><td>BR184</td><td>07:55</td><td></td><td data-flight="BR184" data-role="PPT"></td><td data-flight="BR184" data-role="ABG"></td><td data-flight="BR184" data-role="BG"></td><td data-flight="BR184" data-role="RC"></td><td class="memo-cell"></td></tr>
+<tr><td>BR106</td><td>08:00</td><td></td><td data-flight="BR106" data-role="PPT"></td><td data-flight="BR106" data-role="ABG"></td><td data-flight="BR106" data-role="BG"></td><td data-flight="BR106" data-role="RC"></td><td class="memo-cell"></td></tr>
+<tr><td>BR1251</td><td>08:35</td><td></td><td data-flight="BR1251" data-role="PPT"></td><td data-flight="BR1251" data-role="ABG"></td><td data-flight="BR1251" data-role="BG"></td><td data-flight="BR1251" data-role="RC"></td><td class="memo-cell"></td></tr>
+<tr><td>BR67</td><td>08:05</td><td></td><td data-flight="BR67" data-role="PPT"></td><td data-flight="BR67" data-role="ABG"></td><td data-flight="BR67" data-role="BG"></td><td data-flight="BR67" data-role="RC"></td><td class="memo-cell"></td></tr>
+<tr><td>BR851</td><td>08:10</td><td></td><td data-flight="BR851" data-role="PPT"></td><td data-flight="BR851" data-role="ABG"></td><td data-flight="BR851" data-role="BG"></td><td data-flight="BR851" data-role="RC"></td><td class="memo-cell"></td></tr>
+<tr><td>BR132</td><td>08:20</td><td></td><td data-flight="BR132" data-role="PPT"></td><td data-flight="BR132" data-role="ABG"></td><td data-flight="BR132" data-role="BG"></td><td data-flight="BR132" data-role="RC"></td><td class="memo-cell"></td></tr>
+<tr><td>BR281</td><td>08:20</td><td></td><td data-flight="BR281" data-role="PPT"></td><td data-flight="BR281" data-role="ABG"></td><td data-flight="BR281" data-role="BG"></td><td data-flight="BR281" data-role="RC"></td><td class="memo-cell"></td></tr>
+<tr><td>BR211</td><td>08:25</td><td></td><td data-flight="BR211" data-role="PPT"></td><td data-flight="BR211" data-role="ABG"></td><td data-flight="BR211" data-role="BG"></td><td data-flight="BR211" data-role="RC"></td><td class="memo-cell"></td></tr>
+<tr><td>BR265</td><td>08:45</td><td></td><td data-flight="BR265" data-role="PPT"></td><td data-flight="BR265" data-role="ABG"></td><td data-flight="BR265" data-role="BG"></td><td data-flight="BR265" data-role="RC"></td><td class="memo-cell"></td></tr>
+<tr><td>BR233</td><td>08:50</td><td></td><td data-flight="BR233" data-role="PPT"></td><td data-flight="BR233" data-role="ABG"></td><td data-flight="BR233" data-role="BG"></td><td data-flight="BR233" data-role="RC"></td><td class="memo-cell"></td></tr>
+<tr><td>BR198</td><td>08:50</td><td></td><td data-flight="BR198" data-role="PPT"></td><td data-flight="BR198" data-role="ABG"></td><td data-flight="BR198" data-role="BG"></td><td data-flight="BR198" data-role="RC"></td><td class="memo-cell"></td></tr>
+<tr><td>BR237</td><td>09:00</td><td></td><td data-flight="BR237" data-role="PPT"></td><td data-flight="BR237" data-role="ABG"></td><td data-flight="BR237" data-role="BG"></td><td data-flight="BR237" data-role="RC"></td><td class="memo-cell"></td></tr>
+<tr><td>BR716</td><td>09:05</td><td></td><td data-flight="BR716" data-role="PPT"></td><td data-flight="BR716" data-role="ABG"></td><td data-flight="BR716" data-role="BG"></td><td data-flight="BR716" data-role="RC"></td><td class="memo-cell"></td></tr>
+<tr><td>BR271</td><td>09:10</td><td></td><td data-flight="BR271" data-role="PPT"></td><td data-flight="BR271" data-role="ABG"></td><td data-flight="BR271" data-role="BG"></td><td data-flight="BR271" data-role="RC"></td><td class="memo-cell"></td></tr>
+<tr><td>BR391</td><td>09:10</td><td></td><td data-flight="BR391" data-role="PPT"></td><td data-flight="BR391" data-role="ABG"></td><td data-flight="BR391" data-role="BG"></td><td data-flight="BR391" data-role="RC"></td><td class="memo-cell"></td></tr>
+<tr><td>BR397</td><td>09:15</td><td></td><td data-flight="BR397" data-role="PPT"></td><td data-flight="BR397" data-role="ABG"></td><td data-flight="BR397" data-role="BG"></td><td data-flight="BR397" data-role="RC"></td><td class="memo-cell"></td></tr>
+<tr><td>BR227</td><td>09:20</td><td></td><td data-flight="BR227" data-role="PPT"></td><td data-flight="BR227" data-role="ABG"></td><td data-flight="BR227" data-role="BG"></td><td data-flight="BR227" data-role="RC"></td><td class="memo-cell"></td></tr>
+<tr><td>BR116</td><td>09:30</td><td></td><td data-flight="BR116" data-role="PPT"></td><td data-flight="BR116" data-role="ABG"></td><td data-flight="BR116" data-role="BG"></td><td data-flight="BR116" data-role="RC"></td><td class="memo-cell"></td></tr>
+<tr><td>BR315</td><td>09:30</td><td></td><td data-flight="BR315" data-role="PPT"></td><td data-flight="BR315" data-role="ABG"></td><td data-flight="BR315" data-role="BG"></td><td data-flight="BR315" data-role="RC"></td><td class="memo-cell"></td></tr>
+<tr><td>BR215</td><td>09:35</td><td></td><td data-flight="BR215" data-role="PPT"></td><td data-flight="BR215" data-role="ABG"></td><td data-flight="BR215" data-role="BG"></td><td data-flight="BR215" data-role="RC"></td><td class="memo-cell"></td></tr>
+<tr><td>BR383</td><td>09:45</td><td></td><td data-flight="BR383" data-role="PPT"></td><td data-flight="BR383" data-role="ABG"></td><td data-flight="BR383" data-role="BG"></td><td data-flight="BR383" data-role="RC"></td><td class="memo-cell"></td></tr>
+<tr><td>BR867</td><td>09:50</td><td></td><td data-flight="BR867" data-role="PPT"></td><td data-flight="BR867" data-role="ABG"></td><td data-flight="BR867" data-role="BG"></td><td data-flight="BR867" data-role="RC"></td><td class="memo-cell"></td></tr>
+<tr><td>BR712</td><td>09:50</td><td></td><td data-flight="BR712" data-role="PPT"></td><td data-flight="BR712" data-role="ABG"></td><td data-flight="BR712" data-role="BG"></td><td data-flight="BR712" data-role="RC"></td><td class="memo-cell"></td></tr>
+<tr><td>BR801</td><td>10:00</td><td></td><td data-flight="BR801" data-role="PPT"></td><td data-flight="BR801" data-role="ABG"></td><td data-flight="BR801" data-role="BG"></td><td data-flight="BR801" data-role="RC"></td><td class="memo-cell"></td></tr>
+<tr><td>BR122</td><td>10:00</td><td></td><td data-flight="BR122" data-role="PPT"></td><td data-flight="BR122" data-role="ABG"></td><td data-flight="BR122" data-role="BG"></td><td data-flight="BR122" data-role="RC"></td><td class="memo-cell"></td></tr>
+<tr><td>BR255</td><td>10:00</td><td></td><td data-flight="BR255" data-role="PPT"></td><td data-flight="BR255" data-role="ABG"></td><td data-flight="BR255" data-role="BG"></td><td data-flight="BR255" data-role="RC"></td><td class="memo-cell"></td></tr>
+<tr><td>BR118</td><td>10:15</td><td></td><td data-flight="BR118" data-role="PPT"></td><td data-flight="BR118" data-role="ABG"></td><td data-flight="BR118" data-role="BG"></td><td data-flight="BR118" data-role="RC"></td><td class="memo-cell"></td></tr>
+<tr><td>BR1383</td><td>11:20</td><td></td><td data-flight="BR1383" data-role="PPT"></td><td data-flight="BR1383" data-role="ABG"></td><td data-flight="BR1383" data-role="BG"></td><td data-flight="BR1383" data-role="RC"></td><td class="memo-cell"></td></tr>
+<tr><td>BR6</td><td>11:20</td><td></td><td data-flight="BR6" data-role="PPT"></td><td data-flight="BR6" data-role="ABG"></td><td data-flight="BR6" data-role="BG"></td><td data-flight="BR6" data-role="RC"></td><td class="memo-cell"></td></tr>
+<tr><td>BR8</td><td>11:30</td><td></td><td data-flight="BR8" data-role="PPT"></td><td data-flight="BR8" data-role="ABG"></td><td data-flight="BR8" data-role="BG"></td><td data-flight="BR8" data-role="RC"></td><td class="memo-cell"></td></tr>
+<tr><td>BR104</td><td>11:40</td><td></td><td data-flight="BR104" data-role="PPT"></td><td data-flight="BR104" data-role="ABG"></td><td data-flight="BR104" data-role="BG"></td><td data-flight="BR104" data-role="RC"></td><td class="memo-cell"></td></tr>
+<tr><td>OZ712</td><td>11:40</td><td></td><td data-flight="OZ712" data-role="PPT"></td><td data-flight="OZ712" data-role="ABG"></td><td data-flight="OZ712" data-role="BG"></td><td data-flight="OZ712" data-role="RC"></td><td class="memo-cell"></td></tr>
+<tr><td>HX253</td><td>11:50</td><td></td><td data-flight="HX253" data-role="PPT"></td><td data-flight="HX253" data-role="ABG"></td><td data-flight="HX253" data-role="BG"></td><td data-flight="HX253" data-role="RC"></td><td class="memo-cell"></td></tr>
+<tr><td>BR869</td><td>12:25</td><td></td><td data-flight="BR869" data-role="PPT"></td><td data-flight="BR869" data-role="ABG"></td><td data-flight="BR869" data-role="BG"></td><td data-flight="BR869" data-role="RC"></td><td class="memo-cell"></td></tr>
+<tr><td>BX794</td><td>13:25</td><td></td><td data-flight="BX794" data-role="PPT"></td><td data-flight="BX794" data-role="ABG"></td><td data-flight="BX794" data-role="BG"></td><td data-flight="BX794" data-role="RC"></td><td class="memo-cell"></td></tr>
+<tr><td>BR130</td><td>13:30</td><td></td><td data-flight="BR130" data-role="PPT"></td><td data-flight="BR130" data-role="ABG"></td><td data-flight="BR130" data-role="BG"></td><td data-flight="BR130" data-role="RC"></td><td class="memo-cell"></td></tr>
+<tr><td>BR164</td><td>14:25</td><td></td><td data-flight="BR164" data-role="PPT"></td><td data-flight="BR164" data-role="ABG"></td><td data-flight="BR164" data-role="BG"></td><td data-flight="BR164" data-role="RC"></td><td class="memo-cell"></td></tr>
+<tr><td>BR385</td><td>14:50</td><td></td><td data-flight="BR385" data-role="PPT"></td><td data-flight="BR385" data-role="ABG"></td><td data-flight="BR385" data-role="BG"></td><td data-flight="BR385" data-role="RC"></td><td class="memo-cell"></td></tr>
+<tr><td>BR160</td><td>15:15</td><td></td><td data-flight="BR160" data-role="PPT"></td><td data-flight="BR160" data-role="ABG"></td><td data-flight="BR160" data-role="BG"></td><td data-flight="BR160" data-role="RC"></td><td class="memo-cell"></td></tr>
+<tr><td>BR196</td><td>15:20</td><td></td><td data-flight="BR196" data-role="PPT"></td><td data-flight="BR196" data-role="ABG"></td><td data-flight="BR196" data-role="BG"></td><td data-flight="BR196" data-role="RC"></td><td class="memo-cell"></td></tr>
+<tr><td>BR277</td><td>15:30</td><td></td><td data-flight="BR277" data-role="PPT"></td><td data-flight="BR277" data-role="ABG"></td><td data-flight="BR277" data-role="BG"></td><td data-flight="BR277" data-role="RC"></td><td class="memo-cell"></td></tr>
+<tr><td>B70187</td><td>16:25</td><td></td><td data-flight="B70187" data-role="PPT"></td><td data-flight="B70187" data-role="ABG"></td><td data-flight="B70187" data-role="BG"></td><td data-flight="B70187" data-role="RC"></td><td class="memo-cell"></td></tr>
+<tr><td>BR102</td><td>16:25</td><td></td><td data-flight="BR102" data-role="PPT"></td><td data-flight="BR102" data-role="ABG"></td><td data-flight="BR102" data-role="BG"></td><td data-flight="BR102" data-role="RC"></td><td class="memo-cell"></td></tr>
+<tr><td>BR722</td><td>16:30</td><td></td><td data-flight="BR722" data-role="PPT"></td><td data-flight="BR722" data-role="ABG"></td><td data-flight="BR722" data-role="BG"></td><td data-flight="BR722" data-role="RC"></td><td class="memo-cell"></td></tr>
+<tr><td>BR805</td><td>16:30</td><td></td><td data-flight="BR805" data-role="PPT"></td><td data-flight="BR805" data-role="ABG"></td><td data-flight="BR805" data-role="BG"></td><td data-flight="BR805" data-role="RC"></td><td class="memo-cell"></td></tr>
+<tr><td>HX265</td><td>16:30</td><td></td><td data-flight="HX265" data-role="PPT"></td><td data-flight="HX265" data-role="ABG"></td><td data-flight="HX265" data-role="BG"></td><td data-flight="HX265" data-role="RC"></td><td class="memo-cell"></td></tr>
+<tr><td>BR871</td><td>16:35</td><td></td><td data-flight="BR871" data-role="PPT"></td><td data-flight="BR871" data-role="ABG"></td><td data-flight="BR871" data-role="BG"></td><td data-flight="BR871" data-role="RC"></td><td class="memo-cell"></td></tr>
+<tr><td>BR186</td><td>16:50</td><td></td><td data-flight="BR186" data-role="PPT"></td><td data-flight="BR186" data-role="ABG"></td><td data-flight="BR186" data-role="BG"></td><td data-flight="BR186" data-role="RC"></td><td class="memo-cell"></td></tr>
+<tr><td>OZ714</td><td>17:10</td><td></td><td data-flight="OZ714" data-role="PPT"></td><td data-flight="OZ714" data-role="ABG"></td><td data-flight="OZ714" data-role="BG"></td><td data-flight="OZ714" data-role="RC"></td><td class="memo-cell"></td></tr>
+<tr><td>BX792</td><td>17:40</td><td></td><td data-flight="BX792" data-role="PPT"></td><td data-flight="BX792" data-role="ABG"></td><td data-flight="BX792" data-role="BG"></td><td data-flight="BX792" data-role="RC"></td><td class="memo-cell"></td></tr>
+<tr><td>BR857</td><td>18:10</td><td></td><td data-flight="BR857" data-role="PPT"></td><td data-flight="BR857" data-role="ABG"></td><td data-flight="BR857" data-role="BG"></td><td data-flight="BR857" data-role="RC"></td><td class="memo-cell"></td></tr>
+<tr><td>NZ78</td><td>18:30</td><td></td><td data-flight="NZ78" data-role="PPT"></td><td data-flight="NZ78" data-role="ABG"></td><td data-flight="NZ78" data-role="BG"></td><td data-flight="NZ78" data-role="RC"></td><td class="memo-cell"></td></tr>
+<tr><td>BR809</td><td>19:00</td><td></td><td data-flight="BR809" data-role="PPT"></td><td data-flight="BR809" data-role="ABG"></td><td data-flight="BR809" data-role="BG"></td><td data-flight="BR809" data-role="RC"></td><td class="memo-cell"></td></tr>
+<tr><td>BR36</td><td>19:20</td><td></td><td data-flight="BR36" data-role="PPT"></td><td data-flight="BR36" data-role="ABG"></td><td data-flight="BR36" data-role="BG"></td><td data-flight="BR36" data-role="RC"></td><td class="memo-cell"></td></tr>
+<tr><td>BR32</td><td>19:20</td><td></td><td data-flight="BR32" data-role="PPT"></td><td data-flight="BR32" data-role="ABG"></td><td data-flight="BR32" data-role="BG"></td><td data-flight="BR32" data-role="RC"></td><td class="memo-cell"></td></tr>
+<tr><td>HX261</td><td>19:20</td><td></td><td data-flight="HX261" data-role="PPT"></td><td data-flight="HX261" data-role="ABG"></td><td data-flight="HX261" data-role="BG"></td><td data-flight="HX261" data-role="RC"></td><td class="memo-cell"></td></tr>
+<tr><td>BR381</td><td>19:30</td><td></td><td data-flight="BR381" data-role="PPT"></td><td data-flight="BR381" data-role="ABG"></td><td data-flight="BR381" data-role="BG"></td><td data-flight="BR381" data-role="RC"></td><td class="memo-cell"></td></tr>
+<tr><td>BR12</td><td>19:40</td><td></td><td data-flight="BR12" data-role="PPT"></td><td data-flight="BR12" data-role="ABG"></td><td data-flight="BR12" data-role="BG"></td><td data-flight="BR12" data-role="RC"></td><td class="memo-cell"></td></tr>
+<tr><td>BR50</td><td>19:45</td><td></td><td data-flight="BR50" data-role="PPT"></td><td data-flight="BR50" data-role="ABG"></td><td data-flight="BR50" data-role="BG"></td><td data-flight="BR50" data-role="RC"></td><td class="memo-cell"></td></tr>
+<tr><td>BR18</td><td>19:50</td><td></td><td data-flight="BR18" data-role="PPT"></td><td data-flight="BR18" data-role="ABG"></td><td data-flight="BR18" data-role="BG"></td><td data-flight="BR18" data-role="RC"></td><td class="memo-cell"></td></tr>
+<tr><td>BR56</td><td>20:00</td><td></td><td data-flight="BR56" data-role="PPT"></td><td data-flight="BR56" data-role="ABG"></td><td data-flight="BR56" data-role="BG"></td><td data-flight="BR56" data-role="RC"></td><td class="memo-cell"></td></tr>
+<tr><td>BR3811</td><td>20:10</td><td></td><td data-flight="BR3811" data-role="PPT"></td><td data-flight="BR3811" data-role="ABG"></td><td data-flight="BR3811" data-role="BG"></td><td data-flight="BR3811" data-role="RC"></td><td class="memo-cell"></td></tr>
+<tr><td>BR261</td><td>20:30</td><td></td><td data-flight="BR261" data-role="PPT"></td><td data-flight="BR261" data-role="ABG"></td><td data-flight="BR261" data-role="BG"></td><td data-flight="BR261" data-role="RC"></td><td class="memo-cell"></td></tr>
+<tr><td>BR205</td><td>20:45</td><td></td><td data-flight="BR205" data-role="PPT"></td><td data-flight="BR205" data-role="ABG"></td><td data-flight="BR205" data-role="BG"></td><td data-flight="BR205" data-role="RC"></td><td class="memo-cell"></td></tr>
+<tr><td>BR52</td><td>21:20</td><td></td><td data-flight="BR52" data-role="PPT"></td><td data-flight="BR52" data-role="ABG"></td><td data-flight="BR52" data-role="BG"></td><td data-flight="BR52" data-role="RC"></td><td class="memo-cell"></td></tr>
+<tr><td>HX283</td><td>21:35</td><td></td><td data-flight="HX283" data-role="PPT"></td><td data-flight="HX283" data-role="ABG"></td><td data-flight="HX283" data-role="BG"></td><td data-flight="HX283" data-role="RC"></td><td class="memo-cell"></td></tr>
+<tr><td>BR61</td><td>22:30</td><td></td><td data-flight="BR61" data-role="PPT"></td><td data-flight="BR61" data-role="ABG"></td><td data-flight="BR61" data-role="BG"></td><td data-flight="BR61" data-role="RC"></td><td class="memo-cell"></td></tr>
+<tr><td>BR24</td><td>23:00</td><td></td><td data-flight="BR24" data-role="PPT"></td><td data-flight="BR24" data-role="ABG"></td><td data-flight="BR24" data-role="BG"></td><td data-flight="BR24" data-role="RC"></td><td class="memo-cell"></td></tr>
+<tr><td>BR87</td><td>23:00</td><td></td><td data-flight="BR87" data-role="PPT"></td><td data-flight="BR87" data-role="ABG"></td><td data-flight="BR87" data-role="BG"></td><td data-flight="BR87" data-role="RC"></td><td class="memo-cell"></td></tr>
+<tr><td>BR95</td><td>23:10</td><td></td><td data-flight="BR95" data-role="PPT"></td><td data-flight="BR95" data-role="ABG"></td><td data-flight="BR95" data-role="BG"></td><td data-flight="BR95" data-role="RC"></td><td class="memo-cell"></td></tr>
+<tr><td>BR28</td><td>23:30</td><td></td><td data-flight="BR28" data-role="PPT"></td><td data-flight="BR28" data-role="ABG"></td><td data-flight="BR28" data-role="BG"></td><td data-flight="BR28" data-role="RC"></td><td class="memo-cell"></td></tr>
+<tr><td>BR26</td><td>23:40</td><td></td><td data-flight="BR26" data-role="PPT"></td><td data-flight="BR26" data-role="ABG"></td><td data-flight="BR26" data-role="BG"></td><td data-flight="BR26" data-role="RC"></td><td class="memo-cell"></td></tr>
+<tr><td>BR10</td><td>23:55</td><td></td><td data-flight="BR10" data-role="PPT"></td><td data-flight="BR10" data-role="ABG"></td><td data-flight="BR10" data-role="BG"></td><td data-flight="BR10" data-role="RC"></td><td class="memo-cell"></td></tr>
+<tr><td>BR16</td><td>23:55</td><td></td><td data-flight="BR16" data-role="PPT"></td><td data-flight="BR16" data-role="ABG"></td><td data-flight="BR16" data-role="BG"></td><td data-flight="BR16" data-role="RC"></td><td class="memo-cell"></td></tr>
+          </tbody>
+        </table>
+      </section>
+      <section class="assign-section">
+        <div class="assign-head">
+          入境
+          <div class="assign-meta">
+            值日組長：<br>
+            協勤組長：<br>
+            業督：
+          </div>
+        </div>
+        <table class="assignment-table">
+          <thead>
+            <tr>
+              <th>Flight No</th>
+              <th>接飛</th>
+              <th>STA</th>
+              <th>Gate</th>
+              <th>ETA</th>
+              <th>G2</th>
+              <th>辦T</th>
+              <th>C</th>
+              <th>RC</th>
+              <th>Memo</th>
+            </tr>
+          </thead>
+          <tbody id="assignmentArrBody">
+            <tr><td>BR316</td><td></td><td>05:05</td><td></td><td></td><td></td><td></td><td data-flight="BR316" data-role="接機C"></td><td data-flight="BR316" data-role="接機RC"></td><td class="memo-cell"></td></tr>
+<tr><td>BR49</td><td></td><td>05:10</td><td></td><td></td><td></td><td></td><td data-flight="BR49" data-role="接機C"></td><td data-flight="BR49" data-role="接機RC"></td><td class="memo-cell"></td></tr>
+<tr><td>BR35</td><td></td><td>05:10</td><td></td><td></td><td></td><td></td><td data-flight="BR35" data-role="接機C"></td><td data-flight="BR35" data-role="接機RC"></td><td class="memo-cell"></td></tr>
+<tr><td>BR25</td><td></td><td>05:10</td><td></td><td></td><td></td><td></td><td data-flight="BR25" data-role="接機C"></td><td data-flight="BR25" data-role="接機RC"></td><td class="memo-cell"></td></tr>
+<tr><td>BR11</td><td></td><td>05:15</td><td></td><td></td><td></td><td></td><td data-flight="BR11" data-role="接機C"></td><td data-flight="BR11" data-role="接機RC"></td><td class="memo-cell"></td></tr>
+<tr><td>BR9</td><td></td><td>05:15</td><td></td><td></td><td></td><td></td><td data-flight="BR9" data-role="接機C"></td><td data-flight="BR9" data-role="接機RC"></td><td class="memo-cell"></td></tr>
+<tr><td>BR55</td><td></td><td>05:25</td><td></td><td></td><td></td><td></td><td data-flight="BR55" data-role="接機C"></td><td data-flight="BR55" data-role="接機RC"></td><td class="memo-cell"></td></tr>
+<tr><td>BR27</td><td></td><td>05:35</td><td></td><td></td><td></td><td></td><td data-flight="BR27" data-role="接機C"></td><td data-flight="BR27" data-role="接機RC"></td><td class="memo-cell"></td></tr>
+<tr><td>BR15</td><td></td><td>05:40</td><td></td><td></td><td></td><td></td><td data-flight="BR15" data-role="接機C"></td><td data-flight="BR15" data-role="接機RC"></td><td class="memo-cell"></td></tr>
+<tr><td>BR17</td><td></td><td>05:55</td><td></td><td></td><td></td><td></td><td data-flight="BR17" data-role="接機C"></td><td data-flight="BR17" data-role="接機RC"></td><td class="memo-cell"></td></tr>
+<tr><td>BR262</td><td></td><td>06:00</td><td></td><td></td><td></td><td></td><td data-flight="BR262" data-role="接機C"></td><td data-flight="BR262" data-role="接機RC"></td><td class="memo-cell"></td></tr>
+<tr><td>BR96</td><td></td><td>06:10</td><td></td><td></td><td></td><td></td><td data-flight="BR96" data-role="接機C"></td><td data-flight="BR96" data-role="接機RC"></td><td class="memo-cell"></td></tr>
+<tr><td>BR382</td><td></td><td>06:10</td><td></td><td></td><td></td><td></td><td data-flight="BR382" data-role="接機C"></td><td data-flight="BR382" data-role="接機RC"></td><td class="memo-cell"></td></tr>
+<tr><td>BR31</td><td></td><td>06:20</td><td></td><td></td><td></td><td></td><td data-flight="BR31" data-role="接機C"></td><td data-flight="BR31" data-role="接機RC"></td><td class="memo-cell"></td></tr>
+<tr><td>BR51</td><td></td><td>06:20</td><td></td><td></td><td></td><td></td><td data-flight="BR51" data-role="接機C"></td><td data-flight="BR51" data-role="接機RC"></td><td class="memo-cell"></td></tr>
+<tr><td>BR72</td><td></td><td>06:30</td><td></td><td></td><td></td><td></td><td data-flight="BR72" data-role="接機C"></td><td data-flight="BR72" data-role="接機RC"></td><td class="memo-cell"></td></tr>
+<tr><td>BR66</td><td></td><td>06:40</td><td></td><td></td><td></td><td></td><td data-flight="BR66" data-role="接機C"></td><td data-flight="BR66" data-role="接機RC"></td><td class="memo-cell"></td></tr>
+<tr><td>BR206</td><td></td><td>06:50</td><td></td><td></td><td></td><td></td><td data-flight="BR206" data-role="接機C"></td><td data-flight="BR206" data-role="接機RC"></td><td class="memo-cell"></td></tr>
+<tr><td>BR88</td><td></td><td>07:20</td><td></td><td></td><td></td><td></td><td data-flight="BR88" data-role="接機C"></td><td data-flight="BR88" data-role="接機RC"></td><td class="memo-cell"></td></tr>
+<tr><td>B73211</td><td></td><td>08:40</td><td></td><td></td><td></td><td></td><td data-flight="B73211" data-role="接機C"></td><td data-flight="B73211" data-role="接機RC"></td><td class="memo-cell"></td></tr>
+<tr><td>OZ711</td><td></td><td>09:50</td><td></td><td></td><td></td><td></td><td data-flight="OZ711" data-role="接機C"></td><td data-flight="OZ711" data-role="接機RC"></td><td class="memo-cell"></td></tr>
+<tr><td>B73213</td><td></td><td>10:00</td><td></td><td></td><td></td><td></td><td data-flight="B73213" data-role="接機C"></td><td data-flight="B73213" data-role="接機RC"></td><td class="memo-cell"></td></tr>
+<tr><td>HX252</td><td></td><td>10:50</td><td></td><td></td><td></td><td></td><td data-flight="HX252" data-role="接機C"></td><td data-flight="HX252" data-role="接機RC"></td><td class="memo-cell"></td></tr>
+<tr><td>BR113</td><td></td><td>10:55</td><td></td><td></td><td></td><td></td><td data-flight="BR113" data-role="接機C"></td><td data-flight="BR113" data-role="接機RC"></td><td class="memo-cell"></td></tr>
+<tr><td>BR892</td><td></td><td>12:00</td><td></td><td></td><td></td><td></td><td data-flight="BR892" data-role="接機C"></td><td data-flight="BR892" data-role="接機RC"></td><td class="memo-cell"></td></tr>
+<tr><td>BX793</td><td></td><td>12:25</td><td></td><td></td><td></td><td></td><td data-flight="BX793" data-role="接機C"></td><td data-flight="BX793" data-role="接機RC"></td><td class="memo-cell"></td></tr>
+<tr><td>BR852</td><td></td><td>13:05</td><td></td><td></td><td></td><td></td><td data-flight="BR852" data-role="接機C"></td><td data-flight="BR852" data-role="接機RC"></td><td class="memo-cell"></td></tr>
+<tr><td>BR177</td><td></td><td>13:10</td><td></td><td></td><td></td><td></td><td data-flight="BR177" data-role="接機C"></td><td data-flight="BR177" data-role="接機RC"></td><td class="memo-cell"></td></tr>
+<tr><td>BR169</td><td></td><td>13:30</td><td></td><td></td><td></td><td></td><td data-flight="BR169" data-role="接機C"></td><td data-flight="BR169" data-role="接機RC"></td><td class="memo-cell"></td></tr>
+<tr><td>BR105</td><td></td><td>13:50</td><td></td><td></td><td></td><td></td><td data-flight="BR105" data-role="接機C"></td><td data-flight="BR105" data-role="接機RC"></td><td class="memo-cell"></td></tr>
+<tr><td>BR234</td><td></td><td>14:15</td><td></td><td></td><td></td><td></td><td data-flight="BR234" data-role="接機C"></td><td data-flight="BR234" data-role="接機RC"></td><td class="memo-cell"></td></tr>
+<tr><td>BR157</td><td></td><td>14:35</td><td></td><td></td><td></td><td></td><td data-flight="BR157" data-role="接機C"></td><td data-flight="BR157" data-role="接機RC"></td><td class="memo-cell"></td></tr>
+<tr><td>BR802</td><td></td><td>14:55</td><td></td><td></td><td></td><td></td><td data-flight="BR802" data-role="接機C"></td><td data-flight="BR802" data-role="接機RC"></td><td class="memo-cell"></td></tr>
+<tr><td>BR272</td><td></td><td>15:00</td><td></td><td></td><td></td><td></td><td data-flight="BR272" data-role="接機C"></td><td data-flight="BR272" data-role="接機RC"></td><td class="memo-cell"></td></tr>
+<tr><td>BR131</td><td></td><td>15:05</td><td></td><td></td><td></td><td></td><td data-flight="BR131" data-role="接機C"></td><td data-flight="BR131" data-role="接機RC"></td><td class="memo-cell"></td></tr>
+<tr><td>BR711</td><td></td><td>15:15</td><td></td><td></td><td></td><td></td><td data-flight="BR711" data-role="接機C"></td><td data-flight="BR711" data-role="接機RC"></td><td class="memo-cell"></td></tr>
+<tr><td>BR282</td><td></td><td>15:20</td><td></td><td></td><td></td><td></td><td data-flight="BR282" data-role="接機C"></td><td data-flight="BR282" data-role="接機RC"></td><td class="memo-cell"></td></tr>
+<tr><td>BR868</td><td></td><td>15:20</td><td></td><td></td><td></td><td></td><td data-flight="BR868" data-role="接機C"></td><td data-flight="BR868" data-role="接機RC"></td><td class="memo-cell"></td></tr>
+<tr><td>HX264</td><td></td><td>15:30</td><td></td><td></td><td></td><td></td><td data-flight="HX264" data-role="接機C"></td><td data-flight="HX264" data-role="接機RC"></td><td class="memo-cell"></td></tr>
+<tr><td>OZ713</td><td></td><td>15:45</td><td></td><td></td><td></td><td></td><td data-flight="OZ713" data-role="接機C"></td><td data-flight="OZ713" data-role="接機RC"></td><td class="memo-cell"></td></tr>
+<tr><td>BR165</td><td></td><td>16:05</td><td></td><td></td><td></td><td></td><td data-flight="BR165" data-role="接機C"></td><td data-flight="BR165" data-role="接機RC"></td><td class="memo-cell"></td></tr>
+<tr><td>BR183</td><td></td><td>16:05</td><td></td><td></td><td></td><td></td><td data-flight="BR183" data-role="接機C"></td><td data-flight="BR183" data-role="接機RC"></td><td class="memo-cell"></td></tr>
+<tr><td>BR1252</td><td></td><td>16:35</td><td></td><td></td><td></td><td></td><td data-flight="BR1252" data-role="接機C"></td><td data-flight="BR1252" data-role="接機RC"></td><td class="memo-cell"></td></tr>
+<tr><td>BR398</td><td></td><td>16:10</td><td></td><td></td><td></td><td></td><td data-flight="BR398" data-role="接機C"></td><td data-flight="BR398" data-role="接機RC"></td><td class="memo-cell"></td></tr>
+<tr><td>BR258</td><td></td><td>16:30</td><td></td><td></td><td></td><td></td><td data-flight="BR258" data-role="接機C"></td><td data-flight="BR258" data-role="接機RC"></td><td class="memo-cell"></td></tr>
+<tr><td>BX791</td><td></td><td>16:40</td><td></td><td></td><td></td><td></td><td data-flight="BX791" data-role="接機C"></td><td data-flight="BX791" data-role="接機RC"></td><td class="memo-cell"></td></tr>
+<tr><td>BR384</td><td></td><td>16:50</td><td></td><td></td><td></td><td></td><td data-flight="BR384" data-role="接機C"></td><td data-flight="BR384" data-role="接機RC"></td><td class="memo-cell"></td></tr>
+<tr><td>BR392</td><td></td><td>17:00</td><td></td><td></td><td></td><td></td><td data-flight="BR392" data-role="接機C"></td><td data-flight="BR392" data-role="接機RC"></td><td class="memo-cell"></td></tr>
+<tr><td>NZ77</td><td></td><td>17:00</td><td></td><td></td><td></td><td></td><td data-flight="NZ77" data-role="接機C"></td><td data-flight="NZ77" data-role="接機RC"></td><td class="memo-cell"></td></tr>
+<tr><td>BR197</td><td></td><td>17:05</td><td></td><td></td><td></td><td></td><td data-flight="BR197" data-role="接機C"></td><td data-flight="BR197" data-role="接機RC"></td><td class="memo-cell"></td></tr>
+<tr><td>BR266</td><td></td><td>17:05</td><td></td><td></td><td></td><td></td><td data-flight="BR266" data-role="接機C"></td><td data-flight="BR266" data-role="接機RC"></td><td class="memo-cell"></td></tr>
+<tr><td>BR715</td><td></td><td>17:10</td><td></td><td></td><td></td><td></td><td data-flight="BR715" data-role="接機C"></td><td data-flight="BR715" data-role="接機RC"></td><td class="memo-cell"></td></tr>
+<tr><td>BR870</td><td></td><td>17:10</td><td></td><td></td><td></td><td></td><td data-flight="BR870" data-role="接機C"></td><td data-flight="BR870" data-role="接機RC"></td><td class="memo-cell"></td></tr>
+<tr><td>BR212</td><td></td><td>17:15</td><td></td><td></td><td></td><td></td><td data-flight="BR212" data-role="接機C"></td><td data-flight="BR212" data-role="接機RC"></td><td class="memo-cell"></td></tr>
+<tr><td>BR5</td><td></td><td>17:20</td><td></td><td></td><td></td><td></td><td data-flight="BR5" data-role="接機C"></td><td data-flight="BR5" data-role="接機RC"></td><td class="memo-cell"></td></tr>
+<tr><td>BR103</td><td></td><td>17:35</td><td></td><td></td><td></td><td></td><td data-flight="BR103" data-role="接機C"></td><td data-flight="BR103" data-role="接機RC"></td><td class="memo-cell"></td></tr>
+<tr><td>BR226</td><td></td><td>17:50</td><td></td><td></td><td></td><td></td><td data-flight="BR226" data-role="接機C"></td><td data-flight="BR226" data-role="接機RC"></td><td class="memo-cell"></td></tr>
+<tr><td>BR7</td><td></td><td>18:00</td><td></td><td></td><td></td><td></td><td data-flight="BR7" data-role="接機C"></td><td data-flight="BR7" data-role="接機RC"></td><td class="memo-cell"></td></tr>
+<tr><td>HX260</td><td></td><td>18:20</td><td></td><td></td><td></td><td></td><td data-flight="HX260" data-role="接機C"></td><td data-flight="HX260" data-role="接機RC"></td><td class="memo-cell"></td></tr>
+<tr><td>BR1384</td><td></td><td>18:25</td><td></td><td></td><td></td><td></td><td data-flight="BR1384" data-role="接機C"></td><td data-flight="BR1384" data-role="接機RC"></td><td class="memo-cell"></td></tr>
+<tr><td>BR121</td><td></td><td>19:00</td><td></td><td></td><td></td><td></td><td data-flight="BR121" data-role="接機C"></td><td data-flight="BR121" data-role="接機RC"></td><td class="memo-cell"></td></tr>
+<tr><td>BR115</td><td></td><td>19:05</td><td></td><td></td><td></td><td></td><td data-flight="BR115" data-role="接機C"></td><td data-flight="BR115" data-role="接機RC"></td><td class="memo-cell"></td></tr>
+<tr><td>BR3808</td><td></td><td>19:10</td><td></td><td></td><td></td><td></td><td data-flight="BR3808" data-role="接機C"></td><td data-flight="BR3808" data-role="接機RC"></td><td class="memo-cell"></td></tr>
+<tr><td>BR117</td><td></td><td>19:30</td><td></td><td></td><td></td><td></td><td data-flight="BR117" data-role="接機C"></td><td data-flight="BR117" data-role="接機RC"></td><td class="memo-cell"></td></tr>
+<tr><td>BR228</td><td></td><td>20:05</td><td></td><td></td><td></td><td></td><td data-flight="BR228" data-role="接機C"></td><td data-flight="BR228" data-role="接機RC"></td><td class="memo-cell"></td></tr>
+<tr><td>BR396</td><td></td><td>20:10</td><td></td><td></td><td></td><td></td><td data-flight="BR396" data-role="接機C"></td><td data-flight="BR396" data-role="接機RC"></td><td class="memo-cell"></td></tr>
+<tr><td>BR216</td><td></td><td>20:15</td><td></td><td></td><td></td><td></td><td data-flight="BR216" data-role="接機C"></td><td data-flight="BR216" data-role="接機RC"></td><td class="memo-cell"></td></tr>
+<tr><td>BR129</td><td></td><td>20:25</td><td></td><td></td><td></td><td></td><td data-flight="BR129" data-role="接機C"></td><td data-flight="BR129" data-role="接機RC"></td><td class="memo-cell"></td></tr>
+<tr><td>BR163</td><td></td><td>20:25</td><td></td><td></td><td></td><td></td><td data-flight="BR163" data-role="接機C"></td><td data-flight="BR163" data-role="接機RC"></td><td class="memo-cell"></td></tr>
+<tr><td>HX282</td><td></td><td>20:35</td><td></td><td></td><td></td><td></td><td data-flight="HX282" data-role="接機C"></td><td data-flight="HX282" data-role="接機RC"></td><td class="memo-cell"></td></tr>
+<tr><td>BR238</td><td></td><td>20:55</td><td></td><td></td><td></td><td></td><td data-flight="BR238" data-role="接機C"></td><td data-flight="BR238" data-role="接機RC"></td><td class="memo-cell"></td></tr>
+<tr><td>BR185</td><td></td><td>20:55</td><td></td><td></td><td></td><td></td><td data-flight="BR185" data-role="接機C"></td><td data-flight="BR185" data-role="接機RC"></td><td class="memo-cell"></td></tr>
+<tr><td>BR278</td><td></td><td>21:10</td><td></td><td></td><td></td><td></td><td data-flight="BR278" data-role="接機C"></td><td data-flight="BR278" data-role="接機RC"></td><td class="memo-cell"></td></tr>
+<tr><td>BR872</td><td></td><td>21:25</td><td></td><td></td><td></td><td></td><td data-flight="BR872" data-role="接機C"></td><td data-flight="BR872" data-role="接機RC"></td><td class="memo-cell"></td></tr>
+<tr><td>B70188</td><td></td><td>21:35</td><td></td><td></td><td></td><td></td><td data-flight="B70188" data-role="接機C"></td><td data-flight="B70188" data-role="接機RC"></td><td class="memo-cell"></td></tr>
+<tr><td>BR159</td><td></td><td>21:40</td><td></td><td></td><td></td><td></td><td data-flight="BR159" data-role="接機C"></td><td data-flight="BR159" data-role="接機RC"></td><td class="memo-cell"></td></tr>
+<tr><td>BR256</td><td></td><td>21:45</td><td></td><td></td><td></td><td></td><td data-flight="BR256" data-role="接機C"></td><td data-flight="BR256" data-role="接機RC"></td><td class="memo-cell"></td></tr>
+<tr><td>BR68</td><td></td><td>21:50</td><td></td><td></td><td></td><td></td><td data-flight="BR68" data-role="接機C"></td><td data-flight="BR68" data-role="接機RC"></td><td class="memo-cell"></td></tr>
+<tr><td>BR386</td><td></td><td>21:55</td><td></td><td></td><td></td><td></td><td data-flight="BR386" data-role="接機C"></td><td data-flight="BR386" data-role="接機RC"></td><td class="memo-cell"></td></tr>
+<tr><td>BR806</td><td></td><td>22:00</td><td></td><td></td><td></td><td></td><td data-flight="BR806" data-role="接機C"></td><td data-flight="BR806" data-role="接機RC"></td><td class="memo-cell"></td></tr>
+<tr><td>BR721</td><td></td><td>22:10</td><td></td><td></td><td></td><td></td><td data-flight="BR721" data-role="接機C"></td><td data-flight="BR721" data-role="接機RC"></td><td class="memo-cell"></td></tr>
+<tr><td>BR101</td><td></td><td>22:40</td><td></td><td></td><td></td><td></td><td data-flight="BR101" data-role="接機C"></td><td data-flight="BR101" data-role="接機RC"></td><td class="memo-cell"></td></tr>
+<tr><td>BR858</td><td></td><td>22:55</td><td></td><td></td><td></td><td></td><td data-flight="BR858" data-role="接機C"></td><td data-flight="BR858" data-role="接機RC"></td><td class="memo-cell"></td></tr>
+<tr><td>BR195</td><td></td><td>23:25</td><td></td><td></td><td></td><td></td><td data-flight="BR195" data-role="接機C"></td><td data-flight="BR195" data-role="接機RC"></td><td class="memo-cell"></td></tr>
+<tr><td>BR810</td><td></td><td>23:35</td><td></td><td></td><td></td><td></td><td data-flight="BR810" data-role="接機C"></td><td data-flight="BR810" data-role="接機RC"></td><td class="memo-cell"></td></tr>
+          </tbody>
+        </table>
+      </section>
+    </div>
+  </div>
+</div>
+
+
+  <div class="control-panel">
+
+    <div class="toolbar">
+      <div class="search-wrap"><input id="timelineFlightSearch" type="text" placeholder="搜尋航班" /></div>
+      <button id="clearTimelineSearch">清除搜尋</button>
+      <button id="zoomOut">時間縮小</button>
+      <button id="zoomIn">時間放大</button>
+      <button id="saveBtn">儲存到瀏覽器</button>
+    </div>
+    <div class="board">
+      <div class="header">
+        <div class="name-col">人員 / 戰力 / 班別</div>
+        <div class="times" id="times"></div>
+      </div>
+      <div class="rows" id="rows"></div>
+    </div>
+  
+  </div>
+</main>
+</div>
+<script>
+const initialPeople = [{"name": "又", "level": "M"}, {"name": "承", "level": "M"}, {"name": "沛", "level": "m"}, {"name": "洪", "level": "m"}, {"name": "芬", "level": "M"}, {"name": "沈", "level": "M"}, {"name": "君", "level": "M"}, {"name": "炘", "level": "M"}, {"name": "趙", "level": "M"}, {"name": "佳", "level": "M"}, {"name": "桃", "level": "M"}, {"name": "穎", "level": "M"}, {"name": "澤", "level": "M"}, {"name": "徐", "level": "m"}, {"name": "瑩", "level": "m"}, {"name": "蘇", "level": "m"}, {"name": "伶", "level": "m"}, {"name": "品", "level": "m"}, {"name": "喧", "level": "m"}, {"name": "健", "level": "2A"}, {"name": "媛", "level": "2A"}, {"name": "翰", "level": "2A"}, {"name": "庭", "level": "1A"}, {"name": "淵", "level": "1A"}, {"name": "昕", "level": "1A"}, {"name": "富", "level": "M"}, {"name": "雨", "level": "M"}, {"name": "鈞", "level": "M"}, {"name": "費", "level": "M"}, {"name": "莊", "level": "M"}, {"name": "孝", "level": "M"}, {"name": "展", "level": "M"}, {"name": "東", "level": "m"}, {"name": "玲", "level": "m"}, {"name": "筠", "level": "m"}, {"name": "皓", "level": "m"}, {"name": "姿", "level": "m"}, {"name": "文", "level": "m"}, {"name": "浩", "level": "m"}, {"name": "賴", "level": "m"}, {"name": "娟", "level": "m"}, {"name": "勛", "level": "m"}, {"name": "順", "level": "m"}, {"name": "榕", "level": "m"}, {"name": "汶", "level": "m!"}, {"name": "景", "level": "m!"}, {"name": "宇", "level": "m!"}, {"name": "澄", "level": "2A*"}, {"name": "易", "level": "1A"}, {"name": "靜", "level": "1A"}, {"name": "慶", "level": "1A"}, {"name": "姜", "level": "1A"}];
+
+const SHIFT_DEFS = {
+  "IB": ["03:00","11:00"],
+  "I8": ["03:30","11:30"],
+  "I9": ["04:00","12:00"],
+  "Hv": ["05:00","13:30"],
+  "hb": ["06:00","14:30"],
+  "hP": ["06:30","15:00"],
+  "hM": ["07:00","15:30"],
+  "hQ": ["07:30","16:00"],
+  "hv": ["08:00","16:30"],
+  "hN": ["13:30","22:00"],
+  "hs": ["14:00","22:30"],
+  "hK": ["15:00","23:30"],
+  "hL": ["15:30","00:00"],
+  "IV": ["16:00","00:30"],
+  "IW": ["16:30","01:00"]
+};
+function tStrToMin(s) {
+  const m = /^([0-1]?\d|2[0-4]):([0-5]\d)$/.exec(String(s).trim());
+  if (!m) return null;
+  let hh = Number(m[1]), mm = Number(m[2]);
+  if (hh === 24 && mm === 0) return 24 * 60;
+  return hh * 60 + mm;
+}
+
+const initialFlightDefs = [{"flight": "BR166", "type": "DEP", "baseTime": "06:15", "baseMinutes": 375, "offset": 0, "extension": 0}, {"flight": "BR316", "type": "ARR", "baseTime": "05:05", "baseMinutes": 305, "offset": 0, "extension": 0}, {"flight": "BR178", "type": "DEP", "baseTime": "06:30", "baseMinutes": 390, "offset": 0, "extension": 0}, {"flight": "BR49", "type": "ARR", "baseTime": "05:10", "baseMinutes": 310, "offset": 0, "extension": 0}, {"flight": "BR158", "type": "DEP", "baseTime": "06:35", "baseMinutes": 395, "offset": 0, "extension": 0}, {"flight": "BR35", "type": "ARR", "baseTime": "05:10", "baseMinutes": 310, "offset": 0, "extension": 0}, {"flight": "BR112", "type": "DEP", "baseTime": "06:55", "baseMinutes": 415, "offset": 0, "extension": 0}, {"flight": "BR25", "type": "ARR", "baseTime": "05:10", "baseMinutes": 310, "offset": 0, "extension": 0}, {"flight": "BR891", "type": "DEP", "baseTime": "07:00", "baseMinutes": 420, "offset": 0, "extension": 0}, {"flight": "BR11", "type": "ARR", "baseTime": "05:15", "baseMinutes": 315, "offset": 0, "extension": 0}, {"flight": "BR170", "type": "DEP", "baseTime": "07:05", "baseMinutes": 425, "offset": 0, "extension": 0}, {"flight": "BR9", "type": "ARR", "baseTime": "05:15", "baseMinutes": 315, "offset": 0, "extension": 0}, {"flight": "BR257", "type": "DEP", "baseTime": "07:20", "baseMinutes": 440, "offset": 0, "extension": 0}, {"flight": "BR55", "type": "ARR", "baseTime": "05:25", "baseMinutes": 325, "offset": 0, "extension": 0}, {"flight": "BR225", "type": "DEP", "baseTime": "07:25", "baseMinutes": 445, "offset": 0, "extension": 0}, {"flight": "BR27", "type": "ARR", "baseTime": "05:35", "baseMinutes": 335, "offset": 0, "extension": 0}, {"flight": "BR395", "type": "DEP", "baseTime": "07:40", "baseMinutes": 460, "offset": 0, "extension": 0}, {"flight": "BR15", "type": "ARR", "baseTime": "05:40", "baseMinutes": 340, "offset": 0, "extension": 0}, {"flight": "BR75", "type": "DEP", "baseTime": "07:40", "baseMinutes": 460, "offset": 0, "extension": 0}, {"flight": "BR17", "type": "ARR", "baseTime": "05:55", "baseMinutes": 355, "offset": 0, "extension": 0}, {"flight": "BR184", "type": "DEP", "baseTime": "07:55", "baseMinutes": 475, "offset": 0, "extension": 0}, {"flight": "BR262", "type": "ARR", "baseTime": "06:00", "baseMinutes": 360, "offset": 0, "extension": 0}, {"flight": "BR106", "type": "DEP", "baseTime": "08:00", "baseMinutes": 480, "offset": 0, "extension": 0}, {"flight": "BR96", "type": "ARR", "baseTime": "06:10", "baseMinutes": 370, "offset": 0, "extension": 0}, {"flight": "BR1251", "type": "DEP", "baseTime": "08:35", "baseMinutes": 515, "offset": 0, "extension": 0}, {"flight": "BR382", "type": "ARR", "baseTime": "06:10", "baseMinutes": 370, "offset": 0, "extension": 0}, {"flight": "BR67", "type": "DEP", "baseTime": "08:05", "baseMinutes": 485, "offset": 0, "extension": 0}, {"flight": "BR31", "type": "ARR", "baseTime": "06:20", "baseMinutes": 380, "offset": 0, "extension": 0}, {"flight": "BR851", "type": "DEP", "baseTime": "08:10", "baseMinutes": 490, "offset": 0, "extension": 0}, {"flight": "BR51", "type": "ARR", "baseTime": "06:20", "baseMinutes": 380, "offset": 0, "extension": 0}, {"flight": "BR132", "type": "DEP", "baseTime": "08:20", "baseMinutes": 500, "offset": 0, "extension": 0}, {"flight": "BR72", "type": "ARR", "baseTime": "06:30", "baseMinutes": 390, "offset": 0, "extension": 0}, {"flight": "BR281", "type": "DEP", "baseTime": "08:20", "baseMinutes": 500, "offset": 0, "extension": 0}, {"flight": "BR66", "type": "ARR", "baseTime": "06:40", "baseMinutes": 400, "offset": 0, "extension": 0}, {"flight": "BR211", "type": "DEP", "baseTime": "08:25", "baseMinutes": 505, "offset": 0, "extension": 0}, {"flight": "BR206", "type": "ARR", "baseTime": "06:50", "baseMinutes": 410, "offset": 0, "extension": 0}, {"flight": "BR265", "type": "DEP", "baseTime": "08:45", "baseMinutes": 525, "offset": 0, "extension": 0}, {"flight": "BR88", "type": "ARR", "baseTime": "07:20", "baseMinutes": 440, "offset": 0, "extension": 0}, {"flight": "BR233", "type": "DEP", "baseTime": "08:50", "baseMinutes": 530, "offset": 0, "extension": 0}, {"flight": "B73211", "type": "ARR", "baseTime": "08:40", "baseMinutes": 520, "offset": 0, "extension": 0}, {"flight": "BR198", "type": "DEP", "baseTime": "08:50", "baseMinutes": 530, "offset": 0, "extension": 0}, {"flight": "OZ711", "type": "ARR", "baseTime": "09:50", "baseMinutes": 590, "offset": 0, "extension": 0}, {"flight": "BR237", "type": "DEP", "baseTime": "09:00", "baseMinutes": 540, "offset": 0, "extension": 0}, {"flight": "B73213", "type": "ARR", "baseTime": "10:00", "baseMinutes": 600, "offset": 0, "extension": 0}, {"flight": "BR716", "type": "DEP", "baseTime": "09:05", "baseMinutes": 545, "offset": 0, "extension": 0}, {"flight": "HX252", "type": "ARR", "baseTime": "10:50", "baseMinutes": 650, "offset": 0, "extension": 0}, {"flight": "BR271", "type": "DEP", "baseTime": "09:10", "baseMinutes": 550, "offset": 0, "extension": 0}, {"flight": "BR113", "type": "ARR", "baseTime": "10:55", "baseMinutes": 655, "offset": 0, "extension": 0}, {"flight": "BR391", "type": "DEP", "baseTime": "09:10", "baseMinutes": 550, "offset": 0, "extension": 0}, {"flight": "BR892", "type": "ARR", "baseTime": "12:00", "baseMinutes": 720, "offset": 0, "extension": 0}, {"flight": "BR397", "type": "DEP", "baseTime": "09:15", "baseMinutes": 555, "offset": 0, "extension": 0}, {"flight": "BX793", "type": "ARR", "baseTime": "12:25", "baseMinutes": 745, "offset": 0, "extension": 0}, {"flight": "BR227", "type": "DEP", "baseTime": "09:20", "baseMinutes": 560, "offset": 0, "extension": 0}, {"flight": "BR852", "type": "ARR", "baseTime": "13:05", "baseMinutes": 785, "offset": 0, "extension": 0}, {"flight": "BR116", "type": "DEP", "baseTime": "09:30", "baseMinutes": 570, "offset": 0, "extension": 0}, {"flight": "BR177", "type": "ARR", "baseTime": "13:10", "baseMinutes": 790, "offset": 0, "extension": 0}, {"flight": "BR315", "type": "DEP", "baseTime": "09:30", "baseMinutes": 570, "offset": 0, "extension": 0}, {"flight": "BR169", "type": "ARR", "baseTime": "13:30", "baseMinutes": 810, "offset": 0, "extension": 0}, {"flight": "BR215", "type": "DEP", "baseTime": "09:35", "baseMinutes": 575, "offset": 0, "extension": 0}, {"flight": "BR105", "type": "ARR", "baseTime": "13:50", "baseMinutes": 830, "offset": 0, "extension": 0}, {"flight": "BR383", "type": "DEP", "baseTime": "09:45", "baseMinutes": 585, "offset": 0, "extension": 0}, {"flight": "BR234", "type": "ARR", "baseTime": "14:15", "baseMinutes": 855, "offset": 0, "extension": 0}, {"flight": "BR867", "type": "DEP", "baseTime": "09:50", "baseMinutes": 590, "offset": 0, "extension": 0}, {"flight": "BR157", "type": "ARR", "baseTime": "14:35", "baseMinutes": 875, "offset": 0, "extension": 0}, {"flight": "BR712", "type": "DEP", "baseTime": "09:50", "baseMinutes": 590, "offset": 0, "extension": 0}, {"flight": "BR802", "type": "ARR", "baseTime": "14:55", "baseMinutes": 895, "offset": 0, "extension": 0}, {"flight": "BR801", "type": "DEP", "baseTime": "10:00", "baseMinutes": 600, "offset": 0, "extension": 0}, {"flight": "BR272", "type": "ARR", "baseTime": "15:00", "baseMinutes": 900, "offset": 0, "extension": 0}, {"flight": "BR122", "type": "DEP", "baseTime": "10:00", "baseMinutes": 600, "offset": 0, "extension": 0}, {"flight": "BR131", "type": "ARR", "baseTime": "15:05", "baseMinutes": 905, "offset": 0, "extension": 0}, {"flight": "BR255", "type": "DEP", "baseTime": "10:00", "baseMinutes": 600, "offset": 0, "extension": 0}, {"flight": "BR711", "type": "ARR", "baseTime": "15:15", "baseMinutes": 915, "offset": 0, "extension": 0}, {"flight": "BR118", "type": "DEP", "baseTime": "10:15", "baseMinutes": 615, "offset": 0, "extension": 0}, {"flight": "BR282", "type": "ARR", "baseTime": "15:20", "baseMinutes": 920, "offset": 0, "extension": 0}, {"flight": "BR1383", "type": "DEP", "baseTime": "11:20", "baseMinutes": 680, "offset": 0, "extension": 0}, {"flight": "BR868", "type": "ARR", "baseTime": "15:20", "baseMinutes": 920, "offset": 0, "extension": 0}, {"flight": "BR6", "type": "DEP", "baseTime": "11:20", "baseMinutes": 680, "offset": 0, "extension": 0}, {"flight": "HX264", "type": "ARR", "baseTime": "15:30", "baseMinutes": 930, "offset": 0, "extension": 0}, {"flight": "BR8", "type": "DEP", "baseTime": "11:30", "baseMinutes": 690, "offset": 0, "extension": 0}, {"flight": "OZ713", "type": "ARR", "baseTime": "15:45", "baseMinutes": 945, "offset": 0, "extension": 0}, {"flight": "BR104", "type": "DEP", "baseTime": "11:40", "baseMinutes": 700, "offset": 0, "extension": 0}, {"flight": "BR165", "type": "ARR", "baseTime": "16:05", "baseMinutes": 965, "offset": 0, "extension": 0}, {"flight": "OZ712", "type": "DEP", "baseTime": "11:40", "baseMinutes": 700, "offset": 0, "extension": 0}, {"flight": "BR183", "type": "ARR", "baseTime": "16:05", "baseMinutes": 965, "offset": 0, "extension": 0}, {"flight": "HX253", "type": "DEP", "baseTime": "11:50", "baseMinutes": 710, "offset": 0, "extension": 0}, {"flight": "BR1252", "type": "ARR", "baseTime": "16:35", "baseMinutes": 995, "offset": 0, "extension": 0}, {"flight": "BR869", "type": "DEP", "baseTime": "12:25", "baseMinutes": 745, "offset": 0, "extension": 0}, {"flight": "BR398", "type": "ARR", "baseTime": "16:10", "baseMinutes": 970, "offset": 0, "extension": 0}, {"flight": "BX794", "type": "DEP", "baseTime": "13:25", "baseMinutes": 805, "offset": 0, "extension": 0}, {"flight": "BR258", "type": "ARR", "baseTime": "16:30", "baseMinutes": 990, "offset": 0, "extension": 0}, {"flight": "BR130", "type": "DEP", "baseTime": "13:30", "baseMinutes": 810, "offset": 0, "extension": 0}, {"flight": "BX791", "type": "ARR", "baseTime": "16:40", "baseMinutes": 1000, "offset": 0, "extension": 0}, {"flight": "BR164", "type": "DEP", "baseTime": "14:25", "baseMinutes": 865, "offset": 0, "extension": 0}, {"flight": "BR384", "type": "ARR", "baseTime": "16:50", "baseMinutes": 1010, "offset": 0, "extension": 0}, {"flight": "BR385", "type": "DEP", "baseTime": "14:50", "baseMinutes": 890, "offset": 0, "extension": 0}, {"flight": "BR392", "type": "ARR", "baseTime": "17:00", "baseMinutes": 1020, "offset": 0, "extension": 0}, {"flight": "BR160", "type": "DEP", "baseTime": "15:15", "baseMinutes": 915, "offset": 0, "extension": 0}, {"flight": "NZ77", "type": "ARR", "baseTime": "17:00", "baseMinutes": 1020, "offset": 0, "extension": 0}, {"flight": "BR196", "type": "DEP", "baseTime": "15:20", "baseMinutes": 920, "offset": 0, "extension": 0}, {"flight": "BR197", "type": "ARR", "baseTime": "17:05", "baseMinutes": 1025, "offset": 0, "extension": 0}, {"flight": "BR277", "type": "DEP", "baseTime": "15:30", "baseMinutes": 930, "offset": 0, "extension": 0}, {"flight": "BR266", "type": "ARR", "baseTime": "17:05", "baseMinutes": 1025, "offset": 0, "extension": 0}, {"flight": "B70187", "type": "DEP", "baseTime": "16:25", "baseMinutes": 985, "offset": 0, "extension": 0}, {"flight": "BR715", "type": "ARR", "baseTime": "17:10", "baseMinutes": 1030, "offset": 0, "extension": 0}, {"flight": "BR102", "type": "DEP", "baseTime": "16:25", "baseMinutes": 985, "offset": 0, "extension": 0}, {"flight": "BR870", "type": "ARR", "baseTime": "17:10", "baseMinutes": 1030, "offset": 0, "extension": 0}, {"flight": "BR722", "type": "DEP", "baseTime": "16:30", "baseMinutes": 990, "offset": 0, "extension": 0}, {"flight": "BR212", "type": "ARR", "baseTime": "17:15", "baseMinutes": 1035, "offset": 0, "extension": 0}, {"flight": "BR805", "type": "DEP", "baseTime": "16:30", "baseMinutes": 990, "offset": 0, "extension": 0}, {"flight": "BR5", "type": "ARR", "baseTime": "17:20", "baseMinutes": 1040, "offset": 0, "extension": 0}, {"flight": "HX265", "type": "DEP", "baseTime": "16:30", "baseMinutes": 990, "offset": 0, "extension": 0}, {"flight": "BR103", "type": "ARR", "baseTime": "17:35", "baseMinutes": 1055, "offset": 0, "extension": 0}, {"flight": "BR871", "type": "DEP", "baseTime": "16:35", "baseMinutes": 995, "offset": 0, "extension": 0}, {"flight": "BR226", "type": "ARR", "baseTime": "17:50", "baseMinutes": 1070, "offset": 0, "extension": 0}, {"flight": "BR186", "type": "DEP", "baseTime": "16:50", "baseMinutes": 1010, "offset": 0, "extension": 0}, {"flight": "BR7", "type": "ARR", "baseTime": "18:00", "baseMinutes": 1080, "offset": 0, "extension": 0}, {"flight": "OZ714", "type": "DEP", "baseTime": "17:10", "baseMinutes": 1030, "offset": 0, "extension": 0}, {"flight": "HX260", "type": "ARR", "baseTime": "18:20", "baseMinutes": 1100, "offset": 0, "extension": 0}, {"flight": "BX792", "type": "DEP", "baseTime": "17:40", "baseMinutes": 1060, "offset": 0, "extension": 0}, {"flight": "BR1384", "type": "ARR", "baseTime": "18:25", "baseMinutes": 1105, "offset": 0, "extension": 0}, {"flight": "BR857", "type": "DEP", "baseTime": "18:10", "baseMinutes": 1090, "offset": 0, "extension": 0}, {"flight": "BR121", "type": "ARR", "baseTime": "19:00", "baseMinutes": 1140, "offset": 0, "extension": 0}, {"flight": "NZ78", "type": "DEP", "baseTime": "18:30", "baseMinutes": 1110, "offset": 0, "extension": 0}, {"flight": "BR115", "type": "ARR", "baseTime": "19:05", "baseMinutes": 1145, "offset": 0, "extension": 0}, {"flight": "BR809", "type": "DEP", "baseTime": "19:00", "baseMinutes": 1140, "offset": 0, "extension": 0}, {"flight": "BR3808", "type": "ARR", "baseTime": "19:10", "baseMinutes": 1150, "offset": 0, "extension": 0}, {"flight": "BR36", "type": "DEP", "baseTime": "19:20", "baseMinutes": 1160, "offset": 0, "extension": 0}, {"flight": "BR117", "type": "ARR", "baseTime": "19:30", "baseMinutes": 1170, "offset": 0, "extension": 0}, {"flight": "BR32", "type": "DEP", "baseTime": "19:20", "baseMinutes": 1160, "offset": 0, "extension": 0}, {"flight": "BR228", "type": "ARR", "baseTime": "20:05", "baseMinutes": 1205, "offset": 0, "extension": 0}, {"flight": "HX261", "type": "DEP", "baseTime": "19:20", "baseMinutes": 1160, "offset": 0, "extension": 0}, {"flight": "BR396", "type": "ARR", "baseTime": "20:10", "baseMinutes": 1210, "offset": 0, "extension": 0}, {"flight": "BR381", "type": "DEP", "baseTime": "19:30", "baseMinutes": 1170, "offset": 0, "extension": 0}, {"flight": "BR216", "type": "ARR", "baseTime": "20:15", "baseMinutes": 1215, "offset": 0, "extension": 0}, {"flight": "BR12", "type": "DEP", "baseTime": "19:40", "baseMinutes": 1180, "offset": 0, "extension": 0}, {"flight": "BR129", "type": "ARR", "baseTime": "20:25", "baseMinutes": 1225, "offset": 0, "extension": 0}, {"flight": "BR50", "type": "DEP", "baseTime": "19:45", "baseMinutes": 1185, "offset": 0, "extension": 0}, {"flight": "BR163", "type": "ARR", "baseTime": "20:25", "baseMinutes": 1225, "offset": 0, "extension": 0}, {"flight": "BR18", "type": "DEP", "baseTime": "19:50", "baseMinutes": 1190, "offset": 0, "extension": 0}, {"flight": "HX282", "type": "ARR", "baseTime": "20:35", "baseMinutes": 1235, "offset": 0, "extension": 0}, {"flight": "BR56", "type": "DEP", "baseTime": "20:00", "baseMinutes": 1200, "offset": 0, "extension": 0}, {"flight": "BR238", "type": "ARR", "baseTime": "20:55", "baseMinutes": 1255, "offset": 0, "extension": 0}, {"flight": "BR3811", "type": "DEP", "baseTime": "20:10", "baseMinutes": 1210, "offset": 0, "extension": 0}, {"flight": "BR185", "type": "ARR", "baseTime": "20:55", "baseMinutes": 1255, "offset": 0, "extension": 0}, {"flight": "BR261", "type": "DEP", "baseTime": "20:30", "baseMinutes": 1230, "offset": 0, "extension": 0}, {"flight": "BR278", "type": "ARR", "baseTime": "21:10", "baseMinutes": 1270, "offset": 0, "extension": 0}, {"flight": "BR205", "type": "DEP", "baseTime": "20:45", "baseMinutes": 1245, "offset": 0, "extension": 0}, {"flight": "BR872", "type": "ARR", "baseTime": "21:25", "baseMinutes": 1285, "offset": 0, "extension": 0}, {"flight": "BR52", "type": "DEP", "baseTime": "21:20", "baseMinutes": 1280, "offset": 0, "extension": 0}, {"flight": "B70188", "type": "ARR", "baseTime": "21:35", "baseMinutes": 1295, "offset": 0, "extension": 0}, {"flight": "HX283", "type": "DEP", "baseTime": "21:35", "baseMinutes": 1295, "offset": 0, "extension": 0}, {"flight": "BR159", "type": "ARR", "baseTime": "21:40", "baseMinutes": 1300, "offset": 0, "extension": 0}, {"flight": "BR61", "type": "DEP", "baseTime": "22:30", "baseMinutes": 1350, "offset": 0, "extension": 0}, {"flight": "BR256", "type": "ARR", "baseTime": "21:45", "baseMinutes": 1305, "offset": 0, "extension": 0}, {"flight": "BR24", "type": "DEP", "baseTime": "23:00", "baseMinutes": 1380, "offset": 0, "extension": 0}, {"flight": "BR68", "type": "ARR", "baseTime": "21:50", "baseMinutes": 1310, "offset": 0, "extension": 0}, {"flight": "BR87", "type": "DEP", "baseTime": "23:00", "baseMinutes": 1380, "offset": 0, "extension": 0}, {"flight": "BR386", "type": "ARR", "baseTime": "21:55", "baseMinutes": 1315, "offset": 0, "extension": 0}, {"flight": "BR95", "type": "DEP", "baseTime": "23:10", "baseMinutes": 1390, "offset": 0, "extension": 0}, {"flight": "BR806", "type": "ARR", "baseTime": "22:00", "baseMinutes": 1320, "offset": 0, "extension": 0}, {"flight": "BR28", "type": "DEP", "baseTime": "23:30", "baseMinutes": 1410, "offset": 0, "extension": 0}, {"flight": "BR721", "type": "ARR", "baseTime": "22:10", "baseMinutes": 1330, "offset": 0, "extension": 0}, {"flight": "BR26", "type": "DEP", "baseTime": "23:40", "baseMinutes": 1420, "offset": 0, "extension": 0}, {"flight": "BR101", "type": "ARR", "baseTime": "22:40", "baseMinutes": 1360, "offset": 0, "extension": 0}, {"flight": "BR10", "type": "DEP", "baseTime": "23:55", "baseMinutes": 1435, "offset": 0, "extension": 0}, {"flight": "BR858", "type": "ARR", "baseTime": "22:55", "baseMinutes": 1375, "offset": 0, "extension": 0}, {"flight": "BR16", "type": "DEP", "baseTime": "23:55", "baseMinutes": 1435, "offset": 0, "extension": 0}, {"flight": "BR195", "type": "ARR", "baseTime": "23:25", "baseMinutes": 1405, "offset": 0, "extension": 0}, {"flight": "BR810", "type": "ARR", "baseTime": "23:35", "baseMinutes": 1415, "offset": 0, "extension": 0}];
+
+const START_MIN = 3 * 60;
+const END_MIN = 24 * 60;
+let pxPerMinute = 1.4;
+let activePaletteTab = 'byRole';
+
+let customTemplates = JSON.parse(localStorage.getItem('custom_duty_templates') || '[]');
+let staffDirectory = JSON.parse(localStorage.getItem('duty_staff_directory') || '[]');
+
+function normalizeHHMM(value) {
+  const s = String(value || '').trim();
+  const m = s.match(/^(\d{1,2}):(\d{2})$/);
+  if (!m) return null;
+  const hh = Number(m[1]);
+  const mm = Number(m[2]);
+  if (hh < 0 || hh > 23 || mm < 0 || mm > 59) return null;
+  return `${String(hh).padStart(2,'0')}:${String(mm).padStart(2,'0')}`;
+}
+function hhmmToMinutes(value) {
+  const t = normalizeHHMM(value);
+  if (!t) return null;
+  const [hh, mm] = t.split(':').map(Number);
+  return hh * 60 + mm;
+}
+function saveCustomTemplates() {
+  localStorage.setItem('custom_duty_templates', JSON.stringify(customTemplates));
+}
+function saveStaffDirectory() {
+  localStorage.setItem('duty_staff_directory', JSON.stringify(staffDirectory));
+}
+function createCustomTemplate(name, startHHMM, duration) {
+  const start = hhmmToMinutes(startHHMM);
+  if (start === null) return null;
+  const dur = Number(duration);
+  if (!name || Number.isNaN(dur) || dur < 5) return null;
+  const snapped = snap5(dur);
+  return {
+    id: `CUSTOM_${Date.now()}_${Math.floor(Math.random()*10000)}`,
+    label: name,
+    compactLabel: name,
+    flight: `CUSTOM_${Date.now()}`,
+    role: '自訂',
+    flightType: 'FUNC',
+    start,
+    end: start + snapped,
+    duration: snapped,
+    isFunction: true,
+    isCustom: true
+  };
+}
+
+let timelineFlightSearch = '';
+initialPeople.forEach(p => { if (!('shift' in p)) p.shift = ''; });
+initialPeople.forEach(p => { if (!('code' in p)) p.code = p.name; });
+let people = JSON.parse(localStorage.getItem('duty_people_order') || 'null') || initialPeople;
+people = people.map(p => ({...p, code: p.code || p.name, shift: p.shift || ''}));
+let schedule = JSON.parse(localStorage.getItem('duty_schedule') || '[]');
+let flightDefs = JSON.parse(localStorage.getItem('duty_flight_defs') || 'null') || initialFlightDefs;
+let selectedBlockId = null;
+let blockSeq = schedule.length ? Math.max(...schedule.map(x => x.uid || 0)) + 1 : 1;
+let editorExpanded = false;
+
+const firebaseConfig = {
+  apiKey: "AIzaSyA880hH0VnR17pQdAsNFel__b5XMuyMw-E",
+  authDomain: "duty-schedule-3f1bf.firebaseapp.com",
+  projectId: "duty-schedule-3f1bf",
+  storageBucket: "duty-schedule-3f1bf.firebasestorage.app",
+  messagingSenderId: "220078939572",
+  appId: "1:220078939572:web:f90a4644cda995f1d4e6e1"
+};
+
+let db = null;
+let scheduleDocRef = null;
+let cloudReady = false;
+let applyingRemote = false;
+let cloudSaveTimer = null;
+let lastCloudJson = '';
+
+function setCloudStatus(text, mode='') {
+  const el = document.getElementById('cloudStatus');
+  if (!el) return;
+  el.textContent = text;
+  el.className = 'cloud-status' + (mode ? ' ' + mode : '');
+}
+
+function getCloudState() {
+  return {
+    people,
+    schedule,
+    flightDefs,
+    customTemplates,
+    updatedAtLocal: new Date().toISOString()
+  };
+}
+
+function applyCloudState(data) {
+  if (!data) return;
+  applyingRemote = true;
+  people = Array.isArray(data.people) ? data.people.map(p => ({...p, code: p.code || p.name, shift:p.shift || ''})) : people;
+  schedule = Array.isArray(data.schedule) ? data.schedule : [];
+  flightDefs = Array.isArray(data.flightDefs) ? data.flightDefs : flightDefs;
+  customTemplates = Array.isArray(data.customTemplates) ? data.customTemplates : customTemplates;
+  selectedBlockId = null;
+  blockSeq = schedule.length ? Math.max(...schedule.map(x => Number(x.uid) || 0)) + 1 : 1;
+  templates = [...buildTemplates(), ...createRestTemplates(), ...customTemplates];
+
+  localStorage.setItem('duty_schedule', JSON.stringify(schedule));
+  localStorage.setItem('duty_people_order', JSON.stringify(people));
+  localStorage.setItem('duty_flight_defs', JSON.stringify(flightDefs));
+  saveCustomTemplates();
+
+  if (typeof renderTimeHeader === 'function') renderTimeHeader();
+  if (typeof renderAssignmentTableFromFlightDefs === 'function') renderAssignmentTableFromFlightDefs();
+  if (typeof renderFlightEditor === 'function') renderFlightEditor();
+  if (typeof renderPalette === 'function') renderPalette();
+  if (typeof renderRows === 'function') renderRows();
+  if (typeof syncAssignmentTableFromSchedule === 'function') syncAssignmentTableFromSchedule();
+
+  applyingRemote = false;
+}
+
+function saveCloudNow() {
+  if (!cloudReady || !scheduleDocRef || applyingRemote) return;
+  const state = getCloudState();
+  const json = JSON.stringify(state);
+  if (json === lastCloudJson) return;
+  lastCloudJson = json;
+  setCloudStatus('同步中', 'saving');
+  scheduleDocRef.set({
+    ...state,
+    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+  }, { merge: true })
+  .then(() => setCloudStatus('已同步', 'synced'))
+  .catch(err => {
+    console.error(err);
+    setCloudStatus('同步失敗', 'offline');
+  });
+}
+
+function scheduleCloudSave() {
+  if (!cloudReady || applyingRemote) return;
+  clearTimeout(cloudSaveTimer);
+  setCloudStatus('等待同步', 'saving');
+  cloudSaveTimer = setTimeout(saveCloudNow, 350);
+}
+
+function initFirebaseSync() {
+  try {
+    if (typeof firebase === 'undefined') {
+      setCloudStatus('Firebase 未載入', 'offline');
+      return;
+    }
+    if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+    db = firebase.firestore();
+    scheduleDocRef = db.collection('dutySchedules').doc('main');
+
+    scheduleDocRef.onSnapshot((doc) => {
+      if (!doc.exists) {
+        cloudReady = true;
+        setCloudStatus('建立雲端資料', 'saving');
+        saveCloudNow();
+        return;
+      }
+      const data = doc.data();
+      const remoteState = {
+        people: data.people,
+        schedule: data.schedule,
+        flightDefs: data.flightDefs,
+        customTemplates: data.customTemplates,
+        updatedAtLocal: data.updatedAtLocal
+      };
+      const remoteJson = JSON.stringify(remoteState);
+      if (remoteJson === lastCloudJson) {
+        setCloudStatus('已同步', 'synced');
+        cloudReady = true;
+        return;
+      }
+      lastCloudJson = remoteJson;
+      applyCloudState(remoteState);
+      cloudReady = true;
+      setCloudStatus('已同步', 'synced');
+    }, (err) => {
+      console.error(err);
+      setCloudStatus('雲端連線失敗', 'offline');
+    });
+  } catch (err) {
+    console.error(err);
+    setCloudStatus('Firebase 設定錯誤', 'offline');
+  }
+}
+
+
+function minutesToTime(total) {
+  total = ((total % 1440) + 1440) % 1440;
+  const h = Math.floor(total / 60);
+  const m = total % 60;
+  return String(h).padStart(2,'0') + ':' + String(m).padStart(2,'0');
+}
+function compactFlightNo(flight) { return String(flight).replace(/^[A-Z]+/i, ''); }
+function normalizeFlightSearch(q) {
+  const s = String(q || '').trim().toUpperCase();
+  if (!s) return '';
+  if (/^BR0*\d+$/.test(s)) return 'BR' + String(Number(s.replace('BR','')));
+  if (/^\d+$/.test(s)) return 'BR' + String(Number(s));
+  return s;
+}
+function normalizeImportedFlightNo(value) {
+  const s = String(value || '').trim().toUpperCase();
+  const m = s.match(/^([A-Z]+)0*([0-9]+)$/);
+  if (m) return `${m[1]}${Number(m[2])}`;
+  return s;
+}
+function normalizeImportedTime(value) {
+  if (value === null || value === undefined || value === '') return '';
+  if (typeof value === 'number') {
+    const totalMinutes = Math.round(value * 24 * 60);
+    const hh = Math.floor(totalMinutes / 60) % 24;
+    const mm = totalMinutes % 60;
+    return `${String(hh).padStart(2,'0')}:${String(mm).padStart(2,'0')}`;
+  }
+  const s = String(value).trim();
+  const m = s.match(/^(\d{1,2}):(\d{2})(?::\d{2})?$/);
+  if (!m) return s;
+  return `${String(Number(m[1])).padStart(2,'0')}:${m[2]}`;
+}
+function buildFlightDefsFromRows(rows) {
+  const out = [];
+  const seen = new Set();
+  rows.forEach(row => {
+    const depNo = row['Departure Flight No'];
+    const depTime = row['STD'];
+    const arrNo = row['Arrival Flight No'];
+    const arrTime = row['STA'];
+
+    if (depNo && depTime) {
+      const flight = normalizeImportedFlightNo(depNo);
+      const time = normalizeImportedTime(depTime);
+      const [hh, mm] = time.split(':').map(Number);
+      const key = `${flight}_${time}_DEP`;
+      if (!seen.has(key) && !Number.isNaN(hh) && !Number.isNaN(mm)) {
+        seen.add(key);
+        out.push({ flight, type:'DEP', baseTime:time, baseMinutes:hh*60+mm, offset:0, extension:0 });
+      }
+    }
+
+    if (arrNo && arrTime) {
+      const flight = normalizeImportedFlightNo(arrNo);
+      const time = normalizeImportedTime(arrTime);
+      const [hh, mm] = time.split(':').map(Number);
+      const key = `${flight}_${time}_ARR`;
+      if (!seen.has(key) && !Number.isNaN(hh) && !Number.isNaN(mm)) {
+        seen.add(key);
+        out.push({ flight, type:'ARR', baseTime:time, baseMinutes:hh*60+mm, offset:0, extension:0 });
+      }
+    }
+  });
+  return out;
+}
+function buildPeopleFromRows(rows) {
+  const pick = (row, keys) => {
+    for (const key of keys) {
+      if (row[key] !== undefined && row[key] !== null && String(row[key]).trim() !== '') return String(row[key]).trim();
+    }
+    return '';
+  };
+  return rows
+    .map(row => {
+      const code = pick(row, ['代號', '代碼', '員編', '工號', '編號', 'Code', 'code']);
+      const name = pick(row, ['姓名', '全名', '名字', 'Name', 'name']) || code;
+      return {
+        name,
+        code: code || name,
+        level: pick(row, ['戰力', '等級', 'Level', 'level']),
+        shift: pick(row, ['班別', '班次', 'Shift', 'shift'])
+      };
+    })
+    .filter(p => p.name && p.name !== 'undefined' && p.name !== 'null');
+}
+function buildStaffDirectoryFromRows(rows) {
+  const pick = (row, keys) => {
+    for (const key of keys) {
+      if (row[key] !== undefined && row[key] !== null && String(row[key]).trim() !== '') return String(row[key]).trim();
+    }
+    return '';
+  };
+  return rows.map(row => {
+    const code = pick(row, ['代號', '代碼', '員編', '工號', '編號', 'Code', 'code']);
+    const fullName = pick(row, ['姓名', '全名', '名字', 'Name', 'name']);
+    const level = pick(row, ['戰力', '等級', 'Level', 'level']);
+    return { code: code || fullName, fullName, level };
+  }).filter(x => x.code || x.fullName);
+}
+function normalizeText(v) {
+  return String(v || '').trim().toLowerCase().replace(/\s+/g, '');
+}
+function resolveFullName(person) {
+  if (!staffDirectory.length || !person) return '';
+  const nameKey = normalizeText(person.name);
+  const codeKey = normalizeText(person.code || person.name);
+  const found = staffDirectory.find(x => normalizeText(x.code) === codeKey || normalizeText(x.fullName) === nameKey || normalizeText(x.code) === nameKey);
+  return found ? (found.fullName || '') : '';
+}
+function mergePeopleWithStaffDirectory(list) {
+  if (!Array.isArray(list) || !list.length || !staffDirectory.length) return list;
+  return list.map(p => {
+    const codeKey = normalizeText(p.code || p.name);
+    const nameKey = normalizeText(p.name);
+    const found = staffDirectory.find(x =>
+      normalizeText(x.code) === codeKey ||
+      normalizeText(x.fullName) === nameKey ||
+      normalizeText(x.code) === nameKey
+    );
+    if (!found) return p;
+    return {
+      ...p,
+      code: found.code || p.code || p.name,
+      name: found.fullName || p.name,
+      level: p.level || found.level || ''
+    };
+  });
+}
+
+function renderAssignmentTableFromFlightDefs() {
+  const depBody = document.getElementById('assignmentDepBody') || document.querySelectorAll('.assignment-table tbody')[0];
+  const arrBody = document.getElementById('assignmentArrBody') || document.querySelectorAll('.assignment-table tbody')[1];
+  if (!depBody || !arrBody) return;
+
+  const depRows = flightDefs
+    .filter(f => f.type === 'DEP')
+    .sort((a,b) => a.baseMinutes - b.baseMinutes || a.flight.localeCompare(b.flight));
+
+  const arrRows = flightDefs
+    .filter(f => f.type === 'ARR')
+    .sort((a,b) => a.baseMinutes - b.baseMinutes || a.flight.localeCompare(b.flight));
+
+  depBody.innerHTML = depRows.map(f => `
+    <tr>
+      <td>${f.flight}</td>
+      <td>${minutesToTime(f.baseMinutes)}</td>
+      <td></td>
+      <td data-flight="${f.flight}" data-role="PPT"></td>
+      <td data-flight="${f.flight}" data-role="ABG"></td>
+      <td data-flight="${f.flight}" data-role="BG"></td>
+      <td data-flight="${f.flight}" data-role="RC"></td>
+      <td class="memo-cell"></td>
+    </tr>
+  `).join('');
+
+  arrBody.innerHTML = arrRows.map(f => `
+    <tr>
+      <td>${f.flight}</td>
+      <td></td>
+      <td>${minutesToTime(f.baseMinutes)}</td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td data-flight="${f.flight}" data-role="接機C"></td>
+      <td data-flight="${f.flight}" data-role="接機RC"></td>
+      <td class="memo-cell"></td>
+    </tr>
+  `).join('');
+
+  if (typeof syncAssignmentTableFromSchedule === 'function') {
+    syncAssignmentTableFromSchedule();
+  }
+}
+
+function rebuildAfterExcelImport(newFlightDefs, newPeople) {
+  flightDefs = newFlightDefs;
+  people = newPeople.map(p => ({ ...p, code: p.code || p.name, shift: p.shift || '' }));
+  renderAssignmentTableFromFlightDefs();
+  schedule = [];
+  selectedBlockId = null;
+  blockSeq = 1;
+  templates = [...buildTemplates(), ...createRestTemplates(), ...customTemplates];
+  saveLocal();
+  renderTimeHeader();
+  renderFlightEditor();
+  renderPalette();
+  renderRows();
+  if (typeof syncAssignmentTableFromSchedule === 'function') syncAssignmentTableFromSchedule();
+}
+
+function roleShort(role) {
+  if (role === 'RC') return 'R';
+  if (role === 'BG') return 'B';
+  if (role === 'ABG') return 'A';
+  if (role === '接機RC') return 'R';
+  if (role === '接機C') return 'C';
+  if (role === 'PPT') return 'P';
+  return role;
+}
+function compactDutyLabel(flight, role) { return `${compactFlightNo(flight)}${roleShort(role)}`; }
+function snap5(v) { return Math.round(v / 5) * 5; }
+function adjustedMinutes(f) { return f.baseMinutes + Number(f.offset || 0); }
+function hasRestForPerson(personIndex) { return schedule.some(x => x.personIndex === personIndex && x.role === '休'); }
+function createRestTemplates() {
+  return [
+    { id:'REST_30', label:'休 0.5 hr', compactLabel:'休', flight:'REST30', role:'休', flightType:'FUNC', start:null, end:null, duration:30, isFunction:true },
+    { id:'REST_60', label:'休 1 hr', compactLabel:'休', flight:'REST60', role:'休', flightType:'FUNC', start:null, end:null, duration:60, isFunction:true }
+  ];
+}
+
+
+function buildTemplates() {
+  const out = [];
+  flightDefs.forEach(f => {
+    const base = adjustedMinutes(f);
+    const ext = Number(f.extension || 0);
+    if (f.type === 'DEP') {
+      [['RC',70],['BG',60],['ABG',40]].forEach(([role, before]) => {
+        const start = Math.max(0, base - before);
+        const end = base + ext;
+        out.push({ id: `${f.flight}_${role}_${f.type}`, label: `${f.flight} ${role}`, compactLabel: compactDutyLabel(f.flight, role), flight: f.flight, role, flightType: f.type, start, end });
+      });
+      if (['BR8','BR6'].includes(f.flight)) {
+        const role = 'PPT';
+        const start = Math.max(0, base - 80);
+        const end = base + ext;
+        out.push({ id: `${f.flight}_${role}_${f.type}`, label: `${f.flight} ${role}`, compactLabel: compactDutyLabel(f.flight, role), flight: f.flight, role, flightType: f.type, start, end });
+      }
+    } else {
+      const start = Math.max(0, base - 15);
+      const end = base + 30 + ext;
+      ['接機RC','接機C'].forEach(role => {
+        out.push({ id: `${f.flight}_${role}_${f.type}`, label: `${f.flight} ${role}`, compactLabel: compactDutyLabel(f.flight, role), flight: f.flight, role, flightType: f.type, start, end });
+      });
+    }
+  });
+  return out;
+}
+let templates = [...buildTemplates(), ...createRestTemplates(), ...customTemplates];
+
+function scheduledTemplateIds() { return new Set(schedule.map(item => `${item.flight}_${item.role}_${item.flightType}`)); }
+function syncScheduleWindows() {
+  const map = new Map(templates.map(t => [t.id, t]));
+  schedule.forEach(item => {
+    const key = `${item.flight}_${item.role}_${item.flightType}`;
+    const tpl = map.get(key);
+    if (!tpl) return;
+    item.compactLabel = tpl.compactLabel;
+    item.start = tpl.start;
+    item.end = tpl.end;
+  });
+}
+function overlaps(aStart, aEnd, bStart, bEnd) { return aStart < bEnd && aEnd > bStart; }
+function confirmConflict(personIndex, itemUid, start, end) { return true; }
+function safeRoleClass(role) { return 'role-' + role.replace(/[^\w\u4e00-\u9fff-]/g, ''); }
+function applyRoleClass(el, role) { el.classList.add(safeRoleClass(role)); }
+function timeToLeft(mins) { return (mins - START_MIN) * pxPerMinute; }
+function durationToWidth(start, end) { return Math.max((end - start) * pxPerMinute, 50); }
+function saveLocal() {
+  localStorage.setItem('duty_schedule', JSON.stringify(schedule));
+  localStorage.setItem('duty_people_order', JSON.stringify(people));
+  localStorage.setItem('duty_flight_defs', JSON.stringify(flightDefs));
+  saveCustomTemplates();
+  saveStaffDirectory();
+  scheduleCloudSave();
+}
+function clearHoverStates() { document.querySelectorAll('.person-cell').forEach(el => el.classList.remove('over', 'dragging')); }
+
+function filteredUnscheduledTemplates() {
+  const q = document.getElementById('searchInput').value.trim().toLowerCase();
+  const role = document.getElementById('roleFilter').value;
+  const used = scheduledTemplateIds();
+  return templates.filter(t => {
+    if (t.role !== '休' && t.role !== '自訂' && used.has(t.id)) return false;
+    const text = (t.compactLabel + ' ' + minutesToTime(t.start) + '-' + minutesToTime(t.end) + ' ' + t.flight + ' ' + t.role).toLowerCase();
+    if (q && !text.includes(q)) return false;
+    if (role && t.role !== role) return false;
+    return true;
+  });
+}
+function makeChip(t) {
+  const chip = document.createElement('div');
+  chip.className = 'duty-chip';
+  applyRoleClass(chip, t.role);
+  chip.draggable = true;
+  chip.dataset.templateId = t.id;
+
+  if (t.role === '休') {
+    chip.classList.add(t.duration >= 60 ? 'rest-chip-60' : 'rest-chip-30');
+    chip.innerHTML = `<strong>${t.label}</strong>`;
+  } else if (t.role === '自訂') {
+    chip.innerHTML = `<strong>${t.label}</strong> <small>${minutesToTime(t.start)}-${minutesToTime(t.end)}</small>`;
+  } else {
+    chip.innerHTML = `<strong>${t.compactLabel}</strong> <small>${minutesToTime(t.start)}-${minutesToTime(t.end)}</small>`;
+  }
+
+  chip.addEventListener('dragstart', e => e.dataTransfer.setData('text/template', t.id));
+  return chip;
+}
+function renderPalette() {
+  const palette = document.getElementById('palette');
+  palette.innerHTML = '';
+  const items = filteredUnscheduledTemplates();
+  if (!items.length) {
+    const done = document.createElement('div');
+    done.className = 'empty-msg';
+    done.textContent = '全部 duty 都已安排完成';
+    palette.appendChild(done);
+    return;
+  }
+  if (activePaletteTab === 'byRole') {
+    const order = ['RC','BG','ABG','接機RC','接機C','PPT','休','自訂'];
+    const grouped = Object.fromEntries(order.map(x => [x, []]));
+    items.forEach(t => grouped[t.role].push(t));
+    order.forEach(roleName => {
+      const title = document.createElement('div');
+      title.className = 'group-title';
+      title.textContent = roleName;
+      palette.appendChild(title);
+      if (!grouped[roleName].length) {
+        const empty = document.createElement('div');
+        empty.className = 'empty-msg';
+        empty.textContent = '目前沒有待安排';
+        palette.appendChild(empty);
+        return;
+      }
+      grouped[roleName].forEach(t => palette.appendChild(makeChip(t)));
+    });
+  } else if (activePaletteTab === 'byFunction') {
+    const title = document.createElement('div');
+    title.className = 'timeline-list-title';
+    title.textContent = '功能區塊';
+    palette.appendChild(title);
+    const funcs = items.filter(t => t.isFunction || t.isCustom);
+    if (!funcs.length) {
+      const empty = document.createElement('div');
+      empty.className = 'empty-msg';
+      empty.textContent = '目前沒有功能區塊';
+      palette.appendChild(empty);
+    } else {
+      funcs.forEach(t => palette.appendChild(makeChip(t)));
+    }
+  } else {
+    const title = document.createElement('div');
+    title.className = 'timeline-list-title';
+    title.textContent = '全部待排 duty，依開始時間先後排列';
+    palette.appendChild(title);
+    items.slice().sort((a,b) => (a.start ?? 99999) - (b.start ?? 99999) || (a.end ?? 99999) - (b.end ?? 99999) || a.label.localeCompare(b.label)).forEach(t => palette.appendChild(makeChip(t)));
+  }
+}
+
+function buildEditorRow(f) {
+  const row = document.createElement('div');
+  row.className = 'editor-row';
+  row.innerHTML = `
+    <strong>${f.flight}</strong>
+    <span class="mini">${f.type === 'DEP' ? 'STD' : 'STA'}</span>
+    <span class="mini">${f.baseTime}</span>
+    <input type="number" step="5" value="${Number(f.offset || 0)}" />
+    <input type="number" min="0" step="5" value="${Number(f.extension || 0)}" />
+    <span class="mini">${minutesToTime(adjustedMinutes(f))}</span>
+  `;
+  const [offsetInput, extInput] = row.querySelectorAll('input');
+  offsetInput.addEventListener('change', () => {
+    let v = Number(offsetInput.value || 0);
+    if (Number.isNaN(v)) v = 0;
+    v = snap5(v);
+    offsetInput.value = v;
+    const target = flightDefs.find(x => x.flight === f.flight && x.type === f.type);
+    target.offset = v;
+    templates = [...buildTemplates(), ...createRestTemplates(), ...customTemplates];
+    syncScheduleWindows();
+    renderPalette(); renderRows(); renderFlightEditor(); saveLocal();
+  });
+  extInput.addEventListener('change', () => {
+    let v = Number(extInput.value || 0);
+    if (Number.isNaN(v) || v < 0) v = 0;
+    v = snap5(v);
+    extInput.value = v;
+    const target = flightDefs.find(x => x.flight === f.flight && x.type === f.type);
+    target.extension = v;
+    templates = [...buildTemplates(), ...createRestTemplates(), ...customTemplates];
+    syncScheduleWindows();
+    renderPalette(); renderRows(); renderFlightEditor(); saveLocal();
+  });
+  return row;
+}
+function renderFlightEditor() {
+  const depWrap = document.getElementById('flightEditorDep');
+  const arrWrap = document.getElementById('flightEditorArr');
+  depWrap.innerHTML = ''; arrWrap.innerHTML = '';
+  const q = document.getElementById('flightSearchInput').value.trim().toLowerCase();
+  const typeFilter = document.getElementById('flightTypeFilter').value;
+  const filtered = flightDefs.slice().sort((a,b) => adjustedMinutes(a) - adjustedMinutes(b) || a.flight.localeCompare(b.flight)).filter(f => {
+    const text = `${f.flight} ${compactFlightNo(f.flight)} ${f.type === 'DEP' ? 'std' : 'sta'} ${f.baseTime}`.toLowerCase();
+    if (q && !text.includes(q)) return false;
+    if (typeFilter && f.type !== typeFilter) return false;
+    return true;
+  });
+  filtered.forEach(f => (f.type === 'DEP' ? depWrap : arrWrap).appendChild(buildEditorRow(f)));
+}
+
+function renderTimeHeader() {
+  const times = document.getElementById('times');
+  times.innerHTML = '';
+  times.style.width = ((END_MIN - START_MIN) * pxPerMinute) + 'px';
+  for (let m = START_MIN; m <= END_MIN; m += 60) {
+    const el = document.createElement('div');
+    el.className = 'time-label';
+    el.style.left = ((m - START_MIN) * pxPerMinute) + 'px';
+    el.textContent = minutesToTime(m % 1440);
+    times.appendChild(el);
+  }
+  document.documentElement.style.setProperty('--px-per-minute', pxPerMinute);
+  document.documentElement.style.setProperty('--timeline-width', ((END_MIN - START_MIN) * pxPerMinute) + 'px');
+}
+
+function selectBlock(uid) {
+  selectedBlockId = uid;
+  document.querySelectorAll('.block').forEach(el => el.classList.toggle('selected', Number(el.dataset.uid) === uid));
+}
+
+function getDisplayRows() {
+  const normalized = normalizeFlightSearch(timelineFlightSearch);
+  if (!normalized) {
+    return people.map((p, idx) => ({ person: p, originalIndex: idx, matchedRow: false }));
+  }
+  const matchedPersonIdx = [...new Set(schedule.filter(s => s.flight === normalized).map(s => s.personIndex))];
+  const topRows = matchedPersonIdx.map(idx => ({ person: people[idx], originalIndex: idx, matchedRow: true }));
+  const restRows = people.map((p, idx) => idx).filter(idx => !matchedPersonIdx.includes(idx)).map(idx => ({ person: people[idx], originalIndex: idx, matchedRow: false }));
+  return [...topRows, ...restRows];
+}
+
+function createBlockEl(item, normalizedSearch) {
+  const block = document.createElement('div');
+  block.className = 'block';
+  applyRoleClass(block, item.role);
+
+  if (normalizedSearch && item.flight !== normalizedSearch) block.classList.add('dimmed');
+
+  block.dataset.uid = item.uid;
+  block.style.left = timeToLeft(item.start) + 'px';
+  block.style.width = durationToWidth(item.start, item.end) + 'px';
+
+  block.innerHTML = `
+    <div class="label">${item.role === "休" ? "休" : (item.role === "自訂" ? item.label : (item.compactLabel || compactDutyLabel(item.flight, item.role)))}</div>
+    <button class="block-delete-btn" type="button" title="刪除此 duty">×</button>
+  `;
+
+  const deleteBtn = block.querySelector('.block-delete-btn');
+  deleteBtn.addEventListener('click', e => {
+    e.stopPropagation();
+    e.preventDefault();
+
+    schedule = schedule.filter(x => x.uid !== item.uid);
+    selectedBlockId = null;
+
+    renderPalette();
+    renderRows();
+    saveLocal();
+  });
+
+  block.addEventListener('click', e => {
+    e.stopPropagation();
+    selectBlock(item.uid);
+  });
+
+  block.addEventListener('mousedown', e => {
+    if (e.target.classList.contains('block-delete-btn')) return;
+    startMoveBlock(e, item);
+  });
+
+  return block;
+}
+
+function renderRows() {
+  const rows = document.getElementById('rows');
+  rows.innerHTML = '';
+  const displayRows = getDisplayRows();
+  const normalized = normalizeFlightSearch(timelineFlightSearch);
+
+  displayRows.forEach((rowInfo) => {
+    const row = document.createElement('div');
+    row.className = 'row';
+    if (rowInfo.matchedRow) row.classList.add('flight-match-top');
+
+    const left = document.createElement('div');
+    left.className = 'person-cell';
+    left.draggable = true;
+    left.dataset.originalIndex = rowInfo.originalIndex;
+    const shift = rowInfo.person.shift || '';
+    const shiftTimes = "";
+    const pendingRest = hasRestForPerson(rowInfo.originalIndex) ? '' : '<span class="pending-rest">待排休</span>';
+    const fullName = resolveFullName(rowInfo.person);
+    const showFullName = fullName && fullName !== rowInfo.person.name;
+    const displayNameHtml = showFullName
+      ? `<span class="person-short-name">${rowInfo.person.name}</span><span class="person-full-name">${fullName}</span>`
+      : `${rowInfo.person.name}`;
+    left.innerHTML = `<div class="person-main"><span class="drag-icon">⋮⋮</span><span class="badge">${rowInfo.person.level}</span><div class="person-meta"><span class="person-name">${displayNameHtml}</span></div></div><div class="shift-row"><select class="shift-select"><option value="">班別</option>${Object.keys(SHIFT_DEFS).map(k => `<option value="${k}" ${shift===k?'selected':''}>${k}</option>`).join('')}</select></div>${pendingRest}`;
+    left.addEventListener('dragstart', e => {
+      e.dataTransfer.setData('text/person-row', rowInfo.originalIndex);
+      left.classList.add('dragging');
+    });
+    left.addEventListener('dragend', () => clearHoverStates());
+    left.addEventListener('dragover', e => {
+      if (!e.dataTransfer.types.includes('text/person-row')) return;
+      e.preventDefault(); left.classList.add('over');
+    });
+    left.addEventListener('dragleave', () => left.classList.remove('over'));
+    left.addEventListener('drop', e => {
+      const fromIdx = Number(e.dataTransfer.getData('text/person-row'));
+      const toIdx = Number(left.dataset.originalIndex);
+      if (Number.isNaN(fromIdx) || Number.isNaN(toIdx) || fromIdx === toIdx) return;
+      reorderPeople(fromIdx, toIdx); clearHoverStates();
+    });
+    const shiftSelect = left.querySelector('.shift-select');
+    shiftSelect.addEventListener('change', e => {
+      people[rowInfo.originalIndex].shift = e.target.value;
+      const st = SHIFT_DEFS[e.target.value];
+      renderRows();
+      saveLocal();
+    });
+
+    const timeline = document.createElement('div');
+    timeline.className = 'timeline';
+    timeline.dataset.originalIndex = rowInfo.originalIndex;
+    timeline.addEventListener('dragover', e => {
+      if (!e.dataTransfer.types.includes('text/template')) return;
+      e.preventDefault(); timeline.classList.add('drag-over');
+    });
+    timeline.addEventListener('dragleave', () => timeline.classList.remove('drag-over'));
+    timeline.addEventListener('drop', e => {
+      if (!e.dataTransfer.types.includes('text/template')) return;
+      e.preventDefault(); timeline.classList.remove('drag-over');
+      const templateId = e.dataTransfer.getData('text/template');
+      const tpl = templates.find(x => x.id === templateId);
+      if (!tpl) return;
+      const exists = tpl.role !== '休' && tpl.role !== '自訂' && schedule.some(x => `${x.flight}_${x.role}_${x.flightType}` === templateId);
+      if (exists) return;
+      const targetPersonIndex = Number(timeline.dataset.originalIndex);
+
+      let start = tpl.start;
+      let end = tpl.end;
+      let label = tpl.label;
+      let compactLabel = tpl.compactLabel;
+      let flight = tpl.flight;
+
+      if (tpl.role === '休') {
+        const rect = timeline.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const mins = snap5(START_MIN + Math.max(0, x / pxPerMinute));
+        start = mins;
+        end = mins + tpl.duration;
+        flight = tpl.id + '_' + blockSeq;
+      }
+
+      if (!confirmConflict(targetPersonIndex, null, start, end)) return;
+      schedule.push({
+        uid: blockSeq++,
+        label,
+        compactLabel,
+        role: tpl.role,
+        flight,
+        flightType: tpl.flightType,
+        personIndex: targetPersonIndex,
+        start,
+        end
+      });
+      renderPalette(); renderRows(); saveLocal();
+    });
+
+    const personShift = people[rowInfo.originalIndex].shift;
+    if (personShift && SHIFT_DEFS[personShift]) {
+      const s1 = tStrToMin(SHIFT_DEFS[personShift][0]);
+      let s2 = tStrToMin(SHIFT_DEFS[personShift][1]);
+      let startMin = s1;
+      let endMin = s2;
+      if (endMin !== null && startMin !== null && endMin <= startMin) endMin += 24 * 60;
+      const visibleStart = Math.max(startMin, START_MIN);
+      const visibleEnd = Math.min(endMin, END_MIN);
+      if (visibleEnd > visibleStart) {
+        const band = document.createElement('div');
+        band.className = 'shift-band';
+        band.style.left = timeToLeft(visibleStart) + 'px';
+        band.style.width = durationToWidth(visibleStart, visibleEnd) + 'px';
+        timeline.appendChild(band);
+}
+    }
+    const items = schedule.filter(s => s.personIndex === rowInfo.originalIndex);
+    items.forEach(item => timeline.appendChild(createBlockEl(item, normalized)));
+
+    row.appendChild(left);
+    row.appendChild(timeline);
+    rows.appendChild(row);
+  });
+  document.querySelectorAll('.timeline').forEach(t => t.addEventListener('click', () => selectBlock(null)));
+  syncAssignmentTableFromSchedule();
+}
+
+function reorderPeople(fromIdx, toIdx) {
+  const moved = people.splice(fromIdx, 1)[0];
+  people.splice(toIdx, 0, moved);
+  schedule.forEach(item => {
+    if (item.personIndex === fromIdx) item.personIndex = toIdx;
+    else if (fromIdx < toIdx && item.personIndex > fromIdx && item.personIndex <= toIdx) item.personIndex -= 1;
+    else if (fromIdx > toIdx && item.personIndex >= toIdx && item.personIndex < fromIdx) item.personIndex += 1;
+  });
+  renderRows(); saveLocal();
+}
+
+function startMoveBlock(e, item) {
+  e.preventDefault();
+  selectBlock(item.uid);
+  const originalPersonIndex = item.personIndex;
+  const originalStart = item.start;
+  const originalEnd = item.end;
+  const rowHeight = document.querySelector('.row').getBoundingClientRect().height;
+  const originTimeline = e.currentTarget.parentElement;
+  function onMove(ev) {
+    const boardRect = document.getElementById('rows').getBoundingClientRect();
+    const displayRows = getDisplayRows();
+    let idx = Math.max(0, Math.min(Math.floor((ev.clientY - boardRect.top - 1) / rowHeight), displayRows.length - 1));
+    item.personIndex = displayRows[idx].originalIndex;
+
+    if (item.role === '休') {
+      const targetTimeline = document.querySelector(`.timeline[data-original-index="${item.personIndex}"]`) || originTimeline;
+      const rect = targetTimeline.getBoundingClientRect();
+      const raw = START_MIN + ((ev.clientX - rect.left) / pxPerMinute);
+      const snapped = snap5(raw);
+      const duration = originalEnd - originalStart;
+      item.start = snapped;
+      item.end = snapped + duration;
+    }
+
+    renderRows();
+    selectBlock(item.uid);
+  }
+  function onUp() {
+    document.removeEventListener('mousemove', onMove);
+    document.removeEventListener('mouseup', onUp);
+    if (!confirmConflict(item.personIndex, item.uid, item.start, item.end)) {
+      item.personIndex = originalPersonIndex;
+      item.start = originalStart;
+      item.end = originalEnd;
+      renderRows();
+      selectBlock(item.uid);
+      return;
+    }
+    saveLocal();
+  }
+  document.addEventListener('mousemove', onMove);
+  document.addEventListener('mouseup', onUp);
+}
+
+function exportCSV() {
+  const header = ['姓名','戰力','完整Duty','顯示字樣','角色','開始','結束'];
+  const lines = [header.join(',')];
+  schedule.slice().sort((a,b) => a.personIndex - b.personIndex || a.start - b.start).forEach(item => {
+    const p = people[item.personIndex];
+    lines.push([
+      p.name, p.level,
+      '"' + item.label.replaceAll('"','""') + '"',
+      item.compactLabel || compactDutyLabel(item.flight, item.role),
+      item.role,
+      minutesToTime(item.start),
+      minutesToTime(item.end)
+    ].join(','));
+  });
+  const blob = new Blob(["\ufeff" + lines.join('\n')], {type:'text/csv;charset=utf-8;'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'duty_schedule.csv';
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function setEditorExpanded(expanded) {
+  editorExpanded = expanded;
+  const panel = document.getElementById('flightEditorPanel');
+  const body = document.getElementById('editorBody');
+  const btn = document.getElementById('toggleEditorBtn');
+  panel.classList.toggle('collapsed', !expanded);
+  body.classList.toggle('hidden', !expanded);
+  btn.textContent = expanded ? '收合' : '展開';
+}
+
+
+function toggleAssignmentPanel(forceOpen) {
+  const panel = document.getElementById('assignmentPanel');
+  const btn = document.getElementById('assignmentToggleBtn');
+  const willOpen = typeof forceOpen === 'boolean' ? forceOpen : panel.style.display !== 'block';
+  panel.style.display = willOpen ? 'block' : 'none';
+  btn.textContent = willOpen ? '📋 收合分配表' : '📋 今日航班作業人員分配表';
+}
+function syncAssignmentTableFromSchedule() {
+  const mappedCells = document.querySelectorAll('[data-flight][data-role]');
+  mappedCells.forEach(cell => {
+    const flight = cell.dataset.flight;
+    const role = cell.dataset.role;
+    const matchedItems = schedule.filter(item => item.flight === flight && item.role === role);
+    const codes = matchedItems
+      .map(item => (people[item.personIndex] ? (people[item.personIndex].code || people[item.personIndex].name) : ''))
+      .filter(Boolean);
+    cell.textContent = codes.join(' ');
+    if (codes.length) {
+      cell.classList.add('assignment-clickable');
+      cell.onclick = () => {
+        const index = matchedItems[0] ? matchedItems[0].personIndex : -1;
+        if (index === -1) return;
+        const row = document.querySelector(`.person-cell[data-original-index="${index}"]`)?.closest('.row');
+        if (row) {
+          row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          const oldBg = row.style.background;
+          row.style.background = '#fff3bf';
+          setTimeout(() => { row.style.background = oldBg; }, 1500);
+        }
+      };
+      cell.title = '點一下可定位到下方該人員';
+    } else {
+      cell.classList.remove('assignment-clickable');
+      cell.onclick = null;
+      cell.title = '';
+    }
+  });
+}
+document.getElementById('assignmentToggleBtn').addEventListener('click', () => toggleAssignmentPanel());
+document.getElementById('assignmentCloseBtn').addEventListener('click', () => toggleAssignmentPanel(false));
+
+
+function forceFixFlightEditorToggle() {
+  const panel = document.getElementById('flightEditorPanel');
+  const body = document.getElementById('editorBody');
+  const btn = document.getElementById('toggleEditorBtn');
+  if (!panel || !body || !btn) return;
+  btn.onclick = () => {
+    const isClosed = body.classList.contains('hidden');
+    panel.classList.toggle('collapsed', !isClosed);
+    body.classList.toggle('hidden', !isClosed);
+    btn.textContent = isClosed ? '收合' : '展開';
+  };
+}
+
+document.getElementById('searchInput').addEventListener('input', renderPalette);
+document.getElementById('roleFilter').addEventListener('change', renderPalette);
+document.getElementById('flightSearchInput').addEventListener('input', renderFlightEditor);
+document.getElementById('flightTypeFilter').addEventListener('change', renderFlightEditor);
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    activePaletteTab = btn.dataset.tab;
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b === btn));
+    renderPalette();
+  });
+});
+document.getElementById('timelineFlightSearch').addEventListener('input', (e) => {
+  timelineFlightSearch = e.target.value.trim();
+  renderRows();
+});
+document.getElementById('clearTimelineSearch').addEventListener('click', () => {
+  timelineFlightSearch = '';
+  document.getElementById('timelineFlightSearch').value = '';
+  renderRows();
+});
+document.getElementById('toggleEditorBtn').addEventListener('click', () => {
+  setEditorExpanded(!editorExpanded);
+});
+
+document.getElementById('importExcelBtn').addEventListener('click', () => {
+  document.getElementById('excelImportInput').click();
+});
+document.getElementById('importStaffDbBtn').addEventListener('click', () => {
+  document.getElementById('staffDbImportInput').click();
+});
+document.getElementById('excelImportInput').addEventListener('change', async (e) => {
+  const file = e.target.files && e.target.files[0];
+  if (!file) return;
+  if (typeof XLSX === 'undefined') {
+    alert('Excel 讀取套件尚未載入。請確認網路連線後重新整理頁面。');
+    return;
+  }
+  const buffer = await file.arrayBuffer();
+  const workbook = XLSX.read(buffer, { type: 'array' });
+
+  const flightSheetName = workbook.SheetNames.find(n => n.toLowerCase() === 'flights') || workbook.SheetNames[0];
+  const staffSheetName = workbook.SheetNames.find(n => /staff|人員|名單|戰力|代號/i.test(String(n)));
+
+  if (!flightSheetName || !staffSheetName) {
+    alert('Excel 需要包含 Flights 和 Staff（或人員）工作表。');
+    return;
+  }
+
+  const flightRows = XLSX.utils.sheet_to_json(workbook.Sheets[flightSheetName], { defval: '' });
+  const staffRows = XLSX.utils.sheet_to_json(workbook.Sheets[staffSheetName], { defval: '' });
+
+  const newFlightDefs = buildFlightDefsFromRows(flightRows);
+  const newPeople = mergePeopleWithStaffDirectory(buildPeopleFromRows(staffRows));
+
+  if (!newFlightDefs.length) {
+    alert('Flights 工作表沒有可讀取的航班資料。');
+    return;
+  }
+  if (!newPeople.length) {
+    alert('Staff 工作表沒有可讀取的人員資料。');
+    return;
+  }
+
+  if (!confirm(`即將匯入 ${newFlightDefs.length} 筆航班、${newPeople.length} 位人員。\n目前已排的 duty 會清空，確定匯入嗎？`)) return;
+
+  rebuildAfterExcelImport(newFlightDefs, newPeople);
+  alert('Excel 匯入完成，已依新規則產生 duty 區塊，並同步到雲端。');
+  e.target.value = '';
+});
+document.getElementById('staffDbImportInput').addEventListener('change', async (e) => {
+  const file = e.target.files && e.target.files[0];
+  if (!file) return;
+  if (typeof XLSX === 'undefined') {
+    alert('Excel 讀取套件尚未載入。請確認網路連線後重新整理頁面。');
+    return;
+  }
+  const buffer = await file.arrayBuffer();
+  const workbook = XLSX.read(buffer, { type: 'array' });
+  const sheetName = workbook.SheetNames.find(n => /staff|人員|名單|戰力|代號/i.test(String(n))) || workbook.SheetNames[0];
+  if (!sheetName) {
+    alert('找不到可讀取的人員資料工作表。');
+    return;
+  }
+  const rows = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], { defval: '' });
+  const directory = buildStaffDirectoryFromRows(rows);
+  if (!directory.length) {
+    alert('人員資料庫沒有可讀取資料，請確認含有「代號」與「姓名」。');
+    return;
+  }
+  staffDirectory = directory;
+  saveStaffDirectory();
+  renderRows();
+  scheduleCloudSave();
+  alert(`人員資料庫已更新，共 ${directory.length} 筆。`);
+  e.target.value = '';
+});
+
+document.getElementById('resetBtn').addEventListener('click', () => {
+  if (confirm('要清空目前排班嗎？')) {
+    schedule = [];
+    selectedBlockId = null;
+    saveLocal();
+    renderPalette(); renderRows();
+  }
+});
+document.getElementById('exportBtn').addEventListener('click', exportCSV);
+document.getElementById('saveBtn').addEventListener('click', () => { saveLocal(); alert('已儲存到瀏覽器'); });
+
+document.getElementById('addCustomDutyBtn').addEventListener('click', () => {
+  const nameEl = document.getElementById('customDutyName');
+  const startEl = document.getElementById('customDutyStart');
+  const durEl = document.getElementById('customDutyDuration');
+
+  const name = nameEl.value.trim();
+  const start = startEl.value.trim();
+  const duration = durEl.value.trim();
+
+  const tpl = createCustomTemplate(name, start, duration);
+  if (!tpl) {
+    alert('請輸入正確的名稱、開始時間（例如 08:30）和時間長度（5 分鐘倍數）');
+    return;
+  }
+
+  customTemplates.push(tpl);
+  saveCustomTemplates();
+  templates = [...buildTemplates(), ...createRestTemplates(), ...customTemplates];
+  renderPalette();
+
+  nameEl.value = '';
+  startEl.value = '';
+  durEl.value = '';
+});
+
+document.getElementById('zoomIn').addEventListener('click', () => { pxPerMinute = Math.min(4, pxPerMinute + 0.2); renderTimeHeader(); renderRows(); });
+document.getElementById('zoomOut').addEventListener('click', () => { pxPerMinute = Math.max(0.6, pxPerMinute - 0.2); renderTimeHeader(); renderRows(); });
+document.addEventListener('keydown', e => {
+  const active = document.activeElement;
+  const tag = active && active.tagName ? active.tagName.toLowerCase() : '';
+  const isTyping = tag === 'input' || tag === 'textarea' || tag === 'select' || (active && active.isContentEditable);
+
+  if (isTyping) return;
+
+  if ((e.key === 'Delete' || e.key === 'Backspace') && selectedBlockId !== null) {
+    e.preventDefault();
+
+    schedule = schedule.filter(x => x.uid !== selectedBlockId);
+    selectedBlockId = null;
+
+    renderPalette();
+    renderRows();
+    saveLocal();
+  }
+});
+
+templates = [...buildTemplates(), ...createRestTemplates(), ...customTemplates];
+syncScheduleWindows();
+renderTimeHeader();
+renderPalette();
+renderRows();
+renderFlightEditor();
+setEditorExpanded(false);
+forceFixFlightEditorToggle();
+initFirebaseSync();
+toggleAssignmentPanel(false);
+</script>
+</body>
+</html>
