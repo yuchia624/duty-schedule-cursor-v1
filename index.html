@@ -5310,19 +5310,93 @@ function listLocalStorageKeysByPrefix(prefix) {
   }
   return out;
 }
+function collectLocalStorageEntriesByPrefix(prefix) {
+  const out = {};
+  listLocalStorageKeysByPrefix(prefix).forEach(key => {
+    out[key] = localStorage.getItem(key);
+  });
+  return out;
+}
+function buildLocalStorageBackupPayload(prefix) {
+  return {
+    exportedAt: new Date().toISOString(),
+    origin: location.origin,
+    data: collectLocalStorageEntriesByPrefix(prefix)
+  };
+}
+function downloadJsonFile(filename, data) {
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 0);
+}
+function parseJsonMaybe(raw) {
+  if (raw == null || raw === '') return null;
+  if (typeof raw !== 'string') return raw;
+  try { return JSON.parse(raw); } catch { return null; }
+}
+function enrichIncomingStaffTags(incomingData, existingData) {
+  const staffKey = `${LS_PREFIX}_staff_personnel`;
+  const inRaw = incomingData[staffKey];
+  const exRaw = existingData[staffKey];
+  if (typeof inRaw !== 'string' || typeof exRaw !== 'string') return;
+  const inRoot = parseJsonMaybe(inRaw);
+  const exRoot = parseJsonMaybe(exRaw);
+  if (!inRoot || !exRoot) return;
+  const inPeople = Array.isArray(inRoot.people) ? inRoot.people : null;
+  const exPeople = Array.isArray(exRoot.people) ? exRoot.people : null;
+  if (!inPeople || !exPeople) return;
+  const tagsByPid = new Map();
+  exPeople.forEach(rec => {
+    if (!rec || typeof rec !== 'object') return;
+    const pid = String(rec.personnelId || '').trim();
+    if (!pid) return;
+    const tagRecords = Array.isArray(rec.tagRecords) ? rec.tagRecords.filter(Boolean) : [];
+    if (tagRecords.length) tagsByPid.set(pid, tagRecords);
+  });
+  if (!tagsByPid.size) return;
+  let patched = false;
+  inPeople.forEach(rec => {
+    if (!rec || typeof rec !== 'object') return;
+    const pid = String(rec.personnelId || '').trim();
+    if (!pid) return;
+    const existingTags = tagsByPid.get(pid);
+    if (!existingTags) return;
+    const hasIncomingTags = Array.isArray(rec.tagRecords) && rec.tagRecords.some(Boolean);
+    if (!hasIncomingTags) {
+      rec.tagRecords = JSON.parse(JSON.stringify(existingTags));
+      patched = true;
+    }
+  });
+  if (patched) incomingData[staffKey] = JSON.stringify(inRoot);
+}
 function restoreCursorLocalStorageBackup(payload) {
   if (!payload || typeof payload !== 'object' || !payload.data || typeof payload.data !== 'object') {
     throw new Error('備份檔格式錯誤，缺少 data 欄位。');
   }
   const prefix = `${LS_PREFIX}`;
-  const incoming = Object.entries(payload.data).filter(([k]) => typeof k === 'string' && k.startsWith(prefix));
+  const incomingData = {};
+  Object.entries(payload.data).forEach(([k, v]) => {
+    if (typeof k !== 'string' || !k.startsWith(prefix)) return;
+    incomingData[k] = typeof v === 'string' ? v : JSON.stringify(v);
+  });
+  const incoming = Object.entries(incomingData);
   if (!incoming.length) throw new Error(`備份檔內找不到 ${prefix} 資料。`);
+  const existingData = collectLocalStorageEntriesByPrefix(prefix);
+  enrichIncomingStaffTags(incomingData, existingData);
+  const rollbackPayload = {
+    exportedAt: new Date().toISOString(),
+    origin: location.origin,
+    reason: 'auto-snapshot-before-restore',
+    data: existingData
+  };
   const existing = listLocalStorageKeysByPrefix(prefix);
   existing.forEach(k => localStorage.removeItem(k));
-  incoming.forEach(([k, v]) => {
-    localStorage.setItem(k, typeof v === 'string' ? v : JSON.stringify(v));
-  });
-  return { restoredCount: incoming.length, removedCount: existing.length };
+  Object.entries(incomingData).forEach(([k, v]) => localStorage.setItem(k, v));
+  return { restoredCount: incoming.length, removedCount: existing.length, rollbackPayload };
 }
 function dayStorageKeys(dateStr) {
   const d = String(dateStr || '').trim();
@@ -11526,8 +11600,10 @@ document.getElementById('restoreLocalBackupInput')?.addEventListener('change', a
     );
     if (!ok) return;
     const result = restoreCursorLocalStorageBackup(payload);
+    const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+    downloadJsonFile(`localstorage-backup.before-restore.${stamp}.json`, result.rollbackPayload);
     await appSuccess(
-      `已還原 ${result.restoredCount} 筆資料（清除舊資料 ${result.removedCount} 筆）。\n按下確定後將重新整理頁面套用。`,
+      `已還原 ${result.restoredCount} 筆資料（清除舊資料 ${result.removedCount} 筆）。\n已自動下載還原前快照；若備份檔缺少標籤，系統會保留現有標籤。\n按下確定後將重新整理頁面套用。`,
       '還原完成'
     );
     window.location.reload();
