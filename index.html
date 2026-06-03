@@ -5323,6 +5323,8 @@ const LS_KEYS_GLOBAL = {
   staffListRefDate: `${LS_PREFIX}_staff_list_ref_date`
 };
 const STAFF_PERSONNEL_BASELINE = '2026-01-01';
+/** 種子／匯入基準事件的生效日：無限期（不列入歷史時間軸） */
+const STAFF_IMPORT_BASELINE_FOREVER = '';
 const STAFF_LEGACY_ACTIVE_STATUS = '在職';
 const STAFF_STATUS_FORM_OPTIONS = [STAFF_LEGACY_ACTIVE_STATUS, '調入', '調出', '留停', '復職', '離職', '退休'];
 const STAFF_STATUS_SEARCH_KEYWORDS = ['調入', '調出', '留停', '復職', '離職', '退休'];
@@ -5890,6 +5892,7 @@ function normalizeStaffPersonnelRegistryInPlace() {
     if (ensureStaffEventIds(rec)) changed = true;
   });
   if (repairStaffPersonnelMissingBaselines()) changed = true;
+  if (migrateStaffImportBaselinesToForever(staffPersonnelRegistry)) changed = true;
   staffPersonnelRegistry.people.forEach(rec => {
     const before = JSON.stringify(rec.tagRecords || []) + '|' + JSON.stringify(rec.tags || []);
     ensureStaffTagRecords(rec);
@@ -5930,9 +5933,10 @@ function normalizeStaffPersonnelBaselines(registry) {
     const evs = rec.events || [];
     if (!evs.length) return;
     const last = evs[evs.length - 1];
-    rec.events = [{ ...last, effectiveDate: baseline, isImportBaseline: true }];
+    rec.events = [{ ...last, effectiveDate: STAFF_IMPORT_BASELINE_FOREVER, isImportBaseline: true }];
   });
   registry.historyBaselineNormalized = true;
+  migrateStaffImportBaselinesToForever(registry);
   return registry;
 }
 function stripAllStaffPersonnelHistory(registry) {
@@ -5991,7 +5995,37 @@ function getStaffPersonnelRecord(personnelId) {
   return staffPersonnelRegistry.people.find(p => p.personnelId === pid) || null;
 }
 function compareIsoDate(a, b) {
-  return String(a || '').localeCompare(String(b || ''));
+  const aForever = !isValidISODate(a);
+  const bForever = !isValidISODate(b);
+  if (aForever && bForever) return 0;
+  if (aForever) return -1;
+  if (bForever) return 1;
+  return String(a).localeCompare(String(b));
+}
+function isStaffHistoryTimelineEvent(ev) {
+  return !!ev && isValidISODate(ev.effectiveDate);
+}
+function migrateStaffImportBaselinesToForever(registry) {
+  if (!registry?.people?.length) return false;
+  const calendarBaseline = getStaffHistoryBaselineDate(registry);
+  let changed = false;
+  registry.people.forEach(rec => {
+    (rec.events || []).forEach(ev => {
+      const isMarkedBaseline = ev.isImportBaseline === true;
+      const isLegacyCalendarBaseline = String(ev.effectiveDate || '') === calendarBaseline
+        && (isMarkedBaseline || (rec.events || []).length === 1);
+      if (!isMarkedBaseline && !isLegacyCalendarBaseline) return;
+      if (ev.effectiveDate !== STAFF_IMPORT_BASELINE_FOREVER) {
+        ev.effectiveDate = STAFF_IMPORT_BASELINE_FOREVER;
+        changed = true;
+      }
+      if (!ev.isImportBaseline) {
+        ev.isImportBaseline = true;
+        changed = true;
+      }
+    });
+  });
+  return changed;
 }
 function makeStaffEventId() {
   const n = staffEventIdSeq++;
@@ -6014,7 +6048,7 @@ function getStaffSnapshotAtDate(personnelId, refDateISO) {
   if (!rec?.events?.length) return null;
   const registry = staffPersonnelRegistry;
   const onOrBefore = (rec.events || [])
-    .filter(ev => ev.effectiveDate && compareIsoDate(ev.effectiveDate, ref) <= 0)
+    .filter(ev => !isValidISODate(ev.effectiveDate) || compareIsoDate(ev.effectiveDate, ref) <= 0)
     .sort((a, b) => compareIsoDate(a.effectiveDate, b.effectiveDate));
   const real = onOrBefore.filter(ev => !isStaffImportBaselineEvent(ev, registry, rec));
   let snap = real.length ? real[real.length - 1] : null;
@@ -7115,14 +7149,17 @@ function isStaffImportBaselineEvent(ev, registry, rec) {
   if (src === 'import' || src === '系統匯入') return true;
   const reg = registry || staffPersonnelRegistry;
   if (!reg?.historyBaselineNormalized && !reg?.historyStripped) return false;
-  const baseline = getStaffHistoryBaselineDate(reg);
-  if (String(ev.effectiveDate || '') !== baseline) return false;
+  const calendarBaseline = getStaffHistoryBaselineDate(reg);
+  const eff = String(ev.effectiveDate || '');
+  if (eff !== calendarBaseline && eff !== STAFF_IMPORT_BASELINE_FOREVER) return false;
   const evs = (rec?.events || []).slice().sort((a, b) => compareIsoDate(a.effectiveDate, b.effectiveDate));
-  return evs.length > 0 && evs[0].effectiveDate === ev.effectiveDate;
+  return evs.length > 0 && evs[0] === ev;
 }
 function getStaffHistoryDisplayEvents(rec) {
   const registry = staffPersonnelRegistry;
-  return (rec?.events || []).filter(ev => !isStaffImportBaselineEvent(ev, registry, rec));
+  return (rec?.events || [])
+    .filter(ev => !isStaffImportBaselineEvent(ev, registry, rec))
+    .filter(ev => isStaffHistoryTimelineEvent(ev));
 }
 function repairStaffPersonnelBaseline(rec) {
   const registry = staffPersonnelRegistry;
@@ -7141,7 +7178,7 @@ function repairStaffPersonnelBaseline(rec) {
     level: template.level,
     status: template.status,
     restrictions: template.restrictions || '',
-    effectiveDate: baseline,
+    effectiveDate: STAFF_IMPORT_BASELINE_FOREVER,
     isImportBaseline: true
   });
   sortStaffPersonnelEvents(rec);
@@ -7215,6 +7252,13 @@ function getStaffHistoryEventMeta(curr, prev) {
   if (prevSt === STAFF_LEGACY_ACTIVE_STATUS && currSt === '留停') {
     return { tone: 'purple', badge: '留停', change: `${prevSt} → ${currSt}` };
   }
+  // 種子基準已是留停，補登生效日時狀態未變，仍應顯示留停而非「資料調整」
+  if (prev?.isImportBaseline === true && currSt === '留停') {
+    const changeText = prevSt === '留停' || !prevSt
+      ? '留停生效'
+      : `${prevSt} → 留停`;
+    return { tone: 'purple', badge: '留停', change: changeText };
+  }
   if (prevSt === '留停' && (currSt === STAFF_LEGACY_ACTIVE_STATUS || currSt === '復職')) {
     return { tone: 'blue', badge: '復職', change: `${prevSt} → ${currSt === '復職' ? '復職' : STAFF_LEGACY_ACTIVE_STATUS}` };
   }
@@ -7255,6 +7299,9 @@ function getStaffHistoryEventMeta(curr, prev) {
       change: changes.map(c => `${c.badge} ${c.change}`).join(' · ')
     };
   }
+  if (currSt === '留停' && prevSt === '留停') {
+    return { tone: 'purple', badge: '留停', change: '留停生效' };
+  }
   if (prevSt && currSt !== prevSt && isStaffEquivalentActiveStatus(prevSt, currSt)) {
     const fallback = [curr.level && curr.level !== prevLevel ? `戰力 ${curr.level}` : '', curr.group, curr.code].filter(Boolean).join(' · ');
     if (fallback) return { tone: 'slate', badge: '資料調整', change: fallback };
@@ -7263,9 +7310,9 @@ function getStaffHistoryEventMeta(curr, prev) {
   return { tone: 'slate', badge: '資料調整', change: fallback || '—' };
 }
 function buildStaffHistoryTimelineHtml(events, activeDate, expanded, rec, options = {}) {
-  const all = (events || []).slice();
-  const list = all.filter(ev => !isStaffImportBaselineEvent(ev, staffPersonnelRegistry, rec || { events: all }));
-  if (list.length <= 1) return '<div class="erp-staff-timeline-empty">尚無歷史紀錄</div>';
+  const all = (events || rec?.events || []).slice();
+  const list = getStaffHistoryDisplayEvents(rec || { events: all });
+  if (!list.length) return '<div class="erp-staff-timeline-empty">尚無歷史紀錄</div>';
   const show = (expanded || list.length <= 4 ? list : list.slice(-4))
     .slice()
     .sort((a, b) => compareIsoDate(a.effectiveDate, b.effectiveDate));

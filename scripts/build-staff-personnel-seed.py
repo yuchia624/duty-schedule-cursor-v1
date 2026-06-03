@@ -14,6 +14,7 @@ except ImportError:
 
 YEAR = 2026
 BASELINE = f'{YEAR}-01-01'
+IMPORT_BASELINE_FOREVER = ''
 ARROW = r'(?:→|->|➔)'
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -97,7 +98,12 @@ def build_person(row):
     events = []
     first_date = entries[0]['effectiveDate'] if entries else BASELINE
     baseline_date = BASELINE if first_date > BASELINE else first_date
-    snap = {**state, 'effectiveDate': baseline_date, 'fullName': final['fullName']}
+    snap = {
+        **state,
+        'effectiveDate': IMPORT_BASELINE_FOREVER,
+        'fullName': final['fullName'],
+        'isImportBaseline': True,
+    }
     events.append(snap)
     cur = dict(snap)
     for ent in entries:
@@ -139,7 +145,11 @@ def main():
     for p in people:
         evs = p.get('events') or []
         if evs:
-            p['events'] = [{**evs[-1], 'effectiveDate': BASELINE}]
+            p['events'] = [{
+                **evs[-1],
+                'effectiveDate': IMPORT_BASELINE_FOREVER,
+                'isImportBaseline': True,
+            }]
     payload = {
         'version': 1,
         'source': src.name,
