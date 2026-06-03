@@ -7808,31 +7808,45 @@ function renderStaffPersonnelEditor() {
     return;
   }
   const events = rec.events || [];
-  const loadDate = staffEditorLoadedDate
-    || events.find(ev => ev.effectiveDate === ref)?.effectiveDate
-    || getStaffSnapshotAtDate(rec.personnelId, ref)?.effectiveDate
-    || events[events.length - 1]?.effectiveDate;
-  const ev = events.find(e => e.effectiveDate === loadDate)
-    || getStaffSnapshotAtDate(rec.personnelId, ref)
-    || events[events.length - 1]
-    || {};
-  staffEditorLoadedDate = ev.effectiveDate || loadDate;
-  const displaySt = getStaffListColumnStatus(ev);
+  const refSnap = getStaffSnapshotAtDate(rec.personnelId, ref);
+  let ev;
+  if (erpStaffFormEditing && staffEditMode === 'history') {
+    ev = findStaffHistoryEvent(rec, staffHistoryReplaceDate, staffHistoryReplaceEventId)
+      || refSnap
+      || events[events.length - 1]
+      || {};
+  } else if (erpStaffFormEditing) {
+    const loadDate = staffEditorLoadedDate
+      ?? events.find(e => e.effectiveDate === ref)?.effectiveDate
+      ?? refSnap?.effectiveDate
+      ?? events[events.length - 1]?.effectiveDate
+      ?? null;
+    ev = (loadDate != null ? events.find(e => e.effectiveDate === loadDate) : null)
+      ?? refSnap
+      ?? events[events.length - 1]
+      ?? {};
+    staffEditorLoadedDate = isValidISODate(ev.effectiveDate) ? ev.effectiveDate : staffEditorLoadedDate;
+  } else {
+    ev = refSnap || events[events.length - 1] || {};
+    staffEditorLoadedDate = isValidISODate(ev.effectiveDate) ? ev.effectiveDate : null;
+  }
+  const viewSnap = !erpStaffFormEditing ? (refSnap || ev) : ev;
+  const displaySt = getStaffListColumnStatus(viewSnap);
   const pidEl = document.getElementById('erpStaffEditorPid');
   const nameEl = document.getElementById('erpStaffEditorName');
   const pillEl = document.getElementById('erpStaffEditorStatusPill');
   if (pidEl) pidEl.textContent = rec.personnelId;
-  if (nameEl) nameEl.textContent = ev.fullName || '';
+  if (nameEl) nameEl.textContent = viewSnap.fullName || '';
   if (pillEl) pillEl.innerHTML = buildStaffStatusPillHtml(displaySt);
   if (!erpStaffFormEditing) {
-    syncStaffEditEffDateInputs(isValidISODate(ev.effectiveDate) ? ev.effectiveDate : '');
-    fillStaffFormFromSnapshot(ev, ev.effectiveDate || ref);
+    syncStaffEditEffDateInputs(isValidISODate(viewSnap.effectiveDate) ? viewSnap.effectiveDate : '');
+    fillStaffFormFromSnapshot(viewSnap, isValidISODate(viewSnap.effectiveDate) ? viewSnap.effectiveDate : ref);
   }
   renderStaffTagEditor(rec);
   setStaffFormEditing(erpStaffFormEditing);
   const historyHighlight = erpStaffFormEditing && staffEditMode === 'history'
     ? staffHistoryReplaceDate
-    : staffEditorLoadedDate;
+    : (isValidISODate(viewSnap.effectiveDate) ? viewSnap.effectiveDate : staffEditorLoadedDate);
   const historyEvents = getStaffHistoryDisplayEvents(rec);
   const expandBtn = document.getElementById('erpStaffHistoryExpandBtn');
   if (expandBtn) {
