@@ -6072,6 +6072,31 @@ function getStaffSnapshotAtDate(personnelId, refDateISO) {
   ensureStaffTagRecords(rec);
   return { personnelId: rec.personnelId, ...snap, tags: getStaffTagNamesFromRecords(rec.tagRecords, ref) };
 }
+function staffCodeOccupiedAtSnapshot(snap) {
+  if (!snap) return false;
+  const st = getStaffDisplayStatus(snap) || String(snap.status || '').trim();
+  if (STAFF_TAB_DISABLED_STATUSES.has(st)) return false;
+  return !!String(snap.code || '').trim();
+}
+function getStaffNearestProfileEvent(rec, refDateISO) {
+  const ref = isValidISODate(refDateISO) ? refDateISO : getStaffListReferenceDate();
+  const future = getStaffHistoryDisplayEvents(rec)
+    .filter(ev => ev.effectiveDate && compareIsoDate(ev.effectiveDate, ref) > 0)
+    .sort((a, b) => compareIsoDate(a.effectiveDate, b.effectiveDate));
+  if (future.length) return future[0];
+  const events = rec.events || [];
+  return events.length ? events[events.length - 1] : null;
+}
+function getStaffListRowSnapshot(rec, refDateISO) {
+  const ref = isValidISODate(refDateISO) ? refDateISO : getStaffListReferenceDate();
+  const atRef = getStaffSnapshotAtDate(rec.personnelId, ref);
+  if (atRef) return atRef;
+  const profile = getStaffNearestProfileEvent(rec, ref);
+  return profile ? { personnelId: rec.personnelId, ...profile } : {};
+}
+function staffListSearchIgnoresFilters() {
+  return isStaffListSearchActive() && !staffListAdvancedFiltersActive();
+}
 function findDuplicateStaffCodeAtDate(codeRaw, refDateISO, excludePersonnelId) {
   const code = String(codeRaw || '').trim();
   const ref = isValidISODate(refDateISO) ? refDateISO : getStaffListReferenceDate();
@@ -6081,7 +6106,7 @@ function findDuplicateStaffCodeAtDate(codeRaw, refDateISO, excludePersonnelId) {
     if (!rec?.personnelId) continue;
     if (exclude && rec.personnelId === exclude) continue;
     const snap = getStaffSnapshotAtDate(rec.personnelId, ref);
-    if (!snap) continue;
+    if (!staffCodeOccupiedAtSnapshot(snap)) continue;
     if (String(snap.code || '').trim() === code) {
       return { personnelId: rec.personnelId, fullName: String(snap.fullName || '').trim() };
     }
@@ -6508,9 +6533,12 @@ function getStaffListTabForStatus(status) {
   if (STAFF_TAB_ACTIVE_STATUSES.has(st)) return 'active';
   return 'active';
 }
+function staffHasEffectiveRecordAtDate(personnelId, refDateISO) {
+  return !!getStaffSnapshotAtDate(personnelId, refDateISO);
+}
 function getStaffListTabAtDate(personnelId, refDateISO) {
   const snap = getStaffSnapshotAtDate(personnelId, refDateISO);
-  if (!snap) return 'active';
+  if (!snap) return null;
   const st = getStaffDisplayStatus(snap) || String(snap.status || '').trim();
   return getStaffListTabForStatus(st);
 }
@@ -6534,9 +6562,11 @@ function isStaffListSearchActive() {
 }
 function staffRowPassesScopeFilter(rec, ref, scopes, options = {}) {
   if (options.skipForSearch) return true;
+  const tab = getStaffListTabAtDate(rec.personnelId, ref);
+  if (!tab) return false;
   const set = scopes || staffListFiltersApplied.scopes || [];
-  if (set.length) return set.includes(getStaffListTabAtDate(rec.personnelId, ref));
-  return getStaffListTabAtDate(rec.personnelId, ref) === erpStaffListTab;
+  if (set.length) return set.includes(tab);
+  return tab === erpStaffListTab;
 }
 function getStaffListRefDatePending() {
   const hidden = document.getElementById('erpStaffFilterRefDate')?.value || '';
@@ -6903,7 +6933,7 @@ function syncStaffListTabForPerson(personnelId) {
     return;
   }
   const want = getStaffListTabAtDate(personnelId, getStaffListReferenceDate());
-  if (erpStaffListTab !== want) {
+  if (want && erpStaffListTab !== want) {
     erpStaffListTab = want;
     updateStaffListTabsUi();
     updateStaffFilterToggleUi();
@@ -7466,9 +7496,15 @@ function populateStaffFilterOptions() {
   populateStaffFilterGroupChecks();
 }
 function staffRowPassesFilters(rec, ref, options = {}) {
-  const filterOpts = isStaffListSearchActive() ? { skipForSearch: true, ...options } : options;
-  if (!staffRowPassesScopeFilter(rec, ref, undefined, filterOpts)) return false;
-  const snap = getStaffSnapshotAtDate(rec.personnelId, ref) || {};
+  const refDate = isValidISODate(ref) ? ref : getStaffListReferenceDate();
+  const q = getStaffListSearchQuery();
+  if (q) {
+    if (!staffPersonnelSearchHaystack(rec, refDate).includes(q)) return false;
+    if (staffListSearchIgnoresFilters()) return true;
+  }
+  if (!staffRowPassesScopeFilter(rec, refDate, undefined, options)) return false;
+  if (!staffHasEffectiveRecordAtDate(rec.personnelId, refDate)) return false;
+  const snap = getStaffSnapshotAtDate(rec.personnelId, refDate);
   const st = getStaffDisplayStatus(snap) || snap.status || '';
   const statusSet = staffListFiltersApplied.statuses || [];
   const groupSet = staffListFiltersApplied.groups || [];
@@ -7636,13 +7672,17 @@ function staffPersonnelSearchHaystack(rec, refDateISO) {
   const snap = getStaffSnapshotAtDate(rec.personnelId, refDateISO) || {};
   ensureStaffTagRecords(rec);
   const tagsText = formatStaffTags(getStaffTagNamesFromRecords(rec.tagRecords, refDateISO));
+  const profileTokens = (rec.events || []).flatMap(ev => {
+    const st = getStaffDisplayStatus(ev) || String(ev.status || '').trim();
+    return [ev.fullName, ev.code, ev.group, ev.level, st, ev.status];
+  });
   const historyTokens = getStaffHistoryDisplayEvents(rec).map(ev => {
     const st = getStaffDisplayStatus(ev) || String(ev.status || '').trim();
     const iso = String(ev.effectiveDate || '').trim();
     const dateText = formatScheduleDateDisplay(iso) || '';
-    return [st, iso, dateText, `${iso} ${st}`].join(' ');
+    return [ev.fullName, ev.code, ev.group, ev.level, st, iso, dateText, `${iso} ${st}`].join(' ');
   }).join(' ');
-  return [rec.personnelId, snap.fullName, snap.code, snap.group, snap.level, getStaffDisplayStatus(snap), tagsText, historyTokens]
+  return [rec.personnelId, snap.fullName, snap.code, snap.group, snap.level, getStaffDisplayStatus(snap), tagsText, profileTokens, historyTokens]
     .join(' ').toLowerCase();
 }
 function getStaffSearchMatchedStatus(rec, query) {
@@ -7759,7 +7799,7 @@ function renderStaffTagEditor(rec) {
   if (tagsInput) tagsInput.value = '';
 }
 function getErpStaffSortValue(rec, refDate, key) {
-  const snap = getStaffSnapshotAtDate(rec.personnelId, refDate) || {};
+  const snap = getStaffListRowSnapshot(rec, refDate) || {};
   if (key === 'personnelId') return String(rec.personnelId || '');
   if (key === 'fullName') return String(snap.fullName || '');
   if (key === 'code') return String(snap.code || '');
@@ -8880,7 +8920,7 @@ function exportErpStaffListExcel() {
   sheetRows.push([]);
   sheetRows.push(['人事代號', '姓名', '代號', '組別', '戰力', '標籤', '狀態', '最新調整項目']);
   rows.forEach(rec => {
-    const snap = getStaffSnapshotAtDate(rec.personnelId, ref) || {};
+    const snap = getStaffListRowSnapshot(rec, ref) || {};
     ensureStaffTagRecords(rec);
     const activeTags = getStaffTagNamesFromRecords(rec.tagRecords, ref);
     const latest = getStaffLatestAdjustmentSummary(rec, ref);
@@ -8927,11 +8967,12 @@ function renderErpStaffTable() {
   updateErpStaffListSummary(rows, ref, searching, statusSearching);
   updateErpStaffSortIndicator();
   tbody.innerHTML = rows.slice(0, 500).map(rec => {
-    const snap = getStaffSnapshotAtDate(rec.personnelId, ref) || {};
+    const snap = getStaffListRowSnapshot(rec, ref) || {};
+    const atRefSnap = getStaffSnapshotAtDate(rec.personnelId, ref);
     ensureStaffTagRecords(rec);
     const activeTags = getStaffTagNamesFromRecords(rec.tagRecords, ref);
     const latest = getStaffLatestAdjustmentSummary(rec, ref);
-    const st = getStaffListColumnStatus(snap);
+    const st = getStaffListColumnStatus(atRefSnap || snap);
     const statusHit = statusSearching ? getStaffSearchMatchedStatus(rec, q) : null;
     const statusCell = statusHit
       ? `${formatStaffAdjustmentDate(statusHit.effectiveDate)} ${statusHit.status}`
