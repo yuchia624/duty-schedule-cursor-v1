@@ -420,13 +420,23 @@
     border-color: #2563eb;
     color: #1d4ed8;
   }
-  #saveBtn.cloud-synced .toolbar-icon-btn__icon { color: #16a34a; }
-  #saveBtn.cloud-synced { border-color: #86efac; background: #f0fdf4; }
-  #saveBtn.cloud-saving .toolbar-icon-btn__icon { color: #d97706; }
-  #saveBtn.cloud-saving { border-color: #fdba74; background: #fffbeb; }
-  #saveBtn.cloud-offline .toolbar-icon-btn__icon { color: #dc2626; }
-  #saveBtn.cloud-offline { border-color: #fecaca; background: #fef2f2; }
-  #saveBtn.cloud-pending .toolbar-icon-btn__icon { color: #64748b; }
+  #saveBtn.cloud-synced .toolbar-icon-btn__icon,
+  .cloud-sync-btn.cloud-synced .toolbar-icon-btn__icon { color: #16a34a; }
+  #saveBtn.cloud-synced,
+  .cloud-sync-btn.cloud-synced { border-color: #86efac; background: #f0fdf4; }
+  #saveBtn.cloud-saving .toolbar-icon-btn__icon,
+  .cloud-sync-btn.cloud-saving .toolbar-icon-btn__icon { color: #d97706; }
+  #saveBtn.cloud-saving,
+  .cloud-sync-btn.cloud-saving { border-color: #fdba74; background: #fffbeb; }
+  #saveBtn.cloud-offline .toolbar-icon-btn__icon,
+  .cloud-sync-btn.cloud-offline .toolbar-icon-btn__icon { color: #dc2626; }
+  #saveBtn.cloud-offline,
+  .cloud-sync-btn.cloud-offline { border-color: #fecaca; background: #fef2f2; }
+  #saveBtn.cloud-pending .toolbar-icon-btn__icon,
+  .cloud-sync-btn.cloud-pending .toolbar-icon-btn__icon { color: #64748b; }
+  #staffSyncBtn {
+    cursor: default;
+  }
   .toolbar-icon-btn__icon {
     display: flex;
     align-items: center;
@@ -2660,17 +2670,18 @@
   .erp-nav-btn.active { background: #2563eb; color: #fff; }
   .erp-nav-btn.active .erp-nav-icon { background: transparent; }
   .erp-nav-foot {
-    padding: 8px 4px 10px;
+    flex: 0 0 auto;
+    padding: 8px 4px 12px;
     border-top: 1px solid #1e293b;
   }
   .erp-nav-foot-status {
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
+    justify-content: flex-start;
     gap: 4px;
-    min-height: 0;
-    padding: 4px 4px 0;
+    min-height: 52px;
+    padding: 4px 2px 2px;
     font-size: 10px;
     color: #94a3b8;
     cursor: default;
@@ -2690,13 +2701,15 @@
   }
   .erp-nav-foot-icon svg { width: 18px; height: 18px; }
   .erp-nav-foot-text {
-    display: block;
+    display: -webkit-box;
     max-width: 100%;
-    line-height: 1.2;
+    line-height: 1.25;
     text-align: center;
-    white-space: nowrap;
+    white-space: normal;
+    word-break: keep-all;
     overflow: hidden;
-    text-overflow: ellipsis;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
     font-size: 10px;
     font-weight: 600;
   }
@@ -2821,6 +2834,60 @@
   }
   .erp-staff-page-head .erp-module-actions .toolbar-icon-btn__tip::before { display: none; }
   .erp-staff-page-head .erp-module-actions .toolbar-icon-btn:hover .toolbar-icon-btn__tip { color: #0f172a; }
+  .erp-staff-page-head .erp-module-actions #staffSyncBtn.toolbar-icon-btn {
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
+    padding: 0;
+    display: inline-flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    border-radius: 10px;
+    box-shadow: none;
+  }
+  .erp-staff-page-head .erp-module-actions #staffSyncBtn .toolbar-icon-btn__icon {
+    width: 20px;
+    height: 20px;
+  }
+  .erp-staff-page-head .erp-module-actions #staffSyncBtn .toolbar-icon-btn__tip {
+    position: absolute;
+    top: calc(100% + 8px);
+    bottom: auto;
+    left: 50%;
+    width: max-content;
+    max-width: none;
+    transform: translateX(-50%) translateY(-4px);
+    padding: 6px 10px;
+    border-radius: 8px;
+    background: #0f172a;
+    color: #fff;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.35;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    white-space: nowrap;
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.18);
+  }
+  .erp-staff-page-head .erp-module-actions #staffSyncBtn .toolbar-icon-btn__tip::before {
+    display: block;
+    content: '';
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 5px solid transparent;
+    border-bottom-color: #0f172a;
+  }
+  .erp-staff-page-head .erp-module-actions #staffSyncBtn:hover .toolbar-icon-btn__tip,
+  .erp-staff-page-head .erp-module-actions #staffSyncBtn:focus-visible .toolbar-icon-btn__tip {
+    opacity: 1;
+    visibility: visible;
+    transform: translateX(-50%) translateY(0);
+    color: #fff;
+  }
   .erp-staff-page-head .erp-module-actions .erp-staff-action-btn {
     flex-shrink: 0; white-space: nowrap;
     min-height: 36px; padding: 0 14px; border-radius: 8px; font-size: 14px; font-weight: 600;
@@ -4125,7 +4192,7 @@
         <span class="toolbar-icon-btn__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10H9"/></svg></span>
         <span class="toolbar-icon-btn__tip">復原</span>
       </button>
-      <button type="button" class="toolbar-icon-btn" id="saveBtn" aria-label="同步">
+      <button type="button" class="toolbar-icon-btn cloud-sync-btn" id="saveBtn" aria-label="同步">
         <span class="toolbar-icon-btn__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-7.07L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 7.07L3 16"/></svg></span>
         <span class="toolbar-icon-btn__tip">同步</span>
       </button>
@@ -4209,6 +4276,10 @@
               <p>管理人員基本資料、戰力與組別，並留存歷史紀錄。</p>
             </div>
             <div class="erp-module-actions" id="erpStaffMount">
+              <button type="button" class="toolbar-icon-btn cloud-sync-btn cloud-synced" id="staffSyncBtn" aria-label="已同步" tabindex="-1">
+                <span class="toolbar-icon-btn__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-7.07L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 7.07L3 16"/></svg></span>
+                <span class="toolbar-icon-btn__tip">已同步</span>
+              </button>
               <button type="button" class="erp-staff-action-btn erp-staff-action-btn--primary" id="erpStaffAddBtn">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
                 <span>新增人員</span>
@@ -5139,7 +5210,6 @@ function renderOvertimePanel() {
     });
     dicSelect?.addEventListener('change', () => {
       setDicOvertimeStatus(rec.overrideKey, dicSelect.value);
-      if (typeof scheduleCloudSave === 'function') scheduleCloudSave();
       renderOvertimePanel();
     });
     listEl.appendChild(item);
@@ -5806,9 +5876,32 @@ function initStaffEffDateDropPickers() {
     onConfirm: iso => syncStaffEffDateInputs(iso)
   });
 }
+function normalizeStaffPersonnelRegistryInPlace() {
+  if (!staffPersonnelRegistry?.people?.length) return false;
+  let changed = false;
+  if (!staffPersonnelRegistry.historyStripped) {
+    stripAllStaffPersonnelHistory(staffPersonnelRegistry);
+    changed = true;
+  } else if (!staffPersonnelRegistry.historyBaselineNormalized) {
+    normalizeStaffPersonnelBaselines(staffPersonnelRegistry);
+    changed = true;
+  }
+  staffPersonnelRegistry.people.forEach(rec => {
+    if (ensureStaffEventIds(rec)) changed = true;
+  });
+  if (repairStaffPersonnelMissingBaselines()) changed = true;
+  staffPersonnelRegistry.people.forEach(rec => {
+    const before = JSON.stringify(rec.tagRecords || []) + '|' + JSON.stringify(rec.tags || []);
+    ensureStaffTagRecords(rec);
+    const after = JSON.stringify(rec.tagRecords || []) + '|' + JSON.stringify(rec.tags || []);
+    if (before !== after) changed = true;
+  });
+  return changed;
+}
 function saveStaffPersonnelRegistry() {
   localStorage.setItem(LS_KEYS_GLOBAL.staffPersonnel, JSON.stringify(staffPersonnelRegistry));
   rebuildStaffDirectoryCache(getScheduleReferenceDate());
+  if (!applyingSharedRemote) persistAndSync({ scope: 'shared', skipLocal: true });
 }
 function rebuildStaffDirectoryCache(refDateISO) {
   if (!staffPersonnelRegistry?.people?.length) return;
@@ -5888,25 +5981,7 @@ function initStaffPersonnelRegistry() {
     return;
   }
   if (staffPersonnelRegistry?.people?.length) {
-    let changed = false;
-    if (!staffPersonnelRegistry.historyStripped) {
-      stripAllStaffPersonnelHistory(staffPersonnelRegistry);
-      changed = true;
-    } else if (!staffPersonnelRegistry.historyBaselineNormalized) {
-      normalizeStaffPersonnelBaselines(staffPersonnelRegistry);
-      changed = true;
-    }
-    staffPersonnelRegistry.people.forEach(rec => {
-      if (ensureStaffEventIds(rec)) changed = true;
-    });
-    if (repairStaffPersonnelMissingBaselines()) changed = true;
-    staffPersonnelRegistry.people.forEach(rec => {
-      const before = JSON.stringify(rec.tagRecords || []) + '|' + JSON.stringify(rec.tags || []);
-      ensureStaffTagRecords(rec);
-      const after = JSON.stringify(rec.tagRecords || []) + '|' + JSON.stringify(rec.tags || []);
-      if (before !== after) changed = true;
-    });
-    if (changed) saveStaffPersonnelRegistry();
+    if (normalizeStaffPersonnelRegistryInPlace()) saveStaffPersonnelRegistry();
     else rebuildStaffDirectoryCache(getScheduleReferenceDate());
   }
 }
@@ -7527,10 +7602,8 @@ function getErpStaffSortValue(rec, refDate, key) {
 function applyStaffPersonnelEditsToSchedule() {
   if (people.length) {
     people = mergePeopleWithStaffDirectory(people);
-    saveLocal();
     renderRows();
   }
-  markUnsynced();
 }
 function selectStaffPersonnelEditor(personnelId, effectiveDate, options = {}) {
   selectedStaffPersonnelId = String(personnelId || '').trim() || null;
@@ -7656,6 +7729,7 @@ function handleStaffPersonnelFormSubmit(e) {
     rec.tagRecords = nextTagRecords;
     rec.tags = getStaffTagNamesFromRecords(rec.tagRecords, getStaffListReferenceDate());
     saveStaffPersonnelRegistry();
+    applyStaffPersonnelEditsToSchedule();
     staffFormDraft = null;
     staffTagEditDraft = null;
     erpStaffFormEditing = false;
@@ -8074,25 +8148,134 @@ let applyingRemote = false;
 let cloudSaveTimer = null;
 let lastCloudJson = '';
 let firebaseUnsub = null;
+let sharedConfigDocRef = null;
+let sharedConfigUnsub = null;
+let sharedConfigReady = false;
+let sharedConfigSaveTimer = null;
+let lastSharedConfigJson = '';
+let pendingSharedConfigSave = false;
+let applyingSharedRemote = false;
+let dayCloudStatus = { text: '尚未同步', mode: 'pending' };
+let sharedCloudStatus = { text: '已同步', mode: 'synced' };
+let remoteDayEditorMeta = null;
+let remoteSharedEditorMeta = null;
+const LS_SYNC_CLIENT_ID = `${LS_PREFIX}_sync_client_id`;
 const UNDO_MAX = 50;
 let undoStack = [];
 let undoRestoring = false;
 
-function setCloudStatus(text, mode = '') {
-  const saveBtn = document.getElementById('saveBtn');
-  if (saveBtn) {
-    saveBtn.classList.remove('cloud-synced', 'cloud-saving', 'cloud-offline', 'cloud-pending');
-    if (mode) saveBtn.classList.add(`cloud-${mode}`);
-    const tipLabel = mode === 'synced' ? '已同步' : (text || '同步');
-    setToolbarIconBtnLabel(saveBtn, tipLabel);
-  }
+function setCloudStatus(text, mode = '', scope = 'day') {
+  const status = { text: text || '', mode: mode || '' };
+  if (scope === 'shared') sharedCloudStatus = status;
+  else dayCloudStatus = status;
+  renderCloudStatusUI();
+}
+function getCloudEditorDisplayHint(scope) {
+  const myId = getSyncClientId();
+  const meta = scope === 'shared' ? remoteSharedEditorMeta : remoteDayEditorMeta;
+  if (!meta?.roleLabel || !meta.clientId || meta.clientId === myId) return '';
+  const prefix = scope === 'shared' ? '人員' : '班表';
+  const t = formatEditorTimeHint(meta.updatedAtLocal);
+  return t ? `${prefix} ${meta.roleLabel} ${t} 更新` : `${prefix} ${meta.roleLabel} 更新`;
+}
+function captureRemoteEditorMeta(data) {
+  if (!data) return null;
+  return {
+    clientId: String(data.editedByClientId || ''),
+    roleLabel: String(data.editedByRoleLabel || ''),
+    updatedAtLocal: data.updatedAtLocal || ''
+  };
+}
+function formatEditorTimeHint(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+}
+function getCloudStatusNavLabel(text, mode) {
+  if (mode === 'offline') return '同步失敗';
+  if (mode === 'saving') return '上傳中';
+  if (mode === 'synced') return '已同步';
+  if (mode === 'pending' || String(text || '').includes('尚未')) return '未同步';
+  return '未同步';
+}
+function applyCloudSyncBtnState(btn, status, editorHint) {
+  if (!btn) return;
+  const label = getCloudStatusNavLabel(status.text, status.mode);
+  const fullTitle = editorHint ? `${status.text || label} · ${editorHint}` : (status.text || label);
+  setToolbarIconBtnLabel(btn, label);
+  btn.title = fullTitle;
+  btn.classList.remove('cloud-synced', 'cloud-saving', 'cloud-offline', 'cloud-pending');
+  if (status.mode) btn.classList.add(`cloud-${status.mode}`);
+}
+function renderCloudStatusUI() {
+  applyCloudSyncBtnState(
+    document.getElementById('saveBtn'),
+    dayCloudStatus,
+    getCloudEditorDisplayHint('day')
+  );
+  applyCloudSyncBtnState(
+    document.getElementById('staffSyncBtn'),
+    sharedCloudStatus,
+    getCloudEditorDisplayHint('shared')
+  );
+  const navStatus = activeErpModule === 'staff' ? sharedCloudStatus : dayCloudStatus;
+  const navHint = activeErpModule === 'staff'
+    ? getCloudEditorDisplayHint('shared')
+    : getCloudEditorDisplayHint('day');
+  const navLabel = getCloudStatusNavLabel(navStatus.text, navStatus.mode);
+  const fullTitle = navHint ? `${navStatus.text || navLabel} · ${navHint}` : (navStatus.text || navLabel);
   const navText = document.getElementById('cloudStatusNav');
   const navWrap = document.getElementById('cloudStatusNavWrap');
-  if (navText) navText.textContent = text;
+  if (navText) navText.textContent = navLabel;
   if (navWrap) {
-    navWrap.title = text;
-    navWrap.className = 'erp-nav-foot-status' + (mode ? ` ${mode}` : '');
+    navWrap.title = fullTitle;
+    navWrap.className = 'erp-nav-foot-status' + (navStatus.mode ? ` ${navStatus.mode}` : '');
   }
+}
+function getSyncClientId() {
+  let id = localStorage.getItem(LS_SYNC_CLIENT_ID);
+  if (!id) {
+    id = `c_${Math.random().toString(36).slice(2, 10)}${Date.now().toString(36)}`;
+    localStorage.setItem(LS_SYNC_CLIENT_ID, id);
+  }
+  return id;
+}
+function getSyncActor() {
+  const role = getWorkbenchRole();
+  const roleLabels = { admin: '管理員', scheduler: '排班人', supervisor: '督導', employee: '一般員工' };
+  return {
+    clientId: getSyncClientId(),
+    role: role || 'unknown',
+    roleLabel: roleLabels[role] || '未選角色'
+  };
+}
+function getSyncMeta() {
+  const actor = getSyncActor();
+  return {
+    updatedAtLocal: new Date().toISOString(),
+    editedByClientId: actor.clientId,
+    editedByRole: actor.role,
+    editedByRoleLabel: actor.roleLabel
+  };
+}
+function cloudStatePayload(data) {
+  return {
+    people: data.people,
+    schedule: data.schedule,
+    flightDefs: data.flightDefs,
+    customTemplates: data.customTemplates,
+    deletedCustomTemplates: data.deletedCustomTemplates,
+    overtimeHourOverrides: data.overtimeHourOverrides,
+    dicOvertimeApprovals: data.dicOvertimeApprovals,
+    flightsImported: data.flightsImported === true
+  };
+}
+function sharedConfigPayload(data) {
+  return {
+    staffPersonnelRegistry: data.staffPersonnelRegistry,
+    staffListRefDate: data.staffListRefDate
+  };
 }
 const ERP_MODULE_PAGES = {
   home: 'erpPageHome',
@@ -8633,6 +8816,7 @@ function switchErpModule(moduleKey, options = {}) {
   }
   if (skipNavCollapse) syncErpNavArrowLayout();
   else setErpNavClosed(true);
+  renderCloudStatusUI();
 }
 function initWorkbenchRolePicker() {
   document.querySelectorAll('.workbench-role-option').forEach(label => {
@@ -8664,15 +8848,56 @@ function initErpNavigation() {
 
 function getCloudState() {
   return {
-    people,
-    schedule,
-    flightDefs: flightsImported ? flightDefs : [],
-    customTemplates,
-    overtimeHourOverrides,
-    dicOvertimeApprovals,
-    flightsImported,
-    updatedAtLocal: new Date().toISOString()
+    ...cloudStatePayload({
+      people,
+      schedule,
+      flightDefs: flightsImported ? flightDefs : [],
+      customTemplates,
+      deletedCustomTemplates,
+      overtimeHourOverrides,
+      dicOvertimeApprovals,
+      flightsImported
+    }),
+    ...getSyncMeta()
   };
+}
+
+function getSharedConfigState() {
+  return {
+    ...sharedConfigPayload({
+      staffPersonnelRegistry,
+      staffListRefDate: getStaffListReferenceDate()
+    }),
+    ...getSyncMeta()
+  };
+}
+
+function applySharedConfigState(data) {
+  if (!data) return;
+  applyingSharedRemote = true;
+  try {
+    if (data.staffPersonnelRegistry && Array.isArray(data.staffPersonnelRegistry.people)) {
+      staffPersonnelRegistry = data.staffPersonnelRegistry;
+      normalizeStaffPersonnelRegistryInPlace();
+      localStorage.setItem(LS_KEYS_GLOBAL.staffPersonnel, JSON.stringify(staffPersonnelRegistry));
+      rebuildStaffDirectoryCache(getScheduleReferenceDate());
+      if (people.length) {
+        people = mergePeopleWithStaffDirectory(people);
+        saveLocal();
+      }
+    }
+    if (isValidISODate(data.staffListRefDate)) {
+      setStaffListReferenceDate(data.staffListRefDate);
+      syncStaffListRefDateDisplay();
+    }
+    if (activeErpModule === 'staff') {
+      renderErpStaffTable();
+      if (selectedStaffPersonnelId) renderStaffPersonnelEditor();
+    }
+    if (typeof renderRows === 'function') renderRows();
+  } finally {
+    applyingSharedRemote = false;
+  }
 }
 
 function applyCloudState(data) {
@@ -8687,6 +8912,7 @@ function applyCloudState(data) {
   flightDefs = flightsImported && Array.isArray(data.flightDefs) ? data.flightDefs : [];
   normalizeFlightDefsInPlace();
   customTemplates = Array.isArray(data.customTemplates) ? data.customTemplates : customTemplates;
+  deletedCustomTemplates = Array.isArray(data.deletedCustomTemplates) ? data.deletedCustomTemplates : deletedCustomTemplates;
   overtimeHourOverrides = data.overtimeHourOverrides && typeof data.overtimeHourOverrides === 'object'
     ? data.overtimeHourOverrides
     : {};
@@ -8703,6 +8929,7 @@ function applyCloudState(data) {
   localStorage.setItem(k.flightDefs, JSON.stringify(flightDefs));
   localStorage.setItem(k.flightsImported, flightsImported ? '1' : '0');
   saveCustomTemplates();
+  saveDeletedCustomTemplates();
   saveOvertimeOverrides();
   saveDicOvertimeApprovals();
 
@@ -8718,13 +8945,55 @@ function applyCloudState(data) {
   clearUndoHistory();
 }
 
+function flushPendingSharedConfigSave() {
+  if (!pendingSharedConfigSave || !sharedConfigReady || applyingSharedRemote) return;
+  pendingSharedConfigSave = false;
+  scheduleSharedConfigSave();
+}
+
+function saveSharedConfigNow() {
+  if (!sharedConfigReady || !sharedConfigDocRef || applyingSharedRemote) return;
+  const state = getSharedConfigState();
+  const json = JSON.stringify(sharedConfigPayload(state));
+  if (json === lastSharedConfigJson) {
+    pendingSharedConfigSave = false;
+    setCloudStatus('已同步', 'synced', 'shared');
+    return;
+  }
+  lastSharedConfigJson = json;
+  pendingSharedConfigSave = false;
+  setCloudStatus('上傳中', 'saving', 'shared');
+  sharedConfigDocRef.set({
+    ...state,
+    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+  }, { merge: true })
+  .then(() => setCloudStatus('已同步', 'synced', 'shared'))
+  .catch(err => {
+    console.error(err);
+    setCloudStatus('人員主檔同步失敗', 'offline', 'shared');
+  });
+}
+
+function scheduleSharedConfigSave() {
+  if (applyingSharedRemote) return;
+  if (!sharedConfigReady) {
+    pendingSharedConfigSave = true;
+    setCloudStatus('上傳中', 'saving', 'shared');
+    return;
+  }
+  pendingSharedConfigSave = false;
+  clearTimeout(sharedConfigSaveTimer);
+  setCloudStatus('上傳中', 'saving', 'shared');
+  sharedConfigSaveTimer = setTimeout(saveSharedConfigNow, 350);
+}
+
 function saveCloudNow() {
   if (!cloudReady || !scheduleDocRef || applyingRemote) return;
   const state = getCloudState();
-  const json = JSON.stringify(state);
+  const json = JSON.stringify(cloudStatePayload(state));
   if (json === lastCloudJson) return;
   lastCloudJson = json;
-  setCloudStatus('同步中', 'saving');
+  setCloudStatus('上傳中', 'saving');
   scheduleDocRef.set({
     ...state,
     updatedAt: firebase.firestore.FieldValue.serverTimestamp()
@@ -8739,7 +9008,7 @@ function saveCloudNow() {
 function scheduleCloudSave() {
   if (!cloudReady || applyingRemote) return;
   clearTimeout(cloudSaveTimer);
-  setCloudStatus('等待同步', 'saving');
+  setCloudStatus('上傳中', 'saving');
   cloudSaveTimer = setTimeout(saveCloudNow, 350);
 }
 
@@ -8753,6 +9022,54 @@ function detachFirebaseSync() {
   if (cloudSaveTimer) {
     clearTimeout(cloudSaveTimer);
     cloudSaveTimer = null;
+  }
+}
+
+function attachFirebaseSharedConfig() {
+  try {
+    if (typeof firebase === 'undefined') return;
+    if (sharedConfigUnsub) {
+      sharedConfigUnsub();
+      sharedConfigUnsub = null;
+    }
+    if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+    if (!db) db = firebase.firestore();
+    sharedConfigDocRef = db.collection('dutySharedConfig').doc('main');
+    sharedConfigUnsub = sharedConfigDocRef.onSnapshot((doc) => {
+      if (!doc.exists) {
+        sharedConfigReady = true;
+        if (staffPersonnelRegistry?.people?.length) {
+          setCloudStatus('上傳中', 'saving', 'shared');
+          saveSharedConfigNow();
+        }
+        flushPendingSharedConfigSave();
+        return;
+      }
+      const data = doc.data();
+      remoteSharedEditorMeta = captureRemoteEditorMeta(data);
+      const remoteState = {
+        staffPersonnelRegistry: data.staffPersonnelRegistry,
+        staffListRefDate: data.staffListRefDate,
+        updatedAtLocal: data.updatedAtLocal
+      };
+      const remoteJson = JSON.stringify(sharedConfigPayload(remoteState));
+      if (remoteJson === lastSharedConfigJson) {
+        sharedConfigReady = true;
+        setCloudStatus('已同步', 'synced', 'shared');
+        flushPendingSharedConfigSave();
+        return;
+      }
+      lastSharedConfigJson = remoteJson;
+      applySharedConfigState(remoteState);
+      sharedConfigReady = true;
+      setCloudStatus('已同步', 'synced', 'shared');
+      flushPendingSharedConfigSave();
+    }, (err) => {
+      console.error(err);
+      setCloudStatus('人員主檔雲端連線失敗', 'offline', 'shared');
+    });
+  } catch (err) {
+    console.error(err);
   }
 }
 
@@ -8807,7 +9124,7 @@ function attachFirebaseForSelectedDate() {
           if (typeof renderPalette === 'function') renderPalette();
           if (typeof renderRows === 'function') renderRows();
           if (typeof syncAssignmentTableFromSchedule === 'function') syncAssignmentTableFromSchedule();
-          markUnsynced();
+          scheduleCloudSave();
           return;
         }
         seedEmptyDayStateForCloud();
@@ -8823,17 +9140,19 @@ function attachFirebaseForSelectedDate() {
         return;
       }
       const data = doc.data();
+      remoteDayEditorMeta = captureRemoteEditorMeta(data);
       const remoteState = {
         people: data.people,
         schedule: data.schedule,
         flightDefs: data.flightDefs,
         customTemplates: data.customTemplates,
+        deletedCustomTemplates: data.deletedCustomTemplates,
         overtimeHourOverrides: data.overtimeHourOverrides,
         dicOvertimeApprovals: data.dicOvertimeApprovals,
         flightsImported: data.flightsImported === true,
         updatedAtLocal: data.updatedAtLocal
       };
-      const remoteJson = JSON.stringify(remoteState);
+      const remoteJson = JSON.stringify(cloudStatePayload(remoteState));
       if (remoteJson === lastCloudJson) {
         setCloudStatus('已同步', 'synced');
         cloudReady = true;
@@ -10095,7 +10414,13 @@ function switchScheduleDate(newDate) {
     clearTimeout(cloudSaveTimer);
     cloudSaveTimer = null;
   }
+  if (sharedConfigSaveTimer) {
+    clearTimeout(sharedConfigSaveTimer);
+    sharedConfigSaveTimer = null;
+  }
   saveLocal();
+  saveCloudNow();
+  saveSharedConfigNow();
   if (firebaseUnsub) {
     firebaseUnsub();
     firebaseUnsub = null;
@@ -10399,8 +10724,22 @@ function scrollControlPanelForTemplateDrag(tpl, timelineEl, clientX) {
   updatePaletteDragGuide(tpl, timelineEl, clientX);
   updatePaletteDragSlotRange(range);
 }
+/**
+ * 統一同步入口。
+ * - 人員主檔（scope: 'shared'）：改完自動上雲
+ * - 當日班表：請用 markUnsynced() 標示，按「同步」鈕才 upload
+ */
+function persistAndSync(opts = {}) {
+  if (applyingRemote || applyingSharedRemote) return;
+  const scope = opts.scope || 'shared';
+  if (!opts.skipLocal && (scope === 'day' || scope === 'both')) saveLocal();
+  if (scope === 'day' || scope === 'both') {
+    setCloudStatus('尚未同步', 'pending', 'day');
+  }
+  if (scope === 'shared' || scope === 'both') scheduleSharedConfigSave();
+}
 function markUnsynced() {
-  setCloudStatus('尚未同步', 'pending');
+  setCloudStatus('尚未同步', 'pending', 'day');
 }
 function captureUndoState() {
   return {
@@ -11572,11 +11911,10 @@ document.getElementById('staffDbImportInput').addEventListener('change', async (
   importStaffPersonnelRegistry(imported, { source: file.name, historyYear });
   if (people.length) {
     people = mergePeopleWithStaffDirectory(people);
-    saveLocal();
   }
   renderRows();
   renderErpStaffTable();
-  markUnsynced();
+  applyStaffPersonnelEditsToSchedule();
   const withHist = imported.filter(x => (x.events?.length || 0) > 1).length;
   appSuccess(`人員主檔已更新，共 ${imported.length} 人（${withHist} 人有生效日歷史）。`, '匯入完成');
   e.target.value = '';
@@ -11632,6 +11970,7 @@ document.getElementById('saveBtn').addEventListener('click', () => {
   if (active && typeof active.blur === 'function') active.blur();
   setTimeout(() => {
     saveLocal();
+    saveSharedConfigNow();
     saveCloudNow();
     appSuccess('已儲存並同步', '儲存完成');
   }, 0);
@@ -11665,6 +12004,7 @@ function submitCustomDutyForm() {
   saveCustomTemplates();
   rebuildTemplates();
   renderPalette();
+  markUnsynced();
 
   nameEl.value = '';
   startEl.value = '';
@@ -11743,6 +12083,7 @@ if (!flightsImported) {
   renderFlightEditor();
 }
 attachFirebaseForSelectedDate();
+attachFirebaseSharedConfig();
 toggleAssignmentPanel(false);
 initErpNavigation();
 </script>

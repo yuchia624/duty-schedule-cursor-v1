@@ -1,0 +1,18 @@
+rules_version = '2';
+
+// 部署：Firebase Console → Firestore → 規則，或本機 firebase deploy --only firestore:rules
+// 專案：duty-schedule-3f1bf
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // 當日班表（依日期分文件，例如 dutySchedules/2026-06-03）
+    match /dutySchedules/{date} {
+      allow read, write: if true;
+    }
+
+    // 全站共用設定（人員主檔、標籤、參考日等）
+    match /dutySharedConfig/{docId} {
+      allow read, write: if true;
+    }
+  }
+}
