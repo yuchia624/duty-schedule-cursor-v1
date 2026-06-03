@@ -6306,6 +6306,14 @@ function normalizeStaffTagRecords(raw, fallbackStartDate = '') {
   });
   return out;
 }
+function staffTagRecordsEqual(a, b) {
+  const norm = (list) => normalizeStaffTagRecords(Array.isArray(list) ? list : []).map(rec => ({
+    name: String(rec.name || '').trim(),
+    startDate: normalizeLooseIsoDate(rec.startDate) || '',
+    endDate: normalizeLooseIsoDate(rec.endDate) || ''
+  }));
+  return JSON.stringify(norm(a)) === JSON.stringify(norm(b));
+}
 function makeStaffTagRecordsFromNames(tags, fallbackStartDate = '') {
   return parseStaffTags(tags).map(name => normalizeStaffTagRecord({ name }, fallbackStartDate)).filter(Boolean);
 }
@@ -8038,24 +8046,35 @@ function handleStaffPersonnelFormSubmit(e) {
   const effRaw = String(document.getElementById('erpStaffEffDatePick')?.value
     || document.getElementById('erpStaffEffDate')?.value || '').trim();
   const convertingToForever = staffEditMode === 'history' && !!historyTarget && !isValidISODate(effRaw);
-  const loadedEff = String(loadedSnap.effectiveDate || '').trim();
-  const effUnchanged = effRaw === loadedEff
-    || (!isValidISODate(effRaw) && !isValidISODate(loadedEff));
-  const onlyTagsChanged = !staffForceAppendEvent
-    && staffEditMode !== 'new'
-    && fullName === String(loadedSnap.fullName || '').trim()
+  const coreUnchanged = fullName === String(loadedSnap.fullName || '').trim()
     && code === String(loadedSnap.code || '').trim()
     && group === cleanStaffGroupValue(loadedSnap.group || '')
     && level === String(loadedSnap.level || '').trim()
-    && getStaffCanonicalStatus({ status }) === getStaffCanonicalStatus(loadedSnap)
-    && effUnchanged;
-  if (onlyTagsChanged) {
+    && getStaffCanonicalStatus({ status }) === getStaffCanonicalStatus(loadedSnap);
+  const tagsChanged = !staffTagRecordsEqual(nextTagRecords, rec.tagRecords);
+  if (coreUnchanged) {
+    if (!tagsChanged) {
+      staffFormDraft = null;
+      staffTagEditDraft = null;
+      staffEditMode = null;
+      staffForceAppendEvent = false;
+      staffHistoryReplaceDate = null;
+      staffHistoryReplaceEventId = null;
+      erpStaffFormEditing = false;
+      renderErpStaffTable();
+      renderStaffPersonnelEditor();
+      return;
+    }
     rec.tagRecords = nextTagRecords;
     rec.tags = getStaffTagNamesFromRecords(rec.tagRecords, getStaffListReferenceDate());
     saveStaffPersonnelRegistry();
     applyStaffPersonnelEditsToSchedule();
     staffFormDraft = null;
     staffTagEditDraft = null;
+    staffEditMode = null;
+    staffForceAppendEvent = false;
+    staffHistoryReplaceDate = null;
+    staffHistoryReplaceEventId = null;
     erpStaffFormEditing = false;
     renderErpStaffTable();
     renderStaffPersonnelEditor();
