@@ -2957,7 +2957,8 @@
     border: 1px solid #d1d5db; border-radius: 8px; background: #fff; overflow: hidden;
   }
   .erp-staff-add-input-wrap:focus-within { border-color: #93c5fd; box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12); }
-  .erp-staff-add-input-wrap input {
+  .erp-staff-add-input-wrap input,
+  .erp-staff-add-input-wrap select {
     flex: 1; min-width: 0; width: 100%; border: 0; padding: 9px 11px; font-size: 14px; background: transparent;
     outline: none; color: #0f172a;
   }
@@ -4297,7 +4298,6 @@
               <div class="erp-staff-add-body">
                 <h4 class="erp-staff-add-section-title">基本資料</h4>
                 <form class="erp-staff-add-form-grid" id="erpStaffAddForm">
-                  <input type="hidden" id="erpStaffAddStatus" value="在職" />
                   <div class="erp-staff-add-field">
                     <span class="erp-staff-add-label">人事代號 <span class="req">*</span></span>
                     <div class="erp-staff-add-input-wrap">
@@ -4317,9 +4317,9 @@
                     </div>
                   </div>
                   <div class="erp-staff-add-field">
-                    <span class="erp-staff-add-label">組別 <span class="req">*</span></span>
+                    <span class="erp-staff-add-label">組別</span>
                     <div class="erp-staff-add-input-wrap">
-                      <input type="text" id="erpStaffAddGroup" required autocomplete="off" />
+                      <input type="text" id="erpStaffAddGroup" autocomplete="off" />
                     </div>
                   </div>
                   <div class="erp-staff-add-field">
@@ -4330,8 +4330,8 @@
                   </div>
                   <div class="erp-staff-add-field">
                     <span class="erp-staff-add-label">狀態 <span class="req">*</span></span>
-                    <div class="erp-staff-add-status-locked" title="新增人員固定為調入">
-                      <span class="erp-staff-add-status-pill">調入</span>
+                    <div class="erp-staff-add-input-wrap">
+                      <select class="erp-staff-field-input js-staff-status-select" id="erpStaffAddStatus" required></select>
                     </div>
                   </div>
                   <div class="erp-staff-add-field">
@@ -4341,7 +4341,7 @@
                         <span id="erpStaffAddEffDateDisplay">—</span>
                         <span class="app-date-field-trigger-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></span>
                       </button>
-                      <input type="hidden" id="erpStaffAddEffDate" class="erp-staff-eff-sync" required />
+                      <input type="hidden" id="erpStaffAddEffDate" />
                       <div class="app-date-drop-panel hidden" id="erpStaffAddEffDateDropPanel" role="dialog" aria-label="選擇生效日">
                         <div class="app-date-inline-day" id="erpStaffAddEffDateInlineDay">
                           <div class="app-date-dialog-nav-row">
@@ -4358,6 +4358,7 @@
                           <div class="app-date-grid" id="erpStaffAddEffDateInlineGrid"></div>
                           <div class="app-date-dialog-foot">
                             <button type="button" class="app-date-link-btn" id="erpStaffAddEffDateInlineTodayBtn">今天</button>
+                            <button type="button" class="app-date-link-btn" id="erpStaffAddEffDateInlineForeverBtn">無限期</button>
                             <div class="app-date-dialog-actions">
                               <button type="button" class="app-date-outline-btn" id="erpStaffAddEffDateInlineCancelBtn">取消</button>
                               <button type="button" class="app-date-primary-btn" id="erpStaffAddEffDateInlineConfirmBtn">確定</button>
@@ -4529,7 +4530,7 @@
                     <span class="erp-staff-field-label">狀態</span>
                     <div class="erp-staff-field-value-wrap">
                       <span class="erp-staff-field-readonly" id="erpStaffStatusView" aria-hidden="true"></span>
-                      <select class="erp-staff-field-input" id="erpStaffStatus"></select>
+                      <select class="erp-staff-field-input js-staff-status-select" id="erpStaffStatus"></select>
                     </div>
                   </div>
                   <div class="erp-staff-field-row erp-staff-eff-field">
@@ -4539,7 +4540,7 @@
                         <span id="erpStaffEffDatePickDisplay">—</span>
                         <span class="app-date-field-trigger-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></span>
                       </button>
-                      <input type="hidden" class="erp-staff-eff-sync" id="erpStaffEffDatePick" required />
+                      <input type="hidden" class="erp-staff-eff-sync" id="erpStaffEffDatePick" />
                       <div class="app-date-drop-panel hidden" id="erpStaffEffDateDropPanel" role="dialog" aria-label="選擇生效日">
                         <div class="app-date-inline-day" id="erpStaffEffDateInlineDay">
                           <div class="app-date-dialog-nav-row">
@@ -5531,6 +5532,10 @@ function formatStaffRefDateDisplay(iso) {
   const [y, m, d] = iso.split('-').map(Number);
   return `${y}/${String(m).padStart(2, '0')}/${String(d).padStart(2, '0')}`;
 }
+function formatStaffEffDateDisplay(value) {
+  const v = String(value ?? '').trim();
+  return isValidISODate(v) ? formatStaffRefDateDisplay(v) : '無限期';
+}
 function syncStaffListRefDateDisplay() {
   syncStaffFilterRefDateDisplay();
 }
@@ -5755,6 +5760,7 @@ function initInlineAppDateDrop(cfg) {
   });
   $(cfg.foreverBtnId)?.addEventListener('click', e => {
     e.stopPropagation();
+    st.pending = '';
     if (typeof cfg.onForever === 'function') {
       cfg.onForever();
       setOpen(false, { confirmed: true });
@@ -5853,8 +5859,8 @@ function initStaffEffDateDropPickers() {
     maxPanelWidth: 320,
     getValue: getEffValue,
     getSelectedIso: getEffValue,
-    onConfirm: iso => syncStaffEffDateInputs(iso),
-    onForever: () => syncStaffEffDateInputs('')
+    onConfirm: iso => syncStaffEditEffDateInputs(iso),
+    onForever: () => syncStaffEditEffDateInputs('')
   });
   initInlineAppDateDrop({
     pickerId: 'erpStaffAddEffDatePicker',
@@ -5875,7 +5881,9 @@ function initStaffEffDateDropPickers() {
     maxPanelWidth: 320,
     getValue: () => document.getElementById('erpStaffAddEffDate')?.value || '',
     getSelectedIso: () => document.getElementById('erpStaffAddEffDate')?.value || '',
-    onConfirm: iso => syncStaffEffDateInputs(iso)
+    foreverBtnId: 'erpStaffAddEffDateInlineForeverBtn',
+    onConfirm: iso => syncStaffAddEffDateInputs(iso),
+    onForever: () => syncStaffAddEffDateInputs('')
   });
 }
 function normalizeStaffPersonnelRegistryInPlace() {
@@ -6001,9 +6009,6 @@ function compareIsoDate(a, b) {
   if (aForever) return -1;
   if (bForever) return 1;
   return String(a).localeCompare(String(b));
-}
-function isStaffHistoryTimelineEvent(ev) {
-  return !!ev && isValidISODate(ev.effectiveDate);
 }
 function migrateStaffImportBaselinesToForever(registry) {
   if (!registry?.people?.length) return false;
@@ -6145,14 +6150,25 @@ function isStaffMeaningfulStatusChange(prevSt, currSt) {
   return !isStaffEquivalentActiveStatus(prevSt, currSt);
 }
 function syncStaffStatusSelectOptions() {
-  const sel = document.getElementById('erpStaffStatus');
-  if (!sel) return;
-  const cur = sel.value;
-  sel.innerHTML = STAFF_STATUS_FORM_OPTIONS
-    .map(v => `<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`)
-    .join('');
-  const next = STAFF_STATUS_FORM_OPTIONS.includes(cur) ? cur : coerceStaffFormStatus({ status: cur });
-  if (next) sel.value = next;
+  document.querySelectorAll('.js-staff-status-select').forEach(sel => {
+    const cur = sel.value;
+    sel.innerHTML = STAFF_STATUS_FORM_OPTIONS
+      .map(v => `<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`)
+      .join('');
+    const next = STAFF_STATUS_FORM_OPTIONS.includes(cur) ? cur : coerceStaffFormStatus({ status: cur });
+    if (next) sel.value = next;
+  });
+}
+function findStaffHistoryEvent(rec, effectiveDate, eventId) {
+  if (!rec?.events?.length) return null;
+  const id = String(eventId || '').trim();
+  if (id) {
+    const byId = rec.events.find(e => String(e.eventId || '').trim() === id);
+    if (byId) return byId;
+  }
+  const eff = String(effectiveDate || '').trim();
+  if (isValidISODate(eff)) return rec.events.find(e => e.effectiveDate === eff) || null;
+  return rec.events.find(e => isStaffImportBaselineEvent(e, staffPersonnelRegistry, rec)) || null;
 }
 function getStaffDisplayStatus(snap) {
   return getStaffCanonicalStatus(snap);
@@ -6384,13 +6400,15 @@ function createStaffPersonnelRecord(patch) {
   if (getStaffPersonnelRecord(pid)) {
     return { ok: false, code: 'duplicate_personnel_id', personnelId: pid, message: `人事代號 ${pid} 已存在。` };
   }
-  const eff = String(patch.effectiveDate || '').trim();
-  if (!isValidISODate(eff)) return { ok: false, message: '請選擇有效的生效日。' };
+  const effRaw = String(patch.effectiveDate || '').trim();
+  const isForeverEff = !isValidISODate(effRaw);
+  const eff = isForeverEff ? STAFF_IMPORT_BASELINE_FOREVER : effRaw;
   const fullName = String(patch.fullName || '').trim();
   if (!fullName) return { ok: false, message: '請輸入姓名。' };
   const code = String(patch.code || '').trim();
   if (!code) return { ok: false, message: '請輸入代號。' };
-  const dupCode = findDuplicateStaffCodeAtDate(code, eff, '');
+  const dupRefDate = isValidISODate(eff) ? eff : getStaffListReferenceDate();
+  const dupCode = findDuplicateStaffCodeAtDate(code, dupRefDate, '');
   if (dupCode) {
     const who = dupCode.fullName ? `（${dupCode.fullName}）` : '';
     return {
@@ -6401,7 +6419,6 @@ function createStaffPersonnelRecord(patch) {
     };
   }
   const group = cleanStaffGroupValue(patch.group);
-  if (!group) return { ok: false, message: '請輸入組別。' };
   const level = String(patch.level || '').trim();
   if (!level) return { ok: false, message: '請輸入戰力。' };
   if (!isStaffLevelAllowed(level)) {
@@ -6412,6 +6429,8 @@ function createStaffPersonnelRecord(patch) {
   }
   ensureStaffPersonnelRegistry();
   const tags = parseStaffTags(patch.tags);
+  const status = coerceStaffFormStatus({ status: String(patch.status || '').trim() || '調入' });
+  const isTransfer = status === '調入' && !isForeverEff;
   const snap = {
     eventId: makeStaffEventId(),
     effectiveDate: eff,
@@ -6420,11 +6439,11 @@ function createStaffPersonnelRecord(patch) {
     group,
     level,
     tags,
-    // 新增人員首筆事件視為「調入」，方便後續追蹤調入名單與日期
-    status: '調入',
+    status,
     restrictions: '',
-    isTransferIn: true,
-    source: 'transfer-in'
+    isImportBaseline: isForeverEff,
+    isTransferIn: isTransfer,
+    source: isTransfer ? 'transfer-in' : (isForeverEff ? 'import' : 'manual-add')
   };
   staffPersonnelRegistry.people.push({
     personnelId: pid,
@@ -6440,9 +6459,10 @@ function openStaffAddDialog() {
   const form = document.getElementById('erpStaffAddForm');
   if (!dlg || !form) return;
   form.reset();
-  syncStaffEffDateInputs(getLocalDateISO());
+  syncStaffAddEffDateInputs(getLocalDateISO());
+  syncStaffStatusSelectOptions();
   const st = document.getElementById('erpStaffAddStatus');
-  if (st) st.value = STAFF_LEGACY_ACTIVE_STATUS;
+  if (st) st.value = '調入';
   dlg.hidden = false;
   document.getElementById('erpStaffAddPid')?.focus();
 }
@@ -6885,18 +6905,25 @@ function buildStaffStatusPillHtml(status) {
   const cls = staffStatusVisualClass(st);
   return `<span class="erp-staff-status-pill ${cls}">${escapeHtml(st)}</span>`;
 }
-function syncStaffEffDateInputs(value) {
-  const v = String(value || '').trim();
+function syncStaffEditEffDateInputs(value) {
+  const v = String(value ?? '').trim();
   const hidden = document.getElementById('erpStaffEffDate');
   if (hidden) hidden.value = v;
-  document.querySelectorAll('.erp-staff-eff-sync').forEach(el => { el.value = v; });
+  document.querySelectorAll('#erpStaffEditForm .erp-staff-eff-sync').forEach(el => { el.value = v; });
   const pickDisp = document.getElementById('erpStaffEffDatePickDisplay');
-  const addDisp = document.getElementById('erpStaffAddEffDateDisplay');
-  const text = isValidISODate(v) ? formatStaffRefDateDisplay(v) : '—';
-  if (pickDisp) pickDisp.textContent = text;
-  if (addDisp) addDisp.textContent = text;
+  if (pickDisp) pickDisp.textContent = formatStaffEffDateDisplay(v);
   document.getElementById('erpStaffEffDatePicker')?.refreshInlineDateDrop?.();
+}
+function syncStaffAddEffDateInputs(value) {
+  const v = String(value ?? '').trim();
+  const hidden = document.getElementById('erpStaffAddEffDate');
+  if (hidden) hidden.value = v;
+  const disp = document.getElementById('erpStaffAddEffDateDisplay');
+  if (disp) disp.textContent = formatStaffEffDateDisplay(v);
   document.getElementById('erpStaffAddEffDatePicker')?.refreshInlineDateDrop?.();
+}
+function syncStaffEffDateInputs(value) {
+  syncStaffEditEffDateInputs(value);
 }
 function captureStaffFormSnapshot() {
   return {
@@ -6919,7 +6946,7 @@ function applyStaffFormSnapshot(snap) {
   staffEditMode = snap.editMode ?? null;
   staffHistoryReplaceDate = snap.historyReplaceDate ?? null;
   staffHistoryReplaceEventId = snap.historyReplaceEventId ?? null;
-  syncStaffEffDateInputs(snap.eff);
+  syncStaffEditEffDateInputs(snap.eff);
   const nameInput = document.getElementById('erpStaffFullName');
   const codeInput = document.getElementById('erpStaffCode');
   const groupInput = document.getElementById('erpStaffGroup');
@@ -6938,7 +6965,8 @@ function updateStaffHistoryAdminUi(rec) {
   void rec;
 }
 function fillStaffFormFromSnapshot(snap, effDate) {
-  if (isValidISODate(effDate)) syncStaffEffDateInputs(effDate);
+  syncStaffEditEffDateInputs(isValidISODate(effDate) ? effDate : '');
+  syncStaffStatusSelectOptions();
   const nameInput = document.getElementById('erpStaffFullName');
   const codeInput = document.getElementById('erpStaffCode');
   const groupInput = document.getElementById('erpStaffGroup');
@@ -6951,27 +6979,24 @@ function fillStaffFormFromSnapshot(snap, effDate) {
   if (levelInput) levelInput.value = snap?.level || '';
   if (tagsInput) tagsInput.value = '';
   if (statusInput) statusInput.value = coerceStaffFormStatus(snap || {});
-  updateStaffBasicInfoReadonlyView();
 }
 function updateStaffEditModeBanner() {
   return;
 }
 function beginStaffHistoryEdit(rec, eventId, effDateHint) {
-  const id = String(eventId || '').trim();
-  const ev = id
-    ? (rec?.events || []).find(e => String(e.eventId || '').trim() === id)
-    : null;
-  const effDate = ev?.effectiveDate || String(effDateHint || '').trim();
-  if (!rec || !isValidISODate(effDate) || !isStaffEditableHistoryEvent(rec, effDate)) return;
+  if (ensureStaffEventIds(rec)) saveStaffPersonnelRegistry();
+  const ev = findStaffHistoryEvent(rec, effDateHint, eventId);
+  if (!rec || !ev || !isStaffEditableHistoryEvent(rec, ev.effectiveDate, ev.eventId)) return;
+  const effDate = isValidISODate(ev.effectiveDate) ? ev.effectiveDate : '';
   if (!erpStaffFormEditing) {
     staffFormDraft = captureStaffFormSnapshot();
     setStaffFormEditing(true);
   }
   staffEditMode = 'history';
-  staffHistoryReplaceDate = effDate;
-  staffHistoryReplaceEventId = String(ev?.eventId || '').trim() || null;
-  staffEditorLoadedDate = effDate;
-  fillStaffFormFromSnapshot(ev || rec.events.find(e => e.effectiveDate === effDate), effDate);
+  staffHistoryReplaceDate = effDate || null;
+  staffHistoryReplaceEventId = String(ev.eventId || '').trim() || null;
+  staffEditorLoadedDate = effDate || null;
+  fillStaffFormFromSnapshot(ev, effDate);
   updateStaffEditModeBanner();
 }
 async function deleteStaffHistoryEventByDate(effDate, eventId) {
@@ -7063,11 +7088,15 @@ function updateStaffEditorFooter() {
 function getStaffEditEffectiveDefaultDate() {
   return getLocalDateISO();
 }
-function isStaffEditableHistoryEvent(rec, effectiveDate) {
-  if (!rec || !isValidISODate(effectiveDate)) return false;
-  const ev = (rec.events || []).find(e => e.effectiveDate === effectiveDate);
+function isStaffEditableHistoryEvent(rec, effectiveDate, eventId) {
+  return !!findStaffHistoryEvent(rec, effectiveDate, eventId);
+}
+function isStaffHistoryTimelineEvent(ev, rec) {
   if (!ev) return false;
-  return !isStaffImportBaselineEvent(ev, staffPersonnelRegistry, rec);
+  if (isStaffImportBaselineEvent(ev, staffPersonnelRegistry, rec)) {
+    return !isValidISODate(ev.effectiveDate);
+  }
+  return isValidISODate(ev.effectiveDate);
 }
 function enterStaffFormEditing() {
   staffFormDraft = captureStaffFormSnapshot();
@@ -7082,7 +7111,7 @@ function enterStaffFormEditing() {
     const snap = getStaffSnapshotAtDate(rec.personnelId, getStaffListReferenceDate()) || {};
     fillStaffFormFromSnapshot(snap, getStaffEditEffectiveDefaultDate());
   } else {
-    syncStaffEffDateInputs(getStaffEditEffectiveDefaultDate());
+    syncStaffEditEffDateInputs(getStaffEditEffectiveDefaultDate());
   }
   updateStaffEditModeBanner();
 }
@@ -7129,7 +7158,8 @@ function setStaffFormEditing(editing) {
   if (tagsReadonly) tagsReadonly.hidden = erpStaffFormEditing;
   updateStaffEditToggleBtn();
   updateStaffEditModeBanner();
-  if (!erpStaffFormEditing) updateStaffBasicInfoReadonlyView();
+  if (erpStaffFormEditing) syncStaffStatusSelectOptions();
+  else updateStaffBasicInfoReadonlyView();
   updateStaffEditorFooter();
   const rec = selectedStaffPersonnelId ? getStaffPersonnelRecord(selectedStaffPersonnelId) : null;
   const histList = document.getElementById('erpStaffHistoryList');
@@ -7138,12 +7168,15 @@ function setStaffFormEditing(editing) {
       ? staffHistoryReplaceDate
       : staffEditorLoadedDate;
     histList.innerHTML = buildStaffHistoryTimelineHtml(rec.events || [], historyHighlight, erpStaffHistoryExpanded, rec, {
-      showAdminActions: isWorkbenchAdmin()
+      showAdminActions: isWorkbenchAdmin(),
+      activeEventId: staffHistoryReplaceEventId
     });
   }
 }
 function isStaffImportBaselineEvent(ev, registry, rec) {
   if (!ev) return false;
+  // 有生效日的紀錄不再視為「無限期 · 匯入基準」（含從基準改為有日期的覆蓋）
+  if (isValidISODate(ev.effectiveDate)) return false;
   if (ev.isImportBaseline === true) return true;
   const src = String(ev.source || '').trim();
   if (src === 'import' || src === '系統匯入') return true;
@@ -7156,15 +7189,25 @@ function isStaffImportBaselineEvent(ev, registry, rec) {
   return evs.length > 0 && evs[0] === ev;
 }
 function getStaffHistoryDisplayEvents(rec) {
-  const registry = staffPersonnelRegistry;
-  return (rec?.events || [])
-    .filter(ev => !isStaffImportBaselineEvent(ev, registry, rec))
-    .filter(ev => isStaffHistoryTimelineEvent(ev));
+  return (rec?.events || []).filter(ev => isStaffHistoryTimelineEvent(ev, rec));
+}
+function formatStaffHistoryEventDate(ev, rec) {
+  if (isStaffImportBaselineEvent(ev, staffPersonnelRegistry, rec) && !isValidISODate(ev.effectiveDate)) {
+    return '無限期';
+  }
+  return formatScheduleDateDisplay(ev.effectiveDate) || ev.effectiveDate || '';
+}
+function isStaffHistoryEventActive(ev, activeDate, activeEventId) {
+  const id = String(activeEventId || '').trim();
+  if (id && String(ev?.eventId || '').trim() === id) return true;
+  return !!activeDate && ev?.effectiveDate === activeDate;
 }
 function repairStaffPersonnelBaseline(rec) {
   const registry = staffPersonnelRegistry;
   if (!rec?.events?.length || !registry) return false;
   if (rec.events.some(ev => isStaffImportBaselineEvent(ev, registry, rec))) return false;
+  // 已有有日期的異動時，不再從種子補回無限期基準（含將匯入基準改為有日期的情況）
+  if (rec.events.some(ev => isValidISODate(ev.effectiveDate))) return false;
   const baseline = getStaffHistoryBaselineDate(registry);
   const seedEv = window.STAFF_PERSONNEL_SEED?.people
     ?.find(p => p.personnelId === rec.personnelId)?.events?.[0];
@@ -7221,14 +7264,20 @@ function getStaffLatestAdjustmentSummary(rec, refDateISO) {
   if (!future.length) return { label: '—', title: '' };
   const nearestByEff = future[0];
   const prev = getStaffEventPrevByEffectiveDate(rec, ref, nearestByEff);
-  const meta = getStaffHistoryEventMeta(nearestByEff, prev);
+  const meta = getStaffHistoryEventMeta(nearestByEff, prev, rec);
   const dateText = formatStaffAdjustmentDate(nearestByEff.effectiveDate) || String(nearestByEff.effectiveDate || '').trim();
   const detail = String(meta.change || '').trim();
   const reason = `${meta.badge}：${detail}`;
   const label = dateText ? `${dateText}  ${reason}` : reason;
   return { label, title: detail && detail !== meta.badge ? detail : '' };
 }
-function getStaffHistoryEventMeta(curr, prev) {
+function getStaffHistoryEventMeta(curr, prev, rec) {
+  const recCtx = rec || { events: curr ? [curr] : [] };
+  if (isStaffImportBaselineEvent(curr, staffPersonnelRegistry, recCtx)) {
+    const st = getStaffCanonicalStatus(curr);
+    const detail = [curr.level, curr.group, curr.code, st].filter(Boolean).join(' · ');
+    return { tone: 'slate', badge: '匯入基準', change: detail || '原始資料' };
+  }
   const currSt = getStaffCanonicalStatus(curr);
   const prevSt = prev ? getStaffCanonicalStatus(prev) : '';
   const currLevel = String(curr.level || '').trim();
@@ -7323,11 +7372,12 @@ function buildStaffHistoryTimelineHtml(events, activeDate, expanded, rec, option
   const editingClass = showAdminActions ? ' is-editing-mode' : '';
   return asc.slice().reverse().map((e) => {
     const prev = getStaffHistoryEventPrev(e, asc, importBaseline);
-    const meta = getStaffHistoryEventMeta(e, prev);
-    const active = e.effectiveDate === activeDate ? ' is-active' : '';
-    const dateText = formatScheduleDateDisplay(e.effectiveDate) || e.effectiveDate;
-    const canManage = showAdminActions && isStaffEditableHistoryEvent(rec, e.effectiveDate);
-    const canDelete = canManage && eventCount > 1;
+    const meta = getStaffHistoryEventMeta(e, prev, rec);
+    const active = isStaffHistoryEventActive(e, activeDate, options.activeEventId) ? ' is-active' : '';
+    const dateText = formatStaffHistoryEventDate(e, rec);
+    const canManage = showAdminActions && isStaffEditableHistoryEvent(rec, e.effectiveDate, e.eventId);
+    const isBaseline = isStaffImportBaselineEvent(e, staffPersonnelRegistry, rec || { events: all });
+    const canDelete = canManage && eventCount > 1 && !isBaseline;
     const evId = escapeHtml(String(e.eventId || ''));
     const detailParts = Array.isArray(meta.parts) && meta.parts.length
       ? meta.parts
@@ -7439,45 +7489,81 @@ function sortStaffPersonnelEvents(rec) {
   rec.events = dedupeStaffEvents(rec.events);
   ensureStaffEventIds(rec);
 }
+function resolveStaffEventReplaceIdx(rec, replaceRef) {
+  if (!rec?.events?.length) return -1;
+  const prevRef = String(replaceRef || '').trim();
+  if (!prevRef) return -1;
+  const prevDate = isValidISODate(prevRef) ? prevRef : '';
+  if (!prevDate) {
+    const byId = rec.events.findIndex(ev => String(ev.eventId || '').trim() === prevRef);
+    if (byId >= 0) return byId;
+  }
+  if (prevDate) {
+    return rec.events.findIndex(ev => ev.effectiveDate === prevDate);
+  }
+  return -1;
+}
 function upsertStaffPersonnelEvent(personnelId, patch, replaceRef) {
   const rec = getStaffPersonnelRecord(personnelId);
   if (!rec) return false;
-  const eff = String(patch.effectiveDate || '').trim();
-  if (!isValidISODate(eff)) return false;
-  const prevRef = String(replaceRef || '').trim();
-  const prevDate = isValidISODate(prevRef) ? prevRef : '';
-  const replaceByIdIdx = prevRef && !prevDate
-    ? (rec.events || []).findIndex(ev => String(ev.eventId || '').trim() === prevRef)
-    : -1;
-  if ((replaceByIdIdx >= 0 || prevDate) && (prevDate !== eff || replaceByIdIdx >= 0)) {
-    if (replaceByIdIdx >= 0) {
-      const target = rec.events[replaceByIdIdx];
-      if (!isStaffImportBaselineEvent(target, staffPersonnelRegistry, rec)) {
-        rec.events.splice(replaceByIdIdx, 1);
-      }
-    } else {
-      rec.events = (rec.events || []).filter(ev => {
-        if (ev.effectiveDate !== prevDate) return true;
-        return isStaffImportBaselineEvent(ev, staffPersonnelRegistry, rec);
-      });
-    }
+  ensureStaffEventIds(rec);
+  const replaceIdx = resolveStaffEventReplaceIdx(rec, replaceRef);
+  const replaceTarget = replaceIdx >= 0 ? rec.events[replaceIdx] : null;
+  const isBaselineEdit = replaceTarget && (
+    replaceTarget.isImportBaseline === true
+    || isStaffImportBaselineEvent(replaceTarget, staffPersonnelRegistry, rec)
+  );
+  const effRaw = String(patch.effectiveDate || '').trim();
+  let eff = effRaw;
+  const convertingToForever = replaceTarget && !isValidISODate(effRaw) && !isBaselineEdit;
+  if (!isValidISODate(eff)) {
+    if (!isBaselineEdit && !convertingToForever) return false;
+    eff = STAFF_IMPORT_BASELINE_FOREVER;
   }
-  const base = rec.events?.[rec.events.length - 1] || {};
+  const keepImportBaseline = (isBaselineEdit && eff === STAFF_IMPORT_BASELINE_FOREVER) || convertingToForever;
+  const convertingBaselineToDated = isBaselineEdit && isValidISODate(eff);
+  const base = replaceTarget || rec.events?.[rec.events.length - 1] || {};
   const snap = {
-    eventId: makeStaffEventId(),
-    effectiveDate: eff,
     code: String(patch.code ?? base.code ?? '').trim(),
     fullName: String(patch.fullName ?? base.fullName ?? '').trim(),
     group: cleanStaffGroupValue(patch.group ?? base.group),
     level: String(patch.level ?? base.level ?? '').trim(),
     status: String(patch.status ?? base.status ?? STAFF_LEGACY_ACTIVE_STATUS).trim() || STAFF_LEGACY_ACTIVE_STATUS,
-    restrictions: String(patch.restrictions ?? base.restrictions ?? '').trim()
+    restrictions: String(patch.restrictions ?? base.restrictions ?? '').trim(),
+    effectiveDate: eff
   };
-  const idx = (rec.events || []).findIndex(ev => ev.effectiveDate === eff);
-  if (idx >= 0) rec.events[idx] = { ...rec.events[idx], ...snap };
-  else rec.events.push(snap);
+  if (replaceIdx >= 0) {
+    const eventId = rec.events[replaceIdx].eventId || makeStaffEventId();
+    rec.events[replaceIdx] = {
+      ...rec.events[replaceIdx],
+      ...snap,
+      eventId,
+      isImportBaseline: keepImportBaseline
+    };
+    if (convertingBaselineToDated) {
+      rec.events[replaceIdx].isImportBaseline = false;
+    }
+    if (convertingToForever) {
+      rec.events[replaceIdx].isImportBaseline = true;
+      delete rec.events[replaceIdx].isTransferIn;
+    }
+    // 匯入基準改為有日期：覆蓋同一筆，並移除殘留的無限期基準，避免兩張歷史卡片並存
+    if (isBaselineEdit || convertingToForever) {
+      rec.events = rec.events.filter(ev =>
+        String(ev.eventId || '') === String(eventId)
+        || !(ev.isImportBaseline === true && !isValidISODate(ev.effectiveDate))
+      );
+    }
+    sortStaffPersonnelEvents(rec);
+    rec.events.forEach(ev => { if (snap.fullName) ev.fullName = snap.fullName; });
+    return true;
+  }
+  const snapNew = { ...snap, eventId: makeStaffEventId() };
+  const dupIdx = (rec.events || []).findIndex(ev => ev.effectiveDate === eff);
+  if (dupIdx >= 0) rec.events[dupIdx] = { ...rec.events[dupIdx], ...snapNew };
+  else rec.events.push(snapNew);
   sortStaffPersonnelEvents(rec);
-  rec.events.forEach(ev => { if (snap.fullName) ev.fullName = snap.fullName; });
+  rec.events.forEach(ev => { if (snapNew.fullName) ev.fullName = snapNew.fullName; });
   return true;
 }
 function deleteStaffPersonnelEventAt(personnelId, eventRef, effectiveDateHint) {
@@ -7695,7 +7781,7 @@ function renderStaffPersonnelEditor() {
   if (nameEl) nameEl.textContent = ev.fullName || '';
   if (pillEl) pillEl.innerHTML = buildStaffStatusPillHtml(displaySt);
   if (!erpStaffFormEditing) {
-    syncStaffEffDateInputs(ev.effectiveDate || ref);
+    syncStaffEditEffDateInputs(isValidISODate(ev.effectiveDate) ? ev.effectiveDate : '');
     fillStaffFormFromSnapshot(ev, ev.effectiveDate || ref);
   }
   renderStaffTagEditor(rec);
@@ -7722,7 +7808,8 @@ function renderStaffPersonnelEditor() {
   const histList = document.getElementById('erpStaffHistoryList');
   if (histList) {
     histList.innerHTML = buildStaffHistoryTimelineHtml(events, historyHighlight, erpStaffHistoryExpanded, rec, {
-      showAdminActions: isWorkbenchAdmin()
+      showAdminActions: isWorkbenchAdmin(),
+      activeEventId: staffHistoryReplaceEventId
     });
   }
   updateStaffHistoryAdminUi(rec);
@@ -7733,14 +7820,31 @@ function handleStaffPersonnelFormSubmit(e) {
   if (!selectedStaffPersonnelId || !erpStaffFormEditing) return;
   const rec = getStaffPersonnelRecord(selectedStaffPersonnelId);
   if (!rec) return;
+  const historyTarget = staffEditMode === 'history'
+    ? findStaffHistoryEvent(rec, staffHistoryReplaceDate, staffHistoryReplaceEventId)
+    : null;
+  let editingBaseline = !!(historyTarget && isStaffImportBaselineEvent(historyTarget, staffPersonnelRegistry, rec));
   const loadedDate = staffEditorLoadedDate
     || getStaffSnapshotAtDate(rec.personnelId, getStaffListReferenceDate())?.effectiveDate
     || rec.events?.[rec.events.length - 1]?.effectiveDate
     || '';
-  const loadedSnap = (rec.events || []).find(ev => ev.effectiveDate === loadedDate)
+  const editingBaselineFromHistory = editingBaseline;
+  const loadedSnap = (historyTarget)
+    || (isValidISODate(loadedDate) ? (rec.events || []).find(ev => ev.effectiveDate === loadedDate) : null)
     || getStaffSnapshotAtDate(rec.personnelId, getStaffListReferenceDate())
     || rec.events?.[rec.events.length - 1]
     || {};
+  if (!editingBaselineFromHistory) {
+    const baselineEv = (rec.events || []).find(ev => isStaffImportBaselineEvent(ev, staffPersonnelRegistry, rec));
+    const datedHistory = (rec.events || []).filter(ev =>
+      isStaffHistoryTimelineEvent(ev, rec) && !isStaffImportBaselineEvent(ev, staffPersonnelRegistry, rec)
+    );
+    if (baselineEv && !datedHistory.length && staffEditMode !== 'history') {
+      editingBaseline = true;
+    }
+  } else {
+    editingBaseline = true;
+  }
   commitStaffTagInputToDraft();
   const nextTagRecords = normalizeStaffTagRecords(Array.isArray(staffTagEditDraft) ? staffTagEditDraft : rec.tagRecords);
   const compareDate = isValidISODate(loadedDate) ? loadedDate : getStaffListReferenceDate();
@@ -7765,13 +7869,17 @@ function handleStaffPersonnelFormSubmit(e) {
   const status = String(document.getElementById('erpStaffStatus')?.value || '').trim();
   const effRaw = String(document.getElementById('erpStaffEffDatePick')?.value
     || document.getElementById('erpStaffEffDate')?.value || '').trim();
+  const convertingToForever = staffEditMode === 'history' && !!historyTarget && !isValidISODate(effRaw);
+  const loadedEff = String(loadedSnap.effectiveDate || '').trim();
+  const effUnchanged = effRaw === loadedEff
+    || (!isValidISODate(effRaw) && !isValidISODate(loadedEff));
   const onlyTagsChanged =
     fullName === String(loadedSnap.fullName || '').trim()
     && code === String(loadedSnap.code || '').trim()
     && group === cleanStaffGroupValue(loadedSnap.group || '')
     && level === String(loadedSnap.level || '').trim()
     && getStaffCanonicalStatus({ status }) === getStaffCanonicalStatus(loadedSnap)
-    && (!effRaw || effRaw === String(loadedSnap.effectiveDate || '').trim());
+    && effUnchanged;
   if (onlyTagsChanged) {
     rec.tagRecords = nextTagRecords;
     rec.tags = getStaffTagNamesFromRecords(rec.tagRecords, getStaffListReferenceDate());
@@ -7788,12 +7896,13 @@ function handleStaffPersonnelFormSubmit(e) {
     appAlert(`找不到戰力「${level || '（空白）'}」，請使用既有戰力分類。`, '無法儲存');
     return;
   }
-  const eff = effRaw;
-  if (!isValidISODate(eff)) {
+  const eff = isValidISODate(effRaw) ? effRaw : ((editingBaseline || convertingToForever) ? STAFF_IMPORT_BASELINE_FOREVER : '');
+  if (!isValidISODate(eff) && !editingBaseline && !convertingToForever) {
     appAlert('請選擇有效的生效日。', '無法儲存');
     return;
   }
-  const dupCode = findDuplicateStaffCodeAtDate(code, eff, selectedStaffPersonnelId);
+  const dupRefDate = isValidISODate(eff) ? eff : getStaffListReferenceDate();
+  const dupCode = findDuplicateStaffCodeAtDate(code, dupRefDate, selectedStaffPersonnelId);
   if (dupCode) {
     const who = dupCode.fullName ? `（${dupCode.fullName}）` : '';
     appAlert(`代號「${code}」已被人事代號 ${dupCode.personnelId}${who} 使用。`, '無法儲存');
@@ -7801,9 +7910,12 @@ function handleStaffPersonnelFormSubmit(e) {
   }
   rec.tagRecords = nextTagRecords;
   rec.tags = getStaffTagNamesFromRecords(rec.tagRecords, eff || getStaffListReferenceDate());
-  syncStaffEffDateInputs(eff);
-  const replaceDate = staffEditMode === 'history' ? staffHistoryReplaceDate : '';
-  const replaceRef = staffEditMode === 'history' ? (staffHistoryReplaceEventId || replaceDate) : '';
+  syncStaffEditEffDateInputs(isValidISODate(eff) ? eff : '');
+  let replaceRef = staffEditMode === 'history' ? (staffHistoryReplaceEventId || staffHistoryReplaceDate || '') : '';
+  if (!replaceRef && editingBaseline) {
+    const baselineEv = (rec.events || []).find(ev => isStaffImportBaselineEvent(ev, staffPersonnelRegistry, rec));
+    if (baselineEv?.eventId) replaceRef = baselineEv.eventId;
+  }
   const ok = upsertStaffPersonnelEvent(selectedStaffPersonnelId, {
     effectiveDate: eff,
     fullName,
@@ -7817,7 +7929,7 @@ function handleStaffPersonnelFormSubmit(e) {
     return;
   }
   saveStaffPersonnelRegistry();
-  staffEditorLoadedDate = eff;
+  staffEditorLoadedDate = isValidISODate(eff) ? eff : null;
   staffEditMode = null;
   staffHistoryReplaceDate = null;
   staffHistoryReplaceEventId = null;
