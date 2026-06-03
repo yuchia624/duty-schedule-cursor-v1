@@ -5337,20 +5337,22 @@ const STAFF_FILTER_ALL_VALUE = '__all__';
 const STAFF_SCOPE_FILTER_OPTIONS = [
   { value: 'active', label: '在職' },
   { value: 'leave', label: '留停' },
-  { value: 'inactive', label: '停用' }
+  { value: 'inactive', label: '停用' },
+  { value: 'changes', label: '異動' }
 ];
 const STAFF_ALERT_STATUSES = new Set(['留停', '調出', '離職', '退休']);
 const STAFF_TAB_ACTIVE_STATUSES = new Set([STAFF_LEGACY_ACTIVE_STATUS, '調入', '復職']);
 const STAFF_TAB_LEAVE_STATUSES = new Set(['留停']);
 const STAFF_TAB_DISABLED_STATUSES = new Set(['調出', '離職', '退休']);
 const STAFF_LIST_TAB_LABELS = {
-  all: '全部人員', active: '在職人員', leave: '留停人員', inactive: '停用人員'
+  all: '全部人員', active: '在職人員', leave: '留停人員', inactive: '停用人員', changes: '異動人員'
 };
 const STAFF_LIST_TAB_EMPTY_MSG = {
   all: '沒有人員，或不符合搜尋／篩選條件。',
   active: '沒有在職人員，或不符合搜尋／篩選條件。',
   leave: '沒有留停人員，或不符合搜尋／篩選條件。',
-  inactive: '沒有停用人員，或不符合搜尋／篩選條件。'
+  inactive: '沒有停用人員，或不符合搜尋／篩選條件。',
+  changes: '基準日沒有人員異動，或不符合搜尋／篩選條件。'
 };
 const STAFF_STATUS_HISTORY_TONES = {
   在職: 'green', 調入: 'blue', 復職: 'blue', 留停: 'purple', 調出: 'slate', 離職: 'slate', 退休: 'slate'
@@ -6562,9 +6564,10 @@ function isStaffListSearchActive() {
 }
 function staffRowPassesScopeFilter(rec, ref, scopes, options = {}) {
   if (options.skipForSearch) return true;
+  const set = scopes || staffListFiltersApplied.scopes || [];
+  if (isStaffChangesScopeActive(set)) return staffHasAdjustmentOnDate(rec, ref);
   const tab = getStaffListTabAtDate(rec.personnelId, ref);
   if (!tab) return false;
-  const set = scopes || staffListFiltersApplied.scopes || [];
   if (set.length) return set.includes(tab);
   return tab === erpStaffListTab;
 }
@@ -6632,7 +6635,7 @@ function renderStaffFilterCheckOptions(hostId, options) {
 }
 function applyStaffScopeSelectionToPanel(scopeValue) {
   const target = String(scopeValue || '').trim();
-  const fallback = ['active', 'leave', 'inactive'].includes(target) ? target : 'active';
+  const fallback = ['active', 'leave', 'inactive', 'changes'].includes(target) ? target : 'active';
   document.querySelectorAll('#erpStaffFilterScopeChecks input[type="checkbox"]').forEach(el => {
     el.checked = (el.value === fallback);
   });
@@ -6700,6 +6703,7 @@ function getStaffStatusOptionsByScopes(scopes) {
   if (set.includes('inactive')) {
     STAFF_STATUS_FORM_OPTIONS.forEach(st => { if (STAFF_TAB_DISABLED_STATUSES.has(st)) allowed.add(st); });
   }
+  if (set.includes('changes')) return STAFF_STATUS_FORM_OPTIONS.slice();
   return STAFF_STATUS_FORM_OPTIONS.filter(st => allowed.has(st));
 }
 function getStaffScopesByStatuses(statuses) {
@@ -7317,11 +7321,77 @@ function getStaffHistoryEventPrev(curr, ascSorted, importBaseline) {
   return null;
 }
 function getStaffEventPrevByEffectiveDate(rec, ref, currEv) {
-  const prior = getStaffHistoryDisplayEvents(rec)
-    .filter(ev => ev.effectiveDate && compareIsoDate(ev.effectiveDate, currEv.effectiveDate) < 0)
+  if (!currEv) return null;
+  const list = getStaffHistoryDisplayEvents(rec)
+    .slice()
     .sort((a, b) => compareIsoDate(a.effectiveDate, b.effectiveDate));
-  if (prior.length) return prior[prior.length - 1];
+  const importBaseline = (rec?.events || []).find(ev => isStaffImportBaselineEvent(ev, staffPersonnelRegistry, rec)) || null;
+  const prev = getStaffHistoryEventPrev(currEv, list, importBaseline);
+  if (prev) return prev;
+  const currEff = String(currEv.effectiveDate || '').trim();
+  if (isValidISODate(currEff)) {
+    return getStaffSnapshotBeforeDate(rec.personnelId, currEff);
+  }
   return getStaffSnapshotAtDate(rec.personnelId, ref);
+}
+function getStaffSnapshotBeforeDate(personnelId, beforeDateISO) {
+  const rec = getStaffPersonnelRecord(personnelId);
+  const ref = isValidISODate(beforeDateISO) ? beforeDateISO : getStaffListReferenceDate();
+  if (!rec?.events?.length) return null;
+  const registry = staffPersonnelRegistry;
+  const onBefore = (rec.events || [])
+    .filter(ev => {
+      if (!isValidISODate(ev.effectiveDate)) return isStaffImportBaselineEvent(ev, registry, rec);
+      return compareIsoDate(ev.effectiveDate, ref) < 0;
+    })
+    .sort((a, b) => compareIsoDate(a.effectiveDate, b.effectiveDate));
+  const real = onBefore.filter(ev => !isStaffImportBaselineEvent(ev, registry, rec));
+  let snap = real.length ? real[real.length - 1] : null;
+  if (!snap) {
+    snap = onBefore.find(ev => isStaffImportBaselineEvent(ev, registry, rec)) || null;
+  }
+  return snap ? { personnelId: rec.personnelId, ...snap } : null;
+}
+function isStaffMeaningfulAdjustmentMeta(meta) {
+  const badge = String(meta?.badge || '').trim();
+  const change = String(meta?.change || '').trim();
+  if (!badge || badge === '—') return false;
+  if (badge === change && (badge === STAFF_LEGACY_ACTIVE_STATUS || badge === '留停')) return false;
+  if (badge === '資料調整' && (!change || change === '—')) return false;
+  return true;
+}
+function getStaffAdjustmentMetaOnDate(rec, refDateISO) {
+  const ref = isValidISODate(refDateISO) ? refDateISO : getStaffListReferenceDate();
+  const ev = getStaffAdjustmentEventOnDate(rec, ref);
+  if (!ev) return null;
+  const prev = getStaffEventPrevByEffectiveDate(rec, ref, ev);
+  const meta = getStaffHistoryEventMeta(ev, prev, rec);
+  return { ev, prev, meta };
+}
+function getStaffAdjustmentEventOnDate(rec, refDateISO) {
+  const ref = isValidISODate(refDateISO) ? refDateISO : getStaffListReferenceDate();
+  return getStaffHistoryDisplayEvents(rec).find(ev => ev.effectiveDate === ref) || null;
+}
+function staffHasAdjustmentOnDate(rec, refDateISO) {
+  const pack = getStaffAdjustmentMetaOnDate(rec, refDateISO);
+  return !!pack && isStaffMeaningfulAdjustmentMeta(pack.meta);
+}
+function getStaffRefDateAdjustmentSummary(rec, refDateISO) {
+  const pack = getStaffAdjustmentMetaOnDate(rec, refDateISO);
+  if (!pack || !isStaffMeaningfulAdjustmentMeta(pack.meta)) return { label: '—', title: '' };
+  const meta = pack.meta;
+  const badge = String(meta.badge || '').trim();
+  const detail = String(meta.change || '').trim();
+  const label = badge && detail ? `${badge}：${detail}` : (badge || detail || '—');
+  return { label, title: detail && detail !== badge ? detail : '' };
+}
+function isStaffChangesScopeActive(scopes) {
+  const set = scopes || staffListFiltersApplied.scopes || [];
+  return set.length === 1 && set[0] === 'changes';
+}
+function getStaffListAdjustmentSummary(rec, refDateISO) {
+  if (isStaffChangesScopeActive()) return getStaffRefDateAdjustmentSummary(rec, refDateISO);
+  return getStaffLatestAdjustmentSummary(rec, refDateISO);
 }
 function getStaffLatestAdjustmentSummary(rec, refDateISO) {
   const ref = isValidISODate(refDateISO) ? refDateISO : getStaffListReferenceDate();
@@ -7807,7 +7877,7 @@ function getErpStaffSortValue(rec, refDate, key) {
   if (key === 'level') return String(snap.level || '');
   if (key === 'status') return String(getStaffListColumnStatus(snap) || '');
   if (key === 'latest') {
-    const latest = getStaffLatestAdjustmentSummary(rec, refDate);
+    const latest = getStaffListAdjustmentSummary(rec, refDate);
     return latest.label === '—' ? '' : String(latest.label || '');
   }
   if (key === 'tags') {
@@ -8911,9 +8981,12 @@ function exportErpStaffListExcel() {
     return;
   }
   const refText = formatScheduleDateDisplay(ref) || ref;
+  const scope = (staffListFiltersApplied.scopes || [])[0] || '';
+  const scopeLabel = STAFF_LIST_TAB_LABELS[scope] || STAFF_LIST_TAB_LABELS.all;
   const sheetRows = [
     ['基準日', refText],
   ];
+  if (scope) sheetRows.push(['人員範圍', scopeLabel.replace(/人員$/, '')]);
   const q = getStaffListSearchQuery();
   if (q) sheetRows.push(['搜尋', q]);
   if (staffListAdvancedFiltersActive()) sheetRows.push(['篩選', '已套用']);
@@ -8923,7 +8996,7 @@ function exportErpStaffListExcel() {
     const snap = getStaffListRowSnapshot(rec, ref) || {};
     ensureStaffTagRecords(rec);
     const activeTags = getStaffTagNamesFromRecords(rec.tagRecords, ref);
-    const latest = getStaffLatestAdjustmentSummary(rec, ref);
+    const latest = getStaffListAdjustmentSummary(rec, ref);
     const st = getStaffListColumnStatus(snap);
     sheetRows.push([
       excelCell(rec.personnelId),
@@ -8940,7 +9013,8 @@ function exportErpStaffListExcel() {
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, sheet, '人員列表');
   const fileRef = String(ref || 'today').replace(/-/g, '');
-  XLSX.writeFile(wb, `人員列表_${fileRef}.xlsx`);
+  const filePrefix = scope === 'changes' ? '人員異動' : '人員列表';
+  XLSX.writeFile(wb, `${filePrefix}_${fileRef}.xlsx`);
 }
 function renderErpStaffTable() {
   const tbody = document.getElementById('erpStaffTableBody');
@@ -8971,7 +9045,7 @@ function renderErpStaffTable() {
     const atRefSnap = getStaffSnapshotAtDate(rec.personnelId, ref);
     ensureStaffTagRecords(rec);
     const activeTags = getStaffTagNamesFromRecords(rec.tagRecords, ref);
-    const latest = getStaffLatestAdjustmentSummary(rec, ref);
+    const latest = getStaffListAdjustmentSummary(rec, ref);
     const st = getStaffListColumnStatus(atRefSnap || snap);
     const statusHit = statusSearching ? getStaffSearchMatchedStatus(rec, q) : null;
     const statusCell = statusHit
