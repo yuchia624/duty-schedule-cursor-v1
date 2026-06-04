@@ -1191,6 +1191,67 @@
     display:block; font-size:9px; font-weight:700; color:#b45309; line-height:1.2; margin-top:1px;
   }
   .adjusted-shift-input-hint[hidden] { display:none; }
+  .shift-field-wrap {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    min-width: 0;
+  }
+  .shift-adjust-suggest {
+    position: absolute;
+    top: calc(100% + 2px);
+    left: 0;
+    z-index: 3;
+    min-width: 140px;
+    max-width: 220px;
+    max-height: 180px;
+    overflow: auto;
+    background: #fff;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    box-shadow: 0 8px 20px rgba(15, 23, 42, 0.12);
+  }
+  .shift-adjust-suggest button {
+    display: block;
+    width: 100%;
+    padding: 6px 8px;
+    border: 0;
+    background: transparent;
+    text-align: left;
+    font-size: 11px;
+    color: #0f172a;
+    cursor: pointer;
+  }
+  .shift-adjust-suggest button:hover,
+  .shift-adjust-suggest button:focus {
+    background: #eff6ff;
+  }
+  .person-cell:has(.shift-adjust-suggest),
+  .person-cell.shift-suggest-open {
+    overflow: visible;
+    z-index: 200 !important;
+  }
+  .board .person-cell.rollcall-grid:has(.shift-adjust-suggest),
+  .board .person-cell.rollcall-grid.shift-suggest-open {
+    overflow: visible;
+    z-index: 200 !important;
+  }
+  .row:has(.shift-adjust-suggest),
+  .row.shift-suggest-open {
+    overflow: visible;
+    z-index: 199 !important;
+  }
+  .rollcall-grid .rc-col.rc-adj:has(.shift-adjust-suggest),
+  .rollcall-grid .rc-col.rc-adj.shift-suggest-open {
+    overflow: visible;
+    position: relative;
+    z-index: 1;
+  }
+  .shift-field-wrap.shift-suggest-open {
+    position: relative;
+    z-index: 2;
+  }
   .rollcall-grid .rc-col .person-radio-input,
   .rollcall-grid .rc-col .person-ircs-input {
     width:100%; min-width:0; height:28px; padding:2px 6px; box-sizing:border-box;
@@ -1446,6 +1507,29 @@
     pointer-events: none;
   }
   .shift-band-label { display:none; }
+  .timeline-leave-duty-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    pointer-events: none;
+    background: rgba(239, 68, 68, 0.18);
+  }
+  .timeline-leave-duty-tooltip {
+    position: absolute;
+    top: 6px;
+    z-index: 5;
+    pointer-events: none;
+    padding: 4px 8px;
+    font-size: 11px;
+    font-weight: 700;
+    color: #fff;
+    background: rgba(127, 29, 29, 0.94);
+    border-radius: 4px;
+    white-space: nowrap;
+    transform: translateX(-50%);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+  }
+  .timeline-leave-duty-tooltip[hidden] { display: none; }
   .block { z-index: 3; }
 
   .block-delete-btn {
@@ -4762,49 +4846,189 @@
 const initialPeople = [{"name": "又", "level": "M"}, {"name": "承", "level": "M"}, {"name": "沛", "level": "m"}, {"name": "洪", "level": "m"}, {"name": "芬", "level": "M"}, {"name": "沈", "level": "M"}, {"name": "君", "level": "M"}, {"name": "炘", "level": "M"}, {"name": "趙", "level": "M"}, {"name": "佳", "level": "M"}, {"name": "桃", "level": "M"}, {"name": "穎", "level": "M"}, {"name": "澤", "level": "M"}, {"name": "徐", "level": "m"}, {"name": "瑩", "level": "m"}, {"name": "蘇", "level": "m"}, {"name": "伶", "level": "m"}, {"name": "品", "level": "m"}, {"name": "喧", "level": "m"}, {"name": "健", "level": "2A"}, {"name": "媛", "level": "2A"}, {"name": "翰", "level": "2A"}, {"name": "庭", "level": "1A"}, {"name": "淵", "level": "1A"}, {"name": "昕", "level": "1A"}, {"name": "富", "level": "M"}, {"name": "雨", "level": "M"}, {"name": "鈞", "level": "M"}, {"name": "費", "level": "M"}, {"name": "莊", "level": "M"}, {"name": "孝", "level": "M"}, {"name": "展", "level": "M"}, {"name": "東", "level": "m"}, {"name": "玲", "level": "m"}, {"name": "筠", "level": "m"}, {"name": "皓", "level": "m"}, {"name": "姿", "level": "m"}, {"name": "文", "level": "m"}, {"name": "浩", "level": "m"}, {"name": "賴", "level": "m"}, {"name": "娟", "level": "m"}, {"name": "勛", "level": "m"}, {"name": "順", "level": "m"}, {"name": "榕", "level": "m"}, {"name": "汶", "level": "m!"}, {"name": "景", "level": "m!"}, {"name": "宇", "level": "m!"}, {"name": "澄", "level": "2A*"}, {"name": "易", "level": "1A"}, {"name": "靜", "level": "1A"}, {"name": "慶", "level": "1A"}, {"name": "姜", "level": "1A"}];
 
 const SHIFT_DEFS = {
-  "IB": ["03:00","11:00"],
-  "I8": ["03:30","11:30"],
-  "I9": ["04:00","12:00"],
-  "Hv": ["05:00","13:30"],
-  "hb": ["06:00","14:30"],
-  "hP": ["06:30","15:00"],
-  "hM": ["07:00","15:30"],
-  "hQ": ["07:30","16:00"],
-  "hv": ["08:00","16:30"],
-  "hN": ["13:30","22:00"],
-  "hs": ["14:00","22:30"],
-  "hK": ["15:00","23:30"],
-  "hL": ["15:30","00:00"],
-  "IV": ["16:00","00:30"],
-  "IW": ["16:30","01:00"]
+  "I5": { start: "02:00", end: "10:00", kind: "早班", common: false, note: "" },
+  "I6": { start: "02:30", end: "10:30", kind: "早班", common: true, note: "" },
+  "IB": { start: "03:00", end: "11:00", kind: "早班", common: true, note: "" },
+  "I8": { start: "03:30", end: "11:30", kind: "早班", common: true, note: "" },
+  "I9": { start: "04:00", end: "12:00", kind: "早班", common: true, note: "" },
+  "IA": { start: "04:30", end: "12:30", kind: "早班", common: false, note: "" },
+  "Hv": { start: "05:00", end: "13:30", kind: "早班", common: true, note: "" },
+  "hO": { start: "05:30", end: "14:00", kind: "早班", common: false, note: "" },
+  "hb": { start: "06:00", end: "14:30", kind: "早班", common: true, note: "實習生班別" },
+  "hP": { start: "06:30", end: "15:00", kind: "早班", common: false, note: "實習生班別" },
+  "hM": { start: "07:00", end: "15:30", kind: "早班", common: true, note: "實習生班別" },
+  "hQ": { start: "07:30", end: "16:00", kind: "早班", common: false, note: "實習生班別" },
+  "hv": { start: "08:00", end: "16:30", kind: "早班", common: false, note: "實習生班別" },
+  "he": { start: "08:30", end: "17:00", kind: "早班", common: true, note: "實習生班別/事務員班別/體檢班別" },
+  "hR": { start: "09:00", end: "17:30", kind: "早班", common: false, note: "實習生班別" },
+  "hS": { start: "09:30", end: "18:00", kind: "早班", common: false, note: "實習生班別" },
+  "hT": { start: "10:00", end: "18:30", kind: "早班", common: false, note: "實習生班別" },
+  "hU": { start: "10:30", end: "19:00", kind: "早班", common: false, note: "實習生班別" },
+  "hV": { start: "11:00", end: "19:30", kind: "早班", common: false, note: "實習生班別" },
+  "hW": { start: "11:30", end: "20:00", kind: "早班", common: false, note: "實習生班別" },
+  "hY": { start: "13:00", end: "21:30", kind: "晚班", common: false, note: "實習生班別" },
+  "hN": { start: "13:30", end: "22:00", kind: "晚班", common: true, note: "實習生班別" },
+  "hs": { start: "14:00", end: "22:30", kind: "晚班", common: true, note: "" },
+  "hZ": { start: "14:30", end: "23:00", kind: "晚班", common: false, note: "" },
+  "hK": { start: "15:00", end: "23:30", kind: "晚班", common: true, note: "" },
+  "hL": { start: "15:30", end: "24:00", kind: "晚班", common: true, note: "" },
+  "IV": { start: "16:00", end: "24:30", kind: "晚班", common: false, note: "" },
+  "IW": { start: "16:30", end: "01:00", kind: "晚班", common: true, note: "" },
+  "Ia": { start: "17:00", end: "01:30", kind: "晚班", common: false, note: "" },
+  "Ib": { start: "17:30", end: "02:00", kind: "晚班", common: false, note: "" },
+  "Ic": { start: "18:00", end: "02:30", kind: "晚班", common: false, note: "" },
+  "Id": { start: "18:30", end: "03:00", kind: "晚班", common: false, note: "" },
+  "Ie": { start: "19:00", end: "03:30", kind: "晚班", common: false, note: "" },
+  "If": { start: "19:30", end: "04:00", kind: "晚班", common: false, note: "" },
+  "Ih": { start: "21:00", end: "05:00", kind: "晚班", common: false, note: "" },
+  "Ii": { start: "21:30", end: "05:30", kind: "晚班", common: false, note: "" },
+  "Ij": { start: "22:00", end: "06:00", kind: "晚班", common: false, note: "" },
+  "Ik": { start: "22:30", end: "06:30", kind: "晚班", common: false, note: "" },
+  "IL": { start: "23:00", end: "07:00", kind: "晚班", common: false, note: "" },
+  "Im": { start: "23:30", end: "07:30", kind: "晚班", common: false, note: "" },
+  "I0": { start: "00:00", end: "08:00", kind: "晚班", common: false, note: "" },
+  "I2": { start: "00:30", end: "08:30", kind: "晚班", common: false, note: "" },
+  "I3": { start: "01:00", end: "09:00", kind: "晚班", common: false, note: "" },
+  "I4": { start: "01:30", end: "09:30", kind: "晚班", common: false, note: "" },
+  "ZD": { start: "02:00", end: "06:00", kind: "早班", common: false, note: "PT班別" },
+  "ZE": { start: "02:30", end: "06:30", kind: "早班", common: false, note: "PT班別" },
+  "ZF": { start: "03:00", end: "07:00", kind: "早班", common: false, note: "PT班別" },
+  "ZG": { start: "03:30", end: "07:30", kind: "早班", common: false, note: "PT班別" },
+  "ZH": { start: "04:00", end: "08:00", kind: "早班", common: true, note: "PT班別" },
+  "ZI": { start: "04:30", end: "08:30", kind: "早班", common: false, note: "PT班別" },
+  "ZJ": { start: "05:00", end: "09:00", kind: "早班", common: true, note: "PT班別" },
+  "ZK": { start: "05:30", end: "09:30", kind: "早班", common: false, note: "PT班別" },
+  "ZL": { start: "06:00", end: "10:00", kind: "早班", common: true, note: "PT班別" },
+  "ZM": { start: "06:30", end: "10:30", kind: "早班", common: false, note: "PT班別" },
+  "ZN": { start: "07:00", end: "11:00", kind: "早班", common: true, note: "PT班別" },
+  "ZO": { start: "07:30", end: "11:30", kind: "早班", common: false, note: "PT班別" },
+  "ZP": { start: "08:00", end: "12:00", kind: "早班", common: false, note: "PT班別" },
+  "ZQ": { start: "08:30", end: "12:30", kind: "早班", common: false, note: "PT班別" },
+  "ZR": { start: "22:00", end: "02:00", kind: "晚班", common: false, note: "PT班別" },
+  "ZS": { start: "22:30", end: "02:30", kind: "晚班", common: false, note: "PT班別" },
+  "ZT": { start: "23:00", end: "03:00", kind: "晚班", common: false, note: "PT班別" },
+  "ZU": { start: "23:30", end: "03:30", kind: "晚班", common: false, note: "PT班別" },
+  "ZV": { start: "00:00", end: "04:00", kind: "晚班", common: false, note: "PT班別" },
+  "ZA": { start: "00:30", end: "04:30", kind: "晚班", common: false, note: "PT班別" },
+  "ZB": { start: "01:00", end: "05:00", kind: "晚班", common: false, note: "PT班別" },
+  "ZC": { start: "01:30", end: "05:30", kind: "晚班", common: false, note: "PT班別" },
+  "HX": { start: "", end: "", kind: "休假", common: true, note: "休息日" },
+  "XC": { start: "", end: "", kind: "休假", common: true, note: "例假日" },
+  "Ya": { start: "", end: "", kind: "休假", common: false, note: "開國紀念日" },
+  "Yb": { start: "", end: "", kind: "休假", common: false, note: "春節-小年夜" },
+  "Yc": { start: "", end: "", kind: "休假", common: false, note: "春節-除夕" },
+  "Yd": { start: "", end: "", kind: "休假", common: false, note: "春節-初一" },
+  "Ye": { start: "", end: "", kind: "休假", common: false, note: "春節-初二" },
+  "Yf": { start: "", end: "", kind: "休假", common: false, note: "春節-初三" },
+  "Yg": { start: "", end: "", kind: "休假", common: false, note: "和平紀念日" },
+  "Yh": { start: "", end: "", kind: "休假", common: false, note: "兒童節" },
+  "Yi": { start: "", end: "", kind: "休假", common: false, note: "清明節" },
+  "Yj": { start: "", end: "", kind: "休假", common: false, note: "勞動節" },
+  "Yk": { start: "", end: "", kind: "休假", common: false, note: "端午節" },
+  "Yl": { start: "", end: "", kind: "休假", common: false, note: "中秋節" },
+  "Ym": { start: "", end: "", kind: "休假", common: false, note: "孔子誕辰" },
+  "Yn": { start: "", end: "", kind: "休假", common: false, note: "國慶日" },
+  "Yo": { start: "", end: "", kind: "休假", common: false, note: "光復節" },
+  "Yp": { start: "", end: "", kind: "休假", common: false, note: "行憲紀念日" },
+  "病假": { start: "", end: "", kind: "請假", common: false, note: "" },
+  "生理假": { start: "", end: "", kind: "請假", common: false, note: "" },
+  "事假": { start: "", end: "", kind: "請假", common: false, note: "" },
+  "家庭照顧假": { start: "", end: "", kind: "請假", common: false, note: "" },
+  "產假": { start: "", end: "", kind: "請假", common: false, note: "" },
+  "產檢假": { start: "", end: "", kind: "請假", common: false, note: "" },
+  "陪產檢及陪產假": { start: "", end: "", kind: "請假", common: false, note: "" },
+  "婚假": { start: "", end: "", kind: "請假", common: false, note: "" },
+  "公差假": { start: "", end: "", kind: "請假", common: false, note: "" },
+  "喪假": { start: "", end: "", kind: "請假", common: false, note: "" },
+  "特休": { start: "", end: "", kind: "請假", common: false, note: "" },
+  "補休（日）": { start: "", end: "", kind: "請假", common: false, note: "" },
+  "會務假": { start: "", end: "", kind: "請假", common: false, note: "" },
+  "有給公益假": { start: "", end: "", kind: "請假", common: false, note: "" },
+  "育嬰留停（日）": { start: "", end: "", kind: "請假", common: false, note: "" },
+  "有給天災假": { start: "", end: "", kind: "請假", common: false, note: "" },
+  "換休假": { start: "", end: "", kind: "請假", common: false, note: "" },
 };
-const SHIFT_LEAVE_REQUEST_CODES = [
-  "特別休假",
-  "事假",
-  "產假－給全薪",
-  "喪假",
-  "有給天災假",
-  "住院病假",
-  "未住院病假（不列考評紀錄）",
-  "住院病假（不列考評紀錄）",
-  "產檢假",
-  "換休假",
-  "婚假",
-  "會務假",
-  "公差假",
-  "生理假",
-  "未住院病假",
-  "有給公益假",
-  "陪產檢及陪產假",
-  "育嬰留停（日）",
-  "家庭照顧假",
-  "補休假"
-];
+const SHIFT_LEAVE_REQUEST_CODES = ["病假", "生理假", "事假", "家庭照顧假", "產假", "產檢假", "陪產檢及陪產假", "婚假", "公差假", "喪假", "特休", "補休（日）", "會務假", "有給公益假", "育嬰留停（日）", "有給天災假", "換休假"];
+function getShiftDef(key) {
+  const k = String(key || '').trim();
+  if (!k) return null;
+  return SHIFT_DEFS[k] || null;
+}
+function isShiftWorkKind(kind) {
+  return kind === '早班' || kind === '晚班';
+}
+function isNonWorkAdjustedShiftStatus(status) {
+  return status === 'leave' || status === 'rest';
+}
+function personHasDutyBlocks(personIndex) {
+  return schedule.some(s => s.personIndex === personIndex && s.role !== '休');
+}
+function shouldShowLeaveRestDutyOverlay(personIndex) {
+  const person = people[personIndex];
+  if (!person || !personHasDutyBlocks(personIndex)) return false;
+  const status = getAdjustedShiftInputStatus(person.adjustedShift);
+  return isNonWorkAdjustedShiftStatus(status);
+}
+function refreshLeaveRestDutyOverlay(timeline, personIndex) {
+  if (!timeline) return;
+  timeline.classList.remove('has-leave-duty-alert');
+  timeline.querySelectorAll('.timeline-leave-duty-overlay, .timeline-leave-duty-tooltip').forEach(el => el.remove());
+  if (!shouldShowLeaveRestDutyOverlay(personIndex)) return;
+  const overlay = document.createElement('div');
+  overlay.className = 'timeline-leave-duty-overlay';
+  const tip = document.createElement('div');
+  tip.className = 'timeline-leave-duty-tooltip';
+  tip.textContent = '請假/休假仍有 duty，請移除';
+  tip.hidden = true;
+  const firstBlock = timeline.querySelector('.block');
+  if (firstBlock) timeline.insertBefore(overlay, firstBlock);
+  else timeline.appendChild(overlay);
+  timeline.appendChild(tip);
+  timeline.classList.add('has-leave-duty-alert');
+}
+function initLeaveDutyOverlayTooltip() {
+  const rows = document.getElementById('rows');
+  if (!rows || rows.dataset.leaveDutyTipBound) return;
+  rows.dataset.leaveDutyTipBound = '1';
+  rows.addEventListener('mousemove', e => {
+    document.querySelectorAll('.timeline-leave-duty-tooltip').forEach(t => { t.hidden = true; });
+    const timeline = e.target.closest('.timeline.has-leave-duty-alert');
+    if (!timeline || e.target.closest('.block')) return;
+    const tip = timeline.querySelector('.timeline-leave-duty-tooltip');
+    if (!tip) return;
+    tip.hidden = false;
+    const rect = timeline.getBoundingClientRect();
+    tip.style.left = (e.clientX - rect.left) + 'px';
+  });
+}
+function getShiftKeyTimeBounds(shiftKey) {
+  const def = getShiftDef(shiftKey);
+  if (!def || !isShiftWorkKind(def.kind)) return null;
+  const startMin = tStrToMin(def.start);
+  let endMin = tStrToMin(def.end);
+  if (startMin === null || endMin === null) return null;
+  if (endMin <= startMin) endMin += 24 * 60;
+  return { shiftKey: String(shiftKey).trim(), startMin, endMin };
+}
+function appendShiftBandToTimeline(timeline, shiftKey) {
+  const bounds = getShiftKeyTimeBounds(shiftKey);
+  if (!bounds) return;
+  const visibleStart = Math.max(bounds.startMin, getViewStartMin());
+  const visibleEnd = Math.min(bounds.endMin, getViewEndMin());
+  if (visibleEnd <= visibleStart) return;
+  const band = document.createElement('div');
+  band.className = 'shift-band';
+  band.style.left = timeToLeft(visibleStart) + 'px';
+  band.style.width = durationToWidth(visibleStart, visibleEnd) + 'px';
+  timeline.appendChild(band);
+}
 function getAdjustedShiftInputStatus(adjustedShift) {
   const v = String(adjustedShift || '').trim();
   if (!v) return 'empty';
-  if (SHIFT_DEFS[v]) return 'shift';
   if (SHIFT_LEAVE_REQUEST_CODES.includes(v)) return 'leave';
+  const def = getShiftDef(v);
+  if (def && def.kind === '休假') return 'rest';
+  if (def && isShiftWorkKind(def.kind)) return 'shift';
   return 'invalid';
 }
 function getBandShiftKey(person) {
@@ -4812,7 +5036,7 @@ function getBandShiftKey(person) {
   const adjusted = String(person?.adjustedShift || '').trim();
   const status = getAdjustedShiftInputStatus(adjusted);
   if (status === 'shift') return adjusted;
-  if (status === 'leave') return '';
+  if (isNonWorkAdjustedShiftStatus(status)) return '';
   return shift;
 }
 function syncAdjustedShiftInputUi(input, value) {
@@ -4823,12 +5047,63 @@ function syncAdjustedShiftInputUi(input, value) {
   const hint = input.parentElement?.querySelector('.adjusted-shift-input-hint');
   if (hint) hint.hidden = !invalid;
 }
+function getAdjustedShiftSuggestPool() {
+  return [...new Set([...Object.keys(SHIFT_DEFS), ...SHIFT_LEAVE_REQUEST_CODES])];
+}
+function matchAdjustedShiftSuggest(code, query) {
+  const q = String(query || '').trim();
+  if (!q) return false;
+  const c = String(code || '');
+  if (/[\u4e00-\u9fff]/.test(q)) return c.includes(q);
+  if (/[\u4e00-\u9fff]/.test(c)) return false;
+  return c.includes(q);
+}
+function filterAdjustedShiftSuggestions(query) {
+  const q = String(query || '').trim();
+  if (!q) return [];
+  return getAdjustedShiftSuggestPool()
+    .filter(code => matchAdjustedShiftSuggest(code, q))
+    .slice(0, 10);
+}
+function setShiftSuggestOpen(wrap, open) {
+  if (!wrap) return;
+  const cell = wrap.closest('.person-cell');
+  const row = wrap.closest('.row');
+  const col = wrap.closest('.rc-col.rc-adj');
+  [cell, row, col, wrap].forEach(el => el?.classList.toggle('shift-suggest-open', !!open));
+}
+function hideAdjustedShiftSuggest(wrap) {
+  wrap?.querySelector('.shift-adjust-suggest')?.remove();
+  setShiftSuggestOpen(wrap, false);
+}
+function showAdjustedShiftSuggest(input, wrap) {
+  if (!input || !wrap) return;
+  hideAdjustedShiftSuggest(wrap);
+  const items = filterAdjustedShiftSuggestions(input.value);
+  if (!items.length) return;
+  const menu = document.createElement('div');
+  menu.className = 'shift-adjust-suggest';
+  items.forEach(code => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.textContent = code;
+    btn.addEventListener('mousedown', e => {
+      e.preventDefault();
+      input.value = code;
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+      hideAdjustedShiftSuggest(wrap);
+    });
+    menu.appendChild(btn);
+  });
+  wrap.appendChild(menu);
+  setShiftSuggestOpen(wrap, true);
+}
 function getShiftType(shiftKey) {
-  const def = SHIFT_DEFS[shiftKey];
-  if (!def) return '';
-  const start = tStrToMin(def[0]);
-  if (start === null) return '';
-  return start < 12 * 60 ? 'early' : 'late';
+  const def = getShiftDef(shiftKey);
+  if (!def || !isShiftWorkKind(def.kind)) return '';
+  if (def.kind === '早班') return 'early';
+  if (def.kind === '晚班') return 'late';
+  return '';
 }
 function getShiftViewLabel(mode) {
   if (mode === 'early') return '早班';
@@ -4909,6 +5184,7 @@ function updateRollCallButtonLabel() {
 function buildRestStatusHtml(opts) {
   if (opts.clockedOut) return '<span class="clocked-out-rest">已下班</span>';
   if (opts.hasRest) return opts.useRestCell ? '<span class="rest-cell" aria-hidden="true"></span>' : '';
+  if (isNonWorkAdjustedShiftStatus(getAdjustedShiftInputStatus(opts.adjustedShift))) return '';
   return '<span class="pending-rest">待排休</span>';
 }
 function isFunctionDuty(duty) {
@@ -4931,7 +5207,8 @@ function refreshRestStatusDisplay(cell, personIndex) {
   const html = buildRestStatusHtml({
     clockedOut: !!person.clockedOut,
     hasRest: hasRestForPerson(personIndex),
-    useRestCell: !!cell.querySelector('.rest-stack')
+    useRestCell: !!cell.querySelector('.rest-stack'),
+    adjustedShift: person.adjustedShift
   });
   const stack = cell.querySelector('.rest-stack, .rest-out-stack');
   if (!stack) return;
@@ -4952,7 +5229,8 @@ function buildPersonRowCoreHtml(opts) {
   const restCell = buildRestStatusHtml({
     clockedOut: !!opts.clockedOut,
     hasRest: opts.hasRest,
-    useRestCell: true
+    useRestCell: true,
+    adjustedShift: opts.adjustedShift
   });
   return [
     `<div class="rc-col rc-seq"><span class="person-seq">${opts.seqNo}</span></div>`,
@@ -4990,7 +5268,8 @@ function buildNormalRowHtml(opts) {
   const restBit = buildRestStatusHtml({
     clockedOut: !!opts.clockedOut,
     hasRest: opts.hasRest,
-    useRestCell: false
+    useRestCell: false,
+    adjustedShift: opts.adjustedShift
   });
   const statusAlert = opts.staffStatusAlert
     ? `<span class="staff-status-alert">${escapeHtml(opts.staffStatusAlert)}</span>`
@@ -5006,7 +5285,7 @@ function buildRollCallRowHtml(opts) {
   const blankOpt = '<option value=""></option>';
   const adjInvalid = getAdjustedShiftInputStatus(opts.adjustedShift) === 'invalid';
   return buildPersonRowCoreHtml(opts).concat([
-    `<div class="rc-col rc-adj"><input type="text" class="adjusted-shift-input${adjInvalid ? ' is-invalid' : ''}" title="${adjInvalid ? '無效班別/假別' : '調班班別'}" aria-label="調班班別" autocomplete="off" value="${escapeHtml(opts.adjustedShift || '')}" /><span class="adjusted-shift-input-hint"${adjInvalid ? '' : ' hidden'}>無效班別/假別</span></div>`,
+    `<div class="rc-col rc-adj"><div class="shift-field-wrap"><input type="text" class="adjusted-shift-input${adjInvalid ? ' is-invalid' : ''}" title="${adjInvalid ? '無效班別/假別' : '調班班別'}" aria-label="調班班別" autocomplete="off" value="${escapeHtml(opts.adjustedShift || '')}" /><span class="adjusted-shift-input-hint"${adjInvalid ? '' : ' hidden'}>無效班別/假別</span></div></div>`,
     `<div class="rc-col rc-radio"><input type="text" class="person-radio-input" title="對講機號碼" aria-label="對講機號碼" inputmode="numeric" autocomplete="off" value="${escapeHtml(opts.radioNo)}" /></div>`,
     `<div class="rc-col rc-ircs"><input type="text" class="person-ircs-input" title="IRCS號碼" aria-label="IRCS號碼" inputmode="numeric" autocomplete="off" value="${escapeHtml(opts.ircsNo)}" /></div>`,
     `<div class="rc-col rc-next"><select class="next-shift-select" title="隔日班別" aria-label="隔日班別">${blankOpt}${opts.nextShiftOptions}</select></div>`,
@@ -5037,17 +5316,11 @@ function getEffectiveShift(person) {
 function getShiftFilterKey(person) {
   const shift = String(person?.shift || '').trim();
   if (rollCallMode) return shift;
-  if (getAdjustedShiftInputStatus(person?.adjustedShift) === 'leave') return shift;
+  if (isNonWorkAdjustedShiftStatus(getAdjustedShiftInputStatus(person?.adjustedShift))) return shift;
   return getEffectiveShift(person);
 }
 function getPersonShiftBounds(person) {
-  const shiftKey = getEffectiveShift(person);
-  if (!shiftKey || !SHIFT_DEFS[shiftKey]) return null;
-  const startMin = tStrToMin(SHIFT_DEFS[shiftKey][0]);
-  let endMin = tStrToMin(SHIFT_DEFS[shiftKey][1]);
-  if (startMin === null || endMin === null) return null;
-  if (endMin <= startMin) endMin += 24 * 60;
-  return { shiftKey, startMin, endMin };
+  return getShiftKeyTimeBounds(getEffectiveShift(person));
 }
 function getDutyDisplayLabel(item) {
   if (item.role === '休') return '休';
@@ -5330,7 +5603,7 @@ function exportOvertimeExcel() {
 
 function renderShiftLabel(shift, adjustedShift) {
   const status = getAdjustedShiftInputStatus(adjustedShift);
-  const hasAdjustment = (status === 'shift' || status === 'leave')
+  const hasAdjustment = (status === 'shift' || isNonWorkAdjustedShiftStatus(status))
     && String(adjustedShift || '').trim() !== String(shift || '').trim();
   const display = rollCallMode
     ? (shift || '—')
@@ -5342,7 +5615,10 @@ function renderShiftLabel(shift, adjustedShift) {
   return `<span class="person-shift-label${highlight ? ' is-adjusted' : ''}" title="${title}">${escapeHtml(display)}</span>`;
 }
 function buildShiftSelectOptions(selected) {
-  return Object.keys(SHIFT_DEFS).map(k => `<option value="${k}" ${selected === k ? 'selected' : ''}>${k}</option>`).join('');
+  return Object.keys(SHIFT_DEFS)
+    .filter(k => isShiftWorkKind(getShiftDef(k)?.kind))
+    .map(k => `<option value="${k}" ${selected === k ? 'selected' : ''}>${k}</option>`)
+    .join('');
 }
 function personMatchesShiftView(person) {
   return getShiftType(getShiftFilterKey(person)) === activeShiftView;
@@ -11282,20 +11558,7 @@ function refreshRollCallShiftBand(cell, personIndex) {
   const person = people[personIndex];
   if (!person) return;
   const personShift = getBandShiftKey(person);
-  if (!personShift || !SHIFT_DEFS[personShift]) return;
-  const s1 = tStrToMin(SHIFT_DEFS[personShift][0]);
-  let s2 = tStrToMin(SHIFT_DEFS[personShift][1]);
-  let startMin = s1;
-  let endMin = s2;
-  if (endMin !== null && startMin !== null && endMin <= startMin) endMin += 24 * 60;
-  const visibleStart = Math.max(startMin, getViewStartMin());
-  const visibleEnd = Math.min(endMin, getViewEndMin());
-  if (visibleEnd <= visibleStart) return;
-  const band = document.createElement('div');
-  band.className = 'shift-band';
-  band.style.left = timeToLeft(visibleStart) + 'px';
-  band.style.width = durationToWidth(visibleStart, visibleEnd) + 'px';
-  timeline.appendChild(band);
+  appendShiftBandToTimeline(timeline, personShift);
 }
 function saveLocal() {
   const k = dayStorageKeys(selectedDate);
@@ -11836,16 +12099,33 @@ function renderRows() {
     });
     if (rollCallMode) {
       const adjustedShiftInput = left.querySelector('.adjusted-shift-input');
+      const adjWrap = left.querySelector('.shift-field-wrap');
       const syncAdjustedShift = value => {
         people[rowInfo.originalIndex].adjustedShift = value;
         syncAdjustedShiftInputUi(adjustedShiftInput, value);
         refreshShiftLabelEl(left, shift, value);
         refreshRollCallShiftBand(left, rowInfo.originalIndex);
+        refreshLeaveRestDutyOverlay(left.closest('.row')?.querySelector('.timeline'), rowInfo.originalIndex);
+        refreshRestStatusDisplay(left, rowInfo.originalIndex);
         markUnsynced();
       };
       syncAdjustedShiftInputUi(adjustedShiftInput, adjustedShift);
-      adjustedShiftInput?.addEventListener('input', e => syncAdjustedShift(e.target.value));
+      adjustedShiftInput?.addEventListener('input', e => {
+        syncAdjustedShift(e.target.value);
+        showAdjustedShiftSuggest(adjustedShiftInput, adjWrap);
+      });
+      adjustedShiftInput?.addEventListener('compositionend', e => {
+        syncAdjustedShift(e.target.value);
+        showAdjustedShiftSuggest(adjustedShiftInput, adjWrap);
+      });
       adjustedShiftInput?.addEventListener('change', e => syncAdjustedShift(e.target.value));
+      adjustedShiftInput?.addEventListener('keydown', e => {
+        if (e.key === 'Escape') hideAdjustedShiftSuggest(adjWrap);
+      });
+      adjustedShiftInput?.addEventListener('blur', e => {
+        if (e.relatedTarget?.closest?.('.shift-adjust-suggest')) return;
+        hideAdjustedShiftSuggest(adjWrap);
+      });
       const radioInput = left.querySelector('.person-radio-input');
       radioInput?.addEventListener('input', e => {
         people[rowInfo.originalIndex].radioNo = e.target.value;
@@ -11939,22 +12219,8 @@ function renderRows() {
     });
 
     const personShift = getBandShiftKey(people[rowInfo.originalIndex]);
-    if (personShift && SHIFT_DEFS[personShift]) {
-      const s1 = tStrToMin(SHIFT_DEFS[personShift][0]);
-      let s2 = tStrToMin(SHIFT_DEFS[personShift][1]);
-      let startMin = s1;
-      let endMin = s2;
-      if (endMin !== null && startMin !== null && endMin <= startMin) endMin += 24 * 60;
-      const visibleStart = Math.max(startMin, getViewStartMin());
-      const visibleEnd = Math.min(endMin, getViewEndMin());
-      if (visibleEnd > visibleStart) {
-        const band = document.createElement('div');
-        band.className = 'shift-band';
-        band.style.left = timeToLeft(visibleStart) + 'px';
-        band.style.width = durationToWidth(visibleStart, visibleEnd) + 'px';
-        timeline.appendChild(band);
-}
-    }
+    appendShiftBandToTimeline(timeline, personShift);
+    refreshLeaveRestDutyOverlay(timeline, rowInfo.originalIndex);
     const items = schedule.filter(s => s.personIndex === rowInfo.originalIndex);
     items.forEach(item => {
       const el = createBlockEl(item, searchActive);
@@ -12565,6 +12831,7 @@ renderPalette();
 syncRollCallBoardClass();
 updateRollCallButtonLabel();
 updateNameColHeader();
+initLeaveDutyOverlayTooltip();
 renderRows();
 renderOvertimePanel();
 updateShiftViewButtonLabel();
