@@ -3950,15 +3950,85 @@
     display: inline-block; margin-left: 4px; padding: 0 4px; border-radius: 4px;
     background: #dbeafe; color: #1d4ed8; font-size: 10px; font-weight: 700;
   }
-  .clear-data-checklist {
-    display: grid; gap: 8px; margin: 12px 0 14px;
+  #clearDataModal .rollcall-import-panel {
+    width: min(400px, 100%);
   }
-  .clear-data-checklist label {
-    display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: #334155;
+  #clearDataModal .rollcall-import-title {
+    font-size: 20px;
+    font-weight: 800;
+    margin: 0 32px 12px 0;
+    line-height: 1.25;
+  }
+  .clear-data-checklist {
+    display: flex;
+    flex-direction: column;
+    margin: 10px 0 12px;
+    border-top: 1px solid #e2e8f0;
+  }
+  .clear-data-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 11px 6px;
+    border-bottom: 1px solid #e2e8f0;
     cursor: pointer;
   }
-  .clear-data-checklist label.is-select-all {
-    margin-top: 4px; padding-top: 10px; border-top: 1px solid #e2e8f0; font-weight: 800;
+  .clear-data-item__label {
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
+    flex: 0 1 auto;
+    min-width: 0;
+  }
+  .clear-data-item__prefix {
+    font-size: 12px;
+    font-weight: 600;
+    color: #64748b;
+    line-height: 1.2;
+  }
+  .clear-data-item__key {
+    font-size: 15px;
+    font-weight: 700;
+    color: #0f172a;
+    line-height: 1.2;
+  }
+  .clear-data-item--all .clear-data-item__key {
+    font-size: 16px;
+    font-weight: 800;
+  }
+  .clear-data-item__icon {
+    flex-shrink: 0;
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    color: #94a3b8;
+  }
+  .clear-data-item__icon svg {
+    width: 20px;
+    height: 20px;
+  }
+  .clear-data-item input[type="checkbox"] {
+    flex-shrink: 0;
+    width: 18px;
+    height: 18px;
+    margin: 0;
+    cursor: pointer;
+  }
+  .rollcall-import-btn--danger {
+    background: #dc2626;
+    border-color: #dc2626;
+    color: #fff;
+  }
+  .rollcall-import-btn--danger:hover:not(:disabled) {
+    background: #b91c1c;
+    border-color: #b91c1c;
+  }
+  .rollcall-import-btn--danger:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
   }
 
   .app-notice-dialog {
@@ -4945,16 +5015,31 @@
   <div class="rollcall-import-panel" role="dialog" aria-modal="true" aria-labelledby="clearDataModalTitle">
     <button type="button" class="rollcall-import-close" id="clearDataModalClose" aria-label="關閉">×</button>
     <h3 class="rollcall-import-title" id="clearDataModalTitle">清除資料</h3>
-    <p class="rollcall-import-hint">請選擇要清除的資料：</p>
     <div class="clear-data-checklist">
-      <label><input type="checkbox" id="clearDataDuty" /> 排班 Duty</label>
-      <label><input type="checkbox" id="clearDataPeople" /> 作業人員</label>
-      <label><input type="checkbox" id="clearDataFlights" /> 航班</label>
-      <label class="is-select-all"><input type="checkbox" id="clearDataSelectAll" /> 全選</label>
+      <label class="clear-data-item" for="clearDataDuty">
+        <input type="checkbox" id="clearDataDuty" />
+        <span class="clear-data-item__label"><span class="clear-data-item__prefix">所有</span><span class="clear-data-item__key">勤務區塊</span></span>
+        <span class="clear-data-item__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg></span>
+      </label>
+      <label class="clear-data-item" for="clearDataPeople">
+        <input type="checkbox" id="clearDataPeople" />
+        <span class="clear-data-item__label"><span class="clear-data-item__prefix">所有</span><span class="clear-data-item__key">上班人員</span></span>
+        <span class="clear-data-item__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>
+      </label>
+      <label class="clear-data-item" for="clearDataFlights">
+        <input type="checkbox" id="clearDataFlights" />
+        <span class="clear-data-item__label"><span class="clear-data-item__prefix">所有</span><span class="clear-data-item__key">航班資料</span></span>
+        <span class="clear-data-item__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z"/></svg></span>
+      </label>
+      <label class="clear-data-item clear-data-item--all" for="clearDataSelectAll">
+        <input type="checkbox" id="clearDataSelectAll" />
+        <span class="clear-data-item__label"><span class="clear-data-item__key">全部清除</span></span>
+        <span class="clear-data-item__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg></span>
+      </label>
     </div>
     <div class="rollcall-import-actions">
       <button type="button" class="rollcall-import-btn rollcall-import-btn--ghost" id="clearDataCancel">取消</button>
-      <button type="button" class="rollcall-import-btn rollcall-import-btn--primary" id="clearDataConfirm" disabled>確認清除</button>
+      <button type="button" class="rollcall-import-btn rollcall-import-btn--danger" id="clearDataConfirm" disabled>確認清除</button>
     </div>
   </div>
 </div>
