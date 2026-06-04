@@ -3878,6 +3878,122 @@
   }
   .rollcall-import-btn--primary { background: #2563eb; border-color: #2563eb; color: #fff; }
   .rollcall-import-btn--primary:disabled { opacity: 0.45; cursor: not-allowed; }
+  #rollCallStaffImportModal .rollcall-import-panel {
+    width: min(480px, 100%);
+    padding: 0;
+    overflow: auto;
+    transition: width 0.2s ease;
+  }
+  #rollCallStaffImportModal.is-preview-open .rollcall-import-panel {
+    width: min(760px, calc(100vw - 32px));
+  }
+  #rollCallStaffImportModal .rollcall-import-close {
+    top: 14px;
+    right: 14px;
+  }
+  #rollCallStaffImportModal .rollcall-staff-import-head {
+    padding: 18px 48px 14px 20px;
+    border-bottom: 1px solid #e2e8f0;
+  }
+  #rollCallStaffImportModal .rollcall-import-title {
+    margin: 0 0 4px;
+    font-size: 20px;
+    font-weight: 800;
+    color: #0f172a;
+    line-height: 1.25;
+  }
+  #rollCallStaffImportModal .rollcall-staff-import-subtitle {
+    margin: 0;
+    font-size: 13px;
+    font-weight: 500;
+    color: #64748b;
+    line-height: 1.4;
+  }
+  #rollCallStaffImportModal .rollcall-staff-import-files {
+    margin: 0;
+  }
+  #rollCallStaffImportModal .rollcall-staff-import-file-block {
+    padding: 16px 20px;
+    border-bottom: 1px solid #e2e8f0;
+  }
+  #rollCallStaffImportModal .rollcall-staff-import-file-block:last-of-type {
+    border-bottom: 0;
+  }
+  #rollCallStaffImportModal .rollcall-staff-import-file-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+    font-size: 14px;
+    font-weight: 700;
+    color: #0f172a;
+  }
+  #rollCallStaffImportModal .rollcall-staff-import-file-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    color: #64748b;
+    flex-shrink: 0;
+  }
+  #rollCallStaffImportModal .rollcall-staff-import-file-icon svg {
+    width: 18px;
+    height: 18px;
+  }
+  #rollCallStaffImportModal .rollcall-staff-import-file-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  #rollCallStaffImportModal .rollcall-staff-import-file-input {
+    position: absolute;
+    width: 0;
+    height: 0;
+    opacity: 0;
+    pointer-events: none;
+  }
+  #rollCallStaffImportModal .rollcall-staff-import-pick-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 12px;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    background: #fff;
+    color: #334155;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    line-height: 1.2;
+    white-space: nowrap;
+  }
+  #rollCallStaffImportModal .rollcall-staff-import-pick-btn:hover {
+    background: #f8fafc;
+    border-color: #94a3b8;
+  }
+  #rollCallStaffImportModal .rollcall-staff-import-pick-btn svg {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+  }
+  #rollCallStaffImportModal .rollcall-staff-import-file-status {
+    font-size: 13px;
+    font-weight: 500;
+    color: #94a3b8;
+    line-height: 1.3;
+    min-width: 0;
+    word-break: break-all;
+  }
+  #rollCallStaffImportModal .rollcall-staff-import-actions {
+    padding: 14px 20px 18px;
+    margin: 0;
+    border-top: 1px solid #e2e8f0;
+  }
+  #rollCallStaffImportModal .rollcall-import-preview {
+    margin: 0 20px 20px;
+  }
   .rollcall-import-preview {
     margin-top: 10px; padding: 12px; border-radius: 10px; background: #f8fafc;
     border: 1px solid #e2e8f0; font-size: 12px; line-height: 1.55; color: #334155;
@@ -3919,13 +4035,33 @@
   .rollcall-import-preview .rc-unmatched-table td {
     border: 1px solid #e2e8f0; padding: 6px 8px; text-align: left; font-size: 11px; vertical-align: top;
   }
+  #rollCallStaffImportModal.is-preview-open .rollcall-import-preview .rc-unmatched-table th:nth-child(4),
+  #rollCallStaffImportModal.is-preview-open .rollcall-import-preview .rc-unmatched-table td:nth-child(4) {
+    min-width: 11em;
+    white-space: nowrap;
+  }
   .rollcall-import-preview .rc-manual-map { position: relative; min-width: 220px; }
   .rollcall-import-preview .rc-manual-map-input {
     width: 100%; box-sizing: border-box; border: 1px solid #cbd5e1; border-radius: 6px;
     padding: 4px 8px; font-size: 11px;
   }
+  .rollcall-import-preview .rc-manual-map-input:not(.is-mapped) {
+    border-color: #fcd34d;
+    background: #fef3c7;
+    color: #92400e;
+  }
+  .rollcall-import-preview .rc-manual-map-input:not(.is-mapped)::placeholder {
+    color: #b45309;
+    opacity: 1;
+  }
+  .rollcall-import-preview .rc-manual-map-input:not(.is-mapped):focus {
+    outline: none;
+    border-color: #f59e0b;
+    box-shadow: 0 0 0 2px rgba(252, 211, 77, 0.45);
+  }
   .rollcall-import-preview .rc-manual-map-input.is-mapped {
     border-color: #86efac; background: #f0fdf4;
+    color: #334155;
   }
   .rollcall-import-preview .rc-manual-map-menu {
     position: absolute; left: 0; right: 0; top: calc(100% + 2px); z-index: 20;
@@ -4494,9 +4630,9 @@
           <span class="toolbar-icon-btn__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M8 7l4-4 4 4"/><path d="M5 21h14"/></svg></span>
           <span class="toolbar-icon-btn__tip">匯入當日航班</span>
         </button>
-        <button type="button" class="toolbar-icon-btn" id="importStaffDbBtn" aria-label="匯入作業人員">
+        <button type="button" class="toolbar-icon-btn" id="importStaffDbBtn" aria-label="匯入上班人員">
           <span class="toolbar-icon-btn__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v11"/><path d="M8 10l4 4 4-4"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg></span>
-          <span class="toolbar-icon-btn__tip">匯入作業人員</span>
+          <span class="toolbar-icon-btn__tip">匯入上班人員</span>
         </button>
         <button type="button" class="toolbar-icon-btn" id="resetBtn" aria-label="清除資料">
           <span class="toolbar-icon-btn__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M6 6l1.2 14h9.6L18 6"/></svg></span>
@@ -5048,19 +5184,41 @@
   <div class="rollcall-import-backdrop" data-rollcall-import-dismiss="1"></div>
   <div class="rollcall-import-panel" role="dialog" aria-modal="true" aria-labelledby="rollCallStaffImportTitle">
     <button type="button" class="rollcall-import-close" id="rollCallStaffImportClose" aria-label="關閉">×</button>
-    <h3 class="rollcall-import-title" id="rollCallStaffImportTitle">匯入作業人員（預覽）</h3>
-    <p class="rollcall-import-hint">請選擇當日與隔日點名表。本階段僅解析預覽，不會寫入排班資料。</p>
-    <div class="rollcall-import-files">
-      <label class="rollcall-import-file">
-        <span>當日點名表</span>
-        <input type="file" id="rollCallTodayFile" accept=".xlsx,.xls" />
-      </label>
-      <label class="rollcall-import-file">
-        <span>隔日點名表</span>
-        <input type="file" id="rollCallTomorrowFile" accept=".xlsx,.xls" />
-      </label>
+    <div class="rollcall-staff-import-head">
+      <h3 class="rollcall-import-title" id="rollCallStaffImportTitle">匯入上班人員</h3>
+      <p class="rollcall-staff-import-subtitle">重複匯入可比對調班結果</p>
     </div>
-    <div class="rollcall-import-actions">
+    <div class="rollcall-staff-import-files">
+      <div class="rollcall-staff-import-file-block">
+        <div class="rollcall-staff-import-file-label">
+          <span class="rollcall-staff-import-file-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/><path d="M10 13H8"/><path d="M16 13h-2"/><path d="M10 17H8"/><path d="M16 17h-2"/></svg></span>
+          <span>當日點名表</span>
+        </div>
+        <div class="rollcall-staff-import-file-row">
+          <input type="file" class="rollcall-staff-import-file-input" id="rollCallTodayFile" accept=".xlsx,.xls" />
+          <label class="rollcall-staff-import-pick-btn" for="rollCallTodayFile">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>
+            選擇檔案
+          </label>
+          <span class="rollcall-staff-import-file-status" id="rollCallTodayFileStatus">尚未選擇檔案</span>
+        </div>
+      </div>
+      <div class="rollcall-staff-import-file-block">
+        <div class="rollcall-staff-import-file-label">
+          <span class="rollcall-staff-import-file-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/><path d="M10 13H8"/><path d="M16 13h-2"/><path d="M10 17H8"/><path d="M16 17h-2"/></svg></span>
+          <span>隔日點名表</span>
+        </div>
+        <div class="rollcall-staff-import-file-row">
+          <input type="file" class="rollcall-staff-import-file-input" id="rollCallTomorrowFile" accept=".xlsx,.xls" />
+          <label class="rollcall-staff-import-pick-btn" for="rollCallTomorrowFile">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>
+            選擇檔案
+          </label>
+          <span class="rollcall-staff-import-file-status" id="rollCallTomorrowFileStatus">尚未選擇檔案</span>
+        </div>
+      </div>
+    </div>
+    <div class="rollcall-import-actions rollcall-staff-import-actions">
       <button type="button" class="rollcall-import-btn rollcall-import-btn--ghost" id="rollCallStaffImportCancel">關閉</button>
       <button type="button" class="rollcall-import-btn rollcall-import-btn--primary" id="rollCallStaffImportParse" disabled>解析預覽</button>
       <button type="button" class="rollcall-import-btn rollcall-import-btn--primary" id="rollCallStaffImportApply" disabled>套用匯入結果</button>
@@ -5673,7 +5831,7 @@ function getShiftViewToolbarIconHtml(mode) {
 }
 const TOOLBAR_TIP_TWO_LINES = {
   '匯入當日航班': ['匯入當日', '航班'],
-  '匯入作業人員': ['匯入作業', '人員'],
+  '匯入上班人員': ['匯入上班', '人員'],
   '清除資料': ['清除', '資料'],
   '航班時間調整': ['航班時間', '調整'],
   '收合航班時間調整': ['收合航班', '時間調整'],
@@ -11318,12 +11476,6 @@ function explainUnmatchedRollCallCode(code, refDateISO) {
   else if (!occupiedAtRefDate && !likely.length) likely.push('該人員狀態非占用中');
   return likely;
 }
-const ROLLCALL_UNMATCHED_HINTS = [
-  '人員管理沒有此代號',
-  '該代號在此日期未生效',
-  '該人員狀態非占用中',
-  '點名表代號可能輸入錯誤'
-];
 const ROLLCALL_PRESERVED_LEAVE_SHIFTS = new Set([
   'HX', 'XC',
   'Ya', 'Yb', 'Yc', 'Yd', 'Ye', 'Yf', 'Yg', 'Yh', 'Yi', 'Yj', 'Yk', 'Yl', 'Ym', 'Yn', 'Yo', 'Yp'
@@ -11524,24 +11676,12 @@ function renderRollCallImportPreviewHtml(todayPreview, tomorrowPreview) {
   lines.push(`<li>畫面班表日期：${escapeHtml(formatScheduleDateDisplay(schedRef) || schedRef)}</li>`);
   lines.push(`<li>當日點名表日期：${escapeHtml(todayPreview.dateInfo?.display || '—')}</li>`);
   lines.push(`<li>隔日點名表日期：${escapeHtml(tomorrowPreview.dateInfo?.display || '—')}</li>`);
-  lines.push(`<li>當日解析人數：${todayPreview.personCount ?? 0}</li>`);
-  lines.push(`<li>隔日解析人數：${tomorrowPreview.personCount ?? 0}</li>`);
-  lines.push(`<li>當日成功對應人員數：${todayPreview.resolvedCount ?? 0}</li>`);
-  lines.push(`<li>找不到人員管理資料的代號：${todayPreview.unmatchedCodes?.length ?? 0}</li>`);
-  lines.push(`<li class="rc-warn">人數與代號不一致的列：${todayPreview.countMismatchRows?.length ?? 0}</li>`);
-  const ns = todayPreview.nextShiftStats;
-  if (ns) {
-    lines.push(`<li>隔日有班別：${ns.withShift}</li>`);
-    lines.push(`<li>隔日休假：${ns.leave}</li>`);
-    lines.push(`<li>隔日未出現：${ns.absent}</li>`);
-  }
+  lines.push(`<li>當日上班人數：${todayPreview.personCount ?? 0}</li>`);
+  lines.push(`<li>當日成功對應人數：${todayPreview.resolvedCount ?? 0}</li>`);
+  lines.push(`<li>人員管理沒有此代號：${todayPreview.unmatchedCodes?.length ?? 0}</li>`);
   lines.push('</ul>');
   if (todayPreview.unmatchedCodes?.length) {
     lines.push('<h4 class="rc-err">找不到主檔的代號</h4>');
-    lines.push('<p class="rc-hint-list">若點名表代號與人員管理不同，可人工指定對應（僅本次預覽有效，不回寫人員管理）。</p>');
-    lines.push('<ul class="rc-hint-list">');
-    ROLLCALL_UNMATCHED_HINTS.forEach(h => lines.push(`<li>可能原因：${escapeHtml(h)}</li>`));
-    lines.push('</ul>');
     lines.push('<table class="rc-unmatched-table"><thead><tr><th>班別</th><th>代號</th><th>列</th><th>說明</th><th>人工指定對應</th></tr></thead><tbody>');
     const manualMappings = rollCallImportPreviewState?.manualMappings || {};
     const staffPool = rollCallImportPreviewState?.staffPool || buildRollCallManualStaffPool(schedRef);
@@ -11571,27 +11711,6 @@ function renderRollCallImportPreviewHtml(todayPreview, tomorrowPreview) {
       lines.push(`<li>${escapeHtml(x.shift)} 列 ${x.rowNum}：${escapeHtml(x.issues.join('；'))}</li>`);
     });
     lines.push('</ul>');
-  }
-  const resolved = todayPreview.resolved || [];
-  if (resolved.length) {
-    lines.push('<div class="rc-resolved-head">');
-    lines.push(`<h4>解析成功（${resolved.length} 筆）</h4>`);
-    if (resolved.length > 10) {
-      lines.push('<button type="button" class="rc-toggle-btn" id="rollCallResolvedToggle" data-collapsed="1">展開全部</button>');
-    }
-    lines.push('</div>');
-    const collapsed = resolved.length > 10;
-    lines.push(`<div class="rc-resolved-wrap${collapsed ? ' is-collapsed' : ''}" id="rollCallResolvedTableWrap">`);
-    lines.push('<table class="rc-sample-table"><thead><tr><th>班別</th><th>代號</th><th>姓名</th><th>戰力</th><th>隔日班別</th></tr></thead><tbody>');
-    resolved.forEach((x, i) => {
-      const extraCls = i >= 10 ? ' class="rc-row-extra"' : '';
-      const nextShift = x.nextShift ?? '休';
-      const nameHtml = x.manualMapped
-        ? `${escapeHtml(x.fullName)}<span class="rc-manual-tag">人工</span>`
-        : escapeHtml(x.fullName);
-      lines.push(`<tr${extraCls}><td>${escapeHtml(x.shift)}</td><td>${escapeHtml(x.code)}</td><td>${nameHtml}</td><td>${escapeHtml(x.level)}</td><td>${escapeHtml(nextShift)}</td></tr>`);
-    });
-    lines.push('</tbody></table></div>');
   }
   return lines.join('');
 }
@@ -11734,25 +11853,15 @@ function showRollCallImportApplyResult(stats, dutyOrphans, shiftChanges, dutyInh
   const pendingShiftChanges = shiftChanges || [];
   const pendingDutyInheritances = dutyInheritances || [];
   const visibleDutyOrphans = filterDutyOrphansExcludedByInheritance(dutyOrphans, pendingDutyInheritances);
-  const details = [
-    { label: '套用成功人數', value: stats.appliedCount, emphasize: true },
-    { label: '寫入 people[] 人數', value: stats.peopleCount },
-    { label: '隔日班別人數', value: stats.nextShiftWithShift },
-    { label: '隔日休假人數', value: stats.nextShiftLeave },
-    { label: '隔日未出現人數', value: stats.nextShiftAbsent },
-    { label: 'duty 異常人數', value: visibleDutyOrphans.length },
-    { label: '人員異動人數', value: pendingDutyInheritances.length },
-    { label: '班別異動人數', value: pendingShiftChanges.length }
-  ];
-  let message = '已套用匯入作業人員結果。';
+  let message = '已套用匯入上班人員結果。';
   if (pendingDutyInheritances.length) {
-    message += '\n\n以下人員因重新匯入造成人員異動，請確認：';
+    message += '\n\n以下人員因調班造成人員異動，請確認：';
     pendingDutyInheritances.forEach(a => {
       message += `\n· ${a.fromName || '—'} → ${a.toName || '—'}`;
     });
   }
   if (pendingShiftChanges.length) {
-    message += '\n\n以下人員因重新匯入造成班別異動，請確認：';
+    message += '\n\n以下人員因調班造成班別異動，請確認：';
     pendingShiftChanges.forEach(a => {
       message += `\n· ${a.name || '—'}：${a.oldShift} → ${a.newShift}`;
     });
@@ -11767,7 +11876,7 @@ function showRollCallImportApplyResult(stats, dutyOrphans, shiftChanges, dutyInh
     type: 'success',
     title: '匯入完成',
     message,
-    details,
+    details: [],
     confirmText: '確定',
     showCancel: false
   });
@@ -11936,24 +12045,53 @@ function setRollCallStaffImportOpen(open) {
   if (!modal) return;
   modal.hidden = !open;
   if (!open) {
-    rollCallImportPreviewState = null;
-    const preview = document.getElementById('rollCallStaffImportPreview');
-    if (preview) {
-      preview.hidden = true;
-      preview.innerHTML = '';
-    }
+    clearRollCallImportPreview();
+    updateRollCallImportBtnState();
   }
+}
+function syncRollCallImportFileStatusLabels() {
+  const today = document.getElementById('rollCallTodayFile');
+  const tomorrow = document.getElementById('rollCallTomorrowFile');
+  const todayStatus = document.getElementById('rollCallTodayFileStatus');
+  const tomorrowStatus = document.getElementById('rollCallTomorrowFileStatus');
+  if (todayStatus) todayStatus.textContent = today?.files?.[0]?.name || '尚未選擇檔案';
+  if (tomorrowStatus) tomorrowStatus.textContent = tomorrow?.files?.[0]?.name || '尚未選擇檔案';
+}
+function rollCallImportParsePreviewReady() {
+  const previewEl = document.getElementById('rollCallStaffImportPreview');
+  return !!(
+    rollCallImportPreviewState &&
+    previewEl &&
+    !previewEl.hidden &&
+    previewEl.innerHTML.trim()
+  );
+}
+function clearRollCallImportPreview() {
+  rollCallImportPreviewState = null;
+  const preview = document.getElementById('rollCallStaffImportPreview');
+  if (preview) {
+    preview.hidden = true;
+    preview.innerHTML = '';
+  }
+}
+function onRollCallImportFileChange() {
+  clearRollCallImportPreview();
+  updateRollCallImportBtnState();
 }
 function updateRollCallImportBtnState() {
   const parseBtn = document.getElementById('rollCallStaffImportParse');
   const applyBtn = document.getElementById('rollCallStaffImportApply');
   const today = document.getElementById('rollCallTodayFile');
   const tomorrow = document.getElementById('rollCallTomorrowFile');
-  if (parseBtn) parseBtn.disabled = !(today?.files?.[0] && tomorrow?.files?.[0]);
+  syncRollCallImportFileStatusLabels();
+  const hasFiles = !!(today?.files?.[0] && tomorrow?.files?.[0]);
+  const parsePreviewShown = rollCallImportParsePreviewReady();
+  if (parseBtn) parseBtn.disabled = !hasFiles || parsePreviewShown;
   if (applyBtn) {
     const merged = getRollCallImportMergedTodayPreview();
     applyBtn.disabled = !(merged?.resolved?.length);
   }
+  document.getElementById('rollCallStaffImportModal')?.classList.toggle('is-preview-open', parsePreviewShown);
 }
 function updateRollCallImportParseBtnState() {
   updateRollCallImportBtnState();
@@ -11963,7 +12101,8 @@ function openRollCallStaffImportModal() {
   const tomorrow = document.getElementById('rollCallTomorrowFile');
   if (today) today.value = '';
   if (tomorrow) tomorrow.value = '';
-  rollCallImportPreviewState = null;
+  clearRollCallImportPreview();
+  syncRollCallImportFileStatusLabels();
   updateRollCallImportParseBtnState();
   setRollCallStaffImportOpen(true);
 }
@@ -12010,8 +12149,8 @@ function initRollCallStaffImportModal() {
   document.getElementById('rollCallStaffImportClose')?.addEventListener('click', () => setRollCallStaffImportOpen(false));
   document.getElementById('rollCallStaffImportCancel')?.addEventListener('click', () => setRollCallStaffImportOpen(false));
   modal.querySelector('[data-rollcall-import-dismiss]')?.addEventListener('click', () => setRollCallStaffImportOpen(false));
-  document.getElementById('rollCallTodayFile')?.addEventListener('change', updateRollCallImportBtnState);
-  document.getElementById('rollCallTomorrowFile')?.addEventListener('change', updateRollCallImportBtnState);
+  document.getElementById('rollCallTodayFile')?.addEventListener('change', onRollCallImportFileChange);
+  document.getElementById('rollCallTomorrowFile')?.addEventListener('change', onRollCallImportFileChange);
   document.getElementById('rollCallStaffImportParse')?.addEventListener('click', () => runRollCallStaffImportPreview());
   document.getElementById('rollCallStaffImportApply')?.addEventListener('click', () => applyRollCallStaffImport());
 }
