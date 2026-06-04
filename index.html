@@ -1507,29 +1507,79 @@
     pointer-events: none;
   }
   .shift-band-label { display:none; }
-  .timeline-leave-duty-overlay {
+  .row.has-timeline-alert {
+    overflow: visible;
+    z-index: 3;
+  }
+  .row-timeline-alert-hint {
     position: absolute;
-    inset: 0;
+    left: var(--name-col-width);
+    right: 0;
+    top: 0;
+    bottom: 0;
     z-index: 2;
     pointer-events: none;
-    background: rgba(239, 68, 68, 0.18);
+    background: rgba(239, 68, 68, 0.14);
   }
-  .timeline-leave-duty-tooltip {
+  .row-timeline-alert-tooltips {
     position: absolute;
-    top: 6px;
-    z-index: 5;
-    pointer-events: none;
-    padding: 4px 8px;
+    left: calc(var(--name-col-width) + 6px);
+    top: 4px;
+    z-index: 20;
+    display: none;
+    flex-direction: column;
+    gap: 4px;
+    pointer-events: auto;
+    max-width: min(280px, calc(var(--timeline-width) - 16px));
+    max-height: calc(var(--row-height) - 8px);
+    overflow-y: auto;
+  }
+  .row-timeline-alert-tooltips.is-visible {
+    display: flex;
+  }
+  .timeline-alert-tooltip {
+    padding: 5px 8px;
     font-size: 11px;
     font-weight: 700;
     color: #fff;
     background: rgba(127, 29, 29, 0.94);
     border-radius: 4px;
-    white-space: nowrap;
-    transform: translateX(-50%);
+    line-height: 1.3;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+    white-space: nowrap;
   }
-  .timeline-leave-duty-tooltip[hidden] { display: none; }
+  .timeline-alert-tip-line1 {
+    font-weight: 700;
+  }
+  .timeline-alert-tip-line2 {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-top: 3px;
+    font-size: 10px;
+    font-weight: 800;
+  }
+  .timeline-alert-tip-detail {
+    flex: 0 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .timeline-alert-confirm {
+    flex-shrink: 0;
+    margin: 0;
+    border: 0;
+    border-radius: 3px;
+    padding: 2px 8px;
+    font-size: 10px;
+    font-weight: 800;
+    line-height: 1.2;
+    cursor: pointer;
+    background: #fff;
+    color: #991b1b;
+  }
+  .timeline-alert-confirm:hover { background: #fee2e2; }
   .block { z-index: 3; }
 
   .block-delete-btn {
@@ -3900,6 +3950,16 @@
     display: inline-block; margin-left: 4px; padding: 0 4px; border-radius: 4px;
     background: #dbeafe; color: #1d4ed8; font-size: 10px; font-weight: 700;
   }
+  .clear-data-checklist {
+    display: grid; gap: 8px; margin: 12px 0 14px;
+  }
+  .clear-data-checklist label {
+    display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: #334155;
+    cursor: pointer;
+  }
+  .clear-data-checklist label.is-select-all {
+    margin-top: 4px; padding-top: 10px; border-top: 1px solid #e2e8f0; font-weight: 800;
+  }
 
   .app-notice-dialog {
     position: fixed; inset: 0; z-index: 2000;
@@ -4368,9 +4428,9 @@
           <span class="toolbar-icon-btn__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v11"/><path d="M8 10l4 4 4-4"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg></span>
           <span class="toolbar-icon-btn__tip">匯入作業人員</span>
         </button>
-        <button type="button" class="toolbar-icon-btn" id="resetBtn" aria-label="清空目前排班">
+        <button type="button" class="toolbar-icon-btn" id="resetBtn" aria-label="清除資料">
           <span class="toolbar-icon-btn__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M6 6l1.2 14h9.6L18 6"/></svg></span>
-          <span class="toolbar-icon-btn__tip">清空目前排班</span>
+          <span class="toolbar-icon-btn__tip">清除資料</span>
         </button>
         <input id="excelImportInput" type="file" accept=".xlsx,.xls" hidden />
         <input id="staffDbImportInput" type="file" accept=".xlsx,.xls" hidden />
@@ -4880,6 +4940,25 @@
   </div>
 </div>
 
+<div id="clearDataModal" class="rollcall-import-dialog" hidden>
+  <div class="rollcall-import-backdrop" data-clear-data-dismiss="1"></div>
+  <div class="rollcall-import-panel" role="dialog" aria-modal="true" aria-labelledby="clearDataModalTitle">
+    <button type="button" class="rollcall-import-close" id="clearDataModalClose" aria-label="關閉">×</button>
+    <h3 class="rollcall-import-title" id="clearDataModalTitle">清除資料</h3>
+    <p class="rollcall-import-hint">請選擇要清除的資料：</p>
+    <div class="clear-data-checklist">
+      <label><input type="checkbox" id="clearDataDuty" /> 排班 Duty</label>
+      <label><input type="checkbox" id="clearDataPeople" /> 作業人員</label>
+      <label><input type="checkbox" id="clearDataFlights" /> 航班</label>
+      <label class="is-select-all"><input type="checkbox" id="clearDataSelectAll" /> 全選</label>
+    </div>
+    <div class="rollcall-import-actions">
+      <button type="button" class="rollcall-import-btn rollcall-import-btn--ghost" id="clearDataCancel">取消</button>
+      <button type="button" class="rollcall-import-btn rollcall-import-btn--primary" id="clearDataConfirm" disabled>確認清除</button>
+    </div>
+  </div>
+</div>
+
 <div id="rollCallStaffImportModal" class="rollcall-import-dialog" hidden>
   <div class="rollcall-import-backdrop" data-rollcall-import-dismiss="1"></div>
   <div class="rollcall-import-panel" role="dialog" aria-modal="true" aria-labelledby="rollCallStaffImportTitle">
@@ -4899,6 +4978,7 @@
     <div class="rollcall-import-actions">
       <button type="button" class="rollcall-import-btn rollcall-import-btn--ghost" id="rollCallStaffImportCancel">關閉</button>
       <button type="button" class="rollcall-import-btn rollcall-import-btn--primary" id="rollCallStaffImportParse" disabled>解析預覽</button>
+      <button type="button" class="rollcall-import-btn rollcall-import-btn--primary" id="rollCallStaffImportApply" disabled>套用匯入結果</button>
     </div>
     <div class="rollcall-import-preview" id="rollCallStaffImportPreview" hidden></div>
   </div>
@@ -5095,36 +5175,302 @@ function shouldShowLeaveRestDutyOverlay(personIndex) {
   const status = getAdjustedShiftInputStatus(person.adjustedShift);
   return isNonWorkAdjustedShiftStatus(status);
 }
-function refreshLeaveRestDutyOverlay(timeline, personIndex) {
-  if (!timeline) return;
-  timeline.classList.remove('has-leave-duty-alert');
-  timeline.querySelectorAll('.timeline-leave-duty-overlay, .timeline-leave-duty-tooltip').forEach(el => el.remove());
-  if (!shouldShowLeaveRestDutyOverlay(personIndex)) return;
-  const overlay = document.createElement('div');
-  overlay.className = 'timeline-leave-duty-overlay';
+let rollCallStaffImportApplied = false;
+const shiftChangeAlerts = new Map();
+const dutyInheritanceAlerts = new Map();
+function dutyInheritanceAlertKey(toPersonnelId, fromPersonnelId) {
+  return `${toPersonnelId}|${fromPersonnelId}`;
+}
+function getShiftChangeAlertForPersonIndex(personIndex) {
+  const person = people[personIndex];
+  if (!person) return null;
+  const pid = resolvePersonnelId(person);
+  if (!pid) return null;
+  const alert = shiftChangeAlerts.get(pid);
+  if (!alert || alert.confirmed) return null;
+  return alert;
+}
+function getDutyInheritanceAlertsForPersonIndex(personIndex) {
+  const person = people[personIndex];
+  if (!person) return [];
+  const toPid = resolvePersonnelId(person);
+  if (!toPid) return [];
+  return [...dutyInheritanceAlerts.values()].filter(a => !a.confirmed && a.toPersonnelId === toPid);
+}
+function computeShiftChangeAlerts(oldPeople, newPeople) {
+  const oldByPid = new Map();
+  oldPeople.forEach(p => {
+    const pid = resolvePersonnelId(p);
+    if (pid) oldByPid.set(pid, p);
+  });
+  const alerts = [];
+  newPeople.forEach(p => {
+    const pid = resolvePersonnelId(p);
+    if (!pid) return;
+    const old = oldByPid.get(pid);
+    if (!old) return;
+    const oldShift = String(old.shift || '').trim();
+    const newShift = String(p.shift || '').trim();
+    if (!oldShift || !newShift || oldShift === newShift) return;
+    alerts.push({
+      personnelId: pid,
+      name: resolveFullName(p) || String(p.name || '').trim(),
+      code: String(p.code || p.name || '').trim(),
+      oldShift,
+      newShift,
+      confirmed: false
+    });
+  });
+  return alerts;
+}
+function computeDutyInheritanceAlerts(oldPeople, newPeople, sched) {
+  const newPidToIndex = new Map();
+  newPeople.forEach((p, idx) => {
+    const pid = resolvePersonnelId(p);
+    if (pid) newPidToIndex.set(pid, idx);
+  });
+  const alertMap = new Map();
+  (sched || []).forEach(item => {
+    const idx = item.personIndex;
+    const oldPerson = oldPeople[idx];
+    if (!oldPerson) return;
+    const fromPid = resolvePersonnelId(oldPerson);
+    if (!fromPid || newPidToIndex.has(fromPid)) return;
+    const newPerson = newPeople[idx];
+    if (!newPerson) return;
+    const toPid = resolvePersonnelId(newPerson);
+    if (!toPid || toPid === fromPid) return;
+    const key = dutyInheritanceAlertKey(toPid, fromPid);
+    if (!alertMap.has(key)) {
+      alertMap.set(key, {
+        toPersonnelId: toPid,
+        toName: resolveFullName(newPerson) || String(newPerson.name || '').trim(),
+        toCode: String(newPerson.code || newPerson.name || '').trim(),
+        fromPersonnelId: fromPid,
+        fromName: resolveFullName(oldPerson) || String(oldPerson.name || '').trim(),
+        fromCode: String(oldPerson.code || oldPerson.name || '').trim(),
+        dutyCount: 0,
+        confirmed: false
+      });
+    }
+    alertMap.get(key).dutyCount += 1;
+  });
+  return [...alertMap.values()];
+}
+function applyShiftChangeAlertsFromImport(oldPeople, newPeople) {
+  const newAlerts = computeShiftChangeAlerts(oldPeople, newPeople);
+  const newPidSet = new Set(newAlerts.map(a => a.personnelId));
+  for (const pid of [...shiftChangeAlerts.keys()]) {
+    if (!newPidSet.has(pid)) shiftChangeAlerts.delete(pid);
+  }
+  newAlerts.forEach(alert => {
+    const existing = shiftChangeAlerts.get(alert.personnelId);
+    const sameChange = existing
+      && existing.oldShift === alert.oldShift
+      && existing.newShift === alert.newShift;
+    shiftChangeAlerts.set(alert.personnelId, {
+      ...alert,
+      confirmed: sameChange && existing.confirmed
+    });
+  });
+}
+function applyDutyInheritanceAlertsFromImport(alerts) {
+  const newKeys = new Set(alerts.map(a => dutyInheritanceAlertKey(a.toPersonnelId, a.fromPersonnelId)));
+  for (const key of [...dutyInheritanceAlerts.keys()]) {
+    if (!newKeys.has(key)) dutyInheritanceAlerts.delete(key);
+  }
+  alerts.forEach(alert => {
+    const key = dutyInheritanceAlertKey(alert.toPersonnelId, alert.fromPersonnelId);
+    const existing = dutyInheritanceAlerts.get(key);
+    const samePair = existing
+      && existing.fromPersonnelId === alert.fromPersonnelId
+      && existing.toPersonnelId === alert.toPersonnelId;
+    dutyInheritanceAlerts.set(key, {
+      ...alert,
+      confirmed: samePair && existing.confirmed
+    });
+  });
+}
+function getPendingShiftChangeAlerts() {
+  return [...shiftChangeAlerts.values()].filter(a => !a.confirmed);
+}
+function getPendingDutyInheritanceAlerts() {
+  return [...dutyInheritanceAlerts.values()].filter(a => !a.confirmed);
+}
+function confirmShiftChangeAlert(personIndex) {
+  const person = people[personIndex];
+  if (!person) return;
+  const pid = resolvePersonnelId(person);
+  if (!pid) return;
+  const alert = shiftChangeAlerts.get(pid);
+  if (!alert) return;
+  alert.confirmed = true;
+  refreshPersonTimelineOverlays(document.querySelector(`.timeline[data-original-index="${personIndex}"]`), personIndex);
+}
+function confirmDutyInheritanceAlert(personIndex, fromPersonnelId) {
+  const person = people[personIndex];
+  if (!person) return;
+  const toPid = resolvePersonnelId(person);
+  if (!toPid || !fromPersonnelId) return;
+  const alert = dutyInheritanceAlerts.get(dutyInheritanceAlertKey(toPid, fromPersonnelId));
+  if (!alert) return;
+  alert.confirmed = true;
+  refreshPersonTimelineOverlays(document.querySelector(`.timeline[data-original-index="${personIndex}"]`), personIndex);
+}
+function filterDutyOrphansExcludedByInheritance(orphans, inheritances) {
+  const inheritedFromPids = new Set((inheritances || []).map(a => a.fromPersonnelId));
+  return (orphans || []).filter(o => !inheritedFromPids.has(o.personnelId));
+}
+function clearPersonTimelineAlertDom(timeline) {
+  const row = timeline?.closest('.row');
+  if (row) {
+    row.classList.remove('has-timeline-alert');
+    row.querySelectorAll('.row-timeline-alert-hint, .row-timeline-alert-tooltips').forEach(el => el.remove());
+  }
+  timeline?.classList.remove('has-timeline-alert');
+}
+function buildTimelineAlertTooltipEl(b) {
   const tip = document.createElement('div');
-  tip.className = 'timeline-leave-duty-tooltip';
-  tip.textContent = '請假/休假仍有 duty，請移除';
-  tip.hidden = true;
-  const firstBlock = timeline.querySelector('.block');
-  if (firstBlock) timeline.insertBefore(overlay, firstBlock);
-  else timeline.appendChild(overlay);
-  timeline.appendChild(tip);
-  timeline.classList.add('has-leave-duty-alert');
+  tip.className = 'timeline-alert-tooltip';
+  const line1 = document.createElement('div');
+  line1.className = 'timeline-alert-tip-line1';
+  line1.textContent = b.title;
+  tip.appendChild(line1);
+  if (b.kind !== 'leave') {
+    const line2 = document.createElement('div');
+    line2.className = 'timeline-alert-tip-line2';
+    const detail = document.createElement('span');
+    detail.className = 'timeline-alert-tip-detail';
+    detail.textContent = b.detail;
+    line2.appendChild(detail);
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'timeline-alert-confirm';
+    btn.dataset.alertKind = b.kind;
+    if (b.fromPid) btn.dataset.fromPid = b.fromPid;
+    btn.textContent = '確認';
+    line2.appendChild(btn);
+    tip.appendChild(line2);
+  }
+  return tip;
+}
+function hideAllTimelineAlertTooltips() {
+  document.querySelectorAll('.row-timeline-alert-tooltips.is-visible').forEach(el => {
+    el.classList.remove('is-visible');
+  });
+}
+function isPointerInTimelineAlertZone(row, clientX, clientY) {
+  if (!row?.classList.contains('has-timeline-alert')) return false;
+  const zones = [
+    row.querySelector('.row-timeline-alert-hint'),
+    row.querySelector('.timeline'),
+    row.querySelector('.row-timeline-alert-tooltips.is-visible')
+  ].filter(Boolean);
+  return zones.some(el => {
+    const r = el.getBoundingClientRect();
+    return clientX >= r.left && clientX <= r.right && clientY >= r.top && clientY <= r.bottom;
+  });
+}
+function resolveTimelineAlertHoverRow(e) {
+  if (e.target.closest('.block')) return null;
+  const fromDom = e.target.closest('.row-timeline-alert-tooltips, .timeline, .row-timeline-alert-hint')
+    ?.closest('.row.has-timeline-alert');
+  if (fromDom) return fromDom;
+  const rows = document.querySelectorAll('#rows .row.has-timeline-alert');
+  for (const row of rows) {
+    if (isPointerInTimelineAlertZone(row, e.clientX, e.clientY)) return row;
+  }
+  return null;
+}
+function showTimelineAlertTooltips(row) {
+  const tooltips = row.querySelector('.row-timeline-alert-tooltips');
+  if (!tooltips) return;
+  document.querySelectorAll('#rows .row-timeline-alert-tooltips.is-visible').forEach(el => {
+    if (!row.contains(el)) el.classList.remove('is-visible');
+  });
+  tooltips.classList.add('is-visible');
+}
+function refreshPersonTimelineOverlays(timeline, personIndex) {
+  if (!timeline) return;
+  const row = timeline.closest('.row');
+  if (!row) return;
+  clearPersonTimelineAlertDom(timeline);
+  const badges = [];
+  if (shouldShowLeaveRestDutyOverlay(personIndex)) {
+    badges.push({
+      kind: 'leave',
+      title: '請假/休假仍有 duty，請移除'
+    });
+  }
+  getDutyInheritanceAlertsForPersonIndex(personIndex).forEach(alert => {
+    badges.push({
+      kind: 'duty-inherit',
+      title: '人員異動待確認',
+      detail: `${alert.fromName} → ${alert.toName}`,
+      fromPid: alert.fromPersonnelId
+    });
+  });
+  const shiftAlert = getShiftChangeAlertForPersonIndex(personIndex);
+  if (shiftAlert) {
+    badges.push({
+      kind: 'shift-change',
+      title: '班別異動待確認',
+      detail: `${shiftAlert.oldShift} → ${shiftAlert.newShift}`
+    });
+  }
+  if (!badges.length) return;
+  const hint = document.createElement('div');
+  hint.className = 'row-timeline-alert-hint';
+  hint.setAttribute('aria-hidden', 'true');
+  const tooltips = document.createElement('div');
+  tooltips.className = 'row-timeline-alert-tooltips';
+  badges.forEach(b => tooltips.appendChild(buildTimelineAlertTooltipEl(b)));
+  row.appendChild(hint);
+  row.appendChild(tooltips);
+  row.classList.add('has-timeline-alert');
+  timeline.classList.add('has-timeline-alert');
 }
 function initLeaveDutyOverlayTooltip() {
   const rows = document.getElementById('rows');
-  if (!rows || rows.dataset.leaveDutyTipBound) return;
-  rows.dataset.leaveDutyTipBound = '1';
+  if (!rows || rows.dataset.timelineAlertBound) return;
+  rows.dataset.timelineAlertBound = '1';
+  let activeTimelineAlertRow = null;
   rows.addEventListener('mousemove', e => {
-    document.querySelectorAll('.timeline-leave-duty-tooltip').forEach(t => { t.hidden = true; });
-    const timeline = e.target.closest('.timeline.has-leave-duty-alert');
-    if (!timeline || e.target.closest('.block')) return;
-    const tip = timeline.querySelector('.timeline-leave-duty-tooltip');
-    if (!tip) return;
-    tip.hidden = false;
-    const rect = timeline.getBoundingClientRect();
-    tip.style.left = (e.clientX - rect.left) + 'px';
+    if (e.target.closest('.block')) {
+      activeTimelineAlertRow = null;
+      hideAllTimelineAlertTooltips();
+      return;
+    }
+    const row = resolveTimelineAlertHoverRow(e);
+    if (row) {
+      activeTimelineAlertRow = row;
+      showTimelineAlertTooltips(row);
+      return;
+    }
+    if (!activeTimelineAlertRow || !isPointerInTimelineAlertZone(activeTimelineAlertRow, e.clientX, e.clientY)) {
+      activeTimelineAlertRow = null;
+      hideAllTimelineAlertTooltips();
+    }
+  });
+  rows.addEventListener('mouseleave', e => {
+    if (e.target !== rows) return;
+    activeTimelineAlertRow = null;
+    hideAllTimelineAlertTooltips();
+  });
+  rows.addEventListener('click', e => {
+    const btn = e.target.closest('.timeline-alert-confirm');
+    if (!btn) return;
+    e.stopPropagation();
+    e.preventDefault();
+    const row = btn.closest('.row');
+    const timeline = row?.querySelector('.timeline');
+    const idx = Number(timeline?.dataset.originalIndex);
+    if (Number.isNaN(idx)) return;
+    const kind = btn.dataset.alertKind;
+    if (kind === 'shift-change') confirmShiftChangeAlert(idx);
+    else if (kind === 'duty-inherit') confirmDutyInheritanceAlert(idx, btn.dataset.fromPid);
+    activeTimelineAlertRow = null;
+    hideAllTimelineAlertTooltips();
   });
 }
 function getShiftKeyTimeBounds(shiftKey) {
@@ -5243,7 +5589,7 @@ function getShiftViewToolbarIconHtml(mode) {
 const TOOLBAR_TIP_TWO_LINES = {
   '匯入當日航班': ['匯入當日', '航班'],
   '匯入作業人員': ['匯入作業', '人員'],
-  '清空目前排班': ['清空目前', '排班'],
+  '清除資料': ['清除', '資料'],
   '航班時間調整': ['航班時間', '調整'],
   '收合航班時間調整': ['收合航班', '時間調整'],
   '今日加班': ['今日', '加班'],
@@ -5745,6 +6091,14 @@ function buildShiftSelectOptions(selected) {
     .filter(k => isShiftWorkKind(getShiftDef(k)?.kind))
     .map(k => `<option value="${k}" ${selected === k ? 'selected' : ''}>${k}</option>`)
     .join('');
+}
+function buildRollCallNextShiftSelectOptions(selected) {
+  const sel = String(selected || '').trim();
+  let html = buildShiftSelectOptions(sel);
+  if (sel && !html.includes(`value="${sel}"`)) {
+    html = `<option value="${escapeHtml(sel)}" selected>${escapeHtml(sel)}</option>${html}`;
+  }
+  return html;
 }
 function personMatchesShiftView(person) {
   return getShiftType(getShiftFilterKey(person)) === activeShiftView;
@@ -11235,13 +11589,152 @@ function bindRollCallManualMappingHandlers() {
     blurTimer = setTimeout(() => hideMenu(wrap), 150);
   });
 }
+function getRollCallImportMergedTodayPreview() {
+  if (!rollCallImportPreviewState) return null;
+  const ref = getScheduleReferenceDate();
+  const merged = mergeRollCallPreviewWithManualMappings(
+    rollCallImportPreviewState.todayRaw,
+    rollCallImportPreviewState.manualMappings,
+    ref
+  );
+  return enrichRollCallPreviewWithNextShift(merged, rollCallImportPreviewState.tomorrowRaw);
+}
+function buildPersonFromRollCallResolvedRow(row) {
+  const nextDayShift = row.nextShift ?? '休';
+  return normalizePerson({
+    personnelId: row.personnelId,
+    code: row.code,
+    name: row.code,
+    level: row.level || '',
+    shift: row.shift || '',
+    nextDayShift,
+    nextShift: nextDayShift,
+    adjustedShift: '',
+    radioNo: '',
+    ircsNo: '',
+    clockedOut: false
+  });
+}
+function remapSchedulePersonIndicesByPersonnelId(oldPeople, newPeople, sched) {
+  const newPidToIndex = new Map();
+  newPeople.forEach((p, idx) => {
+    const pid = resolvePersonnelId(p);
+    if (pid) newPidToIndex.set(pid, idx);
+  });
+  const orphanMap = new Map();
+  (sched || []).forEach(item => {
+    const oldPerson = oldPeople[item.personIndex];
+    if (!oldPerson) return;
+    const pid = resolvePersonnelId(oldPerson);
+    if (!pid) return;
+    if (newPidToIndex.has(pid)) {
+      item.personIndex = newPidToIndex.get(pid);
+      return;
+    }
+    if (!orphanMap.has(pid)) {
+      orphanMap.set(pid, {
+        personnelId: pid,
+        name: resolveFullName(oldPerson) || String(oldPerson.name || '').trim(),
+        code: String(oldPerson.code || oldPerson.name || '').trim(),
+        count: 0
+      });
+    }
+    orphanMap.get(pid).count += 1;
+  });
+  return {
+    orphans: [...orphanMap.values()].sort((a, b) => b.count - a.count)
+  };
+}
+function showRollCallImportApplyResult(stats, dutyOrphans, shiftChanges, dutyInheritances) {
+  const pendingShiftChanges = shiftChanges || [];
+  const pendingDutyInheritances = dutyInheritances || [];
+  const visibleDutyOrphans = filterDutyOrphansExcludedByInheritance(dutyOrphans, pendingDutyInheritances);
+  const details = [
+    { label: '套用成功人數', value: stats.appliedCount, emphasize: true },
+    { label: '寫入 people[] 人數', value: stats.peopleCount },
+    { label: '隔日班別人數', value: stats.nextShiftWithShift },
+    { label: '隔日休假人數', value: stats.nextShiftLeave },
+    { label: '隔日未出現人數', value: stats.nextShiftAbsent },
+    { label: 'duty 異常人數', value: visibleDutyOrphans.length },
+    { label: '人員異動人數', value: pendingDutyInheritances.length },
+    { label: '班別異動人數', value: pendingShiftChanges.length }
+  ];
+  let message = '已套用匯入作業人員結果。';
+  if (pendingDutyInheritances.length) {
+    message += '\n\n以下人員因重新匯入造成人員異動，請確認：';
+    pendingDutyInheritances.forEach(a => {
+      message += `\n· ${a.fromName || '—'} → ${a.toName || '—'}`;
+    });
+  }
+  if (pendingShiftChanges.length) {
+    message += '\n\n以下人員因重新匯入造成班別異動，請確認：';
+    pendingShiftChanges.forEach(a => {
+      message += `\n· ${a.name || '—'}：${a.oldShift} → ${a.newShift}`;
+    });
+  }
+  if (visibleDutyOrphans.length) {
+    message += '\n\n以下人員已有 duty，但不在新作業人員名單，請人工處理：';
+    visibleDutyOrphans.forEach(o => {
+      message += `\n· ${o.name || '—'}（${o.code || '—'}）— duty ${o.count} 筆`;
+    });
+  }
+  showAppNotice({
+    type: 'success',
+    title: '匯入完成',
+    message,
+    details,
+    confirmText: '確定',
+    showCancel: false
+  });
+}
+function applyRollCallStaffImport() {
+  const preview = getRollCallImportMergedTodayPreview();
+  if (!preview?.resolved?.length) {
+    appAlert('請先解析預覽，且至少有一位成功對應的人員。', '無法套用');
+    return;
+  }
+  const newPeople = preview.resolved.map(buildPersonFromRollCallResolvedRow);
+  const ns = preview.nextShiftStats || computeRollCallNextShiftStats(preview.resolved);
+  const isFirstImport = !schedule.length;
+  const oldPeople = people.slice();
+  let dutyOrphans = [];
+  if (!isFirstImport) {
+    if (rollCallStaffImportApplied) {
+      applyDutyInheritanceAlertsFromImport(computeDutyInheritanceAlerts(oldPeople, newPeople, schedule));
+      applyShiftChangeAlertsFromImport(oldPeople, newPeople);
+    }
+    dutyOrphans = remapSchedulePersonIndicesByPersonnelId(oldPeople, newPeople, schedule).orphans;
+  }
+  people = newPeople;
+  rollCallStaffImportApplied = true;
+  markUnsynced();
+  renderRows();
+  if (typeof syncAssignmentTableFromSchedule === 'function') syncAssignmentTableFromSchedule();
+  const pendingShiftChanges = getPendingShiftChangeAlerts();
+  const pendingDutyInheritances = getPendingDutyInheritanceAlerts();
+  const visibleDutyOrphans = filterDutyOrphansExcludedByInheritance(dutyOrphans, pendingDutyInheritances);
+  showRollCallImportApplyResult({
+    appliedCount: newPeople.length,
+    peopleCount: people.length,
+    nextShiftWithShift: ns.withShift,
+    nextShiftLeave: ns.leave,
+    nextShiftAbsent: ns.absent,
+    dutyOrphanPeople: visibleDutyOrphans.length
+  }, dutyOrphans, pendingShiftChanges, pendingDutyInheritances);
+  rollCallImportPreviewState = null;
+  setRollCallStaffImportOpen(false);
+}
 function refreshRollCallImportPreview() {
   const preview = document.getElementById('rollCallStaffImportPreview');
   if (!preview || !rollCallImportPreviewState) return;
-  const { todayRaw, tomorrowRaw, manualMappings } = rollCallImportPreviewState;
+  const { tomorrowRaw, manualMappings } = rollCallImportPreviewState;
   const ref = getScheduleReferenceDate();
   const resolvedExpanded = preview.querySelector('#rollCallResolvedToggle')?.dataset.collapsed === '0';
-  const merged = mergeRollCallPreviewWithManualMappings(todayRaw, manualMappings, ref);
+  const merged = mergeRollCallPreviewWithManualMappings(
+    rollCallImportPreviewState.todayRaw,
+    manualMappings,
+    ref
+  );
   const enriched = enrichRollCallPreviewWithNextShift(merged, tomorrowRaw);
   preview.innerHTML = renderRollCallImportPreviewHtml(enriched, tomorrowRaw);
   preview.hidden = false;
@@ -11254,6 +11747,99 @@ function refreshRollCallImportPreview() {
       btn.textContent = '收合';
     }
   }
+  updateRollCallImportBtnState();
+}
+function setClearDataModalOpen(open) {
+  const modal = document.getElementById('clearDataModal');
+  if (!modal) return;
+  modal.hidden = !open;
+  if (open) resetClearDataModalCheckboxes();
+}
+function resetClearDataModalCheckboxes() {
+  ['clearDataDuty', 'clearDataPeople', 'clearDataFlights'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.checked = false;
+  });
+  const all = document.getElementById('clearDataSelectAll');
+  if (all) all.checked = false;
+  updateClearDataConfirmBtnState();
+}
+function updateClearDataConfirmBtnState() {
+  const btn = document.getElementById('clearDataConfirm');
+  const any = ['clearDataDuty', 'clearDataPeople', 'clearDataFlights'].some(id => document.getElementById(id)?.checked);
+  if (btn) btn.disabled = !any;
+}
+function syncClearDataSelectAllCheckbox() {
+  const all = document.getElementById('clearDataSelectAll');
+  if (!all) return;
+  const ids = ['clearDataDuty', 'clearDataPeople', 'clearDataFlights'];
+  all.checked = ids.every(id => document.getElementById(id)?.checked);
+}
+function clearScheduleDutyData() {
+  schedule = [];
+  selectedBlockId = null;
+  blockSeq = 1;
+  overtimeHourOverrides = {};
+  dicOvertimeApprovals = {};
+}
+function clearPeopleData() {
+  people = [];
+  shiftChangeAlerts.clear();
+  dutyInheritanceAlerts.clear();
+  rollCallStaffImportApplied = false;
+}
+function clearFlightData() {
+  flightDefs = [];
+  flightsImported = false;
+  normalizeFlightDefsInPlace();
+}
+function applyClearDataFromModal() {
+  const duty = !!document.getElementById('clearDataDuty')?.checked;
+  const peopleClear = !!document.getElementById('clearDataPeople')?.checked;
+  const flights = !!document.getElementById('clearDataFlights')?.checked;
+  if (!duty && !peopleClear && !flights) return;
+  pushUndoSnapshot();
+  if (duty) clearScheduleDutyData();
+  if (peopleClear) clearPeopleData();
+  if (flights) clearFlightData();
+  if (duty || peopleClear) {
+    rebuildTemplates();
+    renderPalette();
+  }
+  if (flights) {
+    renderAssignmentTableFromFlightDefs();
+    renderTimeHeader();
+    renderFlightEditor();
+  }
+  markUnsynced();
+  renderRows();
+  if (typeof syncAssignmentTableFromSchedule === 'function') syncAssignmentTableFromSchedule();
+  renderOvertimePanel();
+  setClearDataModalOpen(false);
+}
+function initClearDataModal() {
+  const modal = document.getElementById('clearDataModal');
+  if (!modal || modal.dataset.bound === '1') return;
+  modal.dataset.bound = '1';
+  const itemIds = ['clearDataDuty', 'clearDataPeople', 'clearDataFlights'];
+  itemIds.forEach(id => {
+    document.getElementById(id)?.addEventListener('change', () => {
+      syncClearDataSelectAllCheckbox();
+      updateClearDataConfirmBtnState();
+    });
+  });
+  document.getElementById('clearDataSelectAll')?.addEventListener('change', e => {
+    const checked = e.target.checked;
+    itemIds.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.checked = checked;
+    });
+    updateClearDataConfirmBtnState();
+  });
+  document.getElementById('clearDataCancel')?.addEventListener('click', () => setClearDataModalOpen(false));
+  document.getElementById('clearDataModalClose')?.addEventListener('click', () => setClearDataModalOpen(false));
+  modal.querySelector('[data-clear-data-dismiss]')?.addEventListener('click', () => setClearDataModalOpen(false));
+  document.getElementById('clearDataConfirm')?.addEventListener('click', () => applyClearDataFromModal());
 }
 function isImportStaffBtnOnStaffErpMount() {
   const mount = document.getElementById('erpStaffMount');
@@ -11273,12 +11859,19 @@ function setRollCallStaffImportOpen(open) {
     }
   }
 }
-function updateRollCallImportParseBtnState() {
-  const btn = document.getElementById('rollCallStaffImportParse');
+function updateRollCallImportBtnState() {
+  const parseBtn = document.getElementById('rollCallStaffImportParse');
+  const applyBtn = document.getElementById('rollCallStaffImportApply');
   const today = document.getElementById('rollCallTodayFile');
   const tomorrow = document.getElementById('rollCallTomorrowFile');
-  if (!btn) return;
-  btn.disabled = !(today?.files?.[0] && tomorrow?.files?.[0]);
+  if (parseBtn) parseBtn.disabled = !(today?.files?.[0] && tomorrow?.files?.[0]);
+  if (applyBtn) {
+    const merged = getRollCallImportMergedTodayPreview();
+    applyBtn.disabled = !(merged?.resolved?.length);
+  }
+}
+function updateRollCallImportParseBtnState() {
+  updateRollCallImportBtnState();
 }
 function openRollCallStaffImportModal() {
   const today = document.getElementById('rollCallTodayFile');
@@ -11323,6 +11916,7 @@ async function runRollCallStaffImportPreview() {
   refreshRollCallImportPreview();
   bindRollCallPreviewToggle();
   bindRollCallManualMappingHandlers();
+  updateRollCallImportBtnState();
 }
 function initRollCallStaffImportModal() {
   const modal = document.getElementById('rollCallStaffImportModal');
@@ -11331,9 +11925,10 @@ function initRollCallStaffImportModal() {
   document.getElementById('rollCallStaffImportClose')?.addEventListener('click', () => setRollCallStaffImportOpen(false));
   document.getElementById('rollCallStaffImportCancel')?.addEventListener('click', () => setRollCallStaffImportOpen(false));
   modal.querySelector('[data-rollcall-import-dismiss]')?.addEventListener('click', () => setRollCallStaffImportOpen(false));
-  document.getElementById('rollCallTodayFile')?.addEventListener('change', updateRollCallImportParseBtnState);
-  document.getElementById('rollCallTomorrowFile')?.addEventListener('change', updateRollCallImportParseBtnState);
+  document.getElementById('rollCallTodayFile')?.addEventListener('change', updateRollCallImportBtnState);
+  document.getElementById('rollCallTomorrowFile')?.addEventListener('change', updateRollCallImportBtnState);
   document.getElementById('rollCallStaffImportParse')?.addEventListener('click', () => runRollCallStaffImportPreview());
+  document.getElementById('rollCallStaffImportApply')?.addEventListener('click', () => applyRollCallStaffImport());
 }
 
 function roleShort(role) {
@@ -12770,7 +13365,7 @@ function renderRows() {
     if (shiftType) left.classList.add(`shift-${shiftType}`);
     if (rollCallMode && radioNo && !clockedOut) left.classList.add('on-duty-by-radio');
     if (clockedOut) row.classList.add('clocked-out');
-    const nextShiftOptions = buildShiftSelectOptions(nextDayShift);
+    const nextShiftOptions = buildRollCallNextShiftSelectOptions(nextDayShift);
     if (rollCallMode) {
       left.classList.add('rollcall-grid');
       left.innerHTML = buildRollCallRowHtml({
@@ -12822,7 +13417,7 @@ function renderRows() {
         syncAdjustedShiftInputUi(adjustedShiftInput, value);
         refreshShiftLabelEl(left, shift, value);
         refreshRollCallShiftBand(left, rowInfo.originalIndex);
-        refreshLeaveRestDutyOverlay(left.closest('.row')?.querySelector('.timeline'), rowInfo.originalIndex);
+        refreshPersonTimelineOverlays(left.closest('.row')?.querySelector('.timeline'), rowInfo.originalIndex);
         refreshRestStatusDisplay(left, rowInfo.originalIndex);
         markUnsynced();
       };
@@ -12937,7 +13532,6 @@ function renderRows() {
 
     const personShift = getBandShiftKey(people[rowInfo.originalIndex]);
     appendShiftBandToTimeline(timeline, personShift);
-    refreshLeaveRestDutyOverlay(timeline, rowInfo.originalIndex);
     const items = schedule.filter(s => s.personIndex === rowInfo.originalIndex);
     items.forEach(item => {
       const el = createBlockEl(item, searchActive);
@@ -12946,6 +13540,7 @@ function renderRows() {
 
     row.appendChild(left);
     row.appendChild(timeline);
+    refreshPersonTimelineOverlays(timeline, rowInfo.originalIndex);
     rows.appendChild(row);
   });
   document.querySelectorAll('.timeline').forEach(t => t.addEventListener('click', () => selectBlock(null)));
@@ -13426,15 +14021,7 @@ document.getElementById('restoreLocalBackupInput')?.addEventListener('change', a
 });
 
 document.getElementById('undoBtn')?.addEventListener('click', () => undoLastChange());
-document.getElementById('resetBtn').addEventListener('click', async () => {
-  const ok = await appConfirm('要清空目前排班嗎？', { title: '清空排班', confirmText: '確定清空' });
-  if (!ok) return;
-  pushUndoSnapshot();
-  schedule = [];
-  selectedBlockId = null;
-  markUnsynced();
-  renderPalette(); renderRows();
-});
+document.getElementById('resetBtn').addEventListener('click', () => setClearDataModalOpen(true));
 document.getElementById('toggleOvertimeBtn')?.addEventListener('click', toggleOvertimePanel);
 document.getElementById('toggleOvertimeToolbarBtn')?.addEventListener('click', toggleOvertimePanel);
 document.getElementById('exportOvertimeBtn').addEventListener('click', exportOvertimeExcel);
@@ -13539,6 +14126,7 @@ syncRollCallBoardClass();
 updateRollCallButtonLabel();
 updateNameColHeader();
 initLeaveDutyOverlayTooltip();
+initClearDataModal();
 initRollCallStaffImportModal();
 renderRows();
 renderOvertimePanel();
