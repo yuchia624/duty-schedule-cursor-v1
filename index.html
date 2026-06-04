@@ -915,7 +915,7 @@
     flex:1 1 auto; min-width:0; width:0; max-width:56px; padding:2px 4px;
     border:1px solid #d1d5db; border-radius:6px; font-size:11px; background:#fff;
   }
-  .adjusted-shift-select, .next-shift-select {
+  .adjusted-shift-select, .adjusted-shift-input, .next-shift-select {
     width:48px; padding:2px 4px; border:1px solid #d1d5db; border-radius:8px; font-size:11px; background:#fff;
   }
   .person-rollcall-check {
@@ -1147,6 +1147,7 @@
   .rollcall-grid .rc-col .person-seq,
   .rollcall-grid .rc-col .person-shift-label,
   .rollcall-grid .rc-col .adjusted-shift-select,
+  .rollcall-grid .rc-col .adjusted-shift-input,
   .rollcall-grid .rc-col .next-shift-select,
   .rollcall-grid .rc-col .person-radio-input,
   .rollcall-grid .rc-col .person-ircs-input {
@@ -1174,10 +1175,22 @@
   }
   .rollcall-grid .rc-col .rest-cell { display:block; width:100%; min-height:1px; }
   .rollcall-grid .rc-col .adjusted-shift-select,
+  .rollcall-grid .rc-col .adjusted-shift-input,
   .rollcall-grid .rc-col .next-shift-select {
-    width:100%; min-width:0; height:28px; padding:2px 6px; box-sizing:border-box;
+    width:100%; min-width:0; max-width:100%; height:28px; padding:2px 6px; box-sizing:border-box;
     border:1px solid #d1d5db; border-radius:8px; font-size:11px; background:#fff;
   }
+  .rollcall-grid .rc-col.rc-adj .adjusted-shift-input {
+    width:100%; min-width:0; max-width:100%;
+  }
+  .adjusted-shift-input.is-invalid,
+  .rollcall-grid .rc-col .adjusted-shift-input.is-invalid {
+    border-color:#f59e0b; background:#fffbeb;
+  }
+  .adjusted-shift-input-hint {
+    display:block; font-size:9px; font-weight:700; color:#b45309; line-height:1.2; margin-top:1px;
+  }
+  .adjusted-shift-input-hint[hidden] { display:none; }
   .rollcall-grid .rc-col .person-radio-input,
   .rollcall-grid .rc-col .person-ircs-input {
     width:100%; min-width:0; height:28px; padding:2px 6px; box-sizing:border-box;
@@ -4787,6 +4800,29 @@ const SHIFT_LEAVE_REQUEST_CODES = [
   "家庭照顧假",
   "補休假"
 ];
+function getAdjustedShiftInputStatus(adjustedShift) {
+  const v = String(adjustedShift || '').trim();
+  if (!v) return 'empty';
+  if (SHIFT_DEFS[v]) return 'shift';
+  if (SHIFT_LEAVE_REQUEST_CODES.includes(v)) return 'leave';
+  return 'invalid';
+}
+function getBandShiftKey(person) {
+  const shift = String(person?.shift || '').trim();
+  const adjusted = String(person?.adjustedShift || '').trim();
+  const status = getAdjustedShiftInputStatus(adjusted);
+  if (status === 'shift') return adjusted;
+  if (status === 'leave') return '';
+  return shift;
+}
+function syncAdjustedShiftInputUi(input, value) {
+  if (!input) return;
+  const invalid = getAdjustedShiftInputStatus(value) === 'invalid';
+  input.classList.toggle('is-invalid', invalid);
+  input.title = invalid ? '無效班別/假別' : '調班班別';
+  const hint = input.parentElement?.querySelector('.adjusted-shift-input-hint');
+  if (hint) hint.hidden = !invalid;
+}
 function getShiftType(shiftKey) {
   const def = SHIFT_DEFS[shiftKey];
   if (!def) return '';
@@ -4968,8 +5004,9 @@ function buildNormalRowHtml(opts) {
 }
 function buildRollCallRowHtml(opts) {
   const blankOpt = '<option value=""></option>';
+  const adjInvalid = getAdjustedShiftInputStatus(opts.adjustedShift) === 'invalid';
   return buildPersonRowCoreHtml(opts).concat([
-    `<div class="rc-col rc-adj"><select class="adjusted-shift-select" title="調班班別" aria-label="調班班別">${blankOpt}${opts.adjustedShiftOptions}</select></div>`,
+    `<div class="rc-col rc-adj"><input type="text" class="adjusted-shift-input${adjInvalid ? ' is-invalid' : ''}" title="${adjInvalid ? '無效班別/假別' : '調班班別'}" aria-label="調班班別" autocomplete="off" value="${escapeHtml(opts.adjustedShift || '')}" /><span class="adjusted-shift-input-hint"${adjInvalid ? '' : ' hidden'}>無效班別/假別</span></div>`,
     `<div class="rc-col rc-radio"><input type="text" class="person-radio-input" title="對講機號碼" aria-label="對講機號碼" inputmode="numeric" autocomplete="off" value="${escapeHtml(opts.radioNo)}" /></div>`,
     `<div class="rc-col rc-ircs"><input type="text" class="person-ircs-input" title="IRCS號碼" aria-label="IRCS號碼" inputmode="numeric" autocomplete="off" value="${escapeHtml(opts.ircsNo)}" /></div>`,
     `<div class="rc-col rc-next"><select class="next-shift-select" title="隔日班別" aria-label="隔日班別">${blankOpt}${opts.nextShiftOptions}</select></div>`,
@@ -4991,10 +5028,16 @@ function syncRollCallBoardClass() {
   document.getElementById('scheduleBoard')?.classList.toggle('roll-call-mode', rollCallMode);
 }
 function getEffectiveShift(person) {
-  return person.adjustedShift || person.shift || '';
+  const shift = String(person?.shift || '').trim();
+  const adjusted = String(person?.adjustedShift || '').trim();
+  const status = getAdjustedShiftInputStatus(adjusted);
+  if (status === 'empty' || status === 'invalid') return shift;
+  return adjusted;
 }
 function getShiftFilterKey(person) {
-  if (rollCallMode) return person.shift || '';
+  const shift = String(person?.shift || '').trim();
+  if (rollCallMode) return shift;
+  if (getAdjustedShiftInputStatus(person?.adjustedShift) === 'leave') return shift;
   return getEffectiveShift(person);
 }
 function getPersonShiftBounds(person) {
@@ -5286,8 +5329,12 @@ function exportOvertimeExcel() {
 }
 
 function renderShiftLabel(shift, adjustedShift) {
-  const hasAdjustment = !!(adjustedShift && adjustedShift !== shift);
-  const display = rollCallMode ? (shift || '—') : ((adjustedShift || shift) || '—');
+  const status = getAdjustedShiftInputStatus(adjustedShift);
+  const hasAdjustment = (status === 'shift' || status === 'leave')
+    && String(adjustedShift || '').trim() !== String(shift || '').trim();
+  const display = rollCallMode
+    ? (shift || '—')
+    : (((status === 'empty' || status === 'invalid') ? shift : adjustedShift) || '—');
   const highlight = rollCallMode && hasAdjustment;
   const title = rollCallMode
     ? (hasAdjustment ? `原班別 ${shift}，調班 ${adjustedShift}` : '班別')
@@ -11226,6 +11273,30 @@ function refreshShiftLabelEl(cell, shift, adjustedShift) {
   wrap.innerHTML = renderShiftLabel(shift, adjustedShift);
   el.replaceWith(wrap.firstElementChild);
 }
+function refreshRollCallShiftBand(cell, personIndex) {
+  if (!rollCallMode) return;
+  const row = cell.closest('.row');
+  const timeline = row?.querySelector('.timeline');
+  if (!timeline) return;
+  timeline.querySelectorAll('.shift-band').forEach(b => b.remove());
+  const person = people[personIndex];
+  if (!person) return;
+  const personShift = getBandShiftKey(person);
+  if (!personShift || !SHIFT_DEFS[personShift]) return;
+  const s1 = tStrToMin(SHIFT_DEFS[personShift][0]);
+  let s2 = tStrToMin(SHIFT_DEFS[personShift][1]);
+  let startMin = s1;
+  let endMin = s2;
+  if (endMin !== null && startMin !== null && endMin <= startMin) endMin += 24 * 60;
+  const visibleStart = Math.max(startMin, getViewStartMin());
+  const visibleEnd = Math.min(endMin, getViewEndMin());
+  if (visibleEnd <= visibleStart) return;
+  const band = document.createElement('div');
+  band.className = 'shift-band';
+  band.style.left = timeToLeft(visibleStart) + 'px';
+  band.style.width = durationToWidth(visibleStart, visibleEnd) + 'px';
+  timeline.appendChild(band);
+}
 function saveLocal() {
   const k = dayStorageKeys(selectedDate);
   localStorage.setItem(k.schedule, JSON.stringify(schedule));
@@ -11719,7 +11790,6 @@ function renderRows() {
     if (shiftType) left.classList.add(`shift-${shiftType}`);
     if (rollCallMode && radioNo && !clockedOut) left.classList.add('on-duty-by-radio');
     if (clockedOut) row.classList.add('clocked-out');
-    const adjustedShiftOptions = buildShiftSelectOptions(adjustedShift);
     const nextShiftOptions = buildShiftSelectOptions(nextDayShift);
     if (rollCallMode) {
       left.classList.add('rollcall-grid');
@@ -11730,7 +11800,6 @@ function renderRows() {
         shift,
         adjustedShift,
         hasRest: hasRestForPerson(rowInfo.originalIndex),
-        adjustedShiftOptions,
         radioNo,
         ircsNo,
         nextShiftOptions,
@@ -11766,12 +11835,17 @@ function renderRows() {
       reorderPeople(fromIdx, toIdx); clearHoverStates();
     });
     if (rollCallMode) {
-      const adjustedShiftSelect = left.querySelector('.adjusted-shift-select');
-      adjustedShiftSelect?.addEventListener('change', e => {
-        people[rowInfo.originalIndex].adjustedShift = e.target.value;
-        refreshShiftLabelEl(left, shift, e.target.value);
+      const adjustedShiftInput = left.querySelector('.adjusted-shift-input');
+      const syncAdjustedShift = value => {
+        people[rowInfo.originalIndex].adjustedShift = value;
+        syncAdjustedShiftInputUi(adjustedShiftInput, value);
+        refreshShiftLabelEl(left, shift, value);
+        refreshRollCallShiftBand(left, rowInfo.originalIndex);
         markUnsynced();
-      });
+      };
+      syncAdjustedShiftInputUi(adjustedShiftInput, adjustedShift);
+      adjustedShiftInput?.addEventListener('input', e => syncAdjustedShift(e.target.value));
+      adjustedShiftInput?.addEventListener('change', e => syncAdjustedShift(e.target.value));
       const radioInput = left.querySelector('.person-radio-input');
       radioInput?.addEventListener('input', e => {
         people[rowInfo.originalIndex].radioNo = e.target.value;
@@ -11864,7 +11938,7 @@ function renderRows() {
       endPaletteDragSession();
     });
 
-    const personShift = getEffectiveShift(people[rowInfo.originalIndex]);
+    const personShift = getBandShiftKey(people[rowInfo.originalIndex]);
     if (personShift && SHIFT_DEFS[personShift]) {
       const s1 = tStrToMin(SHIFT_DEFS[personShift][0]);
       let s2 = tStrToMin(SHIFT_DEFS[personShift][1]);
