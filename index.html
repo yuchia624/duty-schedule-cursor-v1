@@ -3799,6 +3799,108 @@
   }
   .erp-page-my-duty .workbench-panel { max-width: none; margin: 0; padding: 0; }
 
+  .rollcall-import-dialog {
+    position: fixed; inset: 0; z-index: 1995;
+    display: flex; align-items: center; justify-content: center;
+    padding: 20px 16px;
+  }
+  .rollcall-import-dialog[hidden] { display: none !important; }
+  .rollcall-import-backdrop { position: absolute; inset: 0; background: rgba(15, 23, 42, 0.45); }
+  .rollcall-import-panel {
+    position: relative; width: min(640px, 100%); max-height: min(90vh, 820px);
+    overflow: auto; background: #fff; border-radius: 14px;
+    box-shadow: 0 24px 60px rgba(15, 23, 42, 0.22); padding: 18px 20px 20px;
+  }
+  .rollcall-import-close {
+    position: absolute; top: 10px; right: 10px; width: 32px; height: 32px;
+    border: 0; background: transparent; color: #94a3b8; font-size: 22px; cursor: pointer; border-radius: 8px;
+  }
+  .rollcall-import-close:hover { background: #f1f5f9; color: #0f172a; }
+  .rollcall-import-title { margin: 0 32px 6px 0; font-size: 17px; font-weight: 800; color: #0f172a; }
+  .rollcall-import-hint { margin: 0 0 14px; font-size: 12px; color: #64748b; line-height: 1.5; }
+  .rollcall-import-files { display: grid; gap: 10px; margin-bottom: 12px; }
+  .rollcall-import-file { display: grid; gap: 4px; font-size: 12px; font-weight: 700; color: #334155; }
+  .rollcall-import-file input { font-size: 12px; font-weight: 400; }
+  .rollcall-import-actions { display: flex; justify-content: flex-end; gap: 8px; margin-bottom: 8px; }
+  .rollcall-import-btn {
+    border-radius: 8px; padding: 7px 14px; font-size: 13px; font-weight: 700; cursor: pointer;
+    border: 1px solid #cbd5e1; background: #fff; color: #334155;
+  }
+  .rollcall-import-btn--primary { background: #2563eb; border-color: #2563eb; color: #fff; }
+  .rollcall-import-btn--primary:disabled { opacity: 0.45; cursor: not-allowed; }
+  .rollcall-import-preview {
+    margin-top: 10px; padding: 12px; border-radius: 10px; background: #f8fafc;
+    border: 1px solid #e2e8f0; font-size: 12px; line-height: 1.55; color: #334155;
+  }
+  .rollcall-import-preview[hidden] { display: none !important; }
+  .rollcall-import-preview h4 { margin: 12px 0 6px; font-size: 12px; font-weight: 800; color: #0f172a; }
+  .rollcall-import-preview h4:first-child { margin-top: 0; }
+  .rollcall-import-preview ul { margin: 0; padding-left: 18px; }
+  .rollcall-import-preview .rc-sample-table { width: 100%; border-collapse: collapse; margin-top: 6px; }
+  .rollcall-import-preview .rc-sample-table th,
+  .rollcall-import-preview .rc-sample-table td {
+    border: 1px solid #e2e8f0; padding: 4px 8px; text-align: left; font-size: 11px;
+  }
+  .rollcall-import-preview .rc-warn { color: #b45309; }
+  .rollcall-import-preview .rc-err { color: #dc2626; }
+  .rollcall-import-preview .rc-date-mismatch {
+    margin-bottom: 12px; padding: 10px 12px; border-radius: 8px;
+    background: #fef3c7; border: 1px solid #fcd34d; color: #92400e;
+    font-size: 12px; font-weight: 700; line-height: 1.5;
+  }
+  .rollcall-import-preview .rc-hint-list {
+    margin: 0 0 8px; padding-left: 18px; color: #64748b; font-size: 11px;
+  }
+  .rollcall-import-preview .rc-resolved-head {
+    display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap;
+  }
+  .rollcall-import-preview .rc-resolved-wrap {
+    max-height: 360px; overflow: auto; margin-top: 6px;
+  }
+  .rollcall-import-preview .rc-resolved-wrap.is-collapsed .rc-row-extra { display: none; }
+  .rollcall-import-preview .rc-toggle-btn {
+    border: 1px solid #cbd5e1; background: #fff; border-radius: 6px;
+    padding: 3px 10px; font-size: 11px; font-weight: 700; color: #334155; cursor: pointer;
+  }
+  .rollcall-import-preview .rc-unmatched-table {
+    width: 100%; border-collapse: collapse; margin: 8px 0 12px;
+  }
+  .rollcall-import-preview .rc-unmatched-table th,
+  .rollcall-import-preview .rc-unmatched-table td {
+    border: 1px solid #e2e8f0; padding: 6px 8px; text-align: left; font-size: 11px; vertical-align: top;
+  }
+  .rollcall-import-preview .rc-manual-map { position: relative; min-width: 220px; }
+  .rollcall-import-preview .rc-manual-map-input {
+    width: 100%; box-sizing: border-box; border: 1px solid #cbd5e1; border-radius: 6px;
+    padding: 4px 8px; font-size: 11px;
+  }
+  .rollcall-import-preview .rc-manual-map-input.is-mapped {
+    border-color: #86efac; background: #f0fdf4;
+  }
+  .rollcall-import-preview .rc-manual-map-menu {
+    position: absolute; left: 0; right: 0; top: calc(100% + 2px); z-index: 20;
+    max-height: 180px; overflow: auto; background: #fff; border: 1px solid #cbd5e1;
+    border-radius: 8px; box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
+  }
+  .rollcall-import-preview .rc-manual-map-menu[hidden] { display: none !important; }
+  .rollcall-import-preview .rc-manual-map-option {
+    display: block; width: 100%; border: 0; background: transparent; text-align: left;
+    padding: 6px 8px; font-size: 11px; cursor: pointer;
+  }
+  .rollcall-import-preview .rc-manual-map-option:hover,
+  .rollcall-import-preview .rc-manual-map-option.is-active {
+    background: #eff6ff;
+  }
+  .rollcall-import-preview .rc-manual-map-clear {
+    margin-top: 4px; border: 0; background: transparent; color: #64748b;
+    font-size: 10px; cursor: pointer; padding: 0;
+  }
+  .rollcall-import-preview .rc-manual-map-clear:hover { color: #dc2626; }
+  .rollcall-import-preview .rc-manual-tag {
+    display: inline-block; margin-left: 4px; padding: 0 4px; border-radius: 4px;
+    background: #dbeafe; color: #1d4ed8; font-size: 10px; font-weight: 700;
+  }
+
   .app-notice-dialog {
     position: fixed; inset: 0; z-index: 2000;
     display: flex; align-items: center; justify-content: center;
@@ -4258,13 +4360,13 @@
 
     <div class="toolbar" id="scheduleToolbar">
       <div class="toolbar-schedule-actions" id="scheduleToolbarActions">
-        <button type="button" class="toolbar-icon-btn" id="importExcelBtn" aria-label="匯入當日航班/人員">
+        <button type="button" class="toolbar-icon-btn" id="importExcelBtn" aria-label="匯入當日航班">
           <span class="toolbar-icon-btn__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M8 7l4-4 4 4"/><path d="M5 21h14"/></svg></span>
-          <span class="toolbar-icon-btn__tip">匯入當日航班/人員</span>
+          <span class="toolbar-icon-btn__tip">匯入當日航班</span>
         </button>
-        <button type="button" class="toolbar-icon-btn" id="importStaffDbBtn" aria-label="代號/戰力維護">
+        <button type="button" class="toolbar-icon-btn" id="importStaffDbBtn" aria-label="匯入作業人員">
           <span class="toolbar-icon-btn__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v11"/><path d="M8 10l4 4 4-4"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg></span>
-          <span class="toolbar-icon-btn__tip">代號/戰力維護</span>
+          <span class="toolbar-icon-btn__tip">匯入作業人員</span>
         </button>
         <button type="button" class="toolbar-icon-btn" id="resetBtn" aria-label="清空目前排班">
           <span class="toolbar-icon-btn__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M6 6l1.2 14h9.6L18 6"/></svg></span>
@@ -4778,6 +4880,30 @@
   </div>
 </div>
 
+<div id="rollCallStaffImportModal" class="rollcall-import-dialog" hidden>
+  <div class="rollcall-import-backdrop" data-rollcall-import-dismiss="1"></div>
+  <div class="rollcall-import-panel" role="dialog" aria-modal="true" aria-labelledby="rollCallStaffImportTitle">
+    <button type="button" class="rollcall-import-close" id="rollCallStaffImportClose" aria-label="關閉">×</button>
+    <h3 class="rollcall-import-title" id="rollCallStaffImportTitle">匯入作業人員（預覽）</h3>
+    <p class="rollcall-import-hint">請選擇當日與隔日點名表。本階段僅解析預覽，不會寫入排班資料。</p>
+    <div class="rollcall-import-files">
+      <label class="rollcall-import-file">
+        <span>當日點名表</span>
+        <input type="file" id="rollCallTodayFile" accept=".xlsx,.xls" />
+      </label>
+      <label class="rollcall-import-file">
+        <span>隔日點名表</span>
+        <input type="file" id="rollCallTomorrowFile" accept=".xlsx,.xls" />
+      </label>
+    </div>
+    <div class="rollcall-import-actions">
+      <button type="button" class="rollcall-import-btn rollcall-import-btn--ghost" id="rollCallStaffImportCancel">關閉</button>
+      <button type="button" class="rollcall-import-btn rollcall-import-btn--primary" id="rollCallStaffImportParse" disabled>解析預覽</button>
+    </div>
+    <div class="rollcall-import-preview" id="rollCallStaffImportPreview" hidden></div>
+  </div>
+</div>
+
 <div id="appNoticeDialog" class="app-notice-dialog is-warning" hidden>
   <div class="app-notice-backdrop" data-app-notice-dismiss="1"></div>
   <div class="app-notice-panel" role="alertdialog" aria-modal="true" aria-labelledby="appNoticeTitle" aria-describedby="appNoticeMessage">
@@ -5115,8 +5241,8 @@ function getShiftViewToolbarIconHtml(mode) {
   return mode === 'early' ? SHIFT_VIEW_SUN_ICON : SHIFT_VIEW_MOON_ICON;
 }
 const TOOLBAR_TIP_TWO_LINES = {
-  '匯入當日航班/人員': ['匯入當日', '航班/人員'],
-  '代號/戰力維護': ['代號/戰力', '維護'],
+  '匯入當日航班': ['匯入當日', '航班'],
+  '匯入作業人員': ['匯入作業', '人員'],
   '清空目前排班': ['清空目前', '排班'],
   '航班時間調整': ['航班時間', '調整'],
   '收合航班時間調整': ['收合航班', '時間調整'],
@@ -7935,7 +8061,8 @@ function setStaffEditorModalOpen(open) { setStaffDetailPaneOpen(open); }
 function styleStaffPageToolbar() {
   const btn = document.getElementById('importStaffDbBtn');
   const tip = btn?.querySelector('.toolbar-icon-btn__tip');
-  if (tip) tip.textContent = '匯入人員';
+  if (tip) tip.textContent = '匯入主檔';
+  if (btn) btn.setAttribute('aria-label', '匯入人員主檔');
 }
 function openStaffPersonnelEditor(personnelId, effectiveDate, options = {}) {
   erpStaffHistoryExpanded = false;
@@ -10600,6 +10727,23 @@ function renderAssignmentTableFromFlightDefs() {
   }
 }
 
+function rebuildAfterFlightImport(newFlightDefs) {
+  flightsImported = true;
+  flightDefs = newFlightDefs;
+  normalizeFlightDefsInPlace();
+  renderAssignmentTableFromFlightDefs();
+  schedule = [];
+  selectedBlockId = null;
+  blockSeq = 1;
+  rebuildTemplates();
+  markUnsynced();
+  renderTimeHeader();
+  renderFlightEditor();
+  renderPalette();
+  renderRows();
+  if (typeof syncAssignmentTableFromSchedule === 'function') syncAssignmentTableFromSchedule();
+}
+
 function rebuildAfterExcelImport(newFlightDefs, newPeople) {
   flightsImported = true;
   flightDefs = newFlightDefs;
@@ -10617,6 +10761,579 @@ function rebuildAfterExcelImport(newFlightDefs, newPeople) {
   renderPalette();
   renderRows();
   if (typeof syncAssignmentTableFromSchedule === 'function') syncAssignmentTableFromSchedule();
+}
+
+const ROLLCALL_SKIP_LABELS = new Set([
+  '時間', '人數', '人員', '人員清單', '班別', '班別時間', '班別明細',
+  '上班人員清單', '加班類型', '加班及休假明細', '課程/會議明細', '課程／會議明細',
+  '類型', '未加班', '休假人員', '差假', '點名表', '點名表(Roll Call)',
+]);
+
+function cleanRollCallCell(v) {
+  return String(v ?? '').replace(/\u3000/g, '').trim();
+}
+function normRollCallCell(v) {
+  return cleanRollCallCell(v).replace(/\s/g, '');
+}
+function isRollCallShiftCode(code) {
+  const c = cleanRollCallCell(code);
+  if (!c || c.length > 4 || ROLLCALL_SKIP_LABELS.has(c)) return false;
+  return /^[A-Za-z0-9]+$/.test(c);
+}
+function rollCallSheetCell(ws, r, c) {
+  const cell = ws[XLSX.utils.encode_cell({ r, c })];
+  if (!cell) return '';
+  return cell.w != null ? String(cell.w) : (cell.v != null ? String(cell.v) : '');
+}
+function findRollCallSectionRow(ws, range, label) {
+  const want = normRollCallCell(label);
+  for (let r = range.s.r; r <= range.e.r; r++) {
+    if (normRollCallCell(rollCallSheetCell(ws, r, 1)) === want) return r;
+  }
+  return -1;
+}
+function parseRollCallSheetDate(ws, range) {
+  let raw = '';
+  for (let r = range.s.r; r <= Math.min(range.s.r + 7, range.e.r); r++) {
+    for (let c = range.s.c; c <= range.e.c; c++) {
+      const v = rollCallSheetCell(ws, r, c);
+      if (v.includes('日期:')) raw = v;
+    }
+  }
+  const m = raw.match(/日期\s*:\s*(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+  if (!m) return { display: raw || '未找到日期', iso: '' };
+  const iso = `${m[3]}-${String(Number(m[1])).padStart(2, '0')}-${String(Number(m[2])).padStart(2, '0')}`;
+  return {
+    display: `${m[3]}/${String(Number(m[1])).padStart(2, '0')}/${String(Number(m[2])).padStart(2, '0')}`,
+    iso
+  };
+}
+function parseRollCallShiftDetailRows(ws, range, sectionRow) {
+  const rows = [];
+  if (sectionRow < 0) return rows;
+  for (let r = sectionRow + 1; r <= range.e.r; r++) {
+    const shift = cleanRollCallCell(rollCallSheetCell(ws, r, 1));
+    const timeRange = cleanRollCallCell(rollCallSheetCell(ws, r, 13));
+    if (!shift || !timeRange.includes('~')) {
+      if (rows.length && !shift && !cleanRollCallCell(rollCallSheetCell(ws, r, 5))) break;
+      continue;
+    }
+    if (!isRollCallShiftCode(shift)) continue;
+    const countRaw = cleanRollCallCell(rollCallSheetCell(ws, r, 3));
+    const count = parseInt(countRaw, 10);
+    const codeBlob = cleanRollCallCell(rollCallSheetCell(ws, r, 5));
+    rows.push({ shift, count, codeBlob, timeRange, rowNum: r + 1 });
+  }
+  return rows;
+}
+function splitRollCallSingleCharCodes(codeBlob, count) {
+  const blob = cleanRollCallCell(codeBlob);
+  const chars = Array.from(blob);
+  const issues = [];
+  if (!Number.isFinite(count) || count <= 0) {
+    issues.push('人數無效');
+    return { codes: [], issues };
+  }
+  if (chars.length !== count) {
+    issues.push(`人數 ${count} 與代號字數 ${chars.length} 不一致`);
+  }
+  const codes = chars.slice(0, count);
+  if (codes.length !== count) issues.push(`僅切出 ${codes.length} 個代號`);
+  return { codes, issues };
+}
+function findStaffByCodeAtDate(code, refDateISO) {
+  const codeKey = cleanRollCallCell(code);
+  const ref = isValidISODate(refDateISO) ? refDateISO : getScheduleReferenceDate();
+  if (!codeKey || !staffPersonnelRegistry?.people?.length) return null;
+  const dup = findDuplicateStaffCodeAtDate(codeKey, ref, '');
+  if (dup?.personnelId) {
+    const snap = getStaffSnapshotAtDate(dup.personnelId, ref);
+    if (snap) return { personnelId: dup.personnelId, snap };
+  }
+  for (const rec of staffPersonnelRegistry.people) {
+    const snap = getStaffSnapshotAtDate(rec.personnelId, ref);
+    if (!snap || cleanRollCallCell(snap.code) !== codeKey) continue;
+    return { personnelId: rec.personnelId, snap };
+  }
+  return null;
+}
+function explainUnmatchedRollCallCode(code, refDateISO) {
+  const codeKey = cleanRollCallCell(code);
+  const ref = isValidISODate(refDateISO) ? refDateISO : getScheduleReferenceDate();
+  const likely = [];
+  if (!codeKey || !staffPersonnelRegistry?.people?.length) return likely;
+  let codeExistsInRegistry = false;
+  let codeAtRefDate = false;
+  let occupiedAtRefDate = false;
+  for (const rec of staffPersonnelRegistry.people) {
+    const events = rec.events || [];
+    if (events.some(ev => cleanRollCallCell(ev.code) === codeKey)) codeExistsInRegistry = true;
+    const snap = getStaffSnapshotAtDate(rec.personnelId, ref);
+    if (!snap || cleanRollCallCell(snap.code) !== codeKey) continue;
+    codeAtRefDate = true;
+    if (staffCodeOccupiedAtSnapshot(snap)) occupiedAtRefDate = true;
+    else likely.push(`該人員狀態非占用中（${getStaffDisplayStatus(snap) || snap.status || '—'}）`);
+  }
+  if (!codeExistsInRegistry) likely.push('人員管理沒有此代號');
+  else if (!codeAtRefDate) likely.push('該代號在此日期未生效');
+  else if (!occupiedAtRefDate && !likely.length) likely.push('該人員狀態非占用中');
+  return likely;
+}
+const ROLLCALL_UNMATCHED_HINTS = [
+  '人員管理沒有此代號',
+  '該代號在此日期未生效',
+  '該人員狀態非占用中',
+  '點名表代號可能輸入錯誤'
+];
+const ROLLCALL_PRESERVED_LEAVE_SHIFTS = new Set([
+  'HX', 'XC',
+  'Ya', 'Yb', 'Yc', 'Yd', 'Ye', 'Yf', 'Yg', 'Yh', 'Yi', 'Yj', 'Yk', 'Yl', 'Ym', 'Yn', 'Yo', 'Yp'
+]);
+function isRollCallPreservedLeaveShift(shift) {
+  return ROLLCALL_PRESERVED_LEAVE_SHIFTS.has(cleanRollCallCell(shift));
+}
+function buildRollCallCodeToShiftMap(detailRows) {
+  const map = {};
+  (detailRows || []).forEach(row => {
+    const split = splitRollCallSingleCharCodes(row.codeBlob, row.count);
+    split.codes.forEach(code => {
+      map[cleanRollCallCell(code)] = row.shift;
+    });
+  });
+  return map;
+}
+function resolveRollCallPreviewNextShift(code, tomorrowCodeToShift) {
+  const codeKey = cleanRollCallCell(code);
+  if (!codeKey) return '休';
+  const tomorrowShift = tomorrowCodeToShift?.[codeKey];
+  return tomorrowShift != null && tomorrowShift !== '' ? tomorrowShift : '休';
+}
+function computeRollCallNextShiftStats(resolved) {
+  const stats = { withShift: 0, leave: 0, absent: 0 };
+  (resolved || []).forEach(row => {
+    const ns = row.nextShift ?? '休';
+    if (ns === '休') stats.absent++;
+    else if (isRollCallPreservedLeaveShift(ns)) stats.leave++;
+    else stats.withShift++;
+  });
+  return stats;
+}
+function enrichRollCallPreviewWithNextShift(todayPreview, tomorrowPreview) {
+  const tomorrowCodeToShift = tomorrowPreview.codeToShift
+    || buildRollCallCodeToShiftMap(tomorrowPreview.detailRows);
+  const resolved = (todayPreview.resolved || []).map(row => ({
+    ...row,
+    nextShift: resolveRollCallPreviewNextShift(row.code, tomorrowCodeToShift)
+  }));
+  return {
+    ...todayPreview,
+    resolved,
+    nextShiftStats: computeRollCallNextShiftStats(resolved)
+  };
+}
+let rollCallImportPreviewState = null;
+function rollCallManualMapKey(item) {
+  return `${cleanRollCallCell(item.shift)}::${cleanRollCallCell(item.code)}::${Number(item.rowNum) || 0}`;
+}
+function buildRollCallManualStaffPool(refDateISO) {
+  const ref = isValidISODate(refDateISO) ? refDateISO : getScheduleReferenceDate();
+  const pool = [];
+  (staffPersonnelRegistry?.people || []).forEach(rec => {
+    const snap = getStaffSnapshotAtDate(rec.personnelId, ref);
+    if (!snap) return;
+    const fullName = String(snap.fullName || '').trim();
+    const code = String(snap.code || '').trim();
+    pool.push({
+      personnelId: rec.personnelId,
+      label: `${fullName || '—'}（代號：${code || '—'}）· ${rec.personnelId}`,
+      searchText: `${rec.personnelId} ${fullName} ${code} ${snap.level || ''} ${snap.group || ''}`.toLowerCase()
+    });
+  });
+  pool.sort((a, b) => a.label.localeCompare(b.label, 'zh-Hant'));
+  return pool;
+}
+function searchRollCallManualStaffPool(pool, query, limit = 12) {
+  const q = String(query || '').trim().toLowerCase();
+  if (!q) return pool.slice(0, limit);
+  return pool.filter(p => p.searchText.includes(q)).slice(0, limit);
+}
+function formatRollCallManualStaffLabel(personnelId, refDateISO) {
+  const snap = getStaffSnapshotAtDate(personnelId, refDateISO);
+  if (!snap) return '';
+  const fullName = String(snap.fullName || '').trim();
+  const code = String(snap.code || '').trim();
+  return `${fullName || '—'}（代號：${code || '—'}）· ${personnelId}`;
+}
+function mergeRollCallPreviewWithManualMappings(todayRaw, manualMappings, refDateISO) {
+  const ref = isValidISODate(refDateISO) ? refDateISO : getScheduleReferenceDate();
+  const autoResolved = new Map();
+  (todayRaw.resolved || []).forEach(r => {
+    autoResolved.set(rollCallManualMapKey(r), r);
+  });
+  const unmatchedByKey = new Map();
+  (todayRaw.unmatchedCodes || []).forEach(u => {
+    unmatchedByKey.set(rollCallManualMapKey(u), u);
+  });
+  const resolved = [];
+  const unmatchedCodes = [];
+  (todayRaw.detailRows || []).forEach(row => {
+    const split = splitRollCallSingleCharCodes(row.codeBlob, row.count);
+    split.codes.forEach(code => {
+      const key = rollCallManualMapKey({ shift: row.shift, code, rowNum: row.rowNum });
+      const auto = autoResolved.get(key);
+      if (auto) {
+        resolved.push({ ...auto, rowNum: row.rowNum });
+        return;
+      }
+      const unmatchedItem = unmatchedByKey.get(key);
+      if (!unmatchedItem) return;
+      const pid = manualMappings?.[key];
+      if (pid) {
+        const snap = getStaffSnapshotAtDate(pid, ref);
+        if (snap) {
+          resolved.push({
+            shift: unmatchedItem.shift,
+            code: unmatchedItem.code,
+            rowNum: unmatchedItem.rowNum,
+            fullName: String(snap.fullName || '').trim(),
+            level: String(snap.level || '').trim(),
+            personnelId: pid,
+            manualMapped: true
+          });
+          return;
+        }
+      }
+      unmatchedCodes.push(unmatchedItem);
+    });
+  });
+  return {
+    ...todayRaw,
+    resolved,
+    unmatchedCodes,
+    resolvedCount: resolved.length
+  };
+}
+function renderRollCallManualMapMenuHtml(pool, query) {
+  const hits = searchRollCallManualStaffPool(pool, query);
+  if (!hits.length) {
+    return '<div class="rc-manual-map-option is-active" data-pid="" disabled>找不到符合的人員</div>';
+  }
+  return hits.map(p => (
+    `<button type="button" class="rc-manual-map-option" data-pid="${escapeHtml(p.personnelId)}">${escapeHtml(p.label)}</button>`
+  )).join('');
+}
+function buildRollCallPreviewFromWorkbook(workbook, refDateISO) {
+  const sheetName = workbook.SheetNames.find(n => String(n).includes('工作')) || workbook.SheetNames[0];
+  const ws = workbook.Sheets[sheetName];
+  if (!ws || !ws['!ref']) return { error: '找不到工作表' };
+  const range = XLSX.utils.decode_range(ws['!ref']);
+  const dateInfo = parseRollCallSheetDate(ws, range);
+  const sectionRow = findRollCallSectionRow(ws, range, '班別明細');
+  if (sectionRow < 0) return { error: '找不到「班別明細」區塊', dateInfo };
+  const detailRows = parseRollCallShiftDetailRows(ws, range, sectionRow);
+  const resolved = [];
+  const unmatchedCodes = [];
+  const countMismatchRows = [];
+  detailRows.forEach(row => {
+    const split = splitRollCallSingleCharCodes(row.codeBlob, row.count);
+    if (split.issues.length) {
+      countMismatchRows.push({ shift: row.shift, rowNum: row.rowNum, issues: split.issues });
+    }
+    split.codes.forEach(code => {
+      const hit = findStaffByCodeAtDate(code, refDateISO);
+      if (hit) {
+        resolved.push({
+          shift: row.shift,
+          code,
+          rowNum: row.rowNum,
+          fullName: String(hit.snap.fullName || '').trim(),
+          level: String(hit.snap.level || '').trim(),
+          personnelId: hit.personnelId
+        });
+      } else {
+        unmatchedCodes.push({
+          shift: row.shift,
+          code,
+          rowNum: row.rowNum,
+          likelyReasons: explainUnmatchedRollCallCode(code, refDateISO)
+        });
+      }
+    });
+  });
+  const personCount = resolved.length + unmatchedCodes.length;
+  const codeToShift = buildRollCallCodeToShiftMap(detailRows);
+  return {
+    sheetName,
+    dateInfo,
+    detailRows,
+    codeToShift,
+    personCount,
+    resolvedCount: resolved.length,
+    unmatchedCodes,
+    countMismatchRows,
+    resolved
+  };
+}
+function renderRollCallImportPreviewHtml(todayPreview, tomorrowPreview) {
+  const schedRef = getScheduleReferenceDate();
+  const lines = [];
+  const todayIso = todayPreview.dateInfo?.iso || '';
+  if (todayIso && isValidISODate(schedRef) && todayIso !== schedRef) {
+    lines.push('<div class="rc-date-mismatch">點名表日期與目前班表日期不同，請確認是否選錯日期</div>');
+  }
+  lines.push('<h4>摘要</h4><ul>');
+  lines.push(`<li>畫面班表日期：${escapeHtml(formatScheduleDateDisplay(schedRef) || schedRef)}</li>`);
+  lines.push(`<li>當日點名表日期：${escapeHtml(todayPreview.dateInfo?.display || '—')}</li>`);
+  lines.push(`<li>隔日點名表日期：${escapeHtml(tomorrowPreview.dateInfo?.display || '—')}</li>`);
+  lines.push(`<li>當日解析人數：${todayPreview.personCount ?? 0}</li>`);
+  lines.push(`<li>隔日解析人數：${tomorrowPreview.personCount ?? 0}</li>`);
+  lines.push(`<li>當日成功對應人員數：${todayPreview.resolvedCount ?? 0}</li>`);
+  lines.push(`<li>找不到人員管理資料的代號：${todayPreview.unmatchedCodes?.length ?? 0}</li>`);
+  lines.push(`<li class="rc-warn">人數與代號不一致的列：${todayPreview.countMismatchRows?.length ?? 0}</li>`);
+  const ns = todayPreview.nextShiftStats;
+  if (ns) {
+    lines.push(`<li>隔日有班別：${ns.withShift}</li>`);
+    lines.push(`<li>隔日休假：${ns.leave}</li>`);
+    lines.push(`<li>隔日未出現：${ns.absent}</li>`);
+  }
+  lines.push('</ul>');
+  if (todayPreview.unmatchedCodes?.length) {
+    lines.push('<h4 class="rc-err">找不到主檔的代號</h4>');
+    lines.push('<p class="rc-hint-list">若點名表代號與人員管理不同，可人工指定對應（僅本次預覽有效，不回寫人員管理）。</p>');
+    lines.push('<ul class="rc-hint-list">');
+    ROLLCALL_UNMATCHED_HINTS.forEach(h => lines.push(`<li>可能原因：${escapeHtml(h)}</li>`));
+    lines.push('</ul>');
+    lines.push('<table class="rc-unmatched-table"><thead><tr><th>班別</th><th>代號</th><th>列</th><th>說明</th><th>人工指定對應</th></tr></thead><tbody>');
+    const manualMappings = rollCallImportPreviewState?.manualMappings || {};
+    const staffPool = rollCallImportPreviewState?.staffPool || buildRollCallManualStaffPool(schedRef);
+    todayPreview.unmatchedCodes.forEach(x => {
+      const extra = (x.likelyReasons || []).length
+        ? escapeHtml(x.likelyReasons.join('；'))
+        : '—';
+      const mapKey = rollCallManualMapKey(x);
+      const selectedPid = manualMappings[mapKey] || '';
+      const inputVal = selectedPid ? formatRollCallManualStaffLabel(selectedPid, schedRef) : '';
+      const mappedCls = selectedPid ? ' is-mapped' : '';
+      lines.push('<tr>');
+      lines.push(`<td>${escapeHtml(x.shift)}</td><td>${escapeHtml(x.code)}</td><td>${x.rowNum}</td><td>${extra}</td>`);
+      lines.push(`<td><div class="rc-manual-map" data-map-key="${escapeHtml(mapKey)}">`);
+      lines.push(`<input type="text" class="rc-manual-map-input${mappedCls}" value="${escapeHtml(inputVal)}" placeholder="搜尋姓名、代號、人事代號…" autocomplete="off" aria-label="人工指定對應 ${escapeHtml(x.code)}" />`);
+      lines.push(`<div class="rc-manual-map-menu" hidden>${renderRollCallManualMapMenuHtml(staffPool, inputVal)}</div>`);
+      if (selectedPid) {
+        lines.push(`<button type="button" class="rc-manual-map-clear">清除指定</button>`);
+      }
+      lines.push('</div></td></tr>');
+    });
+    lines.push('</tbody></table>');
+  }
+  if (todayPreview.countMismatchRows?.length) {
+    lines.push('<h4 class="rc-warn">人數不一致</h4><ul>');
+    todayPreview.countMismatchRows.forEach(x => {
+      lines.push(`<li>${escapeHtml(x.shift)} 列 ${x.rowNum}：${escapeHtml(x.issues.join('；'))}</li>`);
+    });
+    lines.push('</ul>');
+  }
+  const resolved = todayPreview.resolved || [];
+  if (resolved.length) {
+    lines.push('<div class="rc-resolved-head">');
+    lines.push(`<h4>解析成功（${resolved.length} 筆）</h4>`);
+    if (resolved.length > 10) {
+      lines.push('<button type="button" class="rc-toggle-btn" id="rollCallResolvedToggle" data-collapsed="1">展開全部</button>');
+    }
+    lines.push('</div>');
+    const collapsed = resolved.length > 10;
+    lines.push(`<div class="rc-resolved-wrap${collapsed ? ' is-collapsed' : ''}" id="rollCallResolvedTableWrap">`);
+    lines.push('<table class="rc-sample-table"><thead><tr><th>班別</th><th>代號</th><th>姓名</th><th>戰力</th><th>隔日班別</th></tr></thead><tbody>');
+    resolved.forEach((x, i) => {
+      const extraCls = i >= 10 ? ' class="rc-row-extra"' : '';
+      const nextShift = x.nextShift ?? '休';
+      const nameHtml = x.manualMapped
+        ? `${escapeHtml(x.fullName)}<span class="rc-manual-tag">人工</span>`
+        : escapeHtml(x.fullName);
+      lines.push(`<tr${extraCls}><td>${escapeHtml(x.shift)}</td><td>${escapeHtml(x.code)}</td><td>${nameHtml}</td><td>${escapeHtml(x.level)}</td><td>${escapeHtml(nextShift)}</td></tr>`);
+    });
+    lines.push('</tbody></table></div>');
+  }
+  return lines.join('');
+}
+function bindRollCallPreviewToggle() {
+  const preview = document.getElementById('rollCallStaffImportPreview');
+  if (!preview || preview.dataset.toggleBound === '1') return;
+  preview.dataset.toggleBound = '1';
+  preview.addEventListener('click', e => {
+    const btn = e.target.closest('#rollCallResolvedToggle');
+    if (!btn) return;
+    const wrap = preview.querySelector('#rollCallResolvedTableWrap');
+    if (!wrap) return;
+    const collapsed = btn.dataset.collapsed !== '0';
+    if (collapsed) {
+      wrap.classList.remove('is-collapsed');
+      btn.dataset.collapsed = '0';
+      btn.textContent = '收合';
+    } else {
+      wrap.classList.add('is-collapsed');
+      btn.dataset.collapsed = '1';
+      btn.textContent = '展開全部';
+    }
+  });
+}
+function bindRollCallManualMappingHandlers() {
+  const preview = document.getElementById('rollCallStaffImportPreview');
+  if (!preview || preview.dataset.manualMapBound === '1') return;
+  preview.dataset.manualMapBound = '1';
+  let blurTimer = null;
+  const getPool = () => rollCallImportPreviewState?.staffPool || buildRollCallManualStaffPool(getScheduleReferenceDate());
+  const showMenu = (wrap, query) => {
+    const menu = wrap.querySelector('.rc-manual-map-menu');
+    if (!menu) return;
+    menu.innerHTML = renderRollCallManualMapMenuHtml(getPool(), query);
+    menu.hidden = false;
+  };
+  const hideMenu = wrap => {
+    const menu = wrap?.querySelector('.rc-manual-map-menu');
+    if (menu) menu.hidden = true;
+  };
+  const applyManualPick = (wrap, personnelId) => {
+    if (!rollCallImportPreviewState) return;
+    const mapKey = wrap.dataset.mapKey;
+    if (!mapKey) return;
+    if (personnelId) rollCallImportPreviewState.manualMappings[mapKey] = personnelId;
+    else delete rollCallImportPreviewState.manualMappings[mapKey];
+    refreshRollCallImportPreview();
+  };
+  preview.addEventListener('focusin', e => {
+    const input = e.target.closest('.rc-manual-map-input');
+    if (!input) return;
+    const wrap = input.closest('.rc-manual-map');
+    showMenu(wrap, input.value);
+  });
+  preview.addEventListener('input', e => {
+    const input = e.target.closest('.rc-manual-map-input');
+    if (!input) return;
+    const wrap = input.closest('.rc-manual-map');
+    input.classList.remove('is-mapped');
+    showMenu(wrap, input.value);
+  });
+  preview.addEventListener('mousedown', e => {
+    const opt = e.target.closest('.rc-manual-map-option[data-pid]');
+    if (!opt || !opt.dataset.pid) return;
+    e.preventDefault();
+    const wrap = opt.closest('.rc-manual-map');
+    clearTimeout(blurTimer);
+    applyManualPick(wrap, opt.dataset.pid);
+  });
+  preview.addEventListener('click', e => {
+    const clearBtn = e.target.closest('.rc-manual-map-clear');
+    if (!clearBtn) return;
+    const wrap = clearBtn.closest('.rc-manual-map');
+    applyManualPick(wrap, '');
+  });
+  preview.addEventListener('focusout', e => {
+    const wrap = e.target.closest('.rc-manual-map');
+    if (!wrap) return;
+    clearTimeout(blurTimer);
+    blurTimer = setTimeout(() => hideMenu(wrap), 150);
+  });
+}
+function refreshRollCallImportPreview() {
+  const preview = document.getElementById('rollCallStaffImportPreview');
+  if (!preview || !rollCallImportPreviewState) return;
+  const { todayRaw, tomorrowRaw, manualMappings } = rollCallImportPreviewState;
+  const ref = getScheduleReferenceDate();
+  const resolvedExpanded = preview.querySelector('#rollCallResolvedToggle')?.dataset.collapsed === '0';
+  const merged = mergeRollCallPreviewWithManualMappings(todayRaw, manualMappings, ref);
+  const enriched = enrichRollCallPreviewWithNextShift(merged, tomorrowRaw);
+  preview.innerHTML = renderRollCallImportPreviewHtml(enriched, tomorrowRaw);
+  preview.hidden = false;
+  if (resolvedExpanded) {
+    const wrap = preview.querySelector('#rollCallResolvedTableWrap');
+    const btn = preview.querySelector('#rollCallResolvedToggle');
+    wrap?.classList.remove('is-collapsed');
+    if (btn) {
+      btn.dataset.collapsed = '0';
+      btn.textContent = '收合';
+    }
+  }
+}
+function isImportStaffBtnOnStaffErpMount() {
+  const mount = document.getElementById('erpStaffMount');
+  const btn = document.getElementById('importStaffDbBtn');
+  return !!(mount && btn && mount.contains(btn));
+}
+function setRollCallStaffImportOpen(open) {
+  const modal = document.getElementById('rollCallStaffImportModal');
+  if (!modal) return;
+  modal.hidden = !open;
+  if (!open) {
+    rollCallImportPreviewState = null;
+    const preview = document.getElementById('rollCallStaffImportPreview');
+    if (preview) {
+      preview.hidden = true;
+      preview.innerHTML = '';
+    }
+  }
+}
+function updateRollCallImportParseBtnState() {
+  const btn = document.getElementById('rollCallStaffImportParse');
+  const today = document.getElementById('rollCallTodayFile');
+  const tomorrow = document.getElementById('rollCallTomorrowFile');
+  if (!btn) return;
+  btn.disabled = !(today?.files?.[0] && tomorrow?.files?.[0]);
+}
+function openRollCallStaffImportModal() {
+  const today = document.getElementById('rollCallTodayFile');
+  const tomorrow = document.getElementById('rollCallTomorrowFile');
+  if (today) today.value = '';
+  if (tomorrow) tomorrow.value = '';
+  rollCallImportPreviewState = null;
+  updateRollCallImportParseBtnState();
+  setRollCallStaffImportOpen(true);
+}
+async function runRollCallStaffImportPreview() {
+  if (typeof XLSX === 'undefined') {
+    appAlert('Excel 讀取套件尚未載入。請確認網路連線後重新整理頁面。', '無法解析');
+    return;
+  }
+  const todayFile = document.getElementById('rollCallTodayFile')?.files?.[0];
+  const tomorrowFile = document.getElementById('rollCallTomorrowFile')?.files?.[0];
+  if (!todayFile || !tomorrowFile) {
+    appAlert('請同時選擇當日與隔日點名表。', '無法解析');
+    return;
+  }
+  const ref = getScheduleReferenceDate();
+  const [todayBuf, tomorrowBuf] = await Promise.all([todayFile.arrayBuffer(), tomorrowFile.arrayBuffer()]);
+  const todayWb = XLSX.read(todayBuf, { type: 'array' });
+  const tomorrowWb = XLSX.read(tomorrowBuf, { type: 'array' });
+  const todayPreview = buildRollCallPreviewFromWorkbook(todayWb, ref);
+  const tomorrowPreview = buildRollCallPreviewFromWorkbook(tomorrowWb, ref);
+  if (todayPreview.error) {
+    appAlert(todayPreview.error, '當日點名表');
+    return;
+  }
+  if (tomorrowPreview.error) {
+    appAlert(tomorrowPreview.error, '隔日點名表');
+    return;
+  }
+  rollCallImportPreviewState = {
+    todayRaw: todayPreview,
+    tomorrowRaw: tomorrowPreview,
+    manualMappings: {},
+    staffPool: buildRollCallManualStaffPool(ref)
+  };
+  refreshRollCallImportPreview();
+  bindRollCallPreviewToggle();
+  bindRollCallManualMappingHandlers();
+}
+function initRollCallStaffImportModal() {
+  const modal = document.getElementById('rollCallStaffImportModal');
+  if (!modal || modal.dataset.bound === '1') return;
+  modal.dataset.bound = '1';
+  document.getElementById('rollCallStaffImportClose')?.addEventListener('click', () => setRollCallStaffImportOpen(false));
+  document.getElementById('rollCallStaffImportCancel')?.addEventListener('click', () => setRollCallStaffImportOpen(false));
+  modal.querySelector('[data-rollcall-import-dismiss]')?.addEventListener('click', () => setRollCallStaffImportOpen(false));
+  document.getElementById('rollCallTodayFile')?.addEventListener('change', updateRollCallImportParseBtnState);
+  document.getElementById('rollCallTomorrowFile')?.addEventListener('change', updateRollCallImportParseBtnState);
+  document.getElementById('rollCallStaffImportParse')?.addEventListener('click', () => runRollCallStaffImportPreview());
 }
 
 function roleShort(role) {
@@ -12594,7 +13311,11 @@ document.getElementById('importExcelBtn').addEventListener('click', () => {
   document.getElementById('excelImportInput').click();
 });
 document.getElementById('importStaffDbBtn').addEventListener('click', () => {
-  document.getElementById('staffDbImportInput').click();
+  if (isImportStaffBtnOnStaffErpMount()) {
+    document.getElementById('staffDbImportInput').click();
+    return;
+  }
+  openRollCallStaffImportModal();
 });
 document.getElementById('excelImportInput').addEventListener('change', async (e) => {
   const file = e.target.files && e.target.files[0];
@@ -12607,36 +13328,22 @@ document.getElementById('excelImportInput').addEventListener('change', async (e)
   const workbook = XLSX.read(buffer, { type: 'array' });
 
   const flightSheetName = workbook.SheetNames.find(n => n.toLowerCase() === 'flights') || workbook.SheetNames[0];
-  const staffSheetName = workbook.SheetNames.find(n => /staff|人員|名單|戰力|代號/i.test(String(n)));
-
-  if (!flightSheetName || !staffSheetName) {
-    appAlert('Excel 需要包含 Flights 和 Staff（或人員）工作表。', '無法匯入');
-    return;
-  }
-
   const flightRows = XLSX.utils.sheet_to_json(workbook.Sheets[flightSheetName], { defval: '' });
-  const staffRows = XLSX.utils.sheet_to_json(workbook.Sheets[staffSheetName], { defval: '' });
-
   const newFlightDefs = buildFlightDefsFromRows(flightRows);
-  const newPeople = mergePeopleWithStaffDirectory(buildPeopleFromRows(staffRows));
 
   if (!newFlightDefs.length) {
     appAlert('Flights 工作表沒有可讀取的航班資料。', '無法匯入');
     return;
   }
-  if (!newPeople.length) {
-    appAlert('Staff 工作表沒有可讀取的人員資料。', '無法匯入');
-    return;
-  }
 
   const importOk = await appConfirm(
-    `即將匯入 ${newFlightDefs.length} 筆航班、${newPeople.length} 位人員。\n目前已排的 duty 會清空，確定匯入嗎？`,
-    { title: '匯入 Excel', confirmText: '確定匯入' }
+    `即將匯入 ${newFlightDefs.length} 筆航班，並依規則產生 duty 區塊。\n目前已排的 duty 會清空，確定匯入嗎？`,
+    { title: '匯入當日航班', confirmText: '確定匯入' }
   );
   if (!importOk) return;
 
-  rebuildAfterExcelImport(newFlightDefs, newPeople);
-  appSuccess('Excel 匯入完成，已依新規則產生 duty 區塊。請按「同步」上傳雲端。', '匯入完成');
+  rebuildAfterFlightImport(newFlightDefs);
+  appSuccess('航班匯入完成，已依新規則產生 duty 區塊。請按「同步」上傳雲端。', '匯入完成');
   e.target.value = '';
 });
 document.getElementById('staffDbImportInput').addEventListener('change', async (e) => {
@@ -12832,6 +13539,7 @@ syncRollCallBoardClass();
 updateRollCallButtonLabel();
 updateNameColHeader();
 initLeaveDutyOverlayTooltip();
+initRollCallStaffImportModal();
 renderRows();
 renderOvertimePanel();
 updateShiftViewButtonLabel();
