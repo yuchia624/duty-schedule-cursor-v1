@@ -7,6 +7,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
 <script src="staff-personnel-seed.js"></script>
+<script src="fis-flight-parser.js"></script>
 <title>今天的完整拖拉管制表 v2</title>
 <style>
   :root {
@@ -1709,6 +1710,16 @@
     overflow:hidden;
     text-overflow:ellipsis;
     padding:5px 4px;
+  }
+  .flight-canx-mark {
+    margin-left: 4px;
+    font-size: 10px;
+    font-weight: 800;
+    color: #dc2626;
+    letter-spacing: 0.02em;
+  }
+  tr.flight-row-canx .assignment-flight-no {
+    color: #991b1b;
   }
   .assignment-table th {
     background:#f8fafc;
@@ -10654,7 +10665,22 @@ function minutesToTime(total) {
   const m = total % 60;
   return String(h).padStart(2,'0') + ':' + String(m).padStart(2,'0');
 }
-function compactFlightNo(flight) { return String(flight).replace(/^[A-Z]+/i, ''); }
+function compactFlightNo(flight) {
+  const s = String(flight || '').trim().toUpperCase();
+  if (!s) return '';
+  const carriers = ['BR', 'B7'];
+  for (const carrier of carriers) {
+    if (!s.startsWith(carrier)) continue;
+    const num = s.slice(carrier.length);
+    if (/^\d+$/.test(num)) return String(Number(num));
+    return num || s;
+  }
+  return s.replace(/^[A-Z]+/i, '');
+}
+function isPptDepFlightNo(flight) {
+  const m = String(flight || '').toUpperCase().match(/^BR0*(\d+)$/);
+  return !!m && (m[1] === '8' || m[1] === '6');
+}
 function normalizeFlightSearch(q) {
   const s = String(q || '').trim().toUpperCase();
   if (!s) return '';
@@ -10957,10 +10983,24 @@ function scrollAssignmentRowIntoView(row) {
   const maxScroll = Math.max(0, scrollHost.scrollHeight - scrollHost.clientHeight);
   scrollHost.scrollTo({ top: Math.max(0, Math.min(maxScroll, targetTop)), behavior: 'smooth' });
 }
+/** 航空公司代碼（先比對較長者）＋航班號補滿 4 碼，例如 B7187 → B70187、BR620 → BR0620 */
+const AIRLINE_CODE_PREFIXES = [
+  'BR', 'B7', 'CI', 'AE', 'OZ', 'HX', 'NX', 'BX', 'CX', 'JL', 'NH', 'IT', 'GK', 'MM', 'NQ', 'TW', 'FD', 'Z2', 'NZ'
+].sort((a, b) => b.length - a.length);
+
 function normalizeImportedFlightNo(value) {
   const s = String(value || '').trim().toUpperCase();
-  const m = s.match(/^([A-Z]+)0*([0-9]+)$/);
-  if (m) return `${m[1]}${Number(m[2])}`;
+  if (!s) return s;
+  if (s.startsWith('B7')) {
+    const num = s.slice(2);
+    if (/^\d+$/.test(num)) return `B7${num.padStart(4, '0')}`;
+    return s;
+  }
+  if (s.startsWith('BR')) {
+    const num = s.slice(2);
+    if (/^\d+$/.test(num)) return `BR${num.padStart(4, '0')}`;
+    return s;
+  }
   return s;
 }
 function normalizeImportedTime(value) {
@@ -10976,38 +11016,13 @@ function normalizeImportedTime(value) {
   if (!m) return s;
   return `${String(Number(m[1])).padStart(2,'0')}:${m[2]}`;
 }
-function buildFlightDefsFromRows(rows) {
-  const out = [];
-  const seen = new Set();
-  rows.forEach(row => {
-    const depNo = row['Departure Flight No'];
-    const depTime = row['STD'];
-    const arrNo = row['Arrival Flight No'];
-    const arrTime = row['STA'];
-
-    if (depNo && depTime) {
-      const flight = normalizeImportedFlightNo(depNo);
-      const time = normalizeImportedTime(depTime);
-      const [hh, mm] = time.split(':').map(Number);
-      const key = `${flight}_${time}_DEP`;
-      if (!seen.has(key) && !Number.isNaN(hh) && !Number.isNaN(mm)) {
-        seen.add(key);
-        out.push({ flight, type:'DEP', baseTime:time, baseMinutes:hh*60+mm, offset:0, extension:0, changeTime:'' });
-      }
-    }
-
-    if (arrNo && arrTime) {
-      const flight = normalizeImportedFlightNo(arrNo);
-      const time = normalizeImportedTime(arrTime);
-      const [hh, mm] = time.split(':').map(Number);
-      const key = `${flight}_${time}_ARR`;
-      if (!seen.has(key) && !Number.isNaN(hh) && !Number.isNaN(mm)) {
-        seen.add(key);
-        out.push({ flight, type:'ARR', baseTime:time, baseMinutes:hh*60+mm, offset:0, extension:0, eta:'' });
-      }
-    }
-  });
-  return out;
+function formatAssignmentFlightLabel(f) {
+  const canx = f.status === 'CANX' ? ' <span class="flight-canx-mark">CANX</span>' : '';
+  return `${escapeHtml(f.flight)}${canx}`;
+}
+function formatAssignmentGate(f, type) {
+  const gate = type === 'DEP' ? (f.depGate || '') : (f.arrGate || '');
+  return escapeHtml(gate);
 }
 function normalizeHeaderKey(v) {
   return String(v || '').trim().replace(/\s+/g, '');
@@ -11309,10 +11324,10 @@ function renderAssignmentTableFromFlightDefs() {
     .sort((a,b) => getArrSortMinutes(a) - getArrSortMinutes(b) || a.flight.localeCompare(b.flight));
 
   depBody.innerHTML = depRows.map(f => `
-    <tr data-flight="${f.flight}">
-      <td class="assignment-flight-no" data-flight="${f.flight}" title="點一下篩選下方管制表人員">${f.flight}</td>
+    <tr data-flight="${f.flight}"${f.status === 'CANX' ? ' class="flight-row-canx"' : ''}>
+      <td class="assignment-flight-no" data-flight="${f.flight}" title="點一下篩選下方管制表人員">${formatAssignmentFlightLabel(f)}</td>
       <td>${minutesToTime(f.baseMinutes)}</td>
-      <td></td>
+      <td>${formatAssignmentGate(f, 'DEP')}</td>
       <td data-flight="${f.flight}" data-role="PPT"></td>
       <td data-flight="${f.flight}" data-role="ABG"></td>
       <td data-flight="${f.flight}" data-role="BG"></td>
@@ -11322,11 +11337,11 @@ function renderAssignmentTableFromFlightDefs() {
   `).join('');
 
   arrBody.innerHTML = arrRows.map(f => `
-    <tr data-flight="${f.flight}">
-      <td class="assignment-flight-no" data-flight="${f.flight}" title="點一下篩選下方管制表人員">${f.flight}</td>
+    <tr data-flight="${f.flight}"${f.status === 'CANX' ? ' class="flight-row-canx"' : ''}>
+      <td class="assignment-flight-no" data-flight="${f.flight}" title="點一下篩選下方管制表人員">${formatAssignmentFlightLabel(f)}</td>
       <td></td>
       <td>${minutesToTime(f.baseMinutes)}</td>
-      <td></td>
+      <td>${formatAssignmentGate(f, 'ARR')}</td>
       <td>${f.eta ? normalizeImportedTime(f.eta) : ''}</td>
       <td></td>
       <td></td>
@@ -11348,10 +11363,8 @@ function rebuildAfterFlightImport(newFlightDefs) {
   flightDefs = newFlightDefs;
   normalizeFlightDefsInPlace();
   renderAssignmentTableFromFlightDefs();
-  schedule = [];
-  selectedBlockId = null;
-  blockSeq = 1;
   rebuildTemplates();
+  syncScheduleWindows();
   markUnsynced();
   renderTimeHeader();
   renderFlightEditor();
@@ -12320,14 +12333,19 @@ function getArrSortMinutes(f) {
 }
 function normalizeFlightDefsInPlace() {
   flightDefs.forEach(f => {
+    if (f.depGate == null) f.depGate = '';
+    if (f.arrGate == null) f.arrGate = '';
+    if (f.status == null) f.status = '';
     if (f.type === 'ARR' && f.eta == null) f.eta = '';
     if (f.type === 'DEP') {
       if (f.changeTime == null) f.changeTime = '';
+      if (f.eta == null) f.eta = '';
       if (!f.changeTime && Number(f.offset || 0) !== 0) {
         f.changeTime = minutesToTime(f.baseMinutes + Number(f.offset || 0));
         f.offset = 0;
       }
     }
+    if (f.type === 'ARR' && f.changeTime == null) f.changeTime = '';
   });
 }
 function hasRestForPerson(personIndex) { return schedule.some(x => x.personIndex === personIndex && x.role === '休'); }
@@ -12360,7 +12378,7 @@ function buildTemplates() {
         const end = depDutyEnd(std, ext);
         out.push({ id: `${f.flight}_${role}_${f.type}`, label: `${f.flight} ${role}`, compactLabel: compactDutyLabel(f.flight, role), flight: f.flight, role, flightType: f.type, start, end });
       });
-      if (['BR8','BR6'].includes(f.flight)) {
+      if (isPptDepFlightNo(f.flight)) {
         const role = 'PPT';
         const start = depDutyStart(std, 80, ext);
         const end = depDutyEnd(std, ext);
@@ -14262,26 +14280,43 @@ document.getElementById('excelImportInput').addEventListener('change', async (e)
     appAlert('Excel 讀取套件尚未載入。請確認網路連線後重新整理頁面。', '無法匯入');
     return;
   }
+  if (typeof FisFlightParser === 'undefined' || typeof FisFlightParser.parseFisWorkbook !== 'function') {
+    appAlert('FIS 航班解析模組尚未載入，請重新整理頁面。', '無法匯入');
+    return;
+  }
   const buffer = await file.arrayBuffer();
   const workbook = XLSX.read(buffer, { type: 'array' });
+  const parsed = FisFlightParser.parseFisWorkbook(workbook, selectedDate, {
+    normalizeFlightNo: normalizeImportedFlightNo
+  });
 
-  const flightSheetName = workbook.SheetNames.find(n => n.toLowerCase() === 'flights') || workbook.SheetNames[0];
-  const flightRows = XLSX.utils.sheet_to_json(workbook.Sheets[flightSheetName], { defval: '' });
-  const newFlightDefs = buildFlightDefsFromRows(flightRows);
-
-  if (!newFlightDefs.length) {
-    appAlert('Flights 工作表沒有可讀取的航班資料。', '無法匯入');
+  if (parsed.error) {
+    appAlert(parsed.error, '無法匯入');
+    e.target.value = '';
+    return;
+  }
+  if (!parsed.flightDefs.length) {
+    appAlert('沒有符合當日的航班。', '無法匯入');
+    e.target.value = '';
     return;
   }
 
+  const { dep, arr, total } = parsed.stats;
   const importOk = await appConfirm(
-    `即將匯入 ${newFlightDefs.length} 筆航班，並依規則產生 duty 區塊。\n目前已排的 duty 會清空，確定匯入嗎？`,
+    `即將匯入 ${total} 筆航班（出境 ${dep}、入境 ${arr}）。\n已排的 duty 會保留，確定匯入嗎？`,
     { title: '匯入當日航班', confirmText: '確定匯入' }
   );
-  if (!importOk) return;
+  if (!importOk) {
+    e.target.value = '';
+    return;
+  }
 
-  rebuildAfterFlightImport(newFlightDefs);
-  appSuccess('航班匯入完成，已依新規則產生 duty 區塊。請按「同步」上傳雲端。', '匯入完成');
+  rebuildAfterFlightImport(parsed.flightDefs);
+  let successMsg = `航班匯入完成（出境 ${dep}、入境 ${arr}）。請按「同步」上傳雲端。`;
+  if (parsed.warnings?.length) {
+    successMsg += `\n\n${parsed.warnings.join('\n')}`;
+  }
+  appSuccess(successMsg, '匯入完成');
   e.target.value = '';
 });
 document.getElementById('staffDbImportInput').addEventListener('change', async (e) => {
