@@ -8,6 +8,8 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
 <script src="staff-personnel-seed.js"></script>
 <script src="fis-flight-parser.js"></script>
+<script src="foreign-schedule-parser.js"></script>
+<script src="flight-assignment-utils.js"></script>
 <title>今天的完整拖拉管制表 v2</title>
 <style>
   :root {
@@ -855,8 +857,8 @@
     display: grid;
     grid-template-columns: var(--name-col-width) var(--timeline-width);
     background: #fff;
-    border-bottom: 1px solid var(--line);
-    box-shadow: 0 1px 0 rgba(0,0,0,0.04);
+    border-bottom: 2px solid #d8dee8;
+    box-shadow: none;
   }
   .name-col {
     position: sticky;
@@ -868,6 +870,7 @@
     padding: 0 12px;
     font-weight: 800;
     border-right: 1px solid var(--line);
+    border-bottom: 2px solid #d8dee8;
     background: #fff;
   }
   .times {
@@ -875,6 +878,7 @@
     z-index: 105;
     height: var(--header-height);
     width: var(--timeline-width);
+    border-bottom: 2px solid #d8dee8;
     background: #fff;
     background-image: repeating-linear-gradient(to right,rgba(15,23,42,0.10) 0,rgba(15,23,42,0.10) 1px,transparent 1px,transparent calc(60 * var(--px-per-minute) * 1px)),
                       repeating-linear-gradient(to right,rgba(15,23,42,0.05) 0,rgba(15,23,42,0.05) 1px,transparent 1px,transparent calc(30 * var(--px-per-minute) * 1px));
@@ -1686,10 +1690,32 @@
     position: sticky; top: 0; z-index: 30;
   }
   .assign-meta { font-size:11px; color:#475569; margin-top:2px; line-height:1.35; }
-  table.assignment-table { width:100%; border-collapse: collapse; font-size: 12px; table-layout: auto; }
-  .assignment-table th, .assignment-table td {
-    border:1px solid #e5e7eb; padding:5px 6px; text-align:center; vertical-align:middle;
-    line-height:1.3; white-space:nowrap; box-sizing:border-box;
+  table.assignment-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    font-size: 12px;
+    table-layout: auto;
+    border: 1px solid #e5e7eb;
+  }
+  .assignment-table th,
+  .assignment-table td {
+    border: none;
+    border-right: 1px solid #e5e7eb;
+    border-bottom: 1px solid #e5e7eb;
+    padding: 5px 6px;
+    text-align: center;
+    vertical-align: middle;
+    line-height: 1.3;
+    white-space: nowrap;
+    box-sizing: border-box;
+  }
+  .assignment-table th:last-child,
+  .assignment-table td:last-child {
+    border-right: none;
+  }
+  .assignment-table tbody tr:last-child td {
+    border-bottom: none;
   }
   .assignment-table thead tr {
     height: 34px;
@@ -1721,6 +1747,233 @@
   tr.flight-row-canx .assignment-flight-no {
     color: #991b1b;
   }
+  #foreignFlightPreviewModal .rollcall-import-panel {
+    width: min(720px, calc(100vw - 32px));
+    max-height: min(88vh, 900px);
+    padding: 0;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+  #foreignFlightPreviewModal .foreign-preview-head {
+    padding: 18px 48px 12px 20px;
+    border-bottom: 1px solid #e2e8f0;
+    flex-shrink: 0;
+  }
+  #foreignFlightPreviewModal .foreign-preview-subtitle {
+    margin: 6px 0 0;
+    font-size: 13px;
+    color: #64748b;
+    line-height: 1.45;
+  }
+  #foreignFlightPreviewModal .foreign-preview-summary {
+    margin: 12px 20px 0;
+    padding: 10px 12px;
+    border-radius: 10px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    font-size: 13px;
+    color: #334155;
+    line-height: 1.5;
+  }
+  #foreignFlightPreviewModal .foreign-preview-warn {
+    margin: 10px 20px 0;
+    padding: 10px 12px;
+    border-radius: 10px;
+    background: #fff7ed;
+    border: 1px solid #fdba74;
+    color: #9a3412;
+    font-size: 12px;
+    line-height: 1.5;
+  }
+  #foreignFlightPreviewModal .foreign-preview-warn[hidden] { display: none !important; }
+  #foreignFlightPreviewModal .foreign-preview-body {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+    padding: 12px 20px 8px;
+  }
+  #foreignFlightPreviewModal .foreign-preview-section + .foreign-preview-section {
+    margin-top: 16px;
+  }
+  #foreignFlightPreviewModal .foreign-preview-section-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+  #foreignFlightPreviewModal .foreign-preview-section-head h4 {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 800;
+    color: #0f172a;
+  }
+  #foreignFlightPreviewModal .foreign-preview-select-all {
+    border: 0;
+    background: transparent;
+    color: #2563eb;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    padding: 0;
+  }
+  #foreignFlightPreviewModal .foreign-preview-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  #foreignFlightPreviewModal .foreign-preview-table th,
+  #foreignFlightPreviewModal .foreign-preview-table td {
+    border: 1px solid #e2e8f0;
+    padding: 8px 10px;
+    text-align: left;
+  }
+  #foreignFlightPreviewModal .foreign-preview-table th {
+    background: #f8fafc;
+    font-weight: 800;
+    color: #334155;
+  }
+  #foreignFlightPreviewModal .foreign-preview-table tr.is-dup td {
+    background: #fff7ed;
+  }
+  #foreignFlightPreviewModal .foreign-preview-empty {
+    padding: 12px;
+    border: 1px dashed #cbd5e1;
+    border-radius: 10px;
+    color: #64748b;
+    font-size: 13px;
+    text-align: center;
+  }
+  #foreignFlightPreviewModal .foreign-preview-actions {
+    padding: 14px 20px 18px;
+    border-top: 1px solid #e2e8f0;
+    flex-shrink: 0;
+  }
+  #foreignFlightPreviewModal .foreign-preview-time-input {
+    width: 72px;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    padding: 4px 6px;
+    font-size: 13px;
+    font-weight: 700;
+    color: #2563eb;
+    background: #fff;
+  }
+  #foreignFlightPreviewModal .foreign-preview-flight-input,
+  #foreignFlightPreviewModal .foreign-preview-remark-input {
+    width: 100%;
+    min-width: 64px;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    padding: 4px 6px;
+    font-size: 13px;
+    background: #fff;
+  }
+  #foreignFlightPreviewModal .foreign-preview-table tr.is-manual td {
+    background: #f0f9ff;
+  }
+  #foreignFlightPreviewModal .foreign-preview-add-row {
+    border: 0;
+    background: transparent;
+    color: #2563eb;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    padding: 0;
+  }
+  .assignment-canx-cell {
+    font-size: 11px;
+    font-weight: 800;
+    color: #dc2626;
+    letter-spacing: 0.02em;
+  }
+  tr.flight-row-canx td:not(.assignment-flight-no) {
+    color: #94a3b8;
+  }
+  tr.flight-row-canx .assignment-canx-cell {
+    color: #dc2626;
+  }
+  #flightImportHubModal .rollcall-import-panel,
+  #flightManualAddModal .rollcall-import-panel {
+    width: min(480px, calc(100vw - 32px));
+    padding: 0;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+  #flightImportHubModal .flight-import-hub-head,
+  #flightManualAddModal .flight-manual-add-head {
+    padding: 18px 48px 12px 20px;
+    border-bottom: 1px solid #e2e8f0;
+  }
+  #flightImportHubModal .flight-import-hub-body,
+  #flightManualAddModal .flight-manual-add-body {
+    padding: 16px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  #flightImportHubModal .flight-import-hub-option {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 12px;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 14px;
+    line-height: 1.45;
+  }
+  #flightImportHubModal .flight-import-hub-option:has(input:checked) {
+    border-color: #2563eb;
+    background: #eff6ff;
+  }
+  #flightImportHubModal .flight-import-hub-option input {
+    margin-top: 3px;
+    flex-shrink: 0;
+  }
+  #flightImportHubModal .flight-import-hub-option small {
+    display: block;
+    margin-top: 4px;
+    color: #64748b;
+    font-size: 12px;
+  }
+  #flightManualAddModal .flight-manual-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  #flightManualAddModal .flight-manual-field label {
+    font-size: 12px;
+    font-weight: 700;
+    color: #475569;
+  }
+  #flightManualAddModal .flight-manual-field input,
+  #flightManualAddModal .flight-manual-field select {
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    padding: 8px 10px;
+    font-size: 14px;
+  }
+  #flightManualAddModal .flight-manual-type-row {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  #flightManualAddModal .flight-manual-type-row label {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 14px;
+    cursor: pointer;
+  }
+  #flightImportHubModal .rollcall-import-actions,
+  #flightManualAddModal .rollcall-import-actions {
+    padding: 14px 20px 18px;
+    border-top: 1px solid #e2e8f0;
+  }
   .assignment-table th {
     background:#f8fafc;
     position: sticky;
@@ -1734,6 +1987,242 @@
     overflow:hidden;
     text-overflow:ellipsis;
     min-width:80px;
+  }
+  .assignment-field-wrap {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    max-width: 100%;
+    min-height: 1.35em;
+    vertical-align: middle;
+  }
+  .assignment-col-header.assignment-col-editable {
+    white-space: nowrap;
+  }
+  .assignment-col-header .assignment-col-label {
+    display: inline;
+  }
+  .assignment-col-edit-btn {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    margin-left: 4px;
+    padding: 2px;
+    border: none;
+    border-radius: 4px;
+    background: transparent;
+    color: #64748b;
+    cursor: pointer;
+    vertical-align: middle;
+    line-height: 0;
+  }
+  .assignment-col-header.assignment-col-editable:hover .assignment-col-edit-btn,
+  .assignment-col-header.assignment-col-editable.is-edit-unlocked .assignment-col-edit-btn {
+    display: inline-flex;
+  }
+  .assignment-col-header.is-edit-unlocked .assignment-col-edit-btn {
+    color: #15803d;
+    background: #bbf7d0;
+  }
+  .assignment-col-edit-btn:hover {
+    color: #15803d;
+    background: #dcfce7;
+  }
+  .assignment-col-header.is-edit-unlocked {
+    background: #dcfce7;
+    box-shadow: inset 0 -2px 0 #22c55e;
+  }
+  .assignment-table tbody td:has(> .assignment-field-wrap.is-column-editable) {
+    background: #dcfce7;
+  }
+  .assignment-table tbody tr.assignment-flight-match td:has(> .assignment-field-wrap.is-column-editable) {
+    background: #d9f99d !important;
+  }
+  .assignment-field-display {
+    font-weight: 400;
+    padding: 2px 6px;
+    border-radius: 4px;
+    border: 1px solid transparent;
+    min-width: 1.8em;
+    min-height: 1.25em;
+    text-align: center;
+    line-height: 1.35;
+  }
+  .assignment-field-display.is-empty {
+    min-width: 1.8em;
+    min-height: 1.25em;
+  }
+  .assignment-field-display.is-readonly {
+    cursor: default;
+    pointer-events: auto;
+  }
+  .assignment-field-wrap.is-column-editable .assignment-field-display:not(.is-readonly) {
+    cursor: text;
+  }
+  .assignment-field-wrap.assignment-field-gate-edited .assignment-field-display,
+  .assignment-field-wrap.assignment-field-gate-edited .assignment-field-input {
+    background: #fecaca;
+    color: #991b1b;
+  }
+  .assignment-field-wrap.assignment-field-gate-edited.is-column-editable:hover .assignment-field-display {
+    box-shadow: inset 0 0 0 1px #f87171;
+  }
+  .assignment-field-wrap.assignment-field-gate:not(.assignment-field-gate-edited).is-column-editable:hover .assignment-field-display {
+    background: #bbf7d0;
+  }
+  .assignment-field-wrap.assignment-field-connecting .assignment-field-display,
+  .assignment-field-wrap.assignment-field-connecting .assignment-field-input {
+    background: transparent;
+    color: inherit;
+  }
+  .assignment-field-wrap.assignment-field-connecting.is-column-editable:hover .assignment-field-display {
+    background: #bbf7d0;
+  }
+  .assignment-field-wrap.is-editing {
+    position: relative;
+    z-index: 45;
+    flex-wrap: nowrap;
+  }
+  .assignment-field-wrap.is-editing .assignment-field-display {
+    display: none;
+  }
+  .assignment-field-input {
+    width: 4.5em;
+    max-width: 76px;
+    border: none;
+    border-bottom: 2px solid #64748b;
+    border-radius: 4px;
+    padding: 2px 4px;
+    margin: 0;
+    font-size: 12px;
+    font-weight: 400;
+    background: #f8fafc;
+    text-align: center;
+    outline: none;
+    line-height: 1.35;
+  }
+  .assignment-field-wrap.assignment-field-gate-edited .assignment-field-input {
+    border-bottom-color: #b91c1c;
+    background: #fecaca;
+    color: #991b1b;
+  }
+  .assignment-field-wrap.assignment-field-std-edited .assignment-field-display {
+    background: #fecaca;
+    color: #991b1b;
+  }
+  .assignment-field-wrap.assignment-field-std-edited.is-column-editable:hover .assignment-field-display {
+    box-shadow: inset 0 0 0 1px #f87171;
+  }
+  .assignment-field-wrap.assignment-field-std:not(.assignment-field-std-edited).is-column-editable:hover .assignment-field-display {
+    background: #bbf7d0;
+  }
+  .assignment-field-wrap.is-editing .assignment-field-input-time {
+    display: inline-block;
+  }
+  .assignment-field-input-time {
+    width: 4.5em;
+    max-width: 76px;
+  }
+  .assignment-field-wrap.assignment-field-std-edited .assignment-field-input-time {
+    border-bottom-color: #b91c1c;
+    background: #fecaca;
+    color: #991b1b;
+  }
+  .assignment-field-wrap.is-tooltip-editing .assignment-field-display {
+    box-shadow: inset 0 0 0 2px #2563eb;
+  }
+  .assignment-field-wrap.is-tooltip-editing.is-correcting-last-edit .assignment-field-display {
+    box-shadow: inset 0 0 0 2px #2563eb;
+  }
+  .assignment-field-input[hidden] { display: none !important; }
+  .field-edit-badge {
+    display: none;
+  }
+  .assignment-field-tooltip {
+    position: fixed;
+    z-index: 10050;
+    max-width: 280px;
+    padding: 8px 10px;
+    border-radius: 8px;
+    background: #1e293b;
+    color: #f8fafc;
+    font-size: 12px;
+    line-height: 1.5;
+    pointer-events: none;
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.25);
+  }
+  .assignment-field-tooltip--interactive,
+  .assignment-field-tooltip--pinned {
+    pointer-events: auto;
+  }
+  .assignment-field-tooltip-history {
+    margin-bottom: 0;
+  }
+  .assignment-gate-chain {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0;
+  }
+  .assignment-gate-node {
+    border: 0;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    font-size: inherit;
+    line-height: inherit;
+    padding: 1px 4px;
+    margin: 0;
+    border-radius: 4px;
+    cursor: pointer;
+    vertical-align: baseline;
+  }
+  .assignment-gate-node s {
+    opacity: 0.9;
+    text-decoration: line-through;
+    text-decoration-thickness: 1px;
+    text-decoration-color: rgba(248, 250, 252, 0.7);
+  }
+  .assignment-gate-node:hover {
+    background: rgba(248, 250, 252, 0.12);
+  }
+  .assignment-gate-node--readonly {
+    cursor: default;
+    padding: 0;
+  }
+  .assignment-gate-node--readonly:hover {
+    background: transparent;
+  }
+  .assignment-gate-arrow {
+    opacity: 0.85;
+    user-select: none;
+    padding: 0 1px;
+  }
+  .assignment-gate-node-input {
+    width: 52px;
+    box-sizing: border-box;
+    padding: 2px 4px;
+    border: 1px solid rgba(248, 250, 252, 0.35);
+    border-radius: 4px;
+    background: rgba(15, 23, 42, 0.55);
+    color: #f8fafc;
+    font-size: 12px;
+    outline: none;
+    vertical-align: baseline;
+  }
+  .assignment-gate-node-input:focus {
+    border-color: #93c5fd;
+    box-shadow: 0 0 0 2px rgba(147, 197, 253, 0.35);
+  }
+  .assignment-field-tooltip s {
+    opacity: 0.9;
+    text-decoration: line-through;
+    text-decoration-thickness: 1px;
+    text-decoration-color: rgba(248, 250, 252, 0.7);
+  }
+  .assignment-field-tooltip:empty,
+  .assignment-field-tooltip[hidden] {
+    display: none !important;
   }
   .assignment-clickable { cursor: pointer; background: #fffdfa; }
   .assignment-clickable:hover { background: #fff3bf; }
@@ -1819,7 +2308,7 @@
     border: 1px solid #d6dbe6;
     border-radius: 10px;
     box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-    overflow: hidden;
+    overflow: visible;
     flex: 1 1 auto;
     min-height: 0;
     max-height: none;
@@ -1909,6 +2398,7 @@
     min-height: var(--header-height);
     align-items: start;
     box-sizing: border-box;
+    border-bottom: 2px solid #d8dee8;
   }
   .schedule-board-scroll .name-col,
   .schedule-board-scroll .times {
@@ -1916,6 +2406,7 @@
     max-height: var(--header-height);
     min-height: var(--header-height);
     box-sizing: border-box;
+    border-bottom: 2px solid #d8dee8;
   }
 
 
@@ -4426,8 +4917,18 @@
           <thead>
             <tr>
               <th>Flight No</th>
-              <th>STD</th>
-              <th>Gate</th>
+              <th class="assignment-col-header assignment-col-editable" data-assignment-edit-col="depStd">
+                <span class="assignment-col-label">STD</span>
+                <button type="button" class="assignment-col-edit-btn" aria-label="解鎖 STD 欄編輯" title="解鎖此欄編輯">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+                </button>
+              </th>
+              <th class="assignment-col-header assignment-col-editable" data-assignment-edit-col="depGate">
+                <span class="assignment-col-label">Gate</span>
+                <button type="button" class="assignment-col-edit-btn" aria-label="解鎖 Gate 欄編輯" title="解鎖此欄編輯">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+                </button>
+              </th>
               <th>PPT CHK</th>
               <th>ABG</th>
               <th>BG</th>
@@ -4528,10 +5029,30 @@
           <thead>
             <tr>
               <th>Flight No</th>
-              <th>接飛</th>
-              <th>STA</th>
-              <th>Gate</th>
-              <th>ETA</th>
+              <th class="assignment-col-header assignment-col-editable" data-assignment-edit-col="connectingFlight">
+                <span class="assignment-col-label">接飛</span>
+                <button type="button" class="assignment-col-edit-btn" aria-label="解鎖接飛欄編輯" title="解鎖此欄編輯">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+                </button>
+              </th>
+              <th class="assignment-col-header assignment-col-editable" data-assignment-edit-col="arrSta">
+                <span class="assignment-col-label">STA</span>
+                <button type="button" class="assignment-col-edit-btn" aria-label="解鎖 STA 欄編輯" title="解鎖此欄編輯">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+                </button>
+              </th>
+              <th class="assignment-col-header assignment-col-editable" data-assignment-edit-col="arrGate">
+                <span class="assignment-col-label">Gate</span>
+                <button type="button" class="assignment-col-edit-btn" aria-label="解鎖 Gate 欄編輯" title="解鎖此欄編輯">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+                </button>
+              </th>
+              <th class="assignment-col-header assignment-col-editable" data-assignment-edit-col="eta">
+                <span class="assignment-col-label">ETA</span>
+                <button type="button" class="assignment-col-edit-btn" aria-label="解鎖 ETA 欄編輯" title="解鎖此欄編輯">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+                </button>
+              </th>
               <th>G2</th>
               <th>辦T</th>
               <th>C</th>
@@ -5236,6 +5757,97 @@
       <button type="button" class="rollcall-import-btn rollcall-import-btn--primary" id="rollCallStaffImportApply" disabled>套用匯入結果</button>
     </div>
     <div class="rollcall-import-preview" id="rollCallStaffImportPreview" hidden></div>
+  </div>
+</div>
+
+<div id="flightImportHubModal" class="rollcall-import-dialog" hidden>
+  <div class="rollcall-import-backdrop" data-flight-import-hub-dismiss="1"></div>
+  <div class="rollcall-import-panel" role="dialog" aria-modal="true" aria-labelledby="flightImportHubTitle">
+    <button type="button" class="rollcall-import-close" id="flightImportHubClose" aria-label="關閉">×</button>
+    <div class="flight-import-hub-head">
+      <h3 class="rollcall-import-title" id="flightImportHubTitle">匯入當日航班</h3>
+      <p class="foreign-preview-subtitle">請選擇要進行的操作</p>
+    </div>
+    <div class="flight-import-hub-body">
+      <label class="flight-import-hub-option">
+        <input type="radio" name="flightImportHubOption" value="fis" checked />
+        <span>匯入 FIS 資料<small>選擇 FIS 檔案，並確認外家航班後合併匯入</small></span>
+      </label>
+      <label class="flight-import-hub-option">
+        <input type="radio" name="flightImportHubOption" value="manual" />
+        <span>手動新增航班資訊<small>直接填寫航班並追加至當日班表</small></span>
+      </label>
+      <label class="flight-import-hub-option">
+        <input type="radio" name="flightImportHubOption" value="fis-diff" />
+        <span>再次匯入 FIS 資料比對<small>重匯 FIS，只列出目前班表沒有的航班供追加（不影響已排 duty）</small></span>
+      </label>
+    </div>
+    <div class="rollcall-import-actions">
+      <button type="button" class="rollcall-import-btn rollcall-import-btn--ghost" id="flightImportHubCancel">取消</button>
+      <button type="button" class="rollcall-import-btn rollcall-import-btn--primary" id="flightImportHubContinue">繼續</button>
+    </div>
+  </div>
+</div>
+
+<div id="flightManualAddModal" class="rollcall-import-dialog" hidden>
+  <div class="rollcall-import-backdrop" data-flight-manual-dismiss="1"></div>
+  <div class="rollcall-import-panel" role="dialog" aria-modal="true" aria-labelledby="flightManualAddTitle">
+    <button type="button" class="rollcall-import-close" id="flightManualAddClose" aria-label="關閉">×</button>
+    <div class="flight-manual-add-head">
+      <h3 class="rollcall-import-title" id="flightManualAddTitle">手動新增航班</h3>
+      <p class="foreign-preview-subtitle" id="flightManualAddSubtitle"></p>
+    </div>
+    <div class="flight-manual-add-body">
+      <div class="flight-manual-field">
+        <label for="manualFlightFlt">FLT NO</label>
+        <input type="text" id="manualFlightFlt" placeholder="例：BR0160" autocomplete="off" />
+      </div>
+      <div class="flight-manual-field">
+        <span class="flight-manual-field label-like" style="font-size:12px;font-weight:700;color:#475569">類型</span>
+        <div class="flight-manual-type-row">
+          <label><input type="radio" name="manualFlightType" value="DEP" checked /> 出境（STD）</label>
+          <label><input type="radio" name="manualFlightType" value="ARR" /> 入境（STA）</label>
+        </div>
+      </div>
+      <div class="flight-manual-field">
+        <label for="manualFlightTime" id="manualFlightTimeLabel">STD</label>
+        <input type="text" id="manualFlightTime" placeholder="06:20" autocomplete="off" />
+      </div>
+      <div class="flight-manual-field">
+        <label for="manualFlightRoute">航線（選填）</label>
+        <input type="text" id="manualFlightRoute" placeholder="例：TPE → HKG" autocomplete="off" />
+      </div>
+      <div class="flight-manual-field">
+        <label for="manualFlightRemark">備註（選填）</label>
+        <input type="text" id="manualFlightRemark" autocomplete="off" />
+      </div>
+      <label class="flight-manual-type-row" style="margin-top:4px">
+        <input type="checkbox" id="manualFlightCanx" />
+        <span>標記為 CANX（取消但仍顯示，不產生 duty）</span>
+      </label>
+    </div>
+    <div class="rollcall-import-actions">
+      <button type="button" class="rollcall-import-btn rollcall-import-btn--ghost" id="flightManualAddCancel">取消</button>
+      <button type="button" class="rollcall-import-btn rollcall-import-btn--primary" id="flightManualAddSubmit">新增航班</button>
+    </div>
+  </div>
+</div>
+
+<div id="foreignFlightPreviewModal" class="rollcall-import-dialog" hidden>
+  <div class="rollcall-import-backdrop" data-foreign-preview-dismiss="1"></div>
+  <div class="rollcall-import-panel" role="dialog" aria-modal="true" aria-labelledby="foreignFlightPreviewTitle">
+    <button type="button" class="rollcall-import-close" id="foreignFlightPreviewClose" aria-label="關閉">×</button>
+    <div class="foreign-preview-head">
+      <h3 class="rollcall-import-title" id="foreignFlightPreviewTitle">外家航班確認</h3>
+      <p class="foreign-preview-subtitle" id="foreignFlightPreviewSubtitle"></p>
+    </div>
+    <div class="foreign-preview-summary" id="foreignFlightPreviewSummary"></div>
+    <div class="foreign-preview-warn" id="foreignFlightPreviewDupWarn" hidden></div>
+    <div class="foreign-preview-body" id="foreignFlightPreviewBody"></div>
+    <div class="foreign-preview-actions rollcall-import-actions">
+      <button type="button" class="rollcall-import-btn rollcall-import-btn--ghost" id="foreignFlightPreviewCancel">取消</button>
+      <button type="button" class="rollcall-import-btn rollcall-import-btn--primary" id="foreignFlightPreviewConfirm">確認匯入</button>
+    </div>
   </div>
 </div>
 
@@ -10668,6 +11280,8 @@ function minutesToTime(total) {
 function compactFlightNo(flight) {
   const s = String(flight || '').trim().toUpperCase();
   if (!s) return '';
+  const m = s.match(/^([A-Z]{2})(\d+)$/);
+  if (m) return String(Number(m[2]));
   const carriers = ['BR', 'B7'];
   for (const carrier of carriers) {
     if (!s.startsWith(carrier)) continue;
@@ -11001,7 +11615,636 @@ function normalizeImportedFlightNo(value) {
     if (/^\d+$/.test(num)) return `BR${num.padStart(4, '0')}`;
     return s;
   }
+  const m = s.match(/^([A-Z]{2})(\d+)$/);
+  if (m) return `${m[1]}${m[2].padStart(4, '0')}`;
   return s;
+}
+
+const FOREIGN_SCHEDULE_URL = '外家時刻表.xlsx';
+const ASSIGNMENT_CANX_HTML = '<span class="assignment-canx-cell">CANX</span>';
+let pendingFlightPreview = null;
+let flightPreviewManualRowSeq = 0;
+let excelImportMode = 'fis-full';
+
+function flightDefLookupKey(def) {
+  return `${def.flight}|${def.type}`;
+}
+
+function isFlightInOperationalWindow(type, timeStr) {
+  if (typeof ForeignScheduleParser !== 'undefined' && typeof ForeignScheduleParser.inOperationalWindow === 'function') {
+    return ForeignScheduleParser.inOperationalWindow(type, timeStr, selectedDate);
+  }
+  return true;
+}
+
+function parseRouteEndpoints(route) {
+  const s = String(route || '').trim();
+  const m = s.match(/([A-Z]{3})\s*[→\-–]\s*([A-Z]{3})/i);
+  if (!m) return { dep: '', arr: '' };
+  return { dep: m[1].toUpperCase(), arr: m[2].toUpperCase() };
+}
+
+function applyTimeEditsToFlightDef(def, type, timeStr) {
+  const time = normalizeImportedTime(timeStr);
+  const mins = parseTimeToMinutes(time);
+  if (mins == null) return null;
+  def.baseTime = time;
+  def.baseMinutes = mins;
+  if (type === 'DEP') {
+    def.std = time;
+    if (def.sta == null) def.sta = '';
+  } else {
+    def.sta = time;
+    if (def.std == null) def.std = '';
+  }
+  return def;
+}
+
+function cloneFlightDefForImport(def) {
+  return JSON.parse(JSON.stringify(def));
+}
+
+function buildManualFlightDef(flight, type, timeStr, route, remark, canx) {
+  const normalizedFlight = normalizeImportedFlightNo(flight);
+  const time = normalizeImportedTime(timeStr);
+  const mins = parseTimeToMinutes(time);
+  if (!normalizedFlight || mins == null) return null;
+  const endpoints = parseRouteEndpoints(route);
+  const dep = type === 'DEP' ? 'TPE' : (endpoints.dep || '');
+  const arr = type === 'ARR' ? 'TPE' : (endpoints.arr || '');
+  return {
+    flight: normalizedFlight,
+    flt: normalizedFlight,
+    type,
+    baseTime: time,
+    baseMinutes: mins,
+    offset: 0,
+    extension: 0,
+    dep,
+    arr,
+    std: type === 'DEP' ? time : '',
+    sta: type === 'ARR' ? time : '',
+    route: String(route || '').trim(),
+    remark: String(remark || '').trim(),
+    status: canx ? 'CANX' : '',
+    depGate: '',
+    arrGate: '',
+    acNo: '',
+    etd: '',
+    etaRaw: '',
+    pax: '',
+    serviceType: '',
+    eChat: ''
+  };
+}
+
+async function confirmOutOfWindowImports(rows) {
+  const bad = rows.filter(row => row.time && !isFlightInOperationalWindow(row.type, row.time));
+  if (!bad.length) return true;
+  const list = bad.map(row => `${row.flight} ${row.type === 'DEP' ? '出境' : '入境'} ${row.time}`).join('\n');
+  return appConfirm(
+    `以下航班時間不在營運日窗口（出境 04:30～隔日 04:30、入境 03:30～隔日 03:30）：\n${list}\n\n仍要匯入並在當日班表呈現嗎？`,
+    { title: '營運日窗口', confirmText: '仍要匯入' }
+  );
+}
+
+async function loadForeignScheduleWorkbook() {
+  const res = await fetch(encodeURI(FOREIGN_SCHEDULE_URL));
+  if (!res.ok) throw new Error(`無法載入 ${FOREIGN_SCHEDULE_URL}`);
+  const buffer = await res.arrayBuffer();
+  return XLSX.read(buffer, { type: 'array' });
+}
+
+function findFisDuplicateFlight(fisDefs, foreignDef) {
+  return fisDefs.find(f => f.flight === foreignDef.flight && f.type === foreignDef.type) || null;
+}
+
+function mergeFisAndForeignFlightDefs(fisDefs, selectedForeignDefs) {
+  const merged = fisDefs.slice();
+  const duplicates = [];
+  selectedForeignDefs.forEach(def => {
+    if (findFisDuplicateFlight(fisDefs, def)) {
+      duplicates.push({ flight: def.flight, type: def.type });
+    }
+    merged.push(def);
+  });
+  return { merged, duplicates };
+}
+
+function appendFlightDefs(newDefs) {
+  if (!newDefs.length) return 0;
+  flightsImported = true;
+  flightDefs = flightDefs.concat(newDefs);
+  normalizeFlightDefsInPlace();
+  applyFlightFieldEditsAfterImport();
+  renderAssignmentTableFromFlightDefs();
+  rebuildTemplates();
+  syncScheduleWindows();
+  markUnsynced();
+  renderTimeHeader();
+  renderFlightEditor();
+  renderPalette();
+  renderRows();
+  if (typeof syncAssignmentTableFromSchedule === 'function') syncAssignmentTableFromSchedule();
+  return newDefs.length;
+}
+
+function closeFlightImportHubModal() {
+  const modal = document.getElementById('flightImportHubModal');
+  if (modal) modal.hidden = true;
+}
+
+function openFlightImportHubModal() {
+  initFlightImportModals();
+  const modal = document.getElementById('flightImportHubModal');
+  const fisRadio = modal?.querySelector('input[name="flightImportHubOption"][value="fis"]');
+  if (fisRadio) fisRadio.checked = true;
+  if (modal) modal.hidden = false;
+}
+
+function closeFlightManualAddModal() {
+  const modal = document.getElementById('flightManualAddModal');
+  if (modal) modal.hidden = true;
+}
+
+function openFlightManualAddModal() {
+  initFlightImportModals();
+  const modal = document.getElementById('flightManualAddModal');
+  const subtitle = document.getElementById('flightManualAddSubtitle');
+  if (subtitle) {
+    subtitle.textContent = `班表日期 ${formatScheduleDateDisplay(selectedDate) || selectedDate}：填寫後直接追加至班表。`;
+  }
+  document.getElementById('manualFlightFlt').value = '';
+  document.getElementById('manualFlightTime').value = '';
+  document.getElementById('manualFlightRoute').value = '';
+  document.getElementById('manualFlightRemark').value = '';
+  document.getElementById('manualFlightCanx').checked = false;
+  const depRadio = modal?.querySelector('input[name="manualFlightType"][value="DEP"]');
+  if (depRadio) depRadio.checked = true;
+  updateManualFlightTimeLabel();
+  if (modal) modal.hidden = false;
+}
+
+function updateManualFlightTimeLabel() {
+  const type = document.querySelector('input[name="manualFlightType"]:checked')?.value || 'DEP';
+  const label = document.getElementById('manualFlightTimeLabel');
+  if (label) label.textContent = type === 'DEP' ? 'STD' : 'STA';
+}
+
+function triggerExcelImport(mode) {
+  excelImportMode = mode;
+  const input = document.getElementById('excelImportInput');
+  if (!input) return;
+  input.dataset.mode = mode;
+  input.value = '';
+  input.click();
+}
+
+function closeForeignFlightPreviewModal() {
+  const modal = document.getElementById('foreignFlightPreviewModal');
+  if (modal) modal.hidden = true;
+  pendingFlightPreview = null;
+}
+
+function renderFlightPreviewTableRow(item, type, fisDefs) {
+  const dup = item.flightDef && fisDefs && findFisDuplicateFlight(fisDefs, item.flightDef);
+  const canxChecked = item.defaultCanx || item.flightDef?.status === 'CANX';
+  const flightCell = item.isManual
+    ? `<input type="text" class="foreign-preview-flight-input" value="${escapeHtml(item.flight || '')}" placeholder="FLT" />`
+    : escapeHtml(item.flight);
+  return `
+    <tr class="${dup ? 'is-dup' : ''}${item.isManual ? ' is-manual' : ''}" data-preview-id="${escapeHtml(item.id)}" data-preview-type="${type}" data-preview-source="${escapeHtml(item.source || '')}">
+      <td><input type="checkbox" class="foreign-preview-check" checked /></td>
+      <td><input type="checkbox" class="foreign-preview-canx" ${canxChecked ? 'checked' : ''} title="標記 CANX" /></td>
+      <td>${flightCell}</td>
+      <td><input type="text" class="foreign-preview-time-input" value="${escapeHtml(item.time || '')}" placeholder="06:20" /></td>
+      <td>${escapeHtml(item.route || '')}${dup ? ' <span class="flight-canx-mark">與 FIS 重複</span>' : ''}</td>
+      <td><input type="text" class="foreign-preview-remark-input" value="${escapeHtml(item.remark || '')}" placeholder="備註" /></td>
+    </tr>
+  `;
+}
+
+function renderFlightPreviewTable(type, items, fisDefs) {
+  if (!items.length) {
+    return `<div class="foreign-preview-empty">本日無${type === 'DEP' ? '出境' : '入境'}航班</div>`;
+  }
+  const rows = items.map(item => renderFlightPreviewTableRow(item, type, fisDefs)).join('');
+  return `
+    <table class="foreign-preview-table">
+      <thead>
+        <tr>
+          <th style="width:42px">確認</th>
+          <th style="width:42px">CANX</th>
+          <th>FLT NO</th>
+          <th style="width:88px">${type === 'DEP' ? 'STD' : 'STA'}</th>
+          <th>航線</th>
+          <th>備註</th>
+        </tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>
+  `;
+}
+
+function bindFlightPreviewSectionActions(body, fisDefs) {
+  body.querySelectorAll('[data-foreign-select-all]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const type = btn.dataset.foreignSelectAll;
+      const checks = body.querySelectorAll(`section[data-foreign-type="${type}"] .foreign-preview-check`);
+      const allChecked = [...checks].every(c => c.checked);
+      checks.forEach(c => { c.checked = !allChecked; });
+      btn.textContent = allChecked ? '全選' : '全不選';
+    });
+  });
+  body.querySelectorAll('[data-preview-add-row]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const type = btn.dataset.previewAddRow;
+      const section = body.querySelector(`section[data-foreign-type="${type}"]`);
+      if (!section) return;
+      let table = section.querySelector('.foreign-preview-table tbody');
+      if (!table) {
+        section.insertAdjacentHTML('beforeend', renderFlightPreviewTable(type, [], fisDefs));
+        table = section.querySelector('.foreign-preview-table tbody');
+      }
+      const id = `manual_${++flightPreviewManualRowSeq}`;
+      const rowHtml = renderFlightPreviewTableRow({
+        id,
+        source: 'manual',
+        isManual: true,
+        flight: '',
+        time: '',
+        route: '',
+        remark: ''
+      }, type, fisDefs);
+      table.insertAdjacentHTML('beforeend', rowHtml);
+    });
+  });
+}
+
+function collectForeignPreviewDuplicates(fisDefs, candidates) {
+  const dups = [];
+  candidates.forEach(item => {
+    if (item.flightDef && findFisDuplicateFlight(fisDefs, item.flightDef)) {
+      dups.push(`${item.flight} ${item.type === 'DEP' ? '出境' : '入境'}`);
+    }
+  });
+  return [...new Set(dups)];
+}
+
+function previewItemsFromForeignCandidates(candidates) {
+  return candidates.map(item => ({
+    id: item.id,
+    source: 'foreign',
+    type: item.type,
+    flight: item.flight,
+    time: item.anchorTime,
+    route: item.route || '',
+    remark: item.flightDef?.remark || '',
+    flightDef: item.flightDef,
+    defaultCanx: item.flightDef?.status === 'CANX'
+  }));
+}
+
+function previewItemsFromFisDiff(fisDefs) {
+  const existing = new Set(flightDefs.map(flightDefLookupKey));
+  return fisDefs
+    .filter(def => !existing.has(flightDefLookupKey(def)))
+    .map(def => ({
+      id: `fisdiff_${def.flight}_${def.type}`,
+      source: 'fis-diff',
+      type: def.type,
+      flight: def.flight,
+      time: def.baseTime,
+      route: def.route || `${def.dep || ''} → ${def.arr || ''}`.replace(/^ → | → $/g, '').trim(),
+      remark: def.remark || '',
+      flightDef: def,
+      defaultCanx: def.status === 'CANX'
+    }));
+}
+
+function renderFlightPreviewModalContent() {
+  if (!pendingFlightPreview) return;
+  const modal = document.getElementById('foreignFlightPreviewModal');
+  const title = document.getElementById('foreignFlightPreviewTitle');
+  const subtitle = document.getElementById('foreignFlightPreviewSubtitle');
+  const summary = document.getElementById('foreignFlightPreviewSummary');
+  const body = document.getElementById('foreignFlightPreviewBody');
+  const dupWarn = document.getElementById('foreignFlightPreviewDupWarn');
+  const confirmBtn = document.getElementById('foreignFlightPreviewConfirm');
+  if (!modal || !body) return;
+
+  const { mode, fisParsed, foreignParsed, depItems, arrItems } = pendingFlightPreview;
+  const fis = fisParsed?.flightDefs || [];
+  const dupList = mode === 'foreign-merge'
+    ? collectForeignPreviewDuplicates(fis, foreignParsed?.candidates || [])
+    : [];
+
+  if (title) {
+    title.textContent = mode === 'fis-diff' ? 'FIS 比對追加' : '外家航班確認';
+  }
+  if (subtitle) {
+    subtitle.textContent = mode === 'fis-diff'
+      ? `班表日期 ${formatScheduleDateDisplay(selectedDate) || selectedDate}：以下為 FIS 有、目前班表沒有的航班，勾選後追加（不影響已排 duty）。`
+      : `班表日期 ${formatScheduleDateDisplay(selectedDate) || selectedDate}：可編輯時間（藍字）、標記 CANX，確認後與 FIS 合併匯入。`;
+  }
+  if (summary) {
+    if (mode === 'fis-diff') {
+      const total = depItems.length + arrItems.length;
+      summary.innerHTML = `目前班表：<strong>出境 ${flightDefs.filter(f => f.type === 'DEP').length}</strong>、<strong>入境 ${flightDefs.filter(f => f.type === 'ARR').length}</strong>。<br>FIS 比對缺少：<strong>出境 ${depItems.length}</strong>、<strong>入境 ${arrItems.length}</strong>（共 ${total} 筆可追加）。`;
+    } else if (fisParsed) {
+      summary.innerHTML = `FIS 已讀取：<strong>出境 ${fisParsed.stats.dep}</strong>、<strong>入境 ${fisParsed.stats.arr}</strong>（共 ${fisParsed.stats.total} 筆）。<br>外家候選：<strong>出境 ${depItems.length}</strong>、<strong>入境 ${arrItems.length}</strong>（共 ${foreignParsed?.stats?.total || 0} 筆）。`;
+    }
+  }
+  if (dupWarn) {
+    if (dupList.length) {
+      dupWarn.hidden = false;
+      dupWarn.textContent = `警示：以下外家航班與 FIS 重複，確認後仍會兩筆都保留：${dupList.join('、')}`;
+    } else {
+      dupWarn.hidden = true;
+      dupWarn.textContent = '';
+    }
+  }
+  if (confirmBtn) {
+    confirmBtn.textContent = mode === 'fis-diff' ? '確認追加' : '確認匯入';
+  }
+
+  const depTitle = mode === 'fis-diff' ? '缺少的出境航班' : '外家出境航班';
+  const arrTitle = mode === 'fis-diff' ? '缺少的入境航班' : '外家入境航班';
+
+  body.innerHTML = `
+    <section class="foreign-preview-section" data-foreign-type="DEP">
+      <div class="foreign-preview-section-head">
+        <h4>${depTitle}</h4>
+        <div style="display:flex;gap:12px;align-items:center">
+          <button type="button" class="foreign-preview-add-row" data-preview-add-row="DEP">＋ 新增一列</button>
+          <button type="button" class="foreign-preview-select-all" data-foreign-select-all="DEP">全選</button>
+        </div>
+      </div>
+      ${renderFlightPreviewTable('DEP', depItems, fis)}
+    </section>
+    <section class="foreign-preview-section" data-foreign-type="ARR">
+      <div class="foreign-preview-section-head">
+        <h4>${arrTitle}</h4>
+        <div style="display:flex;gap:12px;align-items:center">
+          <button type="button" class="foreign-preview-add-row" data-preview-add-row="ARR">＋ 新增一列</button>
+          <button type="button" class="foreign-preview-select-all" data-foreign-select-all="ARR">全選</button>
+        </div>
+      </div>
+      ${renderFlightPreviewTable('ARR', arrItems, fis)}
+    </section>
+  `;
+
+  bindFlightPreviewSectionActions(body, fis);
+  modal.hidden = false;
+}
+
+function openForeignFlightPreviewModal(fisParsed, foreignParsed) {
+  const foreignItems = previewItemsFromForeignCandidates(foreignParsed.candidates || []);
+  pendingFlightPreview = {
+    mode: 'foreign-merge',
+    fisParsed,
+    foreignParsed,
+    depItems: foreignItems.filter(item => item.type === 'DEP'),
+    arrItems: foreignItems.filter(item => item.type === 'ARR')
+  };
+  renderFlightPreviewModalContent();
+}
+
+function openFisDiffPreviewModal(fisParsed) {
+  const diffItems = previewItemsFromFisDiff(fisParsed.flightDefs || []);
+  pendingFlightPreview = {
+    mode: 'fis-diff',
+    fisParsed,
+    foreignParsed: null,
+    depItems: diffItems.filter(item => item.type === 'DEP'),
+    arrItems: diffItems.filter(item => item.type === 'ARR')
+  };
+  renderFlightPreviewModalContent();
+}
+
+function readPreviewRowFromDom(row) {
+  const type = row.dataset.previewType;
+  const source = row.dataset.previewSource || '';
+  const checked = row.querySelector('.foreign-preview-check')?.checked;
+  if (!checked) return null;
+  const canx = !!row.querySelector('.foreign-preview-canx')?.checked;
+  const timeInput = row.querySelector('.foreign-preview-time-input');
+  const remarkInput = row.querySelector('.foreign-preview-remark-input');
+  const flightInput = row.querySelector('.foreign-preview-flight-input');
+  const flightText = flightInput
+    ? flightInput.value.trim()
+    : row.querySelector('td:nth-child(3)')?.textContent?.trim() || '';
+  const routeText = row.querySelector('td:nth-child(5)')?.childNodes?.[0]?.textContent?.trim()
+    || row.querySelector('td:nth-child(5)')?.textContent?.replace(/與 FIS 重複/g, '').trim()
+    || '';
+  const previewId = row.dataset.previewId;
+  const item = [...(pendingFlightPreview?.depItems || []), ...(pendingFlightPreview?.arrItems || [])]
+    .find(x => x.id === previewId);
+  return {
+    previewId,
+    source,
+    type,
+    flight: flightText,
+    time: timeInput?.value?.trim() || '',
+    route: routeText,
+    remark: remarkInput?.value?.trim() || '',
+    canx,
+    item
+  };
+}
+
+function buildFlightDefFromPreviewRow(rowData) {
+  const { type, flight, time, route, remark, canx, item, source } = rowData;
+  if (!flight || !time) return null;
+  let def = null;
+  if (source === 'manual' || item?.isManual) {
+    def = buildManualFlightDef(flight, type, time, route, remark, canx);
+  } else if (item?.flightDef) {
+    def = cloneFlightDefForImport(item.flightDef);
+    if (!applyTimeEditsToFlightDef(def, type, time)) return null;
+    if (remark) def.remark = remark;
+    if (canx) def.status = 'CANX';
+    else if (source === 'foreign') def.status = '';
+    else if (!canx && def.status === 'CANX' && source === 'fis-diff') def.status = '';
+  }
+  if (!def) return null;
+  if (canx) def.status = 'CANX';
+  return def;
+}
+
+function collectSelectedPreviewFlightDefs() {
+  const body = document.getElementById('foreignFlightPreviewBody');
+  if (!body || !pendingFlightPreview) return [];
+  const rows = [...body.querySelectorAll('tr[data-preview-id]')];
+  const out = [];
+  rows.forEach(row => {
+    const rowData = readPreviewRowFromDom(row);
+    if (!rowData) return;
+    const def = buildFlightDefFromPreviewRow(rowData);
+    if (def) out.push(def);
+  });
+  return out;
+}
+
+function initFlightImportModals() {
+  if (initFlightImportModals._done) return;
+  initFlightImportModals._done = true;
+
+  const hubModal = document.getElementById('flightImportHubModal');
+  document.getElementById('flightImportHubClose')?.addEventListener('click', closeFlightImportHubModal);
+  document.getElementById('flightImportHubCancel')?.addEventListener('click', closeFlightImportHubModal);
+  hubModal?.querySelectorAll('[data-flight-import-hub-dismiss]').forEach(el => {
+    el.addEventListener('click', closeFlightImportHubModal);
+  });
+  document.getElementById('flightImportHubContinue')?.addEventListener('click', () => {
+    const mode = hubModal?.querySelector('input[name="flightImportHubOption"]:checked')?.value || 'fis';
+    closeFlightImportHubModal();
+    if (mode === 'manual') {
+      openFlightManualAddModal();
+      return;
+    }
+    triggerExcelImport(mode === 'fis-diff' ? 'fis-diff' : 'fis-full');
+  });
+
+  const manualModal = document.getElementById('flightManualAddModal');
+  document.getElementById('flightManualAddClose')?.addEventListener('click', closeFlightManualAddModal);
+  document.getElementById('flightManualAddCancel')?.addEventListener('click', closeFlightManualAddModal);
+  manualModal?.querySelectorAll('[data-flight-manual-dismiss]').forEach(el => {
+    el.addEventListener('click', closeFlightManualAddModal);
+  });
+  manualModal?.querySelectorAll('input[name="manualFlightType"]').forEach(el => {
+    el.addEventListener('change', updateManualFlightTimeLabel);
+  });
+  document.getElementById('flightManualAddSubmit')?.addEventListener('click', async () => {
+    const flight = document.getElementById('manualFlightFlt')?.value?.trim();
+    const type = manualModal?.querySelector('input[name="manualFlightType"]:checked')?.value || 'DEP';
+    const time = document.getElementById('manualFlightTime')?.value?.trim();
+    const route = document.getElementById('manualFlightRoute')?.value?.trim() || '';
+    const remark = document.getElementById('manualFlightRemark')?.value?.trim() || '';
+    const canx = !!document.getElementById('manualFlightCanx')?.checked;
+    if (!flight) {
+      appAlert('請填寫 FLT NO。', '無法新增');
+      return;
+    }
+    if (parseTimeToMinutes(time) == null) {
+      appAlert('請填寫有效的 STD/STA 時間（例：06:20）。', '無法新增');
+      return;
+    }
+    const dupKey = flightDefLookupKey({ flight: normalizeImportedFlightNo(flight), type });
+    if (flightDefs.some(f => flightDefLookupKey(f) === dupKey)) {
+      const proceed = await appConfirm(
+        `${normalizeImportedFlightNo(flight)} ${type === 'DEP' ? '出境' : '入境'} 已存在於班表，仍要再追加一筆嗎？`,
+        { title: '航班重複', confirmText: '仍要追加' }
+      );
+      if (!proceed) return;
+    }
+    const windowOk = await confirmOutOfWindowImports([{ flight: normalizeImportedFlightNo(flight), type, time }]);
+    if (!windowOk) return;
+    const def = buildManualFlightDef(flight, type, time, route, remark, canx);
+    if (!def) {
+      appAlert('航班資料無法建立，請檢查輸入。', '無法新增');
+      return;
+    }
+    closeFlightManualAddModal();
+    const added = appendFlightDefs([def]);
+    appSuccess(`已追加 ${added} 筆航班（${def.flight} ${type === 'DEP' ? '出境' : '入境'}）。請按「同步」上傳雲端。`, '新增完成');
+  });
+
+  const modal = document.getElementById('foreignFlightPreviewModal');
+  if (!modal) return;
+  document.getElementById('foreignFlightPreviewClose')?.addEventListener('click', closeForeignFlightPreviewModal);
+  document.getElementById('foreignFlightPreviewCancel')?.addEventListener('click', closeForeignFlightPreviewModal);
+  modal.querySelectorAll('[data-foreign-preview-dismiss]').forEach(el => {
+    el.addEventListener('click', closeForeignFlightPreviewModal);
+  });
+  document.getElementById('foreignFlightPreviewConfirm')?.addEventListener('click', async () => {
+    try {
+      console.log('foreign confirm clicked');
+      if (!pendingFlightPreview) return;
+      const body = document.getElementById('foreignFlightPreviewBody');
+      const checkedRows = body ? [...body.querySelectorAll('tr[data-preview-id]')].filter(row => row.querySelector('.foreign-preview-check')?.checked) : [];
+      console.log('checkedRows.length', checkedRows.length);
+      if (!checkedRows.length) {
+        appAlert('請至少勾選一筆航班。', '無法匯入');
+        return;
+      }
+      const invalidRows = checkedRows.filter(row => {
+        const rowData = readPreviewRowFromDom(row);
+        return !rowData?.flight || parseTimeToMinutes(rowData.time) == null;
+      });
+      if (invalidRows.length) {
+        appAlert('已勾選的列請填寫 FLT NO 與有效時間（例：06:20）。', '無法匯入');
+        return;
+      }
+      const selectedDefs = collectSelectedPreviewFlightDefs();
+      console.log('selectedDefs.length', selectedDefs.length);
+      console.log('pendingFlightPreview.mode', pendingFlightPreview.mode);
+      if (!selectedDefs.length) {
+        appAlert('已勾選航班，但無法轉成 flightDefs，請檢查外家 parser 是否有建立 flightDef。', '無法匯入');
+        return;
+      }
+      const windowRows = selectedDefs.map(def => ({
+        flight: def.flight,
+        type: def.type,
+        time: def.baseTime
+      }));
+      const windowOk = await confirmOutOfWindowImports(windowRows);
+      if (!windowOk) return;
+
+      if (pendingFlightPreview.mode === 'fis-diff') {
+        console.log('merged.length', '(n/a in fis-diff mode)');
+        const { fisParsed } = pendingFlightPreview;
+        closeForeignFlightPreviewModal();
+        const added = appendFlightDefs(selectedDefs);
+        const dep = selectedDefs.filter(f => f.type === 'DEP').length;
+        const arr = selectedDefs.filter(f => f.type === 'ARR').length;
+        let successMsg = `FIS 比對追加完成（新增 ${added} 筆；出境 ${dep}、入境 ${arr}）。請按「同步」上傳雲端。`;
+        if (fisParsed?.warnings?.length) successMsg += `\n\n${fisParsed.warnings.join('\n')}`;
+        appSuccess(successMsg, '追加完成');
+        return;
+      }
+
+      const { fisParsed, foreignParsed } = pendingFlightPreview;
+      const { merged, duplicates } = mergeFisAndForeignFlightDefs(fisParsed.flightDefs, selectedDefs);
+      console.log('merged.length', merged.length);
+      const dep = merged.filter(f => f.type === 'DEP').length;
+      const arr = merged.filter(f => f.type === 'ARR').length;
+      closeForeignFlightPreviewModal();
+      rebuildAfterFlightImport(merged);
+      let successMsg = `航班匯入完成（FIS ${fisParsed.stats.total} + 外家/手動 ${selectedDefs.length}，共 ${merged.length} 筆；出境 ${dep}、入境 ${arr}）。請按「同步」上傳雲端。`;
+      if (duplicates.length) {
+        const dupText = duplicates.map(d => `${d.flight} ${d.type === 'DEP' ? '出境' : '入境'}`).join('、');
+        successMsg += `\n\n警示：與 FIS 重複並保留兩筆：${dupText}`;
+      }
+      if (fisParsed.warnings?.length) successMsg += `\n\n${fisParsed.warnings.join('\n')}`;
+      if (foreignParsed?.error) successMsg += `\n\n${foreignParsed.error}`;
+      appSuccess(successMsg, '匯入完成');
+    } catch (err) {
+      console.error(err);
+      appAlert(String(err?.message || err), '匯入錯誤');
+    }
+  });
+}
+
+function initForeignFlightPreviewModal() {
+  initFlightImportModals();
+}
+
+async function finalizeFisOnlyImport(parsed, inputEl) {
+  const { dep, arr, total } = parsed.stats;
+  const importOk = await appConfirm(
+    `即將匯入 ${total} 筆航班（出境 ${dep}、入境 ${arr}）。\n已排的 duty 會保留，確定匯入嗎？`,
+    { title: '匯入當日航班', confirmText: '確定匯入' }
+  );
+  if (!importOk) {
+    if (inputEl) inputEl.value = '';
+    return;
+  }
+  rebuildAfterFlightImport(parsed.flightDefs);
+  let successMsg = `航班匯入完成（出境 ${dep}、入境 ${arr}）。請按「同步」上傳雲端。`;
+  if (parsed.warnings?.length) successMsg += `\n\n${parsed.warnings.join('\n')}`;
+  appSuccess(successMsg, '匯入完成');
+  if (inputEl) inputEl.value = '';
 }
 function normalizeImportedTime(value) {
   if (value === null || value === undefined || value === '') return '';
@@ -11024,6 +12267,854 @@ function formatAssignmentGate(f, type) {
   const gate = type === 'DEP' ? (f.depGate || '') : (f.arrGate || '');
   return escapeHtml(gate);
 }
+
+function hasAssignmentFieldEdits(f, field) {
+  return typeof FlightAssignmentUtils !== 'undefined'
+    && FlightAssignmentUtils.getFieldEditCount(f, field) > 0;
+}
+
+function hasAssignmentGateFieldEdits(f, field) {
+  return hasAssignmentFieldEdits(f, field);
+}
+
+function assignmentFieldEditWrapClass(f, field) {
+  if (!isAssignmentGateField(field)) return '';
+  return hasAssignmentFieldEdits(f, field) ? ' assignment-field-gate-edited' : '';
+}
+
+const assignmentUnlockedColumns = new Set();
+
+function isAssignmentColumnEditable(field) {
+  return assignmentUnlockedColumns.has(field);
+}
+
+function isAssignmentGateField(field) {
+  return field === 'depGate' || field === 'arrGate';
+}
+
+function isAssignmentTimeField(field) {
+  return field === 'depStd' || field === 'arrSta';
+}
+
+function isAssignmentChainField(field) {
+  return isAssignmentGateField(field) || isAssignmentTimeField(field);
+}
+
+function hasAssignmentTimeFieldChange(f, field) {
+  if (typeof FlightAssignmentUtils === 'undefined') return false;
+  return FlightAssignmentUtils.buildFieldHistoryChain(f, field).length > 1;
+}
+
+function hasDepStdTimeChange(f) {
+  return hasAssignmentTimeFieldChange(f, 'depStd');
+}
+
+function hasArrStaTimeChange(f) {
+  return hasAssignmentTimeFieldChange(f, 'arrSta');
+}
+
+function getAssignmentDepStdDisplayValue(f) {
+  return minutesToTime(depStdMinutes(f));
+}
+
+function getAssignmentArrStaDisplayValue(f) {
+  return minutesToTime(arrStaMinutes(f));
+}
+
+function syncAssignmentTimeFieldFromEdits(f, field) {
+  if (typeof FlightAssignmentUtils === 'undefined') return;
+  const chain = FlightAssignmentUtils.buildFieldHistoryChain(f, field);
+  const base = minutesToTime(f.baseMinutes);
+  if (chain.length <= 1) {
+    f.changeTime = '';
+  } else {
+    const current = String(chain[chain.length - 1] ?? '').trim();
+    f.changeTime = current === base ? '' : current;
+  }
+  f.offset = 0;
+}
+
+function migrateTimeFieldEditsFromChangeTime(f, field) {
+  if (typeof FlightAssignmentUtils === 'undefined') return;
+  if (FlightAssignmentUtils.getFieldEdits(f, field).length) {
+    syncAssignmentTimeFieldFromEdits(f, field);
+    return;
+  }
+  const changeTime = String(f.changeTime || '').trim();
+  if (!changeTime) return;
+  const base = minutesToTime(f.baseMinutes);
+  if (changeTime === base) {
+    f.changeTime = '';
+    return;
+  }
+  if (!Array.isArray(f.edits)) f.edits = [];
+  f.edits.push({
+    field,
+    from: base,
+    to: changeTime,
+    at: new Date().toISOString()
+  });
+}
+
+function syncAssignmentColumnEditUi() {
+  document.querySelectorAll('[data-assignment-edit-col]').forEach(th => {
+    const col = th.dataset.assignmentEditCol;
+    th.classList.toggle('is-edit-unlocked', assignmentUnlockedColumns.has(col));
+    const btn = th.querySelector('.assignment-col-edit-btn');
+    if (btn) {
+      btn.title = assignmentUnlockedColumns.has(col) ? '鎖定此欄（停止編輯）' : '解鎖此欄編輯';
+    }
+  });
+  document.querySelectorAll('.assignment-field-display').forEach(el => {
+    const field = el.dataset.editField;
+    const wrap = el.closest('.assignment-field-wrap');
+    if (!field || !wrap) return;
+    let editable = isAssignmentColumnEditable(field);
+    wrap.classList.toggle('is-column-editable', editable);
+    el.classList.toggle('is-readonly', !editable);
+    el.tabIndex = editable ? 0 : -1;
+  });
+}
+
+function toggleAssignmentColumnEdit(colKey) {
+  if (!colKey) return;
+  if (assignmentUnlockedColumns.has(colKey)) {
+    assignmentUnlockedColumns.delete(colKey);
+    if (activeAssignmentFieldEdit?.displayEl?.dataset?.editField === colKey) {
+      finishAssignmentFieldEdit(true);
+    }
+  } else {
+    assignmentUnlockedColumns.add(colKey);
+  }
+  syncAssignmentColumnEditUi();
+}
+
+function renderAssignmentEditableField(f, field, value, variant) {
+  const displayVal = String(value ?? '').trim();
+  const emptyClass = displayVal ? '' : ' is-empty';
+  const editable = isAssignmentColumnEditable(field);
+  const readonlyClass = editable ? '' : ' is-readonly';
+  const wrapVariant = variant === 'gate' ? ' assignment-field-gate' : ' assignment-field-connecting';
+  const gateEditedClass = assignmentFieldEditWrapClass(f, field);
+  const colEditableClass = editable ? ' is-column-editable' : '';
+  return `<span class="assignment-field-wrap${wrapVariant}${gateEditedClass}${colEditableClass}">` +
+    `<span class="assignment-field-display${emptyClass}${readonlyClass}" tabindex="${editable ? 0 : -1}" ` +
+    `data-flight-def-id="${escapeHtml(f.id)}" data-edit-field="${escapeHtml(field)}" data-value="${escapeHtml(displayVal)}">` +
+    `${escapeHtml(displayVal)}</span>` +
+    `</span>`;
+}
+
+function renderAssignmentGateCell(f, type) {
+  if (f.status === 'CANX') return ASSIGNMENT_CANX_HTML;
+  const field = type === 'DEP' ? 'depGate' : 'arrGate';
+  const value = type === 'DEP' ? (f.depGate || '') : (f.arrGate || '');
+  return renderAssignmentEditableField(f, field, value, 'gate');
+}
+
+function renderAssignmentConnectingCell(f) {
+  if (f.status === 'CANX') return ASSIGNMENT_CANX_HTML;
+  return renderAssignmentEditableField(f, 'connectingFlight', f.connectingFlight || '', 'connecting');
+}
+
+function renderAssignmentEtaCell(f) {
+  if (f.status === 'CANX') return ASSIGNMENT_CANX_HTML;
+  const displayVal = f.eta ? normalizeImportedTime(f.eta) : '';
+  return renderAssignmentEditableField(f, 'eta', displayVal, 'connecting');
+}
+
+function renderAssignmentDepStdCell(f) {
+  if (f.status === 'CANX') return ASSIGNMENT_CANX_HTML;
+  const field = 'depStd';
+  const displayVal = getAssignmentDepStdDisplayValue(f);
+  const colUnlocked = isAssignmentColumnEditable(field);
+  const editable = colUnlocked;
+  const readonlyClass = editable ? '' : ' is-readonly';
+  const editedClass = hasDepStdTimeChange(f) ? ' assignment-field-std-edited' : '';
+  const colEditableClass = colUnlocked ? ' is-column-editable' : '';
+  return `<span class="assignment-field-wrap assignment-field-std${editedClass}${colEditableClass}">` +
+    `<span class="assignment-field-display${readonlyClass}" tabindex="${editable ? 0 : -1}" ` +
+    `data-flight-def-id="${escapeHtml(f.id)}" data-edit-field="${field}" data-value="${escapeHtml(displayVal)}">` +
+    `${escapeHtml(displayVal)}</span>` +
+    `</span>`;
+}
+
+function renderAssignmentArrStaCell(f) {
+  if (f.status === 'CANX') return ASSIGNMENT_CANX_HTML;
+  const field = 'arrSta';
+  const displayVal = getAssignmentArrStaDisplayValue(f);
+  const colUnlocked = isAssignmentColumnEditable(field);
+  const editable = colUnlocked;
+  const readonlyClass = editable ? '' : ' is-readonly';
+  const editedClass = hasArrStaTimeChange(f) ? ' assignment-field-std-edited' : '';
+  const colEditableClass = colUnlocked ? ' is-column-editable' : '';
+  return `<span class="assignment-field-wrap assignment-field-std${editedClass}${colEditableClass}">` +
+    `<span class="assignment-field-display${readonlyClass}" tabindex="${editable ? 0 : -1}" ` +
+    `data-flight-def-id="${escapeHtml(f.id)}" data-edit-field="${field}" data-value="${escapeHtml(displayVal)}">` +
+    `${escapeHtml(displayVal)}</span>` +
+    `</span>`;
+}
+
+function applyFlightFieldEditsAfterImport() {
+  if (typeof FlightAssignmentUtils === 'undefined') return;
+  FlightAssignmentUtils.ensureFlightDefIds(flightDefs);
+  FlightAssignmentUtils.computeConnectingFlights(flightDefs, selectedDate, {
+    normalizeFlightNo: normalizeImportedFlightNo,
+    preserveManual: true
+  });
+}
+
+function findFlightDefById(id) {
+  return flightDefs.find(f => f.id === id) || null;
+}
+
+function applyFlightScheduleEdit() {
+  rebuildTemplates();
+  syncScheduleWindows();
+  renderPalette();
+  renderRows();
+  markUnsynced();
+  saveLocal();
+  renderAssignmentTableFromFlightDefs();
+  if (typeof renderFlightEditor === 'function') renderFlightEditor();
+}
+
+function commitAssignmentDepStdEdit(flightDefId, changeTimeRaw) {
+  const f = findFlightDefById(flightDefId);
+  if (!f || f.type !== 'DEP' || typeof FlightAssignmentUtils === 'undefined') return false;
+
+  const rawTime = String(changeTimeRaw ?? '').trim();
+  let newVal = minutesToTime(f.baseMinutes);
+  if (rawTime) {
+    const normalized = normalizeImportedTime(rawTime);
+    if (parseTimeToMinutes(normalized) == null) return false;
+    newVal = normalized;
+  }
+
+  const oldVal = getAssignmentDepStdDisplayValue(f);
+  if (oldVal === newVal) return false;
+
+  const base = minutesToTime(f.baseMinutes);
+  if (newVal === base) {
+    f.edits = (f.edits || []).filter(e => e.field !== 'depStd');
+    f.changeTime = '';
+  } else {
+    FlightAssignmentUtils.recordFieldEdit(f, 'depStd', oldVal, newVal);
+    syncAssignmentTimeFieldFromEdits(f, 'depStd');
+  }
+  f.offset = 0;
+  applyFlightScheduleEdit();
+  return true;
+}
+
+function commitAssignmentArrStaEdit(flightDefId, changeTimeRaw) {
+  const f = findFlightDefById(flightDefId);
+  if (!f || f.type !== 'ARR' || typeof FlightAssignmentUtils === 'undefined') return false;
+
+  const rawTime = String(changeTimeRaw ?? '').trim();
+  let newVal = minutesToTime(f.baseMinutes);
+  if (rawTime) {
+    const normalized = normalizeImportedTime(rawTime);
+    if (parseTimeToMinutes(normalized) == null) return false;
+    newVal = normalized;
+  }
+
+  const oldVal = getAssignmentArrStaDisplayValue(f);
+  if (oldVal === newVal) return false;
+
+  const base = minutesToTime(f.baseMinutes);
+  if (newVal === base) {
+    f.edits = (f.edits || []).filter(e => e.field !== 'arrSta');
+    f.changeTime = '';
+  } else {
+    FlightAssignmentUtils.recordFieldEdit(f, 'arrSta', oldVal, newVal);
+    syncAssignmentTimeFieldFromEdits(f, 'arrSta');
+  }
+  f.offset = 0;
+  applyFlightScheduleEdit();
+  return true;
+}
+
+function commitAssignmentFieldEdit(flightDefId, field, rawValue) {
+  const f = findFlightDefById(flightDefId);
+  if (!f || !field || typeof FlightAssignmentUtils === 'undefined') return false;
+
+  if (field === 'eta') {
+    const raw = String(rawValue ?? '').trim();
+    let newVal = '';
+    if (raw) {
+      const normalized = normalizeImportedTime(raw);
+      if (parseTimeToMinutes(normalized) == null) return false;
+      newVal = normalized;
+    }
+    const oldVal = f.eta ? normalizeImportedTime(f.eta) : '';
+    if (oldVal === newVal) return false;
+    f.eta = newVal;
+    applyFlightScheduleEdit();
+    return true;
+  }
+
+  const newVal = String(rawValue ?? '').trim();
+  const simpleFields = ['depGate', 'arrGate', 'connectingFlight'];
+  if (!simpleFields.includes(field)) return false;
+
+  let oldVal = '';
+  if (field === 'depGate') oldVal = f.depGate || '';
+  else if (field === 'arrGate') oldVal = f.arrGate || '';
+  else if (field === 'connectingFlight') oldVal = f.connectingFlight || '';
+
+  if (oldVal === newVal) return false;
+
+  if (field === 'depGate') f.depGate = newVal;
+  else if (field === 'arrGate') f.arrGate = newVal;
+  else if (field === 'connectingFlight') {
+    f.connectingFlight = newVal ? normalizeImportedFlightNo(newVal) : '';
+    f.connectingSource = 'manual';
+  }
+
+  if (isAssignmentGateField(field)) {
+    FlightAssignmentUtils.recordFieldEdit(f, field, oldVal, newVal);
+  }
+
+  if (field === 'depGate' || field === 'arrGate') {
+    FlightAssignmentUtils.computeConnectingFlights(flightDefs, selectedDate, {
+      normalizeFlightNo: normalizeImportedFlightNo,
+      preserveManual: true
+    });
+  }
+
+  markUnsynced();
+  saveLocal();
+  renderAssignmentTableFromFlightDefs();
+  return true;
+}
+
+function commitAssignmentChainCorrection(flightDefId, field, chainIndex, rawValue) {
+  const f = findFlightDefById(flightDefId);
+  if (!f || !isAssignmentChainField(field) || typeof FlightAssignmentUtils === 'undefined') return false;
+
+  let newVal = String(rawValue ?? '').trim();
+  if (isAssignmentTimeField(field)) {
+    if (!newVal) return false;
+    const normalized = normalizeImportedTime(newVal);
+    if (parseTimeToMinutes(normalized) == null) return false;
+    newVal = normalized;
+  }
+
+  if (!FlightAssignmentUtils.correctFieldEditAtChainIndex(f, field, chainIndex, newVal)) return false;
+
+  if (isAssignmentTimeField(field)) {
+    syncAssignmentTimeFieldFromEdits(f, field);
+    applyFlightScheduleEdit();
+    return true;
+  }
+
+  FlightAssignmentUtils.computeConnectingFlights(flightDefs, selectedDate, {
+    normalizeFlightNo: normalizeImportedFlightNo,
+    preserveManual: true
+  });
+
+  markUnsynced();
+  saveLocal();
+  renderAssignmentTableFromFlightDefs();
+  return true;
+}
+
+function buildFieldHistoryChainTooltipHtml(f, field) {
+  if (typeof FlightAssignmentUtils === 'undefined') return '';
+  const chain = FlightAssignmentUtils.buildFieldHistoryChain(f, field);
+  if (chain.length <= 1) return '';
+  const editable = isAssignmentColumnEditable(field);
+  const parts = chain.map((v, i) => {
+    const isLast = i === chain.length - 1;
+    const text = escapeHtml(v || '—');
+    const inner = isLast ? text : `<s>${text}</s>`;
+    if (editable) {
+      return `<button type="button" class="assignment-gate-node" data-chain-index="${i}" data-action="edit-chain-node">${inner}</button>`;
+    }
+    return `<span class="assignment-gate-node assignment-gate-node--readonly">${inner}</span>`;
+  });
+  return `<div class="assignment-gate-chain">${parts.join('<span class="assignment-gate-arrow"> → </span>')}</div>`;
+}
+
+function assignmentTooltipShouldStayOpen(relatedTarget) {
+  if (!assignmentFieldTooltipEl || assignmentFieldTooltipEl.hidden) return false;
+  if (relatedTarget && assignmentFieldTooltipEl.contains(relatedTarget)) return true;
+  if (assignmentFieldTooltipTarget && relatedTarget && assignmentFieldTooltipTarget.contains(relatedTarget)) return true;
+  return false;
+}
+
+let assignmentFieldTooltipEl = null;
+let assignmentFieldTooltipTarget = null;
+let assignmentTooltipHideTimer = null;
+let assignmentTooltipPinned = false;
+
+function clearAssignmentTooltipHideTimer() {
+  if (assignmentTooltipHideTimer) {
+    clearTimeout(assignmentTooltipHideTimer);
+    assignmentTooltipHideTimer = null;
+  }
+}
+
+function scheduleHideAssignmentFieldTooltip() {
+  if (assignmentTooltipPinned) return;
+  clearAssignmentTooltipHideTimer();
+  assignmentTooltipHideTimer = setTimeout(() => {
+    assignmentTooltipHideTimer = null;
+    if (!assignmentTooltipPinned) hideAssignmentFieldTooltip(true);
+  }, 200);
+}
+
+function onAssignmentFieldTooltipPointerDown(e) {
+  const nodeBtn = e.target.closest('[data-action="edit-chain-node"]');
+  if (!nodeBtn || !assignmentFieldTooltipTarget) return;
+  e.preventDefault();
+  e.stopPropagation();
+  const chainIndex = Number.parseInt(nodeBtn.dataset.chainIndex, 10);
+  if (Number.isNaN(chainIndex)) return;
+  if (activeAssignmentFieldEdit?.mode === 'chainNode') {
+    cancelAssignmentChainNodeEdit();
+  }
+  startAssignmentChainNodeEdit(chainIndex);
+}
+
+function onAssignmentChainNodeInputKeydown(e) {
+  if (activeAssignmentFieldEdit?.mode !== 'chainNode') return;
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    saveAssignmentChainNodeEdit();
+  } else if (e.key === 'Escape') {
+    e.preventDefault();
+    cancelAssignmentChainNodeEdit();
+  }
+}
+
+function bindAssignmentChainNodeInput(input) {
+  if (!input || input.dataset.bound) return;
+  input.dataset.bound = '1';
+  input.addEventListener('keydown', onAssignmentChainNodeInputKeydown);
+}
+
+function unbindAssignmentChainOutsideListener() {
+  if (!unbindAssignmentChainOutsideListener._fn) return;
+  document.removeEventListener('pointerdown', unbindAssignmentChainOutsideListener._fn, true);
+  unbindAssignmentChainOutsideListener._fn = null;
+}
+
+function bindAssignmentChainOutsideListener() {
+  unbindAssignmentChainOutsideListener();
+  const fn = e => {
+    if (activeAssignmentFieldEdit?.mode !== 'chainNode') return;
+    if (assignmentFieldTooltipEl?.contains(e.target)) return;
+    if (assignmentFieldTooltipTarget?.contains(e.target)) return;
+    cancelAssignmentChainNodeEdit();
+  };
+  unbindAssignmentChainOutsideListener._fn = fn;
+  document.addEventListener('pointerdown', fn, true);
+}
+
+function startAssignmentChainNodeEdit(chainIndex) {
+  if (!assignmentFieldTooltipTarget) return;
+  const displayEl = assignmentFieldTooltipTarget;
+  const field = displayEl.dataset.editField;
+  const f = findFlightDefById(displayEl.dataset.flightDefId);
+  if (!f || !isAssignmentChainField(field) || !isAssignmentColumnEditable(field)) return;
+  const chain = FlightAssignmentUtils.buildFieldHistoryChain(f, field);
+  if (chainIndex < 0 || chainIndex >= chain.length) return;
+
+  const origValue = String(chain[chainIndex] ?? '');
+  const wrap = displayEl.closest('.assignment-field-wrap');
+  assignmentTooltipPinned = true;
+  clearAssignmentTooltipHideTimer();
+  activeAssignmentFieldEdit = {
+    displayEl,
+    wrap,
+    field,
+    flightDefId: f.id,
+    inTooltip: true,
+    mode: 'chainNode',
+    chainIndex,
+    origValue
+  };
+  wrap?.classList.add('is-tooltip-editing');
+
+  const tip = ensureAssignmentFieldTooltip();
+  tip.classList.add('assignment-field-tooltip--interactive', 'assignment-field-tooltip--pinned');
+
+  const nodeEl = tip.querySelector(`.assignment-gate-node[data-chain-index="${chainIndex}"]`);
+  if (!nodeEl) return;
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.className = 'assignment-gate-node-input';
+  input.value = origValue;
+  input.dataset.chainIndex = String(chainIndex);
+  input.autocomplete = 'off';
+  if (isAssignmentTimeField(field)) {
+    input.inputMode = 'numeric';
+    input.maxLength = 5;
+  }
+  nodeEl.replaceWith(input);
+  bindAssignmentChainNodeInput(input);
+  bindAssignmentChainOutsideListener();
+  requestAnimationFrame(() => {
+    input.focus();
+    input.select();
+  });
+}
+
+function cancelAssignmentChainNodeEdit() {
+  if (activeAssignmentFieldEdit?.mode !== 'chainNode') return;
+  const { displayEl, wrap } = activeAssignmentFieldEdit;
+  assignmentTooltipPinned = false;
+  activeAssignmentFieldEdit = null;
+  wrap?.classList.remove('is-tooltip-editing');
+  unbindAssignmentChainOutsideListener();
+  if (displayEl?.matches(':hover')) showAssignmentFieldTooltipForDisplay(displayEl);
+  else hideAssignmentFieldTooltip(true);
+}
+
+function saveAssignmentChainNodeEdit() {
+  if (activeAssignmentFieldEdit?.mode !== 'chainNode') return;
+  const input = assignmentFieldTooltipEl?.querySelector('.assignment-gate-node-input');
+  let newVal = input ? String(input.value ?? '').trim() : '';
+  const { chainIndex, origValue, flightDefId, field, displayEl, wrap } = activeAssignmentFieldEdit;
+
+  if (isAssignmentTimeField(field) && newVal) {
+    const normalized = normalizeImportedTime(newVal);
+    if (parseTimeToMinutes(normalized) == null) {
+      cancelAssignmentChainNodeEdit();
+      return;
+    }
+    newVal = normalized;
+  }
+
+  assignmentTooltipPinned = false;
+  activeAssignmentFieldEdit = null;
+  wrap?.classList.remove('is-tooltip-editing');
+  unbindAssignmentChainOutsideListener();
+
+  if (newVal === String(origValue).trim()) {
+    if (displayEl.matches(':hover')) showAssignmentFieldTooltipForDisplay(displayEl);
+    else hideAssignmentFieldTooltip(true);
+    return;
+  }
+
+  const ok = commitAssignmentChainCorrection(flightDefId, field, chainIndex, newVal);
+  hideAssignmentFieldTooltip(true);
+  if (!ok) refreshAssignmentFieldDisplay(displayEl);
+}
+
+function ensureAssignmentFieldTooltip() {
+  if (!assignmentFieldTooltipEl) {
+    assignmentFieldTooltipEl = document.createElement('div');
+    assignmentFieldTooltipEl.id = 'assignmentFieldTooltip';
+    assignmentFieldTooltipEl.className = 'assignment-field-tooltip';
+    assignmentFieldTooltipEl.hidden = true;
+    document.body.appendChild(assignmentFieldTooltipEl);
+    assignmentFieldTooltipEl.addEventListener('mousedown', onAssignmentFieldTooltipPointerDown);
+    assignmentFieldTooltipEl.addEventListener('pointerdown', onAssignmentFieldTooltipPointerDown);
+    assignmentFieldTooltipEl.addEventListener('mouseenter', () => clearAssignmentTooltipHideTimer());
+    assignmentFieldTooltipEl.addEventListener('mouseleave', e => {
+      if (assignmentTooltipPinned) return;
+      if (assignmentTooltipShouldStayOpen(e.relatedTarget)) return;
+      scheduleHideAssignmentFieldTooltip();
+    });
+  }
+  return assignmentFieldTooltipEl;
+}
+
+function hideAssignmentFieldTooltip(force = false) {
+  if (assignmentTooltipPinned && !force) return;
+  clearAssignmentTooltipHideTimer();
+  if (assignmentFieldTooltipEl) {
+    assignmentFieldTooltipEl.hidden = true;
+    assignmentFieldTooltipEl.innerHTML = '';
+    assignmentFieldTooltipEl.classList.remove('assignment-field-tooltip--interactive', 'assignment-field-tooltip--pinned');
+  }
+  assignmentFieldTooltipTarget = null;
+  assignmentTooltipPinned = false;
+  unbindAssignmentChainOutsideListener();
+  if (activeAssignmentFieldEdit?.inTooltip) {
+    activeAssignmentFieldEdit.wrap?.classList.remove('is-tooltip-editing', 'is-correcting-last-edit');
+    activeAssignmentFieldEdit = null;
+  }
+}
+
+function positionAssignmentFieldTooltip(anchorEl, html, interactive = false) {
+  if (!html) {
+    hideAssignmentFieldTooltip(true);
+    return;
+  }
+  const tip = ensureAssignmentFieldTooltip();
+  tip.innerHTML = html;
+  tip.classList.toggle(
+    'assignment-field-tooltip--interactive',
+    interactive || assignmentTooltipPinned || html.includes('assignment-gate-chain')
+  );
+  tip.classList.toggle('assignment-field-tooltip--pinned', assignmentTooltipPinned);
+  tip.hidden = false;
+  const rect = anchorEl.getBoundingClientRect();
+  const tipRect = tip.getBoundingClientRect();
+  let left = rect.left;
+  let top = rect.bottom + 6;
+  if (left + tipRect.width > window.innerWidth - 8) left = window.innerWidth - tipRect.width - 8;
+  if (top + tipRect.height > window.innerHeight - 8) top = rect.top - tipRect.height - 6;
+  tip.style.left = `${Math.max(8, left)}px`;
+  tip.style.top = `${Math.max(8, top)}px`;
+}
+
+function showAssignmentFieldTooltipForDisplay(displayEl) {
+  if (!displayEl || assignmentTooltipPinned) return;
+  const field = displayEl.dataset.editField;
+  const id = displayEl.dataset.flightDefId;
+  const f = findFlightDefById(id);
+  if (!f || !field) return;
+
+  let html = '';
+  if (isAssignmentChainField(field) && typeof FlightAssignmentUtils !== 'undefined') {
+    html = buildFieldHistoryChainTooltipHtml(f, field);
+  }
+
+  if (!html) {
+    scheduleHideAssignmentFieldTooltip();
+    return;
+  }
+  clearAssignmentTooltipHideTimer();
+  assignmentFieldTooltipTarget = displayEl;
+  positionAssignmentFieldTooltip(displayEl, html, html.includes('assignment-gate-chain'));
+}
+
+let activeAssignmentFieldEdit = null;
+
+function getAssignmentFieldEditInput(wrap, displayEl) {
+  const field = displayEl.dataset.editField;
+  let input = wrap.querySelector(isAssignmentTimeField(field) ? '.assignment-field-input-time' : '.assignment-field-input');
+  if (!input) {
+    input = document.createElement('input');
+    input.type = 'text';
+    input.className = isAssignmentTimeField(field)
+      ? 'assignment-field-input assignment-field-input-time'
+      : 'assignment-field-input';
+    input.hidden = true;
+    input.autocomplete = 'off';
+    if (isAssignmentTimeField(field)) {
+      input.inputMode = 'numeric';
+      input.maxLength = 5;
+    } else if (field === 'eta') {
+      input.inputMode = 'numeric';
+      input.maxLength = 5;
+    }
+    const badge = wrap.querySelector('.field-edit-badge');
+    wrap.insertBefore(input, badge || null);
+    input.addEventListener('keydown', onAssignmentFieldInputKeydown);
+    input.addEventListener('blur', onAssignmentFieldInputBlur);
+  }
+  input.dataset.flightDefId = displayEl.dataset.flightDefId;
+  input.dataset.editField = displayEl.dataset.editField;
+  return input;
+}
+
+function refreshAssignmentDepStdDisplay(displayEl, f) {
+  const displayVal = getAssignmentDepStdDisplayValue(f);
+  displayEl.dataset.value = displayVal;
+  displayEl.textContent = displayVal;
+  displayEl.classList.remove('is-empty');
+  const wrap = displayEl.closest('.assignment-field-wrap');
+  if (wrap) {
+    wrap.classList.toggle('assignment-field-std-edited', hasDepStdTimeChange(f));
+  }
+}
+
+function refreshAssignmentArrStaDisplay(displayEl, f) {
+  const displayVal = getAssignmentArrStaDisplayValue(f);
+  displayEl.dataset.value = displayVal;
+  displayEl.textContent = displayVal;
+  displayEl.classList.remove('is-empty');
+  const wrap = displayEl.closest('.assignment-field-wrap');
+  if (wrap) {
+    wrap.classList.toggle('assignment-field-std-edited', hasArrStaTimeChange(f));
+  }
+}
+
+function refreshAssignmentFieldDisplay(displayEl) {
+  const f = findFlightDefById(displayEl.dataset.flightDefId);
+  const field = displayEl.dataset.editField;
+  if (!f || !field) return;
+  if (field === 'depStd') {
+    refreshAssignmentDepStdDisplay(displayEl, f);
+  } else if (field === 'arrSta') {
+    refreshAssignmentArrStaDisplay(displayEl, f);
+  } else {
+    let val = '';
+    if (field === 'depGate') val = f.depGate || '';
+    else if (field === 'arrGate') val = f.arrGate || '';
+    else if (field === 'connectingFlight') val = f.connectingFlight || '';
+    else if (field === 'eta') val = f.eta ? normalizeImportedTime(f.eta) : '';
+    displayEl.dataset.value = val;
+    displayEl.textContent = val;
+    displayEl.classList.toggle('is-empty', !val);
+  }
+  const colUnlocked = isAssignmentColumnEditable(field);
+  const editable = colUnlocked;
+  const wrap = displayEl.closest('.assignment-field-wrap');
+  if (wrap) {
+    wrap.classList.toggle('is-column-editable', colUnlocked);
+    displayEl.classList.toggle('is-readonly', !editable);
+    displayEl.tabIndex = editable ? 0 : -1;
+  }
+}
+
+function startAssignmentFieldEdit(displayEl, mode = 'normal') {
+  if (!displayEl) return;
+  if (activeAssignmentFieldEdit?.mode === 'chainNode') {
+    cancelAssignmentChainNodeEdit();
+  }
+  if (displayEl.closest('.assignment-field-wrap.is-editing')) return;
+  const field = displayEl.dataset.editField;
+  const f = findFlightDefById(displayEl.dataset.flightDefId);
+  if (!f) return;
+  if (!isAssignmentColumnEditable(field)) return;
+  if (activeAssignmentFieldEdit && activeAssignmentFieldEdit.displayEl !== displayEl) {
+    finishAssignmentFieldEdit(false);
+  }
+  const wrap = displayEl.closest('.assignment-field-wrap');
+  if (!wrap) return;
+  const input = getAssignmentFieldEditInput(wrap, displayEl);
+  const orig = isAssignmentTimeField(field)
+    ? (displayEl.dataset.value ?? minutesToTime(f.baseMinutes))
+    : (displayEl.dataset.value ?? '');
+  input.value = orig;
+  input.dataset.origValue = orig;
+  input.placeholder = '';
+  wrap.classList.add('is-editing');
+  wrap.classList.remove('is-correcting-last-edit');
+  input.hidden = false;
+  hideAssignmentFieldTooltip(true);
+  activeAssignmentFieldEdit = { wrap, displayEl, input, mode };
+  requestAnimationFrame(() => {
+    input.focus();
+    input.select();
+  });
+}
+
+function finishAssignmentFieldEdit(cancel) {
+  if (!activeAssignmentFieldEdit || activeAssignmentFieldEdit.inTooltip) return;
+  const { wrap, displayEl, input, mode = 'normal' } = activeAssignmentFieldEdit;
+  activeAssignmentFieldEdit = null;
+  wrap.classList.remove('is-editing', 'is-correcting-last-edit');
+  input.hidden = true;
+  input.placeholder = '';
+  if (cancel) {
+    refreshAssignmentFieldDisplay(displayEl);
+    return;
+  }
+  const newVal = input.value;
+  const origVal = input.dataset.origValue ?? '';
+  if (newVal.trim() === String(origVal).trim()) {
+    refreshAssignmentFieldDisplay(displayEl);
+    return;
+  }
+  const field = input.dataset.editField;
+  if (field === 'depStd') {
+    const ok = commitAssignmentDepStdEdit(input.dataset.flightDefId, newVal);
+    if (!ok) refreshAssignmentFieldDisplay(displayEl);
+    return;
+  }
+  if (field === 'arrSta') {
+    const ok = commitAssignmentArrStaEdit(input.dataset.flightDefId, newVal);
+    if (!ok) refreshAssignmentFieldDisplay(displayEl);
+    return;
+  }
+  commitAssignmentFieldEdit(input.dataset.flightDefId, field, newVal);
+}
+
+function onAssignmentFieldInputKeydown(e) {
+  if (!activeAssignmentFieldEdit || activeAssignmentFieldEdit.inTooltip) return;
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    e.target.blur();
+  } else if (e.key === 'Escape') {
+    e.preventDefault();
+    const snap = activeAssignmentFieldEdit;
+    if (!snap) return;
+    activeAssignmentFieldEdit = null;
+    snap.wrap.classList.remove('is-editing', 'is-correcting-last-edit');
+    snap.input.hidden = true;
+    snap.input.placeholder = '';
+    snap.input.value = snap.input.dataset.origValue || '';
+    snap.input.blur();
+    refreshAssignmentFieldDisplay(snap.displayEl);
+  }
+}
+
+function onAssignmentFieldInputBlur() {
+  if (activeAssignmentFieldEdit?.inTooltip) return;
+  finishAssignmentFieldEdit(false);
+}
+
+function initAssignmentTableFieldEditors() {
+  if (initAssignmentTableFieldEditors._done) return;
+  initAssignmentTableFieldEditors._done = true;
+  const scroll = document.querySelector('.assignment-scroll');
+  if (!scroll) return;
+
+  scroll.addEventListener('click', e => {
+    const editBtn = e.target.closest('.assignment-col-edit-btn');
+    if (editBtn) {
+      e.preventDefault();
+      e.stopPropagation();
+      const col = editBtn.closest('[data-assignment-edit-col]')?.dataset?.assignmentEditCol;
+      toggleAssignmentColumnEdit(col);
+      return;
+    }
+    if (assignmentFieldTooltipEl?.contains(e.target)) return;
+    const display = e.target.closest('.assignment-field-display');
+    if (!display || display.classList.contains('is-readonly')) return;
+    e.stopPropagation();
+    startAssignmentFieldEdit(display);
+  });
+
+  scroll.addEventListener('keydown', e => {
+    const display = e.target.closest('.assignment-field-display');
+    if (!display || display.classList.contains('is-readonly')) return;
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      startAssignmentFieldEdit(display);
+    }
+  });
+
+  document.addEventListener('keydown', e => {
+    if (e.key !== 'Escape' || activeAssignmentFieldEdit?.mode !== 'chainNode') return;
+    e.preventDefault();
+    cancelAssignmentChainNodeEdit();
+  });
+
+  scroll.addEventListener('mouseover', e => {
+    const display = e.target.closest('.assignment-field-display');
+    if (!display || display.closest('.assignment-field-wrap.is-editing, .assignment-field-wrap.is-tooltip-editing')) return;
+    showAssignmentFieldTooltipForDisplay(display);
+  });
+
+  scroll.addEventListener('mouseout', e => {
+    if (assignmentTooltipPinned) return;
+    const fromDisplay = e.target.closest('.assignment-field-display');
+    const fromTooltip = assignmentFieldTooltipEl?.contains(e.target);
+    if (!fromDisplay && !fromTooltip) return;
+    const related = e.relatedTarget;
+    if (assignmentTooltipShouldStayOpen(related)) return;
+    scheduleHideAssignmentFieldTooltip();
+  });
+
+  scroll.addEventListener('scroll', () => {
+    if (assignmentTooltipPinned) return;
+    hideAssignmentFieldTooltip(true);
+  }, true);
+  window.addEventListener('scroll', () => {
+    if (assignmentTooltipPinned) return;
+    hideAssignmentFieldTooltip(true);
+  }, true);
+  syncAssignmentColumnEditUi();
+}
+
 function normalizeHeaderKey(v) {
   return String(v || '').trim().replace(/\s+/g, '');
 }
@@ -11317,51 +13408,59 @@ function renderAssignmentTableFromFlightDefs() {
 
   const depRows = flightDefs
     .filter(f => f.type === 'DEP')
-    .sort((a,b) => a.baseMinutes - b.baseMinutes || a.flight.localeCompare(b.flight));
+    .sort((a,b) => depStdMinutes(a) - depStdMinutes(b) || a.flight.localeCompare(b.flight));
 
   const arrRows = flightDefs
     .filter(f => f.type === 'ARR')
     .sort((a,b) => getArrSortMinutes(a) - getArrSortMinutes(b) || a.flight.localeCompare(b.flight));
 
-  depBody.innerHTML = depRows.map(f => `
-    <tr data-flight="${f.flight}"${f.status === 'CANX' ? ' class="flight-row-canx"' : ''}>
+  depBody.innerHTML = depRows.map(f => {
+    const isCanx = f.status === 'CANX';
+    return `
+    <tr data-flight="${f.flight}" data-flight-def-id="${escapeHtml(f.id)}"${isCanx ? ' class="flight-row-canx"' : ''}>
       <td class="assignment-flight-no" data-flight="${f.flight}" title="點一下篩選下方管制表人員">${formatAssignmentFlightLabel(f)}</td>
-      <td>${minutesToTime(f.baseMinutes)}</td>
-      <td>${formatAssignmentGate(f, 'DEP')}</td>
-      <td data-flight="${f.flight}" data-role="PPT"></td>
-      <td data-flight="${f.flight}" data-role="ABG"></td>
-      <td data-flight="${f.flight}" data-role="BG"></td>
-      <td data-flight="${f.flight}" data-role="RC"></td>
-      <td class="memo-cell"></td>
+      <td>${renderAssignmentDepStdCell(f)}</td>
+      <td>${renderAssignmentGateCell(f, 'DEP')}</td>
+      <td data-flight="${f.flight}" data-role="PPT">${isCanx ? ASSIGNMENT_CANX_HTML : ''}</td>
+      <td data-flight="${f.flight}" data-role="ABG">${isCanx ? ASSIGNMENT_CANX_HTML : ''}</td>
+      <td data-flight="${f.flight}" data-role="BG">${isCanx ? ASSIGNMENT_CANX_HTML : ''}</td>
+      <td data-flight="${f.flight}" data-role="RC">${isCanx ? ASSIGNMENT_CANX_HTML : ''}</td>
+      <td class="memo-cell">${isCanx ? ASSIGNMENT_CANX_HTML : ''}</td>
     </tr>
-  `).join('');
+  `;
+  }).join('');
 
-  arrBody.innerHTML = arrRows.map(f => `
-    <tr data-flight="${f.flight}"${f.status === 'CANX' ? ' class="flight-row-canx"' : ''}>
+  arrBody.innerHTML = arrRows.map(f => {
+    const isCanx = f.status === 'CANX';
+    return `
+    <tr data-flight="${f.flight}" data-flight-def-id="${escapeHtml(f.id)}"${isCanx ? ' class="flight-row-canx"' : ''}>
       <td class="assignment-flight-no" data-flight="${f.flight}" title="點一下篩選下方管制表人員">${formatAssignmentFlightLabel(f)}</td>
-      <td></td>
-      <td>${minutesToTime(f.baseMinutes)}</td>
-      <td>${formatAssignmentGate(f, 'ARR')}</td>
-      <td>${f.eta ? normalizeImportedTime(f.eta) : ''}</td>
-      <td></td>
-      <td></td>
-      <td data-flight="${f.flight}" data-role="接機C"></td>
-      <td data-flight="${f.flight}" data-role="接機RC"></td>
-      <td class="memo-cell"></td>
+      <td>${renderAssignmentConnectingCell(f)}</td>
+      <td>${renderAssignmentArrStaCell(f)}</td>
+      <td>${renderAssignmentGateCell(f, 'ARR')}</td>
+      <td>${renderAssignmentEtaCell(f)}</td>
+      <td>${isCanx ? ASSIGNMENT_CANX_HTML : ''}</td>
+      <td>${isCanx ? ASSIGNMENT_CANX_HTML : ''}</td>
+      <td data-flight="${f.flight}" data-role="接機C">${isCanx ? ASSIGNMENT_CANX_HTML : ''}</td>
+      <td data-flight="${f.flight}" data-role="接機RC">${isCanx ? ASSIGNMENT_CANX_HTML : ''}</td>
+      <td class="memo-cell">${isCanx ? ASSIGNMENT_CANX_HTML : ''}</td>
     </tr>
-  `).join('');
+  `;
+  }).join('');
 
   if (typeof syncAssignmentTableFromSchedule === 'function') {
     syncAssignmentTableFromSchedule();
   } else {
     syncAssignmentRowHeights();
   }
+  syncAssignmentColumnEditUi();
 }
 
 function rebuildAfterFlightImport(newFlightDefs) {
   flightsImported = true;
   flightDefs = newFlightDefs;
   normalizeFlightDefsInPlace();
+  applyFlightFieldEditsAfterImport();
   renderAssignmentTableFromFlightDefs();
   rebuildTemplates();
   syncScheduleWindows();
@@ -12302,6 +14401,10 @@ function depStdMinutes(f) {
   const changed = parseTimeToMinutes(f.changeTime);
   return changed != null ? changed : f.baseMinutes;
 }
+function arrStaMinutes(f) {
+  const changed = parseTimeToMinutes(f.changeTime);
+  return changed != null ? changed : f.baseMinutes;
+}
 function depDutyStart(std, before, ext) {
   return Math.max(0, std - before + Math.min(ext, 0));
 }
@@ -12310,7 +14413,7 @@ function depDutyEnd(std, ext) {
 }
 function adjustedMinutes(f) {
   if (f.type === 'DEP') return depStdMinutes(f);
-  return f.baseMinutes + Number(f.offset || 0);
+  return arrStaMinutes(f);
 }
 function depExtensionDisplay(v) {
   const n = Number(v || 0);
@@ -12329,14 +14432,23 @@ function toTimeInputValue(timeStr) {
 }
 function getArrSortMinutes(f) {
   const etaMin = parseTimeToMinutes(f.eta);
-  return etaMin != null ? etaMin : f.baseMinutes;
+  return etaMin != null ? etaMin : arrStaMinutes(f);
 }
 function normalizeFlightDefsInPlace() {
+  if (typeof FlightAssignmentUtils !== 'undefined') {
+    FlightAssignmentUtils.ensureFlightDefIds(flightDefs);
+  }
   flightDefs.forEach(f => {
     if (f.depGate == null) f.depGate = '';
     if (f.arrGate == null) f.arrGate = '';
     if (f.status == null) f.status = '';
-    if (f.type === 'ARR' && f.eta == null) f.eta = '';
+    if (f.type === 'ARR') {
+      if (f.eta == null) f.eta = '';
+      if (f.connectingFlight == null) f.connectingFlight = '';
+      if (f.connectingSource == null) f.connectingSource = '';
+    }
+    if (!Array.isArray(f.edits)) f.edits = [];
+    else f.edits = f.edits.filter(e => e.field !== 'connectingFlight');
     if (f.type === 'DEP') {
       if (f.changeTime == null) f.changeTime = '';
       if (f.eta == null) f.eta = '';
@@ -12344,8 +14456,12 @@ function normalizeFlightDefsInPlace() {
         f.changeTime = minutesToTime(f.baseMinutes + Number(f.offset || 0));
         f.offset = 0;
       }
+      migrateTimeFieldEditsFromChangeTime(f, 'depStd');
     }
-    if (f.type === 'ARR' && f.changeTime == null) f.changeTime = '';
+    if (f.type === 'ARR') {
+      if (f.changeTime == null) f.changeTime = '';
+      migrateTimeFieldEditsFromChangeTime(f, 'arrSta');
+    }
   });
 }
 function hasRestForPerson(personIndex) { return schedule.some(x => x.personIndex === personIndex && x.role === '休'); }
@@ -12369,6 +14485,7 @@ function rebuildTemplates() {
 function buildTemplates() {
   const out = [];
   flightDefs.forEach(f => {
+    if (f.status === 'CANX') return;
     const ext = Number(f.extension || 0);
     if (f.type === 'DEP') {
       const std = depStdMinutes(f);
@@ -13447,64 +15564,44 @@ function buildEditorRowDep(f) {
   row.className = 'editor-row dep-editor-row';
   row.innerHTML = `
     <strong>${f.flight}</strong>
-    <span class="mini">${f.type === 'DEP' ? 'STD' : 'STA'}</span>
+    <span class="mini">STD</span>
     <span class="mini">${f.baseTime}</span>
     <input type="text" class="editor-change-time-input" inputmode="numeric" maxlength="5" value="${toTimeInputValue(f.changeTime)}" />
-    <input type="number" step="5" value="${depExtensionDisplay(f.extension)}" />
     <span class="mini editor-current">${minutesToTime(adjustedMinutes(f))}</span>
   `;
   const changeTimeInput = row.querySelector('.editor-change-time-input');
-  const extInput = row.querySelectorAll('input')[1];
   const currentEl = row.querySelector('.editor-current');
   const applyFlightEdit = () => {
     currentEl.textContent = minutesToTime(adjustedMinutes(f));
-    rebuildTemplates();
-    syncScheduleWindows();
-    renderPalette();
-    renderRows();
-    markUnsynced();
+    applyFlightScheduleEdit();
   };
   const commitChangeTime = () => {
     const target = flightDefs.find(x => x.flight === f.flight && x.type === f.type);
     const raw = changeTimeInput.value.trim();
-    if (!raw) {
-      target.changeTime = '';
-      target.offset = 0;
-      changeTimeInput.value = '';
-    } else {
+    let newChangeTime = '';
+    if (raw) {
       const normalized = normalizeImportedTime(raw);
       if (parseTimeToMinutes(normalized) == null) {
-        changeTimeInput.value = target.changeTime ? toTimeInputValue(target.changeTime) : '';
+        changeTimeInput.value = target.changeTime
+          ? toTimeInputValue(target.changeTime)
+          : toTimeInputValue(target.baseTime || minutesToTime(target.baseMinutes));
         return;
       }
-      target.changeTime = normalized;
-      target.offset = 0;
-      changeTimeInput.value = normalized;
-    }
-    applyFlightEdit();
-  };
-  const commitExtension = () => {
-    const target = flightDefs.find(x => x.flight === f.flight && x.type === f.type);
-    const raw = extInput.value.trim();
-    if (!raw) {
-      target.extension = 0;
-      extInput.value = '';
-    } else {
-      let v = Number(raw);
-      if (Number.isNaN(v)) {
-        extInput.value = depExtensionDisplay(target.extension);
-        return;
+      if (parseTimeToMinutes(normalized) !== target.baseMinutes) {
+        newChangeTime = normalized;
       }
-      v = snap5(v);
-      target.extension = v;
-      extInput.value = depExtensionDisplay(v);
     }
+    const oldChangeTime = String(target.changeTime || '').trim();
+    if (oldChangeTime === newChangeTime) return;
+    target.changeTime = newChangeTime;
+    target.offset = 0;
+    changeTimeInput.value = newChangeTime
+      ? toTimeInputValue(newChangeTime)
+      : toTimeInputValue(target.baseTime || minutesToTime(target.baseMinutes));
     applyFlightEdit();
   };
   changeTimeInput.addEventListener('change', commitChangeTime);
   changeTimeInput.addEventListener('blur', commitChangeTime);
-  extInput.addEventListener('change', commitExtension);
-  extInput.addEventListener('blur', commitExtension);
   return row;
 }
 function buildEditorRowArr(f) {
@@ -13531,12 +15628,7 @@ function buildEditorRowArr(f) {
       target.eta = normalized;
       etaInput.value = normalized;
     }
-    renderAssignmentTableFromFlightDefs();
-    rebuildTemplates();
-    syncScheduleWindows();
-    renderPalette();
-    renderRows();
-    markUnsynced();
+    applyFlightScheduleEdit();
   };
   etaInput.addEventListener('change', commitEta);
   etaInput.addEventListener('blur', commitEta);
@@ -14158,6 +16250,14 @@ function syncAssignmentTableFromSchedule() {
   mappedCells.forEach(cell => {
     const flight = cell.dataset.flight;
     const role = cell.dataset.role;
+    const fDef = flightDefs.find(f => f.flight === flight);
+    if (fDef?.status === 'CANX') {
+      cell.innerHTML = ASSIGNMENT_CANX_HTML;
+      cell.classList.remove('assignment-clickable');
+      cell.onclick = null;
+      cell.title = '';
+      return;
+    }
     const matchedItems = schedule.filter(item => item.flight === flight && item.role === role);
     const codes = matchedItems
       .map(item => (people[item.personIndex] ? (people[item.personIndex].code || people[item.personIndex].name) : ''))
@@ -14264,7 +16364,7 @@ document.getElementById('toggleRollCallBtn')?.addEventListener('click', () => {
 });
 
 document.getElementById('importExcelBtn').addEventListener('click', () => {
-  document.getElementById('excelImportInput').click();
+  openFlightImportHubModal();
 });
 document.getElementById('importStaffDbBtn').addEventListener('click', () => {
   if (isImportStaffBtnOnStaffErpMount()) {
@@ -14274,7 +16374,8 @@ document.getElementById('importStaffDbBtn').addEventListener('click', () => {
   openRollCallStaffImportModal();
 });
 document.getElementById('excelImportInput').addEventListener('change', async (e) => {
-  const file = e.target.files && e.target.files[0];
+  const input = e.target;
+  const file = input.files && input.files[0];
   if (!file) return;
   if (typeof XLSX === 'undefined') {
     appAlert('Excel 讀取套件尚未載入。請確認網路連線後重新整理頁面。', '無法匯入');
@@ -14284,6 +16385,8 @@ document.getElementById('excelImportInput').addEventListener('change', async (e)
     appAlert('FIS 航班解析模組尚未載入，請重新整理頁面。', '無法匯入');
     return;
   }
+  initFlightImportModals();
+  const importMode = input.dataset.mode || excelImportMode || 'fis-full';
   const buffer = await file.arrayBuffer();
   const workbook = XLSX.read(buffer, { type: 'array' });
   const parsed = FisFlightParser.parseFisWorkbook(workbook, selectedDate, {
@@ -14292,32 +16395,53 @@ document.getElementById('excelImportInput').addEventListener('change', async (e)
 
   if (parsed.error) {
     appAlert(parsed.error, '無法匯入');
-    e.target.value = '';
+    input.value = '';
     return;
   }
   if (!parsed.flightDefs.length) {
     appAlert('沒有符合當日的航班。', '無法匯入');
-    e.target.value = '';
+    input.value = '';
     return;
   }
 
-  const { dep, arr, total } = parsed.stats;
-  const importOk = await appConfirm(
-    `即將匯入 ${total} 筆航班（出境 ${dep}、入境 ${arr}）。\n已排的 duty 會保留，確定匯入嗎？`,
-    { title: '匯入當日航班', confirmText: '確定匯入' }
-  );
-  if (!importOk) {
-    e.target.value = '';
+  input.value = '';
+
+  if (importMode === 'fis-diff') {
+    const diffItems = previewItemsFromFisDiff(parsed.flightDefs);
+    if (!diffItems.length) {
+      appAlert('FIS 比對結果：目前班表已包含所有 FIS 航班，無需追加。', '比對完成');
+      return;
+    }
+    openFisDiffPreviewModal(parsed);
     return;
   }
 
-  rebuildAfterFlightImport(parsed.flightDefs);
-  let successMsg = `航班匯入完成（出境 ${dep}、入境 ${arr}）。請按「同步」上傳雲端。`;
-  if (parsed.warnings?.length) {
-    successMsg += `\n\n${parsed.warnings.join('\n')}`;
+  let foreignParsed = { candidates: [], skipped: [], stats: { dep: 0, arr: 0, total: 0 } };
+  try {
+    if (typeof ForeignScheduleParser !== 'undefined' && typeof ForeignScheduleParser.parseForeignScheduleWorkbook === 'function') {
+      const foreignWorkbook = await loadForeignScheduleWorkbook();
+      foreignParsed = ForeignScheduleParser.parseForeignScheduleWorkbook(foreignWorkbook, selectedDate, {
+        normalizeFlightNo: normalizeImportedFlightNo
+      });
+    }
+  } catch (err) {
+    console.warn(err);
+    foreignParsed.error = `外家時刻表載入失敗：${err.message || err}。將僅匯入 FIS。`;
   }
-  appSuccess(successMsg, '匯入完成');
-  e.target.value = '';
+
+  if (!foreignParsed.candidates.length) {
+    if (foreignParsed.error) {
+      const proceed = await appConfirm(
+        `${foreignParsed.error}\n\n仍要只匯入 FIS（出境 ${parsed.stats.dep}、入境 ${parsed.stats.arr}）嗎？`,
+        { title: '外家時刻表', confirmText: '只匯入 FIS' }
+      );
+      if (!proceed) return;
+    }
+    await finalizeFisOnlyImport(parsed, null);
+    return;
+  }
+
+  openForeignFlightPreviewModal(parsed, foreignParsed);
 });
 document.getElementById('staffDbImportInput').addEventListener('change', async (e) => {
   const file = e.target.files && e.target.files[0];
@@ -14506,6 +16630,7 @@ updateNameColHeader();
 initLeaveDutyOverlayTooltip();
 initClearDataModal();
 initRollCallStaffImportModal();
+initAssignmentTableFieldEditors();
 renderRows();
 renderOvertimePanel();
 updateShiftViewButtonLabel();
@@ -14522,6 +16647,10 @@ if (!flightsImported) {
   renderPalette();
   renderAssignmentTableFromFlightDefs();
   renderFlightEditor();
+} else if (flightDefs.length) {
+  normalizeFlightDefsInPlace();
+  applyFlightFieldEditsAfterImport();
+  renderAssignmentTableFromFlightDefs();
 }
 attachFirebaseForSelectedDate();
 attachFirebaseSharedConfig();
