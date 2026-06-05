@@ -4231,6 +4231,7 @@
   }
   .app-notice-btn--primary:hover { background: #1d4ed8; border-color: #1d4ed8; }
   .app-notice-btn[hidden] { display: none !important; }
+  #appNoticeExportBtn { margin-right: auto; }
 
 </style>
 </head>
@@ -5240,6 +5241,7 @@
     </div>
     <div class="app-notice-details" id="appNoticeDetails" hidden></div>
     <footer class="app-notice-foot">
+      <button type="button" class="app-notice-btn app-notice-btn--ghost" id="appNoticeExportBtn" hidden>匯出異動 Excel</button>
       <button type="button" class="app-notice-btn app-notice-btn--ghost" id="appNoticeCancelBtn">取消</button>
       <button type="button" class="app-notice-btn app-notice-btn--primary" id="appNoticeConfirmBtn">確定</button>
     </footer>
@@ -11162,6 +11164,7 @@ const APP_NOTICE_ICONS = {
   info: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>'
 };
 let appNoticeResolve = null;
+let appNoticeExportHandler = null;
 
 function buildAppNoticeMessageHtml(message, highlight) {
   const text = String(message || '');
@@ -11190,6 +11193,9 @@ function renderAppNoticeDetails(details) {
 function closeAppNotice(confirmed) {
   const dlg = document.getElementById('appNoticeDialog');
   if (dlg) dlg.hidden = true;
+  appNoticeExportHandler = null;
+  const exportBtn = document.getElementById('appNoticeExportBtn');
+  if (exportBtn) exportBtn.hidden = true;
   const resolve = appNoticeResolve;
   appNoticeResolve = null;
   if (resolve) resolve(!!confirmed);
@@ -11202,6 +11208,9 @@ function initAppNoticeDialog() {
   if (!dlg) return;
   document.getElementById('appNoticeConfirmBtn')?.addEventListener('click', () => closeAppNotice(true));
   document.getElementById('appNoticeCancelBtn')?.addEventListener('click', () => closeAppNotice(false));
+  document.getElementById('appNoticeExportBtn')?.addEventListener('click', () => {
+    if (typeof appNoticeExportHandler === 'function') appNoticeExportHandler();
+  });
   document.getElementById('appNoticeCloseBtn')?.addEventListener('click', () => closeAppNotice(false));
   dlg.querySelectorAll('[data-app-notice-dismiss]').forEach(el => {
     el.addEventListener('click', () => closeAppNotice(false));
@@ -11227,9 +11236,11 @@ function showAppNotice(opts) {
   const detailsEl = document.getElementById('appNoticeDetails');
   const cancelBtn = document.getElementById('appNoticeCancelBtn');
   const confirmBtn = document.getElementById('appNoticeConfirmBtn');
+  const exportBtn = document.getElementById('appNoticeExportBtn');
   if (!dlg || !titleEl || !msgEl) return Promise.resolve(true);
   return new Promise(resolve => {
     appNoticeResolve = resolve;
+    appNoticeExportHandler = typeof o.onExport === 'function' ? o.onExport : null;
     dlg.classList.remove('is-warning', 'is-success', 'is-info');
     dlg.classList.add(type === 'success' ? 'is-success' : type === 'info' ? 'is-info' : 'is-warning');
     if (iconEl) iconEl.innerHTML = APP_NOTICE_ICONS[type] || APP_NOTICE_ICONS.warning;
@@ -11249,6 +11260,14 @@ function showAppNotice(opts) {
     if (cancelBtn) cancelBtn.hidden = !showCancel;
     if (confirmBtn) confirmBtn.textContent = o.confirmText || '確定';
     if (cancelBtn) cancelBtn.textContent = o.cancelText || '取消';
+    if (exportBtn) {
+      if (o.exportBtnText && appNoticeExportHandler) {
+        exportBtn.textContent = o.exportBtnText;
+        exportBtn.hidden = false;
+      } else {
+        exportBtn.hidden = true;
+      }
+    }
     dlg.hidden = false;
     requestAnimationFrame(() => (showCancel ? cancelBtn : confirmBtn)?.focus());
   });
@@ -11849,36 +11868,139 @@ function remapSchedulePersonIndicesByPersonnelId(oldPeople, newPeople, sched) {
     orphans: [...orphanMap.values()].sort((a, b) => b.count - a.count)
   };
 }
-function showRollCallImportApplyResult(stats, dutyOrphans, shiftChanges, dutyInheritances) {
-  const pendingShiftChanges = shiftChanges || [];
-  const pendingDutyInheritances = dutyInheritances || [];
-  const visibleDutyOrphans = filterDutyOrphansExcludedByInheritance(dutyOrphans, pendingDutyInheritances);
+function rollCallImportPersonLabel(person) {
+  return resolveFullName(person) || String(person.name || person.code || '').trim() || '—';
+}
+function rollCallImportPersonCode(person) {
+  return String(person.code || person.name || '').trim() || '—';
+}
+function buildRollCallImportPeopleMap(list) {
+  const map = new Map();
+  (list || []).forEach(p => {
+    const pid = resolvePersonnelId(p);
+    if (!pid || map.has(pid)) return;
+    map.set(pid, p);
+  });
+  return map;
+}
+function computeRollCallImportListDiff(oldPeople, newPeople) {
+  const oldMap = buildRollCallImportPeopleMap(oldPeople);
+  const newMap = buildRollCallImportPeopleMap(newPeople);
+  const personnelChanges = [];
+  const shiftChanges = [];
+  oldMap.forEach((oldP, pid) => {
+    const newP = newMap.get(pid);
+    const name = rollCallImportPersonLabel(oldP);
+    const code = rollCallImportPersonCode(oldP);
+    const oldShift = String(oldP.shift || '').trim() || '—';
+    if (!newP) {
+      personnelChanges.push({
+        type: '人員異動',
+        name,
+        code,
+        oldShift,
+        newShift: '休',
+        reason: '舊名單有，新名單沒有'
+      });
+      return;
+    }
+    const newShift = String(newP.shift || '').trim() || '—';
+    if (oldShift !== newShift) {
+      shiftChanges.push({
+        type: '班別異動',
+        name: rollCallImportPersonLabel(newP) || name,
+        code: rollCallImportPersonCode(newP) || code,
+        oldShift,
+        newShift,
+        reason: '舊名單與新名單皆有，但班別不同'
+      });
+    }
+  });
+  newMap.forEach((newP, pid) => {
+    if (oldMap.has(pid)) return;
+    personnelChanges.push({
+      type: '人員異動',
+      name: rollCallImportPersonLabel(newP),
+      code: rollCallImportPersonCode(newP),
+      oldShift: '休',
+      newShift: String(newP.shift || '').trim() || '—',
+      reason: '舊名單沒有，新名單有'
+    });
+  });
+  const sortByName = (a, b) => (a.name || '').localeCompare(b.name || '', 'zh-Hant');
+  personnelChanges.sort(sortByName);
+  shiftChanges.sort(sortByName);
+  return { personnelChanges, shiftChanges };
+}
+function formatRollCallImportDiffMessage(diff) {
   let message = '已套用匯入上班人員結果。';
-  if (pendingDutyInheritances.length) {
-    message += '\n\n以下人員因調班造成人員異動，請確認：';
-    pendingDutyInheritances.forEach(a => {
-      message += `\n· ${a.fromName || '—'} → ${a.toName || '—'}`;
+  if (diff?.personnelChanges?.length) {
+    message += '\n\n人員異動請確認：';
+    diff.personnelChanges.forEach((row, i) => {
+      message += `\n${i + 1}. ${row.name}：${row.oldShift} → ${row.newShift}`;
     });
   }
-  if (pendingShiftChanges.length) {
-    message += '\n\n以下人員因調班造成班別異動，請確認：';
-    pendingShiftChanges.forEach(a => {
-      message += `\n· ${a.name || '—'}：${a.oldShift} → ${a.newShift}`;
+  if (diff?.shiftChanges?.length) {
+    message += '\n\n班別異動請確認：';
+    diff.shiftChanges.forEach((row, i) => {
+      message += `\n${i + 1}. ${row.name}：${row.oldShift} → ${row.newShift}`;
     });
   }
+  return message;
+}
+function exportRollCallImportDiffExcel(diff) {
+  if (!diff) return;
+  const rows = [...(diff.personnelChanges || []), ...(diff.shiftChanges || [])];
+  if (!rows.length) return;
+  if (typeof XLSX === 'undefined') {
+    appAlert('Excel 套件尚未載入，請確認網路連線後重新整理頁面。', '無法匯出');
+    return;
+  }
+  const sheetRows = [
+    ['異動類型', '姓名', '人員代號', '原班別', '新班別']
+  ];
+  rows.forEach(r => {
+    sheetRows.push([
+      excelCell(r.type),
+      excelCell(r.name),
+      excelCell(r.code),
+      excelCell(r.oldShift),
+      excelCell(r.newShift)
+    ]);
+  });
+  const sheet = XLSX.utils.aoa_to_sheet(sheetRows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, sheet, '匯入異動');
+  const fileDate = selectedDate || 'today';
+  XLSX.writeFile(wb, `rollcall_import_diff_${fileDate}.xlsx`);
+}
+function showRollCallImportApplyResult(options = {}) {
+  const {
+    importDiff = null,
+    showImportDiff = false,
+    visibleDutyOrphans = []
+  } = options;
+  let message = showImportDiff && importDiff
+    ? formatRollCallImportDiffMessage(importDiff)
+    : '已套用匯入上班人員結果。';
   if (visibleDutyOrphans.length) {
     message += '\n\n以下人員已有 duty，但不在新作業人員名單，請人工處理：';
     visibleDutyOrphans.forEach(o => {
       message += `\n· ${o.name || '—'}（${o.code || '—'}）— duty ${o.count} 筆`;
     });
   }
+  const diffRows = importDiff
+    ? [...(importDiff.personnelChanges || []), ...(importDiff.shiftChanges || [])]
+    : [];
   showAppNotice({
     type: 'success',
     title: '匯入完成',
     message,
     details: [],
     confirmText: '確定',
-    showCancel: false
+    showCancel: false,
+    exportBtnText: showImportDiff && diffRows.length ? '匯出異動 Excel' : '',
+    onExport: showImportDiff && diffRows.length ? () => exportRollCallImportDiffExcel(importDiff) : null
   });
 }
 function applyRollCallStaffImport() {
@@ -11888,9 +12010,9 @@ function applyRollCallStaffImport() {
     return;
   }
   const newPeople = preview.resolved.map(buildPersonFromRollCallResolvedRow);
-  const ns = preview.nextShiftStats || computeRollCallNextShiftStats(preview.resolved);
   const isFirstImport = !schedule.length;
   const oldPeople = people.slice();
+  const isRepeatImport = rollCallStaffImportApplied && oldPeople.length > 0;
   let dutyOrphans = [];
   if (!isFirstImport) {
     if (rollCallStaffImportApplied) {
@@ -11904,17 +12026,14 @@ function applyRollCallStaffImport() {
   markUnsynced();
   renderRows();
   if (typeof syncAssignmentTableFromSchedule === 'function') syncAssignmentTableFromSchedule();
-  const pendingShiftChanges = getPendingShiftChangeAlerts();
   const pendingDutyInheritances = getPendingDutyInheritanceAlerts();
   const visibleDutyOrphans = filterDutyOrphansExcludedByInheritance(dutyOrphans, pendingDutyInheritances);
+  const importDiff = isRepeatImport ? computeRollCallImportListDiff(oldPeople, newPeople) : null;
   showRollCallImportApplyResult({
-    appliedCount: newPeople.length,
-    peopleCount: people.length,
-    nextShiftWithShift: ns.withShift,
-    nextShiftLeave: ns.leave,
-    nextShiftAbsent: ns.absent,
-    dutyOrphanPeople: visibleDutyOrphans.length
-  }, dutyOrphans, pendingShiftChanges, pendingDutyInheritances);
+    showImportDiff: isRepeatImport,
+    importDiff,
+    visibleDutyOrphans
+  });
   rollCallImportPreviewState = null;
   setRollCallStaffImportOpen(false);
 }
