@@ -8,7 +8,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
 <script src="staff-personnel-seed.js"></script>
 <script src="fis-flight-parser.js"></script>
-<script src="foreign-schedule-parser.js"></script>
+<script src="foreign-schedule-parser.js?v=20260527-bx792"></script>
 <script src="flight-assignment-utils.js"></script>
 <title>今天的完整拖拉管制表 v2</title>
 <style>
@@ -1744,9 +1744,6 @@
     color: #dc2626;
     letter-spacing: 0.02em;
   }
-  tr.flight-row-canx .assignment-flight-no {
-    color: #991b1b;
-  }
   #foreignFlightPreviewModal .rollcall-import-panel {
     width: min(720px, calc(100vw - 32px));
     max-height: min(88vh, 900px);
@@ -1820,14 +1817,23 @@
   }
   #foreignFlightPreviewModal .foreign-preview-table {
     width: 100%;
+    table-layout: fixed;
     border-collapse: collapse;
     font-size: 13px;
   }
   #foreignFlightPreviewModal .foreign-preview-table th,
   #foreignFlightPreviewModal .foreign-preview-table td {
     border: 1px solid #e2e8f0;
-    padding: 8px 10px;
+    padding: 6px 8px;
     text-align: left;
+    vertical-align: middle;
+  }
+  #foreignFlightPreviewModal .foreign-preview-table th:nth-child(1),
+  #foreignFlightPreviewModal .foreign-preview-table td:nth-child(1),
+  #foreignFlightPreviewModal .foreign-preview-table th:nth-child(2),
+  #foreignFlightPreviewModal .foreign-preview-table td:nth-child(2) {
+    text-align: center;
+    padding: 6px 4px;
   }
   #foreignFlightPreviewModal .foreign-preview-table th {
     background: #f8fafc;
@@ -1836,6 +1842,22 @@
   }
   #foreignFlightPreviewModal .foreign-preview-table tr.is-dup td {
     background: #fff7ed;
+  }
+  #foreignFlightPreviewModal .foreign-preview-table tr.foreign-preview-row-canx td:nth-child(n+3) {
+    text-decoration: line-through;
+    color: #94a3b8;
+  }
+  #foreignFlightPreviewModal .foreign-preview-table tr.foreign-preview-row-canx .foreign-preview-time-input,
+  #foreignFlightPreviewModal .foreign-preview-table tr.foreign-preview-row-canx .foreign-preview-endpoint-input,
+  #foreignFlightPreviewModal .foreign-preview-table tr.foreign-preview-row-canx .foreign-preview-endpoint,
+  #foreignFlightPreviewModal .foreign-preview-table tr.foreign-preview-row-canx .foreign-preview-flight-input,
+  #foreignFlightPreviewModal .foreign-preview-table tr.foreign-preview-row-canx .foreign-preview-actype-select {
+    text-decoration: line-through;
+    color: #94a3b8;
+  }
+  #foreignFlightPreviewModal .foreign-preview-table tr.foreign-preview-row-canx .flight-canx-mark {
+    text-decoration: none;
+    color: #ea580c;
   }
   #foreignFlightPreviewModal .foreign-preview-empty {
     padding: 12px;
@@ -1851,7 +1873,8 @@
     flex-shrink: 0;
   }
   #foreignFlightPreviewModal .foreign-preview-time-input {
-    width: 72px;
+    width: 100%;
+    box-sizing: border-box;
     border: 1px solid #cbd5e1;
     border-radius: 6px;
     padding: 4px 6px;
@@ -1860,15 +1883,49 @@
     color: #2563eb;
     background: #fff;
   }
-  #foreignFlightPreviewModal .foreign-preview-flight-input,
-  #foreignFlightPreviewModal .foreign-preview-remark-input {
+  #foreignFlightPreviewModal .foreign-preview-flight-input {
     width: 100%;
-    min-width: 64px;
+    box-sizing: border-box;
+    min-width: 0;
     border: 1px solid #cbd5e1;
     border-radius: 6px;
     padding: 4px 6px;
     font-size: 13px;
     background: #fff;
+  }
+  #foreignFlightPreviewModal .foreign-preview-endpoint-input {
+    width: 100%;
+    box-sizing: border-box;
+    min-width: 0;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    padding: 4px 4px;
+    font-size: 13px;
+    font-weight: 700;
+    color: #2563eb;
+    background: #fff;
+    text-align: center;
+    text-transform: uppercase;
+  }
+  #foreignFlightPreviewModal .foreign-preview-endpoint {
+    display: inline-block;
+    font-size: 13px;
+    font-weight: 700;
+    color: #334155;
+    letter-spacing: 0.02em;
+  }
+  #foreignFlightPreviewModal .foreign-preview-actype-select {
+    width: 100%;
+    box-sizing: border-box;
+    min-width: 0;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    padding: 4px 6px;
+    font-size: 13px;
+    font-weight: 700;
+    color: #2563eb;
+    background: #fff;
+    cursor: pointer;
   }
   #foreignFlightPreviewModal .foreign-preview-table tr.is-manual td {
     background: #f0f9ff;
@@ -1888,7 +1945,7 @@
     color: #dc2626;
     letter-spacing: 0.02em;
   }
-  tr.flight-row-canx td:not(.assignment-flight-no) {
+  tr.flight-row-canx td:nth-child(n+3):not(.memo-cell) {
     color: #94a3b8;
   }
   tr.flight-row-canx .assignment-canx-cell {
@@ -3396,12 +3453,6 @@
     padding: 8px 12px; font-weight: 700; font-size: 13px; cursor: pointer;
   }
   .erp-module-actions button.erp-btn-primary { background: #2563eb; color: #fff; border-color: #2563eb; }
-  #erpFlightsMount .flight-editor {
-    border: 0; flex: 1; min-height: 0; display: flex; flex-direction: column;
-  }
-  #erpFlightsMount .flight-editor.collapsed .editor-body { display: flex !important; }
-  #erpFlightsMount .editor-body { display: flex !important; flex: 1; min-height: 0; flex-direction: column; }
-  #erpFlightsMount .editor-topbar .collapse-btn { display: none; }
   #erpRulesMount .custom-duty-box { border: 0; padding: 0; background: transparent; }
   #erpPageStaff.active {
     display: flex; flex-direction: column; min-height: 0; height: 100%; overflow: hidden;
@@ -5160,11 +5211,11 @@
     <div class="toolbar" id="scheduleToolbar">
       <div class="toolbar-schedule-actions" id="scheduleToolbarActions">
         <button type="button" class="toolbar-icon-btn" id="importExcelBtn" aria-label="匯入當日航班">
-          <span class="toolbar-icon-btn__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M8 7l4-4 4 4"/><path d="M5 21h14"/></svg></span>
+          <span class="toolbar-icon-btn__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z"/></svg></span>
           <span class="toolbar-icon-btn__tip">匯入當日航班</span>
         </button>
         <button type="button" class="toolbar-icon-btn" id="importStaffDbBtn" aria-label="匯入上班人員">
-          <span class="toolbar-icon-btn__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v11"/><path d="M8 10l4 4 4-4"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg></span>
+          <span class="toolbar-icon-btn__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>
           <span class="toolbar-icon-btn__tip">匯入上班人員</span>
         </button>
         <button type="button" class="toolbar-icon-btn" id="resetBtn" aria-label="清除資料">
@@ -5186,6 +5237,10 @@
       <button type="button" class="toolbar-icon-btn" id="toggleRollCallBtn" aria-label="點名：關">
         <span class="toolbar-icon-btn__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 12l2 2 4-4"/></svg></span>
         <span class="toolbar-icon-btn__tip">點名：關</span>
+      </button>
+      <button type="button" class="toolbar-icon-btn" id="exportScheduleExcelBtn" aria-label="匯出管制表與分配表">
+        <span class="toolbar-icon-btn__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M12 18v-6"/><path d="m9 15 3 3 3-3"/></svg></span>
+        <span class="toolbar-icon-btn__tip">匯出 Excel</span>
       </button>
       <button type="button" class="toolbar-icon-btn" id="undoBtn" disabled aria-label="復原上一步（Ctrl+Z）">
         <span class="toolbar-icon-btn__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10H9"/></svg></span>
@@ -5612,13 +5667,11 @@
       </section>
 
       <section id="erpPageFlights" class="erp-page" data-erp-title="航班管理">
-        <div class="erp-module-card erp-module-card--flush">
+        <div class="erp-module-card">
           <div class="erp-module-head erp-page-nav-head">
             <strong>航班管理</strong>
-            <div class="erp-module-sub">匯入當日航班／人員，調整 STD／STA／ETA。</div>
+            <div class="erp-module-sub">新功能規劃中。匯入航班與時間調整請至「排班作業」。</div>
           </div>
-          <div class="erp-module-actions" id="erpFlightsMount"></div>
-          <div id="erpFlightsEditorHost" style="flex:1;min-height:320px;display:flex;flex-direction:column;overflow:hidden;"></div>
         </div>
       </section>
 
@@ -6457,6 +6510,7 @@ function getShiftViewToolbarIconHtml(mode) {
 const TOOLBAR_TIP_TWO_LINES = {
   '匯入當日航班': ['匯入當日', '航班'],
   '匯入上班人員': ['匯入上班', '人員'],
+  '匯出 Excel': ['匯出', 'Excel'],
   '清除資料': ['清除', '資料'],
   '航班時間調整': ['航班時間', '調整'],
   '收合航班時間調整': ['收合航班', '時間調整'],
@@ -6939,6 +6993,144 @@ function exportOvertimeExcel() {
   XLSX.utils.book_append_sheet(wb, sheet, '加班');
   const fileDate = selectedDate || 'today';
   XLSX.writeFile(wb, `overtime_${fileDate}.xlsx`);
+}
+
+function getScheduleExportFileDate() {
+  return String(selectedDate || 'today').replace(/-/g, '');
+}
+function getScheduleExportDateText() {
+  return formatScheduleDateDisplay(selectedDate) || selectedDate || '';
+}
+function getAssignmentRoleCodes(flight, role) {
+  const fDef = flightDefs.find(f => f.flight === flight);
+  if (fDef?.status === 'CANX') return '-';
+  const codes = schedule
+    .filter(item => item.flight === flight && item.role === role)
+    .map(item => {
+      const p = people[item.personIndex];
+      return p ? String(p.code || p.name || '').trim() : '';
+    })
+    .filter(Boolean);
+  return codes.length ? codes.join(' ') : '';
+}
+function getDutyBlockExportLabel(item) {
+  if (item.role === '休') return '休';
+  if (item.role === '自訂') return String(item.label || item.compactLabel || '自訂').trim();
+  return String(item.compactLabel || compactDutyLabel(item.flight, item.role)).trim();
+}
+function buildControlScheduleSheetRows() {
+  const slotStep = 15;
+  const gridStart = START_MIN;
+  const gridEnd = 24 * 60 + 5 * 60;
+  const timeSlots = [];
+  for (let m = gridStart; m < gridEnd; m += slotStep) {
+    const label = m >= 24 * 60 ? `${minutesToTime(m - 24 * 60)}(+1)` : minutesToTime(m);
+    timeSlots.push(label);
+  }
+  const rows = [
+    ['日期', getScheduleExportDateText()],
+    ['匯出時間', new Date().toLocaleString('zh-TW', { hour12: false })],
+    [],
+    ['序', '代號', '姓名', '戰力', '班別', ...timeSlots]
+  ];
+  people.forEach((person, idx) => {
+    const row = [
+      idx + 1,
+      excelCell(person.code),
+      excelCell(resolveFullName(person) || person.name),
+      excelCell(person.level || resolveLevel(person)),
+      excelCell(getShiftFilterKey(person) || person.shift),
+      ...timeSlots.map(() => '')
+    ];
+    schedule
+      .filter(s => s.personIndex === idx)
+      .sort((a, b) => a.start - b.start)
+      .forEach(item => {
+        const col = Math.floor((item.start - gridStart) / slotStep);
+        if (col < 0 || col >= timeSlots.length) return;
+        const label = getDutyBlockExportLabel(item);
+        const cellIdx = 5 + col;
+        row[cellIdx] = row[cellIdx] ? `${row[cellIdx]} / ${label}` : label;
+      });
+    rows.push(row);
+  });
+  return rows;
+}
+function buildAssignmentDepSheetRows() {
+  const depRows = flightDefs
+    .filter(f => f.type === 'DEP')
+    .sort((a, b) => depStdMinutes(a) - depStdMinutes(b) || a.flight.localeCompare(b.flight));
+  const rows = [
+    ['日期', getScheduleExportDateText()],
+    [],
+    ['Flight No', 'STD', 'Gate', 'PPT CHK', 'ABG', 'BG', 'RC', 'Memo']
+  ];
+  depRows.forEach(f => {
+    const isCanx = f.status === 'CANX';
+    rows.push([
+      excelCell(f.flight),
+      excelCell(getAssignmentDepStdDisplayValue(f)),
+      excelCell(isCanx ? '-' : (f.depGate || '')),
+      excelCell(isCanx ? '-' : getAssignmentRoleCodes(f.flight, 'PPT')),
+      excelCell(isCanx ? '-' : getAssignmentRoleCodes(f.flight, 'ABG')),
+      excelCell(isCanx ? '-' : getAssignmentRoleCodes(f.flight, 'BG')),
+      excelCell(isCanx ? '-' : getAssignmentRoleCodes(f.flight, 'RC')),
+      excelCell(isCanx ? 'CANX' : '')
+    ]);
+  });
+  return rows;
+}
+function buildAssignmentArrSheetRows() {
+  const arrRows = flightDefs
+    .filter(f => f.type === 'ARR')
+    .sort((a, b) => getArrSortMinutes(a) - getArrSortMinutes(b) || a.flight.localeCompare(b.flight));
+  const rows = [
+    ['日期', getScheduleExportDateText()],
+    [],
+    ['Flight No', '接飛', 'STA', 'Gate', 'ETA', 'G2', '辦T', 'C', 'RC', 'Memo']
+  ];
+  arrRows.forEach(f => {
+    const isCanx = f.status === 'CANX';
+    const eta = f.eta ? normalizeImportedTime(f.eta) : '';
+    rows.push([
+      excelCell(f.flight),
+      excelCell(isCanx ? '-' : (f.connectingFlight || '')),
+      excelCell(getAssignmentArrStaDisplayValue(f)),
+      excelCell(isCanx ? '-' : (f.arrGate || '')),
+      excelCell(isCanx ? '-' : eta),
+      excelCell(isCanx ? '-' : ''),
+      excelCell(isCanx ? '-' : ''),
+      excelCell(isCanx ? '-' : getAssignmentRoleCodes(f.flight, '接機C')),
+      excelCell(isCanx ? '-' : getAssignmentRoleCodes(f.flight, '接機RC')),
+      excelCell(isCanx ? 'CANX' : '')
+    ]);
+  });
+  return rows;
+}
+function exportScheduleWorkbookExcel() {
+  if (typeof XLSX === 'undefined') {
+    appAlert('Excel 套件尚未載入，請確認網路連線後重新整理頁面。', '無法匯出');
+    return;
+  }
+  if (!people.length && !flightDefs.length) {
+    appAlert('目前沒有可匯出的管制表或分配表資料。', '無法匯出', 'info');
+    return;
+  }
+  const wb = XLSX.utils.book_new();
+  if (people.length) {
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(buildControlScheduleSheetRows()), '管制表');
+  }
+  if (flightDefs.some(f => f.type === 'DEP')) {
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(buildAssignmentDepSheetRows()), '出境分配');
+  }
+  if (flightDefs.some(f => f.type === 'ARR')) {
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(buildAssignmentArrSheetRows()), '入境分配');
+  }
+  if (!wb.SheetNames.length) {
+    appAlert('目前沒有可匯出的管制表或分配表資料。', '無法匯出', 'info');
+    return;
+  }
+  XLSX.writeFile(wb, `管制表分配表_${getScheduleExportFileDate()}.xlsx`);
 }
 
 function renderShiftLabel(shift, adjustedShift) {
@@ -10393,12 +10585,12 @@ const WORKBENCH_ENTRIES = {
   admin: [
     { title: '人員管理', desc: '在職／停用人員、調入與狀態變更；可刪除測試人員。', module: 'staff', tag: '人員' },
     { title: '匯入人員', desc: '更新代號／戰力主檔（Excel）。', module: 'staff', tag: '匯入' },
-    { title: '匯入航班', desc: '匯入當日航班與人員 Excel。', module: 'flights', tag: '航班' },
+    { title: '匯入航班', desc: '於排班作業工具列匯入當日航班。', module: 'schedule-ops', tag: '航班' },
     { title: '排班作業', desc: '進入完整排班畫面。', module: 'schedule-ops', tag: '排班' }
   ],
   scheduler: [
-    { title: '匯入航班', desc: '匯入當日航班與人員 Excel。', module: 'flights', tag: '航班' },
-    { title: '匯入人員', desc: '更新上班人員名單。', module: 'flights', tag: '人員' },
+    { title: '匯入航班', desc: '於排班作業工具列匯入當日航班。', module: 'schedule-ops', tag: '航班' },
+    { title: '匯入人員', desc: '於排班作業工具列匯入上班人員名單。', module: 'schedule-ops', tag: '人員' },
     { title: '修改戰力', desc: '維護代號／戰力資料庫。', module: 'staff', tag: '戰力' },
     { title: '修改 duty', desc: '自訂 duty 區塊與規則。', module: 'rules', tag: '規則' },
     { title: '拖曳排班', desc: '進入完整排班作業畫面。', module: 'schedule-ops', tag: '排班' },
@@ -10878,18 +11070,6 @@ function switchErpModule(moduleKey, options = {}) {
     bindStaffPersonnelEditor();
     updateStaffFilterToggleUi();
     renderErpStaffTable();
-  }
-  if (moduleKey === 'flights') {
-    erpMountEl(document.getElementById('importExcelBtn'), document.getElementById('erpFlightsMount'));
-    erpMountEl(document.getElementById('excelImportInput'), document.getElementById('erpFlightsMount'));
-    const editor = document.getElementById('flightEditorPanel');
-    erpMountEl(editor, document.getElementById('erpFlightsEditorHost'));
-    if (editor) {
-      editor.classList.remove('collapsed');
-      const body = document.getElementById('editorBody');
-      if (body) body.classList.remove('hidden');
-    }
-    renderFlightEditor();
   }
   if (moduleKey === 'rules') {
     const customDuty = document.querySelector('#erpPageSchedule .custom-duty-box');
@@ -11621,7 +11801,35 @@ function normalizeImportedFlightNo(value) {
 }
 
 const FOREIGN_SCHEDULE_URL = '外家時刻表.xlsx';
+/** 與外家時刻表 Excel I～L 欄下拉選項一致（匯入時會再從檔案更新） */
+const FOREIGN_AC_TYPE_OPTIONS = {
+  OZ: ['380', '350', '777', '330', '32Q', '321'],
+  HX: ['333', '33G', '32G', '32K', '32S', '32Y', '32T', '321', '32U'],
+  BX: ['321'],
+  NZ: ['787']
+};
+
+function syncForeignAcTypeOptionsFromWorkbook(workbook) {
+  if (typeof ForeignScheduleParser === 'undefined'
+    || typeof ForeignScheduleParser.extractForeignAcTypeOptions !== 'function') return;
+  const opts = ForeignScheduleParser.extractForeignAcTypeOptions(workbook);
+  Object.keys(FOREIGN_AC_TYPE_OPTIONS).forEach(code => {
+    if (Array.isArray(opts[code]) && opts[code].length) {
+      FOREIGN_AC_TYPE_OPTIONS[code] = opts[code].slice();
+    }
+  });
+}
+
+function resolveForeignPreviewAcType(flight, acType) {
+  const v = String(acType ?? '').trim();
+  if (v) return v;
+  const airline = foreignAirlineFromFlight(flight);
+  if (airline === 'BX') return '321';
+  if (airline === 'NZ') return '787';
+  return '';
+}
 const ASSIGNMENT_CANX_HTML = '<span class="assignment-canx-cell">CANX</span>';
+const ASSIGNMENT_CANX_DASH_HTML = '<span class="assignment-canx-dash">-</span>';
 let pendingFlightPreview = null;
 let flightPreviewManualRowSeq = 0;
 let excelImportMode = 'fis-full';
@@ -11664,7 +11872,42 @@ function cloneFlightDefForImport(def) {
   return JSON.parse(JSON.stringify(def));
 }
 
-function buildManualFlightDef(flight, type, timeStr, route, remark, canx) {
+function foreignAirlineFromFlight(flight) {
+  const m = String(flight || '').trim().toUpperCase().match(/^([A-Z]{2})/);
+  if (!m) return '';
+  return FOREIGN_AC_TYPE_OPTIONS[m[1]] ? m[1] : '';
+}
+
+function foreignAcTypeOptionsForFlight(flight, selectedAcType) {
+  const airline = foreignAirlineFromFlight(flight);
+  const base = airline && FOREIGN_AC_TYPE_OPTIONS[airline]
+    ? FOREIGN_AC_TYPE_OPTIONS[airline].slice()
+    : [...new Set(Object.values(FOREIGN_AC_TYPE_OPTIONS).flat())];
+  const selected = String(selectedAcType || '').trim();
+  if (selected && !base.includes(selected)) base.unshift(selected);
+  return base;
+}
+
+function fillForeignAcTypeSelect(select, flight, selectedAcType) {
+  if (!select) return;
+  const selected = resolveForeignPreviewAcType(flight, selectedAcType ?? select.value);
+  const options = foreignAcTypeOptionsForFlight(flight, selected);
+  select.innerHTML = [
+    `<option value=""${selected ? '' : ' selected'}>—</option>`,
+    ...options.map(v => `<option value="${escapeHtml(v)}"${v === selected ? ' selected' : ''}>${escapeHtml(v)}</option>`)
+  ].join('');
+}
+
+function renderForeignAcTypeSelect(flight, selectedAcType) {
+  const selected = resolveForeignPreviewAcType(flight, selectedAcType);
+  const options = foreignAcTypeOptionsForFlight(flight, selected);
+  const opts = [`<option value=""${selected ? '' : ' selected'}>—</option>`]
+    .concat(options.map(v => `<option value="${escapeHtml(v)}"${v === selected ? ' selected' : ''}>${escapeHtml(v)}</option>`))
+    .join('');
+  return `<select class="foreign-preview-actype-select">${opts}</select>`;
+}
+
+function buildManualFlightDef(flight, type, timeStr, route, acType, canx) {
   const normalizedFlight = normalizeImportedFlightNo(flight);
   const time = normalizeImportedTime(timeStr);
   const mins = parseTimeToMinutes(time);
@@ -11685,7 +11928,8 @@ function buildManualFlightDef(flight, type, timeStr, route, remark, canx) {
     std: type === 'DEP' ? time : '',
     sta: type === 'ARR' ? time : '',
     route: String(route || '').trim(),
-    remark: String(remark || '').trim(),
+    acType: String(acType || '').trim(),
+    remark: '',
     status: canx ? 'CANX' : '',
     depGate: '',
     arrGate: '',
@@ -11709,7 +11953,10 @@ async function confirmOutOfWindowImports(rows) {
 }
 
 async function loadForeignScheduleWorkbook() {
-  const res = await fetch(encodeURI(FOREIGN_SCHEDULE_URL));
+  const cacheBust = ForeignScheduleParser?.PARSER_VERSION || Date.now();
+  const url = `${encodeURI(FOREIGN_SCHEDULE_URL)}?v=${encodeURIComponent(cacheBust)}`;
+  console.log('[foreign-import] fetch xlsx', url);
+  const res = await fetch(url, { cache: 'no-store' });
   if (!res.ok) throw new Error(`無法載入 ${FOREIGN_SCHEDULE_URL}`);
   const buffer = await res.arrayBuffer();
   return XLSX.read(buffer, { type: 'array' });
@@ -11806,20 +12053,57 @@ function closeForeignFlightPreviewModal() {
   pendingFlightPreview = null;
 }
 
+function syncForeignPreviewCanxRow(row) {
+  if (!row) return;
+  const canxInput = row.querySelector('.foreign-preview-canx');
+  const confirmInput = row.querySelector('.foreign-preview-check');
+  if (!canxInput || !confirmInput) return;
+  const isCanx = !!canxInput.checked;
+  row.classList.toggle('foreign-preview-row-canx', isCanx);
+  if (isCanx) confirmInput.checked = true;
+}
+
+function bindForeignPreviewCanxRow(row) {
+  if (!row || row.dataset.canxBound === '1') return;
+  row.dataset.canxBound = '1';
+  const canxInput = row.querySelector('.foreign-preview-canx');
+  const confirmInput = row.querySelector('.foreign-preview-check');
+  if (!canxInput) return;
+  syncForeignPreviewCanxRow(row);
+  canxInput.addEventListener('change', () => syncForeignPreviewCanxRow(row));
+  confirmInput?.addEventListener('change', () => {
+    if (canxInput.checked && !confirmInput.checked) confirmInput.checked = true;
+  });
+}
+
+function bindForeignPreviewCanxRows(root) {
+  root.querySelectorAll('tr[data-preview-id]').forEach(bindForeignPreviewCanxRow);
+}
+
 function renderFlightPreviewTableRow(item, type, fisDefs) {
   const dup = item.flightDef && fisDefs && findFisDuplicateFlight(fisDefs, item.flightDef);
   const canxChecked = item.defaultCanx || item.flightDef?.status === 'CANX';
+  const dep = item.dep || item.flightDef?.dep || '';
+  const arr = item.arr || item.flightDef?.arr || '';
+  const acType = resolveForeignPreviewAcType(item.flight, item.acType || item.flightDef?.acType);
   const flightCell = item.isManual
     ? `<input type="text" class="foreign-preview-flight-input" value="${escapeHtml(item.flight || '')}" placeholder="FLT" />`
     : escapeHtml(item.flight);
+  const depCell = item.isManual
+    ? `<input type="text" class="foreign-preview-endpoint-input" maxlength="3" value="${escapeHtml(dep)}" placeholder="DEP" />`
+    : `<span class="foreign-preview-endpoint">${escapeHtml(dep)}</span>`;
+  const arrCell = item.isManual
+    ? `<input type="text" class="foreign-preview-endpoint-input" maxlength="3" value="${escapeHtml(arr)}" placeholder="ARR" />`
+    : `<span class="foreign-preview-endpoint">${escapeHtml(arr)}</span>`;
   return `
-    <tr class="${dup ? 'is-dup' : ''}${item.isManual ? ' is-manual' : ''}" data-preview-id="${escapeHtml(item.id)}" data-preview-type="${type}" data-preview-source="${escapeHtml(item.source || '')}">
+    <tr class="${dup ? 'is-dup' : ''}${item.isManual ? ' is-manual' : ''}${canxChecked ? ' foreign-preview-row-canx' : ''}" data-preview-id="${escapeHtml(item.id)}" data-preview-type="${type}" data-preview-source="${escapeHtml(item.source || '')}">
       <td><input type="checkbox" class="foreign-preview-check" checked /></td>
       <td><input type="checkbox" class="foreign-preview-canx" ${canxChecked ? 'checked' : ''} title="標記 CANX" /></td>
-      <td>${flightCell}</td>
+      <td>${flightCell}${dup ? ' <span class="flight-canx-mark">與 FIS 重複</span>' : ''}</td>
       <td><input type="text" class="foreign-preview-time-input" value="${escapeHtml(item.time || '')}" placeholder="06:20" /></td>
-      <td>${escapeHtml(item.route || '')}${dup ? ' <span class="flight-canx-mark">與 FIS 重複</span>' : ''}</td>
-      <td><input type="text" class="foreign-preview-remark-input" value="${escapeHtml(item.remark || '')}" placeholder="備註" /></td>
+      <td class="foreign-preview-dep-cell">${depCell}</td>
+      <td class="foreign-preview-arr-cell">${arrCell}</td>
+      <td>${renderForeignAcTypeSelect(item.flight || '', acType)}</td>
     </tr>
   `;
 }
@@ -11831,14 +12115,24 @@ function renderFlightPreviewTable(type, items, fisDefs) {
   const rows = items.map(item => renderFlightPreviewTableRow(item, type, fisDefs)).join('');
   return `
     <table class="foreign-preview-table">
+      <colgroup>
+        <col style="width:40px" />
+        <col style="width:40px" />
+        <col style="width:88px" />
+        <col style="width:72px" />
+        <col style="width:52px" />
+        <col style="width:52px" />
+        <col style="width:80px" />
+      </colgroup>
       <thead>
         <tr>
-          <th style="width:42px">確認</th>
-          <th style="width:42px">CANX</th>
+          <th>確認</th>
+          <th>CANX</th>
           <th>FLT NO</th>
-          <th style="width:88px">${type === 'DEP' ? 'STD' : 'STA'}</th>
-          <th>航線</th>
-          <th>備註</th>
+          <th>${type === 'DEP' ? 'STD' : 'STA'}</th>
+          <th>DEP</th>
+          <th>ARR</th>
+          <th>機型</th>
         </tr>
       </thead>
       <tbody>${rows}</tbody>
@@ -11873,12 +12167,26 @@ function bindFlightPreviewSectionActions(body, fisDefs) {
         isManual: true,
         flight: '',
         time: '',
-        route: '',
-        remark: ''
+        dep: '',
+        arr: '',
+        acType: ''
       }, type, fisDefs);
       table.insertAdjacentHTML('beforeend', rowHtml);
+      const newRow = table.lastElementChild;
+      newRow?.querySelector('.foreign-preview-flight-input')?.addEventListener('input', e => {
+        const row = e.target.closest('tr');
+        fillForeignAcTypeSelect(row?.querySelector('.foreign-preview-actype-select'), e.target.value.trim(), row?.querySelector('.foreign-preview-actype-select')?.value || '');
+      });
+      if (newRow) bindForeignPreviewCanxRow(newRow);
     });
   });
+  body.querySelectorAll('.foreign-preview-flight-input').forEach(input => {
+    input.addEventListener('input', e => {
+      const row = e.target.closest('tr');
+      fillForeignAcTypeSelect(row?.querySelector('.foreign-preview-actype-select'), e.target.value.trim(), row?.querySelector('.foreign-preview-actype-select')?.value || '');
+    });
+  });
+  bindForeignPreviewCanxRows(body);
 }
 
 function collectForeignPreviewDuplicates(fisDefs, candidates) {
@@ -11892,17 +12200,28 @@ function collectForeignPreviewDuplicates(fisDefs, candidates) {
 }
 
 function previewItemsFromForeignCandidates(candidates) {
-  return candidates.map(item => ({
+  const items = candidates.map(item => ({
     id: item.id,
     source: 'foreign',
     type: item.type,
     flight: item.flight,
     time: item.anchorTime,
-    route: item.route || '',
-    remark: item.flightDef?.remark || '',
+    dep: item.dep || item.flightDef?.dep || '',
+    arr: item.arr || item.flightDef?.arr || '',
+    route: item.route || item.flightDef?.route || '',
+    acType: resolveForeignPreviewAcType(item.flight, item.flightDef?.acType),
     flightDef: item.flightDef,
     defaultCanx: item.flightDef?.status === 'CANX'
   }));
+  const bx792 = items.filter(it => /BX\s*0*792/i.test(it.flight || it.flightDef?.flt || ''));
+  console.log('[foreign-preview] previewItemsFromForeignCandidates', {
+    inCount: candidates.length,
+    outCount: items.length,
+    depCount: items.filter(it => it.type === 'DEP').length,
+    arrCount: items.filter(it => it.type === 'ARR').length,
+    bx792
+  });
+  return items;
 }
 
 function previewItemsFromFisDiff(fisDefs) {
@@ -11916,7 +12235,9 @@ function previewItemsFromFisDiff(fisDefs) {
       flight: def.flight,
       time: def.baseTime,
       route: def.route || `${def.dep || ''} → ${def.arr || ''}`.replace(/^ → | → $/g, '').trim(),
-      remark: def.remark || '',
+      dep: def.dep || '',
+      arr: def.arr || '',
+      acType: resolveForeignPreviewAcType(def.flight, def.acType),
       flightDef: def,
       defaultCanx: def.status === 'CANX'
     }));
@@ -11945,7 +12266,7 @@ function renderFlightPreviewModalContent() {
   if (subtitle) {
     subtitle.textContent = mode === 'fis-diff'
       ? `班表日期 ${formatScheduleDateDisplay(selectedDate) || selectedDate}：以下為 FIS 有、目前班表沒有的航班，勾選後追加（不影響已排 duty）。`
-      : `班表日期 ${formatScheduleDateDisplay(selectedDate) || selectedDate}：可編輯時間（藍字）、標記 CANX，確認後與 FIS 合併匯入。`;
+      : `班表日期 ${formatScheduleDateDisplay(selectedDate) || selectedDate}：可編輯時間／機型（藍字）、標記 CANX，確認後與 FIS 合併匯入。`;
   }
   if (summary) {
     if (mode === 'fis-diff') {
@@ -11999,13 +12320,19 @@ function renderFlightPreviewModalContent() {
 }
 
 function openForeignFlightPreviewModal(fisParsed, foreignParsed) {
+  console.log('[foreign-preview] openForeignFlightPreviewModal parserVersion', ForeignScheduleParser?.PARSER_VERSION, 'foreignParsed.stats', foreignParsed?.stats);
+  console.log('[foreign-preview] raw candidates BX792', (foreignParsed?.candidates || []).filter(c => /BX\s*0*792/i.test(c.flight || c.flt || '')));
   const foreignItems = previewItemsFromForeignCandidates(foreignParsed.candidates || []);
+  const depItems = foreignItems.filter(item => item.type === 'DEP');
+  const arrItems = foreignItems.filter(item => item.type === 'ARR');
+  console.log('[foreign-preview] depItems BX792', depItems.filter(it => /BX\s*0*792/i.test(it.flight || '')));
+  console.log('[foreign-preview] depItems flights', depItems.map(it => `${it.flight} ${it.time}`));
   pendingFlightPreview = {
     mode: 'foreign-merge',
     fisParsed,
     foreignParsed,
-    depItems: foreignItems.filter(item => item.type === 'DEP'),
-    arrItems: foreignItems.filter(item => item.type === 'ARR')
+    depItems,
+    arrItems
   };
   renderFlightPreviewModalContent();
 }
@@ -12029,14 +12356,16 @@ function readPreviewRowFromDom(row) {
   if (!checked) return null;
   const canx = !!row.querySelector('.foreign-preview-canx')?.checked;
   const timeInput = row.querySelector('.foreign-preview-time-input');
-  const remarkInput = row.querySelector('.foreign-preview-remark-input');
+  const acTypeSelect = row.querySelector('.foreign-preview-actype-select');
   const flightInput = row.querySelector('.foreign-preview-flight-input');
   const flightText = flightInput
     ? flightInput.value.trim()
-    : row.querySelector('td:nth-child(3)')?.textContent?.trim() || '';
-  const routeText = row.querySelector('td:nth-child(5)')?.childNodes?.[0]?.textContent?.trim()
-    || row.querySelector('td:nth-child(5)')?.textContent?.replace(/與 FIS 重複/g, '').trim()
-    || '';
+    : row.querySelector('td:nth-child(3)')?.textContent?.replace(/與 FIS 重複/g, '').trim() || '';
+  const depText = (row.querySelector('.foreign-preview-dep-cell .foreign-preview-endpoint-input')?.value
+    || row.querySelector('.foreign-preview-dep-cell')?.textContent || '').trim().toUpperCase();
+  const arrText = (row.querySelector('.foreign-preview-arr-cell .foreign-preview-endpoint-input')?.value
+    || row.querySelector('.foreign-preview-arr-cell')?.textContent || '').trim().toUpperCase();
+  const routeText = depText && arrText ? `${depText} → ${arrText}` : '';
   const previewId = row.dataset.previewId;
   const item = [...(pendingFlightPreview?.depItems || []), ...(pendingFlightPreview?.arrItems || [])]
     .find(x => x.id === previewId);
@@ -12046,23 +12375,30 @@ function readPreviewRowFromDom(row) {
     type,
     flight: flightText,
     time: timeInput?.value?.trim() || '',
+    dep: depText,
+    arr: arrText,
     route: routeText,
-    remark: remarkInput?.value?.trim() || '',
+    acType: acTypeSelect?.value?.trim() || resolveForeignPreviewAcType(flightText, ''),
     canx,
     item
   };
 }
 
 function buildFlightDefFromPreviewRow(rowData) {
-  const { type, flight, time, route, remark, canx, item, source } = rowData;
+  const { type, flight, time, route, dep, arr, acType, canx, item, source } = rowData;
   if (!flight || !time) return null;
+  const resolvedAcType = resolveForeignPreviewAcType(flight, acType);
+  const routeLabel = route || (dep && arr ? `${dep} → ${arr}` : '');
   let def = null;
   if (source === 'manual' || item?.isManual) {
-    def = buildManualFlightDef(flight, type, time, route, remark, canx);
+    def = buildManualFlightDef(flight, type, time, routeLabel, resolvedAcType, canx);
   } else if (item?.flightDef) {
     def = cloneFlightDefForImport(item.flightDef);
     if (!applyTimeEditsToFlightDef(def, type, time)) return null;
-    if (remark) def.remark = remark;
+    def.dep = dep || def.dep || '';
+    def.arr = arr || def.arr || '';
+    def.route = routeLabel || def.route || '';
+    def.acType = resolvedAcType;
     if (canx) def.status = 'CANX';
     else if (source === 'foreign') def.status = '';
     else if (!canx && def.status === 'CANX' && source === 'fis-diff') def.status = '';
@@ -12120,7 +12456,6 @@ function initFlightImportModals() {
     const type = manualModal?.querySelector('input[name="manualFlightType"]:checked')?.value || 'DEP';
     const time = document.getElementById('manualFlightTime')?.value?.trim();
     const route = document.getElementById('manualFlightRoute')?.value?.trim() || '';
-    const remark = document.getElementById('manualFlightRemark')?.value?.trim() || '';
     const canx = !!document.getElementById('manualFlightCanx')?.checked;
     if (!flight) {
       appAlert('請填寫 FLT NO。', '無法新增');
@@ -12140,7 +12475,7 @@ function initFlightImportModals() {
     }
     const windowOk = await confirmOutOfWindowImports([{ flight: normalizeImportedFlightNo(flight), type, time }]);
     if (!windowOk) return;
-    const def = buildManualFlightDef(flight, type, time, route, remark, canx);
+    const def = buildManualFlightDef(flight, type, time, route, '', canx);
     if (!def) {
       appAlert('航班資料無法建立，請檢查輸入。', '無法新增');
       return;
@@ -12260,8 +12595,7 @@ function normalizeImportedTime(value) {
   return `${String(Number(m[1])).padStart(2,'0')}:${m[2]}`;
 }
 function formatAssignmentFlightLabel(f) {
-  const canx = f.status === 'CANX' ? ' <span class="flight-canx-mark">CANX</span>' : '';
-  return `${escapeHtml(f.flight)}${canx}`;
+  return escapeHtml(f.flight);
 }
 function formatAssignmentGate(f, type) {
   const gate = type === 'DEP' ? (f.depGate || '') : (f.arrGate || '');
@@ -12405,25 +12739,24 @@ function renderAssignmentEditableField(f, field, value, variant) {
 }
 
 function renderAssignmentGateCell(f, type) {
-  if (f.status === 'CANX') return ASSIGNMENT_CANX_HTML;
+  if (f.status === 'CANX') return ASSIGNMENT_CANX_DASH_HTML;
   const field = type === 'DEP' ? 'depGate' : 'arrGate';
   const value = type === 'DEP' ? (f.depGate || '') : (f.arrGate || '');
   return renderAssignmentEditableField(f, field, value, 'gate');
 }
 
 function renderAssignmentConnectingCell(f) {
-  if (f.status === 'CANX') return ASSIGNMENT_CANX_HTML;
+  if (f.status === 'CANX') return ASSIGNMENT_CANX_DASH_HTML;
   return renderAssignmentEditableField(f, 'connectingFlight', f.connectingFlight || '', 'connecting');
 }
 
 function renderAssignmentEtaCell(f) {
-  if (f.status === 'CANX') return ASSIGNMENT_CANX_HTML;
+  if (f.status === 'CANX') return ASSIGNMENT_CANX_DASH_HTML;
   const displayVal = f.eta ? normalizeImportedTime(f.eta) : '';
   return renderAssignmentEditableField(f, 'eta', displayVal, 'connecting');
 }
 
 function renderAssignmentDepStdCell(f) {
-  if (f.status === 'CANX') return ASSIGNMENT_CANX_HTML;
   const field = 'depStd';
   const displayVal = getAssignmentDepStdDisplayValue(f);
   const colUnlocked = isAssignmentColumnEditable(field);
@@ -12439,7 +12772,6 @@ function renderAssignmentDepStdCell(f) {
 }
 
 function renderAssignmentArrStaCell(f) {
-  if (f.status === 'CANX') return ASSIGNMENT_CANX_HTML;
   const field = 'arrSta';
   const displayVal = getAssignmentArrStaDisplayValue(f);
   const colUnlocked = isAssignmentColumnEditable(field);
@@ -13421,10 +13753,10 @@ function renderAssignmentTableFromFlightDefs() {
       <td class="assignment-flight-no" data-flight="${f.flight}" title="點一下篩選下方管制表人員">${formatAssignmentFlightLabel(f)}</td>
       <td>${renderAssignmentDepStdCell(f)}</td>
       <td>${renderAssignmentGateCell(f, 'DEP')}</td>
-      <td data-flight="${f.flight}" data-role="PPT">${isCanx ? ASSIGNMENT_CANX_HTML : ''}</td>
-      <td data-flight="${f.flight}" data-role="ABG">${isCanx ? ASSIGNMENT_CANX_HTML : ''}</td>
-      <td data-flight="${f.flight}" data-role="BG">${isCanx ? ASSIGNMENT_CANX_HTML : ''}</td>
-      <td data-flight="${f.flight}" data-role="RC">${isCanx ? ASSIGNMENT_CANX_HTML : ''}</td>
+      <td data-flight="${f.flight}" data-role="PPT">${isCanx ? ASSIGNMENT_CANX_DASH_HTML : ''}</td>
+      <td data-flight="${f.flight}" data-role="ABG">${isCanx ? ASSIGNMENT_CANX_DASH_HTML : ''}</td>
+      <td data-flight="${f.flight}" data-role="BG">${isCanx ? ASSIGNMENT_CANX_DASH_HTML : ''}</td>
+      <td data-flight="${f.flight}" data-role="RC">${isCanx ? ASSIGNMENT_CANX_DASH_HTML : ''}</td>
       <td class="memo-cell">${isCanx ? ASSIGNMENT_CANX_HTML : ''}</td>
     </tr>
   `;
@@ -13439,10 +13771,10 @@ function renderAssignmentTableFromFlightDefs() {
       <td>${renderAssignmentArrStaCell(f)}</td>
       <td>${renderAssignmentGateCell(f, 'ARR')}</td>
       <td>${renderAssignmentEtaCell(f)}</td>
-      <td>${isCanx ? ASSIGNMENT_CANX_HTML : ''}</td>
-      <td>${isCanx ? ASSIGNMENT_CANX_HTML : ''}</td>
-      <td data-flight="${f.flight}" data-role="接機C">${isCanx ? ASSIGNMENT_CANX_HTML : ''}</td>
-      <td data-flight="${f.flight}" data-role="接機RC">${isCanx ? ASSIGNMENT_CANX_HTML : ''}</td>
+      <td>${isCanx ? ASSIGNMENT_CANX_DASH_HTML : ''}</td>
+      <td>${isCanx ? ASSIGNMENT_CANX_DASH_HTML : ''}</td>
+      <td data-flight="${f.flight}" data-role="接機C">${isCanx ? ASSIGNMENT_CANX_DASH_HTML : ''}</td>
+      <td data-flight="${f.flight}" data-role="接機RC">${isCanx ? ASSIGNMENT_CANX_DASH_HTML : ''}</td>
       <td class="memo-cell">${isCanx ? ASSIGNMENT_CANX_HTML : ''}</td>
     </tr>
   `;
@@ -16252,7 +16584,7 @@ function syncAssignmentTableFromSchedule() {
     const role = cell.dataset.role;
     const fDef = flightDefs.find(f => f.flight === flight);
     if (fDef?.status === 'CANX') {
-      cell.innerHTML = ASSIGNMENT_CANX_HTML;
+      cell.innerHTML = ASSIGNMENT_CANX_DASH_HTML;
       cell.classList.remove('assignment-clickable');
       cell.onclick = null;
       cell.title = '';
@@ -16420,8 +16752,17 @@ document.getElementById('excelImportInput').addEventListener('change', async (e)
   try {
     if (typeof ForeignScheduleParser !== 'undefined' && typeof ForeignScheduleParser.parseForeignScheduleWorkbook === 'function') {
       const foreignWorkbook = await loadForeignScheduleWorkbook();
+      syncForeignAcTypeOptionsFromWorkbook(foreignWorkbook);
+      console.log('[foreign-import] loading parser', ForeignScheduleParser?.PARSER_VERSION, 'selectedDate', selectedDate);
       foreignParsed = ForeignScheduleParser.parseForeignScheduleWorkbook(foreignWorkbook, selectedDate, {
-        normalizeFlightNo: normalizeImportedFlightNo
+        normalizeFlightNo: normalizeImportedFlightNo,
+        debug: true
+      });
+      console.log('[foreign-import] parse result', {
+        parserVersion: foreignParsed.parserVersion,
+        stats: foreignParsed.stats,
+        bx792: (foreignParsed.candidates || []).filter(c => /BX\s*0*792/i.test(c.flight || c.flt || '')),
+        skippedBx792: (foreignParsed.skipped || []).filter(s => /BX\s*0*792/i.test(s.flt || ''))
       });
     }
   } catch (err) {
@@ -16527,6 +16868,7 @@ document.getElementById('resetBtn').addEventListener('click', () => setClearData
 document.getElementById('toggleOvertimeBtn')?.addEventListener('click', toggleOvertimePanel);
 document.getElementById('toggleOvertimeToolbarBtn')?.addEventListener('click', toggleOvertimePanel);
 document.getElementById('exportOvertimeBtn').addEventListener('click', exportOvertimeExcel);
+document.getElementById('exportScheduleExcelBtn')?.addEventListener('click', exportScheduleWorkbookExcel);
 document.getElementById('saveBtn').addEventListener('click', () => {
   const active = document.activeElement;
   if (active && typeof active.blur === 'function') active.blur();
@@ -16656,6 +16998,8 @@ attachFirebaseForSelectedDate();
 attachFirebaseSharedConfig();
 toggleAssignmentPanel(false);
 initErpNavigation();
+console.log('[boot] ForeignScheduleParser version', typeof ForeignScheduleParser !== 'undefined' ? ForeignScheduleParser.PARSER_VERSION : 'MISSING');
+console.log('[boot] foreignScheduleDebug=0 可關閉 parser 詳細 log');
 </script>
 </body>
 </html>

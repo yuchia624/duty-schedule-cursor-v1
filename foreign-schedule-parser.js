@@ -1,13 +1,36 @@
 /**
  * 外家時刻表 Excel → 當日候選 flightDefs
  * 需搭配 SheetJS（XLSX）；匯出 parseForeignScheduleWorkbook(workbook, selectedDateISO, opts)
+ *
+ * 支援欄位（新）：FLT No、DEP、ARR、STD、STA、Frequency、Aircraft Type
+ * 相容舊版：航班、航線、班期、機型、備註
  */
 (function (global) {
   const STATION = 'TPE';
   const DOW_ZH = ['日', '一', '二', '三', '四', '五', '六'];
+  const PARSER_VERSION = '2026-05-27-bx792-debug';
 
   function clean(v) {
     return String(v ?? '').replace(/\u3000/g, '').trim();
+  }
+
+  function isBx792(flt) {
+    return /BX\s*0*792/i.test(clean(flt));
+  }
+
+  function shouldDebugForeignSchedule(opts) {
+    if (opts && Object.prototype.hasOwnProperty.call(opts, 'debug')) return !!opts.debug;
+    try {
+      const v = localStorage.getItem('foreignScheduleDebug');
+      if (v === '0') return false;
+      if (v === '1') return true;
+    } catch (_) {}
+    return true;
+  }
+
+  function debugLog(opts, ...args) {
+    if (!shouldDebugForeignSchedule(opts)) return;
+    console.log('[ForeignScheduleParser]', ...args);
   }
 
   function normalizeSelectedDate(selectedDate) {
@@ -68,23 +91,83 @@
     return { dep: m[1].toUpperCase(), arr: m[2].toUpperCase() };
   }
 
+  /** Excel Frequency 數字：週一=1 … 週日=7 */
+  function excelWeekday(date) {
+    const jsDay = date.getDay();
+    return jsDay === 0 ? 7 : jsDay;
+  }
+
   function matchesSchedule(scheduleStr, date) {
     const s = clean(scheduleStr).replace(/\*+$/, '');
-    if (!s || s === '每日') return true;
+    if (!s || s === '每日' || /^daily$/i.test(s)) return true;
+
+    const tokens = s.split(/[,，、\s]+/).map(x => clean(x)).filter(Boolean);
+    if (tokens.length && tokens.every(p => /^\d+$/.test(p))) {
+      const dow = excelWeekday(date);
+      return tokens.some(p => Number(p) === dow);
+    }
+
     const dow = DOW_ZH[date.getDay()];
-    const parts = s.split(/[、,，]/).map(x => clean(x)).filter(Boolean);
-    if (parts.length) return parts.includes(dow);
+    if (tokens.length) return tokens.includes(dow);
     return s.includes(dow);
   }
 
-  function resolveDepStd(row, date) {
-    const flt = clean(row.flt).toUpperCase();
-    const stdRaw = clean(row.std);
-    if (flt === 'BX792' || /16:35/.test(stdRaw) && /16:40/.test(stdRaw)) {
-      const d = date.getDay();
-      if ([2, 4, 6].includes(d)) return '16:40';
-      return '16:35';
+  function resolveRoute(row) {
+    const dep = clean(row.dep).toUpperCase();
+    const arr = clean(row.arr).toUpperCase();
+    if (dep && arr) {
+      return { dep, arr, routeStr: `${dep} → ${arr}` };
     }
+    const parsed = parseRoute(row.route);
+    if (!parsed) return null;
+    return {
+      dep: parsed.dep,
+      arr: parsed.arr,
+      routeStr: clean(row.route)
+    };
+  }
+
+  function defaultForeignAcType(flt) {
+    const f = clean(flt).toUpperCase();
+    if (f.startsWith('BX')) return '321';
+    if (f.startsWith('NZ')) return '787';
+    return '';
+  }
+
+  function normalizeWorkbookRow(raw, rawIndex) {
+    const fltKeys = {
+      'FLT No': raw['FLT No'],
+      FLT: raw.FLT,
+      航班: raw['航班'],
+      flt: raw.flt
+    };
+    const flt = clean(fltKeys['FLT No'] || fltKeys.FLT || fltKeys['航班'] || fltKeys.flt);
+    if (!flt || flt === 'FLT No' || flt === 'FLT' || flt === '航班') {
+      return { _skip: true, _rawIndex: rawIndex, _raw: raw, _reason: '無效 FLT 或表頭列', _fltKeys: fltKeys };
+    }
+    const dep = clean(raw.DEP || raw.dep || '');
+    const arr = clean(raw.ARR || raw.arr || '');
+    const route = clean(raw['航線'] || raw.route || '');
+    if (!dep && !arr && !route) {
+      return { _skip: true, _rawIndex: rawIndex, _raw: raw, _reason: '缺少 DEP/ARR/航線', _fltKeys: fltKeys };
+    }
+
+    return {
+      _rawIndex: rawIndex,
+      _raw: raw,
+      flt,
+      dep,
+      arr,
+      route,
+      std: raw.STD ?? raw.std ?? '',
+      sta: raw.STA ?? raw.sta ?? '',
+      schedule: clean(raw.Frequency || raw['班期'] || raw.schedule || ''),
+      acType: clean(raw['Aircraft Type'] || raw['機型'] || raw.acType || ''),
+      remark: clean(raw['備註'] || raw.remark || '')
+    };
+  }
+
+  function resolveDepStd(row) {
     const parsed = parseForeignTimeValue(row.std);
     return parsed?.time || null;
   }
@@ -127,11 +210,10 @@
     return global.XLSX.utils.sheet_to_json(workbook.Sheets[name], { defval: '' });
   }
 
-  function buildForeignFlightDef(row, type, anchorTime, normalizeFlightNo) {
+  function buildForeignFlightDef(row, type, anchorTime, normalizeFlightNo, route) {
     const mins = timeToMinutes(anchorTime);
     if (mins == null) return null;
     const flight = normalizeFlightNo(row.flt);
-    const route = parseRoute(row.route) || { dep: '', arr: '' };
     const def = {
       flight,
       type,
@@ -141,6 +223,7 @@
       extension: 0,
       flt: clean(row.flt).toUpperCase(),
       acNo: '',
+      acType: clean(row.acType) || defaultForeignAcType(row.flt),
       dep: route.dep,
       arr: route.arr,
       std: type === 'DEP' ? anchorTime : formatTimeRaw(row.std),
@@ -154,7 +237,7 @@
       status: '',
       eChat: '',
       source: 'foreign',
-      route: clean(row.route),
+      route: route.routeStr,
       schedule: clean(row.schedule),
       remark: clean(row.remark)
     };
@@ -168,6 +251,18 @@
     return def;
   }
 
+  function extractForeignAcTypeOptions(workbook) {
+    const opts = { OZ: [], HX: [], BX: [], NZ: [] };
+    sheetRows(workbook).forEach(raw => {
+      Object.keys(opts).forEach(code => {
+        const v = clean(raw[code]);
+        if (!v || opts[code].includes(v)) return;
+        opts[code].push(v);
+      });
+    });
+    return opts;
+  }
+
   function parseForeignScheduleWorkbook(workbook, selectedDateIso, opts = {}) {
     const normalizeFlightNo = typeof opts.normalizeFlightNo === 'function'
       ? opts.normalizeFlightNo
@@ -178,74 +273,158 @@
       return { error: '系統排班日期無效，無法解析外家時刻表。', candidates: [] };
     }
 
-    const rows = sheetRows(workbook).map(row => ({
-      flt: clean(row['航班'] || row.flt),
-      route: clean(row['航線'] || row.route),
-      std: row['STD'] ?? row.std ?? '',
-      sta: row['STA'] ?? row.sta ?? '',
-      schedule: clean(row['班期'] || row.schedule),
-      remark: clean(row['備註'] || row.remark)
-    })).filter(r => r.flt && r.route);
+    const rawRows = sheetRows(workbook);
+    debugLog(opts, 'VERSION', PARSER_VERSION, 'selectedDate', selectedDateIso, 'excelWeekday', excelWeekday(selectedDate), 'rawRowCount', rawRows.length);
+
+    rawRows.forEach((raw, rawIndex) => {
+      if (!shouldDebugForeignSchedule(opts)) return;
+      const entry = {
+        rawIndex,
+        raw,
+        fltNo: raw['FLT No'],
+        flt: raw.FLT,
+        航班: raw['航班'],
+        dep: raw.DEP,
+        arr: raw.ARR,
+        std: raw.STD,
+        sta: raw.STA,
+        frequency: raw.Frequency,
+        acType: raw['Aircraft Type']
+      };
+      if (isBx792(entry.fltNo || entry.flt || entry.航班)) {
+        console.log('[ForeignScheduleParser][BX792][raw-row]', entry);
+      } else {
+        debugLog(opts, 'raw-row', entry);
+      }
+    });
+
+    const normalizedRows = rawRows.map((raw, rawIndex) => normalizeWorkbookRow(raw, rawIndex));
+    const rows = normalizedRows.filter(row => !row._skip);
+    normalizedRows.filter(row => row._skip).forEach(row => {
+      const msg = { rawIndex: row._rawIndex, reason: row._reason, fltKeys: row._fltKeys, raw: row._raw };
+      if (isBx792(row._raw?.['FLT No'] || row._raw?.FLT || row._raw?.['航班'])) {
+        console.warn('[ForeignScheduleParser][BX792][skipped-normalize]', msg);
+      } else {
+        debugLog(opts, 'skipped-normalize', msg);
+      }
+    });
+
+    debugLog(opts, 'normalizedRowCount', rows.length);
 
     const candidates = [];
     const skipped = [];
 
-    rows.forEach(row => {
-      if (!matchesSchedule(row.schedule, selectedDate)) {
-        skipped.push({ flt: row.flt, reason: '班期不符' });
+    rows.forEach((row, rowIndex) => {
+      const baseLog = {
+        rowIndex,
+        rawIndex: row._rawIndex,
+        flt: row.flt,
+        dep: row.dep,
+        arr: row.arr,
+        std: row.std,
+        sta: row.sta,
+        schedule: row.schedule,
+        acType: row.acType,
+        selectedDate: selectedDateIso,
+        excelWeekday: excelWeekday(selectedDate)
+      };
+      const bx792 = isBx792(row.flt);
+      const logBx792 = (...args) => { if (bx792) console.log('[ForeignScheduleParser][BX792]', ...args); };
+
+      const scheduleMatch = matchesSchedule(row.schedule, selectedDate);
+      logBx792('schedule-check', { ...baseLog, scheduleMatch });
+      debugLog(opts, 'row-check', { ...baseLog, scheduleMatch });
+
+      if (!scheduleMatch) {
+        skipped.push({ flt: row.flt, reason: '班期不符', schedule: row.schedule, excelWeekday: excelWeekday(selectedDate) });
+        logBx792('SKIP 班期不符', row.schedule, 'weekday', excelWeekday(selectedDate));
         return;
       }
-      const route = parseRoute(row.route);
+
+      const route = resolveRoute(row);
       if (!route) {
         skipped.push({ flt: row.flt, reason: '航線格式無法解析' });
+        logBx792('SKIP 航線格式無法解析', row);
         return;
       }
+      logBx792('route', route);
 
       let type = '';
       let anchorTime = '';
       if (route.dep === STATION && route.arr !== STATION) {
         type = 'DEP';
-        anchorTime = resolveDepStd(row, selectedDate);
+        anchorTime = resolveDepStd(row);
       } else if (route.arr === STATION && route.dep !== STATION) {
         type = 'ARR';
         const parsed = parseForeignTimeValue(row.sta);
         anchorTime = parsed?.time || null;
       } else {
         skipped.push({ flt: row.flt, reason: '非 TPE 出入境航線' });
+        logBx792('SKIP 非 TPE 出入境航線', route);
         return;
       }
+
+      logBx792('type/time', { type, anchorTime, std: row.std, sta: row.sta });
 
       if (!anchorTime) {
         skipped.push({ flt: row.flt, reason: '時間無法解析' });
-        return;
-      }
-      if (!inOperationalWindow(type, anchorTime, selectedDate)) {
-        skipped.push({ flt: row.flt, reason: '不在當日營運時間窗口' });
+        logBx792('SKIP 時間無法解析');
         return;
       }
 
-      const flightDef = buildForeignFlightDef(row, type, anchorTime, normalizeFlightNo);
+      const inWindow = inOperationalWindow(type, anchorTime, selectedDate);
+      logBx792('operational-window', { inWindow, type, anchorTime });
+      if (!inWindow) {
+        skipped.push({ flt: row.flt, reason: '不在當日營運時間窗口', type, anchorTime });
+        logBx792('SKIP 不在當日營運時間窗口');
+        return;
+      }
+
+      const flightDef = buildForeignFlightDef(row, type, anchorTime, normalizeFlightNo, route);
       if (!flightDef) {
         skipped.push({ flt: row.flt, reason: '無法建立航班資料' });
+        logBx792('SKIP 無法建立 flightDef');
         return;
       }
 
-      candidates.push({
-        id: `${flightDef.flight}_${type}`,
+      const candidate = {
+        id: `fr_${row._rawIndex}_${flightDef.flight}_${type}`,
         flight: flightDef.flight,
         type,
         flt: flightDef.flt,
+        dep: route.dep,
+        arr: route.arr,
         route: flightDef.route,
         anchorTime,
         anchorLabel: type === 'DEP' ? 'STD' : 'STA',
         flightDef
-      });
+      };
+      candidates.push(candidate);
+      logBx792('CANDIDATE ADDED', candidate);
+      debugLog(opts, 'candidate-added', candidate);
     });
 
     candidates.sort((a, b) => {
       if (a.type !== b.type) return a.type === 'DEP' ? -1 : 1;
       return a.flightDef.baseMinutes - b.flightDef.baseMinutes || a.flight.localeCompare(b.flight);
     });
+
+    const bx792Candidates = candidates.filter(c => /BX\s*0*792/i.test(c.flight) || /BX\s*0*792/i.test(c.flt));
+    console.log('[ForeignScheduleParser] VERSION', PARSER_VERSION, 'summary', {
+      selectedDate: selectedDateIso,
+      excelWeekday: excelWeekday(selectedDate),
+      candidates: candidates.length,
+      dep: candidates.filter(c => c.type === 'DEP').length,
+      arr: candidates.filter(c => c.type === 'ARR').length,
+      skipped: skipped.length,
+      bx792Candidates
+    });
+    if (bx792Candidates.length) {
+      console.log('[ForeignScheduleParser][BX792] final candidates', bx792Candidates);
+    } else {
+      const bx792Skipped = skipped.filter(s => isBx792(s.flt));
+      console.warn('[ForeignScheduleParser][BX792] NOT in candidates. skipped=', bx792Skipped);
+    }
 
     return {
       candidates,
@@ -254,12 +433,15 @@
         dep: candidates.filter(c => c.type === 'DEP').length,
         arr: candidates.filter(c => c.type === 'ARR').length,
         total: candidates.length
-      }
+      },
+      parserVersion: PARSER_VERSION
     };
   }
 
   global.ForeignScheduleParser = {
+    PARSER_VERSION,
     parseForeignScheduleWorkbook,
+    extractForeignAcTypeOptions,
     matchesSchedule,
     inOperationalWindow,
     datetimeOnScheduleDay,
