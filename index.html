@@ -3227,6 +3227,29 @@
     .custom-duty-grid { grid-template-columns: 1fr 76px 70px auto; }
     .toolbar .search-wrap { width: 180px; }
   }
+  @media (max-width: 768px) {
+    .workbench-role-option {
+      min-height: 48px;
+      -webkit-tap-highlight-color: rgba(37, 99, 235, 0.12);
+    }
+    .workbench-role-option input[type="radio"] {
+      width: 18px;
+      height: 18px;
+      flex-shrink: 0;
+    }
+    .workbench-entry {
+      min-height: 48px;
+      -webkit-tap-highlight-color: rgba(37, 99, 235, 0.12);
+    }
+    .erp-nav-btn {
+      min-height: 52px;
+      padding: 8px 4px 10px;
+    }
+    .erp-shell { height: 100dvh; }
+    .erp-staff-detail-pane.is-open {
+      width: min(400px, 92vw);
+    }
+  }
 
   /* ── ERP 外層（不影響排班核心 .app 內部結構）── */
   :root { --erp-nav-width: 76px; }
@@ -10575,6 +10598,7 @@ const ERP_MODULE_PAGES = {
 const LS_WORKBENCH_ROLE = `${LS_PREFIX}_workbench_role`;
 const LS_ERP_NAV_CLOSED = `${LS_PREFIX}_erp_nav_closed`;
 const LS_ERP_NAV_OPEN_TOP_REF = `${LS_PREFIX}_erp_nav_open_top_ref`;
+let workbenchRoleMemory = '';
 const ROLE_ALLOWED_MODULES = {
   admin: ['home', 'schedule-ops', 'staff', 'flights', 'rules', 'settings'],
   scheduler: ['home', 'schedule-ops', 'staff', 'flights', 'rules', 'settings'],
@@ -10609,12 +10633,20 @@ const WORKBENCH_ENTRIES = {
 const erpHomeSlots = new Map();
 let activeErpModule = localStorage.getItem('cursor_v1_erp_module') || 'home';
 function getWorkbenchRole() {
-  const role = localStorage.getItem(LS_WORKBENCH_ROLE) || '';
-  return ROLE_ALLOWED_MODULES[role] ? role : '';
+  if (workbenchRoleMemory && ROLE_ALLOWED_MODULES[workbenchRoleMemory]) return workbenchRoleMemory;
+  try {
+    const role = localStorage.getItem(LS_WORKBENCH_ROLE) || '';
+    if (ROLE_ALLOWED_MODULES[role]) {
+      workbenchRoleMemory = role;
+      return role;
+    }
+  } catch (_) {}
+  return '';
 }
 function setWorkbenchRole(role) {
   if (!ROLE_ALLOWED_MODULES[role]) return;
-  localStorage.setItem(LS_WORKBENCH_ROLE, role);
+  workbenchRoleMemory = role;
+  try { localStorage.setItem(LS_WORKBENCH_ROLE, role); } catch (_) {}
   document.querySelectorAll('.workbench-role-option').forEach(el => {
     const selected = el.dataset.role === role;
     el.classList.toggle('selected', selected);
@@ -10623,6 +10655,11 @@ function setWorkbenchRole(role) {
   });
   updateErpNavForRole();
   renderWorkbenchDashboard();
+  if (window.matchMedia('(max-width: 768px)').matches) {
+    requestAnimationFrame(() => {
+      document.getElementById('workbenchStatus')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    });
+  }
 }
 function canAccessErpModule(moduleKey) {
   if (moduleKey === 'home') return true;
@@ -11097,8 +11134,16 @@ function switchErpModule(moduleKey, options = {}) {
   renderCloudStatusUI();
 }
 function initWorkbenchRolePicker() {
+  document.querySelectorAll('.workbench-role-option input[type="radio"]').forEach(input => {
+    input.addEventListener('change', () => {
+      if (input.checked) setWorkbenchRole(input.value);
+    });
+  });
   document.querySelectorAll('.workbench-role-option').forEach(label => {
-    label.addEventListener('click', () => setWorkbenchRole(label.dataset.role));
+    label.addEventListener('click', () => {
+      const role = label.dataset.role;
+      if (role) setWorkbenchRole(role);
+    });
   });
   const saved = getWorkbenchRole();
   if (saved) setWorkbenchRole(saved);
