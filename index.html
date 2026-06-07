@@ -3249,6 +3249,28 @@
     .erp-staff-detail-pane.is-open {
       width: min(400px, 92vw);
     }
+    .erp-staff-table-wrap {
+      -webkit-overflow-scrolling: touch;
+    }
+    .erp-staff-table {
+      width: max-content;
+      min-width: 100%;
+      table-layout: auto;
+    }
+    .erp-staff-table .erp-staff-col-pid { width: 88px; min-width: 88px; }
+    .erp-staff-table .erp-staff-col-name { width: 80px; min-width: 72px; }
+    .erp-staff-table .erp-staff-col-code { width: 48px; min-width: 44px; }
+    .erp-staff-table .erp-staff-col-group { width: 44px; min-width: 40px; }
+    .erp-staff-table .erp-staff-col-level { width: 56px; min-width: 52px; }
+    .erp-staff-table .erp-staff-col-status { width: 72px; min-width: 68px; }
+    .erp-staff-table .erp-staff-col-hist,
+    .erp-staff-table .erp-staff-col-tags {
+      display: none;
+    }
+    .erp-staff-list-pane.is-staff-status-searching .erp-staff-table .erp-staff-col-status {
+      width: auto;
+      min-width: 120px;
+    }
   }
 
   /* ── ERP 外層（不影響排班核心 .app 內部結構）── */
