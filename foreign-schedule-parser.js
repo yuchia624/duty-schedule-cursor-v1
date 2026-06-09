@@ -246,6 +246,7 @@
       def.eta = '';
     } else {
       def.eta = '';
+      def.etaManual = false;
       def.changeTime = '';
     }
     return def;

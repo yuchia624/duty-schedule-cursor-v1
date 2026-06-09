@@ -2118,11 +2118,13 @@
   }
   .assignment-field-wrap.assignment-field-gate-edited .assignment-field-display,
   .assignment-field-wrap.assignment-field-gate-edited .assignment-field-input {
-    background: #fecaca;
-    color: #991b1b;
+    background: transparent;
+    color: #ef4444;
+    font-weight: 700;
   }
   .assignment-field-wrap.assignment-field-gate-edited.is-column-editable:hover .assignment-field-display {
-    box-shadow: inset 0 0 0 1px #f87171;
+    background: transparent;
+    box-shadow: none;
   }
   .assignment-field-wrap.assignment-field-gate:not(.assignment-field-gate-edited).is-column-editable:hover .assignment-field-display {
     background: #bbf7d0;
@@ -2159,16 +2161,19 @@
     line-height: 1.35;
   }
   .assignment-field-wrap.assignment-field-gate-edited .assignment-field-input {
-    border-bottom-color: #b91c1c;
-    background: #fecaca;
-    color: #991b1b;
+    border-bottom-color: #ef4444;
+    background: transparent;
+    color: #ef4444;
+    font-weight: 700;
   }
   .assignment-field-wrap.assignment-field-std-edited .assignment-field-display {
-    background: #fecaca;
-    color: #991b1b;
+    background: transparent;
+    color: #ef4444;
+    font-weight: 700;
   }
   .assignment-field-wrap.assignment-field-std-edited.is-column-editable:hover .assignment-field-display {
-    box-shadow: inset 0 0 0 1px #f87171;
+    background: transparent;
+    box-shadow: none;
   }
   .assignment-field-wrap.assignment-field-std:not(.assignment-field-std-edited).is-column-editable:hover .assignment-field-display {
     background: #bbf7d0;
@@ -2181,9 +2186,22 @@
     max-width: 76px;
   }
   .assignment-field-wrap.assignment-field-std-edited .assignment-field-input-time {
-    border-bottom-color: #b91c1c;
-    background: #fecaca;
-    color: #991b1b;
+    border-bottom-color: #ef4444;
+    background: transparent;
+    color: #ef4444;
+    font-weight: 700;
+  }
+  .assignment-field-wrap.assignment-field-eta-late .assignment-field-display {
+    color: #ef4444;
+    font-weight: 700;
+  }
+  .assignment-field-wrap.assignment-field-eta-late.is-column-editable:hover .assignment-field-display {
+    color: #ef4444;
+  }
+  .assignment-field-wrap.assignment-field-eta-late .assignment-field-input {
+    color: #ef4444;
+    font-weight: 700;
+    border-bottom-color: #ef4444;
   }
   .assignment-field-wrap.is-tooltip-editing .assignment-field-display {
     box-shadow: inset 0 0 0 2px #2563eb;
@@ -12030,6 +12048,13 @@ function parseRouteEndpoints(route) {
   if (!m) return { dep: '', arr: '' };
   return { dep: m[1].toUpperCase(), arr: m[2].toUpperCase() };
 }
+function clearArrFlightEtaImport(def) {
+  if (!def || def.type !== 'ARR') return def;
+  def.eta = '';
+  def.etaRaw = '';
+  def.etaManual = false;
+  return def;
+}
 
 function applyTimeEditsToFlightDef(def, type, timeStr) {
   const time = normalizeImportedTime(timeStr);
@@ -12043,12 +12068,13 @@ function applyTimeEditsToFlightDef(def, type, timeStr) {
   } else {
     def.sta = time;
     if (def.std == null) def.std = '';
+    clearArrFlightEtaImport(def);
   }
   return def;
 }
 
 function cloneFlightDefForImport(def) {
-  return JSON.parse(JSON.stringify(def));
+  return clearArrFlightEtaImport(JSON.parse(JSON.stringify(def)));
 }
 
 function foreignAirlineFromFlight(flight) {
@@ -12114,7 +12140,10 @@ function buildManualFlightDef(flight, type, timeStr, route, acType, canx) {
     arrGate: '',
     acNo: '',
     etd: '',
+    eta: '',
     etaRaw: '',
+    etaManual: false,
+    changeTime: '',
     pax: '',
     serviceType: '',
     eChat: ''
@@ -12584,7 +12613,7 @@ function buildFlightDefFromPreviewRow(rowData) {
   }
   if (!def) return null;
   if (canx) def.status = 'CANX';
-  return def;
+  return clearArrFlightEtaImport(def);
 }
 
 function collectSelectedPreviewFlightDefs() {
@@ -12787,12 +12816,13 @@ function hasAssignmentFieldEdits(f, field) {
 }
 
 function hasAssignmentGateFieldEdits(f, field) {
-  return hasAssignmentFieldEdits(f, field);
+  if (typeof FlightAssignmentUtils === 'undefined') return false;
+  return FlightAssignmentUtils.buildFieldHistoryChain(f, field).length > 1;
 }
 
 function assignmentFieldEditWrapClass(f, field) {
   if (!isAssignmentGateField(field)) return '';
-  return hasAssignmentFieldEdits(f, field) ? ' assignment-field-gate-edited' : '';
+  return hasAssignmentGateFieldEdits(f, field) ? ' assignment-field-gate-edited' : '';
 }
 
 const assignmentUnlockedColumns = new Set();
@@ -12832,6 +12862,13 @@ function getAssignmentDepStdDisplayValue(f) {
 
 function getAssignmentArrStaDisplayValue(f) {
   return minutesToTime(arrStaMinutes(f));
+}
+
+function isArrEtaLaterThanSta(f) {
+  if (!f || f.type !== 'ARR' || f.status === 'CANX') return false;
+  const etaMin = parseTimeToMinutes(f.eta ? normalizeImportedTime(f.eta) : '');
+  if (etaMin == null) return false;
+  return etaMin > arrStaMinutes(f);
 }
 
 function syncAssignmentTimeFieldFromEdits(f, field) {
@@ -12932,7 +12969,16 @@ function renderAssignmentConnectingCell(f) {
 function renderAssignmentEtaCell(f) {
   if (f.status === 'CANX') return ASSIGNMENT_CANX_DASH_HTML;
   const displayVal = f.eta ? normalizeImportedTime(f.eta) : '';
-  return renderAssignmentEditableField(f, 'eta', displayVal, 'connecting');
+  const emptyClass = displayVal ? '' : ' is-empty';
+  const editable = isAssignmentColumnEditable('eta');
+  const readonlyClass = editable ? '' : ' is-readonly';
+  const lateClass = isArrEtaLaterThanSta(f) ? ' assignment-field-eta-late' : '';
+  const colEditableClass = editable ? ' is-column-editable' : '';
+  return `<span class="assignment-field-wrap assignment-field-connecting assignment-field-eta${lateClass}${colEditableClass}">` +
+    `<span class="assignment-field-display${emptyClass}${readonlyClass}" tabindex="${editable ? 0 : -1}" ` +
+    `data-flight-def-id="${escapeHtml(f.id)}" data-edit-field="eta" data-value="${escapeHtml(displayVal)}">` +
+    `${escapeHtml(displayVal)}</span>` +
+    `</span>`;
 }
 
 function renderAssignmentDepStdCell(f) {
@@ -13060,6 +13106,7 @@ function commitAssignmentFieldEdit(flightDefId, field, rawValue) {
     const oldVal = f.eta ? normalizeImportedTime(f.eta) : '';
     if (oldVal === newVal) return false;
     f.eta = newVal;
+    f.etaManual = !!newVal;
     applyFlightScheduleEdit();
     return true;
   }
@@ -13082,7 +13129,7 @@ function commitAssignmentFieldEdit(flightDefId, field, rawValue) {
     f.connectingSource = 'manual';
   }
 
-  if (isAssignmentGateField(field)) {
+  if (isAssignmentGateField(field) && String(oldVal).trim()) {
     FlightAssignmentUtils.recordFieldEdit(f, field, oldVal, newVal);
   }
 
@@ -13446,6 +13493,17 @@ function refreshAssignmentArrStaDisplay(displayEl, f) {
   }
 }
 
+function refreshAssignmentEtaDisplay(displayEl, f) {
+  const displayVal = f.eta ? normalizeImportedTime(f.eta) : '';
+  displayEl.dataset.value = displayVal;
+  displayEl.textContent = displayVal;
+  displayEl.classList.toggle('is-empty', !displayVal);
+  const wrap = displayEl.closest('.assignment-field-wrap');
+  if (wrap) {
+    wrap.classList.toggle('assignment-field-eta-late', isArrEtaLaterThanSta(f));
+  }
+}
+
 function refreshAssignmentFieldDisplay(displayEl) {
   const f = findFlightDefById(displayEl.dataset.flightDefId);
   const field = displayEl.dataset.editField;
@@ -13454,12 +13512,13 @@ function refreshAssignmentFieldDisplay(displayEl) {
     refreshAssignmentDepStdDisplay(displayEl, f);
   } else if (field === 'arrSta') {
     refreshAssignmentArrStaDisplay(displayEl, f);
+  } else if (field === 'eta') {
+    refreshAssignmentEtaDisplay(displayEl, f);
   } else {
     let val = '';
     if (field === 'depGate') val = f.depGate || '';
     else if (field === 'arrGate') val = f.arrGate || '';
     else if (field === 'connectingFlight') val = f.connectingFlight || '';
-    else if (field === 'eta') val = f.eta ? normalizeImportedTime(f.eta) : '';
     displayEl.dataset.value = val;
     displayEl.textContent = val;
     displayEl.classList.toggle('is-empty', !val);
@@ -14954,7 +15013,17 @@ function normalizeFlightDefsInPlace() {
     if (f.arrGate == null) f.arrGate = '';
     if (f.status == null) f.status = '';
     if (f.type === 'ARR') {
-      if (f.eta == null) f.eta = '';
+      if (f.etaManual !== true) {
+        if (f.etaManual !== false) {
+          const eta = f.eta ? normalizeImportedTime(f.eta) : '';
+          const sta = getAssignmentArrStaDisplayValue(f);
+          f.etaManual = !!(eta && eta !== sta);
+        }
+        if (!f.etaManual) clearArrFlightEtaImport(f);
+      } else {
+        if (f.eta == null) f.eta = '';
+        if (f.etaRaw == null) f.etaRaw = '';
+      }
       if (f.connectingFlight == null) f.connectingFlight = '';
       if (f.connectingSource == null) f.connectingSource = '';
     }
@@ -16129,6 +16198,7 @@ function buildEditorRowArr(f) {
     const raw = etaInput.value.trim();
     if (!raw) {
       target.eta = '';
+      target.etaManual = false;
       etaInput.value = '';
     } else {
       const normalized = normalizeImportedTime(raw);
@@ -16137,6 +16207,7 @@ function buildEditorRowArr(f) {
         return;
       }
       target.eta = normalized;
+      target.etaManual = true;
       etaInput.value = normalized;
     }
     applyFlightScheduleEdit();

@@ -67,11 +67,26 @@
         if (f.connectingFlight == null) f.connectingFlight = '';
         if (f.connectingSource == null) f.connectingSource = '';
       }
+      stripGateBaselineEdits(f);
     });
+  }
+
+  function isGateField(field) {
+    return field === 'depGate' || field === 'arrGate';
   }
 
   function getFieldEdits(flightDef, field) {
     return (flightDef?.edits || []).filter(e => e.field === field);
+  }
+
+  /** 登機門首次有值（匯入或空→首筆）不計入變更紀錄 */
+  function isGateBaselineEdit(edit) {
+    return isGateField(edit?.field) && !String(edit?.from ?? '').trim();
+  }
+
+  function stripGateBaselineEdits(flightDef) {
+    if (!flightDef || !Array.isArray(flightDef.edits)) return;
+    flightDef.edits = flightDef.edits.filter(e => !isGateBaselineEdit(e));
   }
 
   function getFieldEditCount(flightDef, field) {
@@ -82,8 +97,11 @@
   function getFieldEditDisplayCount(flightDef, field) {
     const edits = getFieldEdits(flightDef, field);
     if (!edits.length) return 0;
-    let count = edits.length;
-    if (edits.length >= 2 && String(edits[edits.length - 1].to) === String(edits[0].from)) {
+    const chain = buildFieldHistoryChain(flightDef, field);
+    if (chain.length <= 1) return 0;
+    let count = chain.length - 1;
+    const baseline = String(chain[0] ?? '');
+    if (count >= 2 && String(chain[chain.length - 1] ?? '') === baseline) {
       count = Math.max(count, 3);
     }
     return count;
@@ -108,6 +126,7 @@
     const fromVal = String(from ?? '');
     const toVal = String(to ?? '').trim();
     if (fromVal === toVal) return;
+    if (isGateField(field) && !fromVal.trim()) return;
     flightDef.edits.push({
       field,
       from: fromVal,
@@ -168,6 +187,11 @@
   function buildFieldHistoryChain(flightDef, field) {
     const edits = getFieldEdits(flightDef, field);
     if (!edits.length) return [];
+    if (isGateField(field) && !String(edits[0].from ?? '').trim()) {
+      const baseline = String(edits[0].to ?? '').trim();
+      if (edits.length === 1) return baseline ? [baseline] : [];
+      return [baseline, ...edits.slice(1).map(e => String(e.to ?? '').trim())];
+    }
     return [edits[0].from, ...edits.map(e => e.to)];
   }
 
@@ -261,6 +285,7 @@
     correctFieldEditAtChainIndex,
     buildFieldHistoryChain,
     buildFieldHistoryHtml,
+    stripGateBaselineEdits,
     computeConnectingFlights,
     buildFixedConnectingMap,
     turnaroundDiffMs

@@ -312,7 +312,6 @@
     const mins = timeToMinutes(time);
     if (mins == null || !time) return null;
     const etdParsed = parseFisTimeValue(row.etd);
-    const etaParsed = parseFisTimeValue(row.eta);
     const flight = normalizeFlightNo(row.flt);
     const def = {
       flight,
@@ -328,7 +327,7 @@
       std: clean(row.std),
       sta: clean(row.sta),
       etd: clean(row.etd),
-      etaRaw: clean(row.eta),
+      etaRaw: '',
       depGate: normalizeGate(row.depGate),
       arrGate: normalizeGate(row.arrGate),
       pax: row.pax,
@@ -339,8 +338,11 @@
     if (type === 'DEP') {
       def.changeTime = etdParsed?.time && etdParsed.time !== time ? etdParsed.time : '';
       def.eta = '';
+      def.etaRaw = '';
     } else {
-      def.eta = etaParsed?.time || '';
+      def.eta = '';
+      def.etaRaw = '';
+      def.etaManual = false;
       def.changeTime = '';
     }
     return def;
