@@ -6656,10 +6656,107 @@ function isPaletteFreeTimeDrag(tpl) {
 function isPaletteFunctionDrag(tpl) {
   return isPaletteFreeTimeDrag(tpl);
 }
+const SCHEDULE_DAILY_SCHEDULE_TAG = '日排班';
+const SCHEDULE_BLOCK_A_LEVEL_ORDER = ['M', 'm', '2A', '2A*', '1A', '學生', '見習'];
+function getScheduleBlockALevelRank(levelRaw) {
+  const raw = String(levelRaw || '').trim();
+  if (!raw) return 1000;
+  const exactIdx = SCHEDULE_BLOCK_A_LEVEL_ORDER.indexOf(raw);
+  if (exactIdx >= 0) return exactIdx;
+  if (/^2A\s*\*$/i.test(raw)) return SCHEDULE_BLOCK_A_LEVEL_ORDER.indexOf('2A*');
+  const stripped = raw.replace(/[*!\-]/g, '');
+  if (/^2A$/i.test(stripped) && !raw.includes('*')) return SCHEDULE_BLOCK_A_LEVEL_ORDER.indexOf('2A');
+  if (/^1A$/i.test(stripped)) return SCHEDULE_BLOCK_A_LEVEL_ORDER.indexOf('1A');
+  const key = normalizeStaffLevelFilterKey(raw);
+  const keyRank = { M: 0, m: 1, '2A': 2, '1A': 4, '學生': 5, '見習': 6 };
+  if (Object.prototype.hasOwnProperty.call(keyRank, key)) return keyRank[key] + 0.001;
+  return 1000;
+}
+function personHasActiveScheduleTag(person, tagName) {
+  const rec = findStaffPersonnelByPerson(person);
+  if (!rec) return false;
+  ensureStaffTagRecords(rec);
+  const tags = getStaffTagNamesFromRecords(rec.tagRecords, getScheduleReferenceDate());
+  return tags.includes(tagName);
+}
+function getSchedulePersonSortBucket(person) {
+  if (personHasActiveScheduleTag(person, SCHEDULE_DAILY_SCHEDULE_TAG)) {
+    return { block: 'B', group: 0 };
+  }
+  const level = String(person?.level || resolveLevel(person) || '').trim();
+  const key = normalizeStaffLevelFilterKey(level);
+  if (level === '支援' || key === '支援') return { block: 'B', group: 1 };
+  if (key === '事務員') return { block: 'B', group: 2 };
+  if (key === 'DIC') return { block: 'B', group: 3 };
+  if (key === '業督') return { block: 'B', group: 4 };
+  return { block: 'A', group: getScheduleBlockALevelRank(level) };
+}
+function comparePersonnelIdSort(personA, personB) {
+  return String(resolvePersonnelId(personA)).localeCompare(
+    String(resolvePersonnelId(personB)), 'zh-Hant', { numeric: true, sensitivity: 'base' }
+  );
+}
+const SCHEDULE_SHORT_SHIFT_MINUTES = 4 * 60;
+function getPersonShiftDurationMinutes(person) {
+  const shiftKey = getShiftFilterKey(person) || getEffectiveShift(person) || String(person?.shift || '').trim();
+  const bounds = getShiftKeyTimeBounds(shiftKey);
+  if (bounds) return bounds.endMin - bounds.startMin;
+  const def = getShiftDef(shiftKey);
+  if (def?.start && def?.end) {
+    const startMin = tStrToMin(def.start);
+    let endMin = tStrToMin(def.end);
+    if (startMin !== null && endMin !== null) {
+      if (endMin <= startMin) endMin += 24 * 60;
+      return endMin - startMin;
+    }
+  }
+  return null;
+}
+function isPersonFourHourShift(person) {
+  const duration = getPersonShiftDurationMinutes(person);
+  return duration === SCHEDULE_SHORT_SHIFT_MINUTES;
+}
+function getPersonShiftSortMinutes(person) {
+  const shiftKey = getShiftFilterKey(person) || getEffectiveShift(person) || String(person?.shift || '').trim();
+  const bounds = getShiftKeyTimeBounds(shiftKey);
+  if (bounds) return bounds.startMin;
+  const def = getShiftDef(shiftKey);
+  if (def?.start) {
+    const startMin = tStrToMin(def.start);
+    if (startMin !== null) return startMin;
+  }
+  return 24 * 60 * 10;
+}
+function comparePersonShiftSort(personA, personB) {
+  const shiftCmp = getPersonShiftSortMinutes(personA) - getPersonShiftSortMinutes(personB);
+  if (shiftCmp !== 0) return shiftCmp;
+  return Number(isPersonFourHourShift(personA)) - Number(isPersonFourHourShift(personB));
+}
+function compareScheduleDisplayRows(a, b) {
+  const bucketA = getSchedulePersonSortBucket(a.person);
+  const bucketB = getSchedulePersonSortBucket(b.person);
+  if (bucketA.block !== bucketB.block) return bucketA.block === 'A' ? -1 : 1;
+  if (bucketA.block === 'B') {
+    if (bucketA.group !== bucketB.group) return bucketA.group - bucketB.group;
+    const shiftCmp = comparePersonShiftSort(a.person, b.person);
+    if (shiftCmp !== 0) return shiftCmp;
+    const pidCmp = comparePersonnelIdSort(a.person, b.person);
+    if (pidCmp !== 0) return pidCmp;
+    return a.originalIndex - b.originalIndex;
+  }
+  const shiftCmp = comparePersonShiftSort(a.person, b.person);
+  if (shiftCmp !== 0) return shiftCmp;
+  if (bucketA.group !== bucketB.group) return bucketA.group - bucketB.group;
+  const pidCmp = comparePersonnelIdSort(a.person, b.person);
+  if (pidCmp !== 0) return pidCmp;
+  return a.originalIndex - b.originalIndex;
+}
+function sortScheduleDisplayRows(rows) {
+  return rows.slice().sort(compareScheduleDisplayRows);
+}
 function getStableShiftRows() {
-  return people
-    .map((p, idx) => ({ person: p, originalIndex: idx, matchedRow: false }))
-    .filter(row => personMatchesShiftView(row.person));
+  const allRows = people.map((p, idx) => ({ person: p, originalIndex: idx, matchedRow: false }));
+  return sortScheduleDisplayRows(allRows.filter(row => personMatchesShiftView(row.person)));
 }
 function refreshRestStatusDisplay(cell, personIndex) {
   const person = people[personIndex];
@@ -16104,11 +16201,12 @@ function selectBlock(uid) {
 function getDisplayRows() {
   const allRows = people.map((p, idx) => ({ person: p, originalIndex: idx, matchedRow: false }));
   const filterShift = rows => rows.filter(row => personMatchesShiftView(row.person));
+  const sortShiftRows = rows => sortScheduleDisplayRows(filterShift(rows));
   if (paletteDragTemplateId) {
     const tpl = getPaletteDragTemplate();
-    if (tpl && isPaletteFunctionDrag(tpl)) return filterShift(allRows);
+    if (tpl && isPaletteFunctionDrag(tpl)) return sortShiftRows(allRows);
   }
-  if (blockMoveDragItem && isFunctionDuty(blockMoveDragItem)) return filterShift(allRows);
+  if (blockMoveDragItem && isFunctionDuty(blockMoveDragItem)) return sortShiftRows(allRows);
   const placementCtx = getDutyPlacementContext();
   if (placementCtx) {
     const { duty, start, end, excludeUid } = placementCtx;
@@ -16120,12 +16218,12 @@ function getDisplayRows() {
       if (personHasDutyInRange(row.originalIndex, start, end, excludeUid)) busyRows.push(row);
       else freeRows.push(row);
     });
-    return [...freeRows, ...busyRows];
+    return [...sortScheduleDisplayRows(freeRows), ...sortScheduleDisplayRows(busyRows)];
   }
   const query = String(timelineFlightSearch || '').trim();
-  if (!query) return filterShift(allRows);
+  if (!query) return sortShiftRows(allRows);
   const snap = getUniversalSearchSnap();
-  if (!snap) return filterShift(allRows);
+  if (!snap) return sortShiftRows(allRows);
   const topRows = [];
   const restRows = [];
   filterShift(allRows).forEach(row => {
@@ -16134,7 +16232,7 @@ function getDisplayRows() {
     if (hit) topRows.push(entry);
     else restRows.push(entry);
   });
-  return [...topRows, ...restRows];
+  return [...sortScheduleDisplayRows(topRows), ...sortScheduleDisplayRows(restRows)];
 }
 
 function createBlockEl(item, normalizedSearch) {
