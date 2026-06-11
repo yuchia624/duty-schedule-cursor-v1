@@ -5856,35 +5856,63 @@
     <button type="button" class="rollcall-import-close" id="rollCallStaffImportClose" aria-label="關閉">×</button>
     <div class="rollcall-staff-import-head">
       <h3 class="rollcall-import-title" id="rollCallStaffImportTitle">匯入上班人員</h3>
-      <p class="rollcall-staff-import-subtitle">重複匯入可比對調班結果</p>
+      <p class="rollcall-staff-import-subtitle">當日需 Agent＋DIC；隔日可之後再補。已有名單時可只匯 DIC 追加，或只匯隔日檔更新隔日班別。</p>
     </div>
     <div class="rollcall-staff-import-files">
       <div class="rollcall-staff-import-file-block">
         <div class="rollcall-staff-import-file-label">
           <span class="rollcall-staff-import-file-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/><path d="M10 13H8"/><path d="M16 13h-2"/><path d="M10 17H8"/><path d="M16 17h-2"/></svg></span>
-          <span>當日點名表</span>
+          <span>當日 Agent 點名表</span>
         </div>
         <div class="rollcall-staff-import-file-row">
-          <input type="file" class="rollcall-staff-import-file-input" id="rollCallTodayFile" accept=".xlsx,.xls" />
-          <label class="rollcall-staff-import-pick-btn" for="rollCallTodayFile">
+          <input type="file" class="rollcall-staff-import-file-input" id="rollCallTodayAgentFile" accept=".xlsx,.xls" />
+          <label class="rollcall-staff-import-pick-btn" for="rollCallTodayAgentFile">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>
             選擇檔案
           </label>
-          <span class="rollcall-staff-import-file-status" id="rollCallTodayFileStatus">尚未選擇檔案</span>
+          <span class="rollcall-staff-import-file-status" id="rollCallTodayAgentFileStatus">尚未選擇檔案</span>
         </div>
       </div>
       <div class="rollcall-staff-import-file-block">
         <div class="rollcall-staff-import-file-label">
           <span class="rollcall-staff-import-file-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/><path d="M10 13H8"/><path d="M16 13h-2"/><path d="M10 17H8"/><path d="M16 17h-2"/></svg></span>
-          <span>隔日點名表</span>
+          <span>當日 DIC 點名表</span>
         </div>
         <div class="rollcall-staff-import-file-row">
-          <input type="file" class="rollcall-staff-import-file-input" id="rollCallTomorrowFile" accept=".xlsx,.xls" />
-          <label class="rollcall-staff-import-pick-btn" for="rollCallTomorrowFile">
+          <input type="file" class="rollcall-staff-import-file-input" id="rollCallTodayDicFile" accept=".xlsx,.xls" />
+          <label class="rollcall-staff-import-pick-btn" for="rollCallTodayDicFile">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>
             選擇檔案
           </label>
-          <span class="rollcall-staff-import-file-status" id="rollCallTomorrowFileStatus">尚未選擇檔案</span>
+          <span class="rollcall-staff-import-file-status" id="rollCallTodayDicFileStatus">尚未選擇檔案</span>
+        </div>
+      </div>
+      <div class="rollcall-staff-import-file-block">
+        <div class="rollcall-staff-import-file-label">
+          <span class="rollcall-staff-import-file-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/><path d="M10 13H8"/><path d="M16 13h-2"/><path d="M10 17H8"/><path d="M16 17h-2"/></svg></span>
+          <span>隔日 Agent 點名表（選填）</span>
+        </div>
+        <div class="rollcall-staff-import-file-row">
+          <input type="file" class="rollcall-staff-import-file-input" id="rollCallTomorrowAgentFile" accept=".xlsx,.xls" />
+          <label class="rollcall-staff-import-pick-btn" for="rollCallTomorrowAgentFile">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>
+            選擇檔案
+          </label>
+          <span class="rollcall-staff-import-file-status" id="rollCallTomorrowAgentFileStatus">尚未選擇檔案</span>
+        </div>
+      </div>
+      <div class="rollcall-staff-import-file-block">
+        <div class="rollcall-staff-import-file-label">
+          <span class="rollcall-staff-import-file-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/><path d="M10 13H8"/><path d="M16 13h-2"/><path d="M10 17H8"/><path d="M16 17h-2"/></svg></span>
+          <span>隔日 DIC 點名表（選填）</span>
+        </div>
+        <div class="rollcall-staff-import-file-row">
+          <input type="file" class="rollcall-staff-import-file-input" id="rollCallTomorrowDicFile" accept=".xlsx,.xls" />
+          <label class="rollcall-staff-import-pick-btn" for="rollCallTomorrowDicFile">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>
+            選擇檔案
+          </label>
+          <span class="rollcall-staff-import-file-status" id="rollCallTomorrowDicFileStatus">尚未選擇檔案</span>
         </div>
       </div>
     </div>
@@ -6777,7 +6805,7 @@ function compareScheduleDisplayRows(a, b) {
 function sortScheduleDisplayRows(rows) {
   return rows.slice().sort(compareScheduleDisplayRows);
 }
-const SCHEDULE_DISPLAY_SORT_REVISION = 4;
+const SCHEDULE_DISPLAY_SORT_REVISION = 5;
 let peopleDisplayOrder = null;
 function buildAllPersonRows() {
   return people.map((p, idx) => ({ person: p, originalIndex: idx, matchedRow: false }));
@@ -14316,8 +14344,8 @@ function computeRollCallNextShiftStats(resolved) {
   return stats;
 }
 function enrichRollCallPreviewWithNextShift(todayPreview, tomorrowPreview) {
-  const tomorrowCodeToShift = tomorrowPreview.codeToShift
-    || buildRollCallCodeToShiftMap(tomorrowPreview.detailRows);
+  const tomorrowCodeToShift = tomorrowPreview?.codeToShift
+    || buildRollCallCodeToShiftMap(tomorrowPreview?.detailRows || []);
   const resolved = (todayPreview.resolved || []).map(row => ({
     ...row,
     nextShift: resolveRollCallPreviewNextShift(row.code, tomorrowCodeToShift)
@@ -14327,6 +14355,107 @@ function enrichRollCallPreviewWithNextShift(todayPreview, tomorrowPreview) {
     resolved,
     nextShiftStats: computeRollCallNextShiftStats(resolved)
   };
+}
+function mergeRollCallTomorrowPreviews(agentPreview, dicPreview) {
+  const agentMap = agentPreview
+    ? (agentPreview.codeToShift || buildRollCallCodeToShiftMap(agentPreview.detailRows))
+    : {};
+  const dicMap = dicPreview
+    ? (dicPreview.codeToShift || buildRollCallCodeToShiftMap(dicPreview.detailRows))
+    : {};
+  return {
+    codeToShift: { ...agentMap, ...dicMap },
+    dateInfo: agentPreview?.dateInfo || dicPreview?.dateInfo || null,
+    detailRows: [...(agentPreview?.detailRows || []), ...(dicPreview?.detailRows || [])]
+  };
+}
+function enrichRollCallPreviewWithMergedTomorrow(todayPreview, tomorrowAgentRaw, tomorrowDicRaw) {
+  return enrichRollCallPreviewWithNextShift(
+    todayPreview,
+    mergeRollCallTomorrowPreviews(tomorrowAgentRaw, tomorrowDicRaw)
+  );
+}
+function mergeRollCallTodayPreviews(agentPreview, dicPreview) {
+  if (agentPreview?.error) return agentPreview;
+  if (dicPreview?.error) return dicPreview;
+  if (!agentPreview && !dicPreview) return null;
+  if (!agentPreview) {
+    const dicResolved = (dicPreview.resolved || []).map(r => ({ ...r, importSource: 'dic' }));
+    return {
+      ...dicPreview,
+      resolved: dicResolved,
+      agentResolvedCount: 0,
+      dicResolvedCount: dicResolved.length,
+      resolvedCount: dicResolved.length
+    };
+  }
+  if (!dicPreview) {
+    const agentResolved = (agentPreview.resolved || []).map(r => ({ ...r, importSource: 'agent' }));
+    return {
+      ...agentPreview,
+      resolved: agentResolved,
+      agentResolvedCount: agentResolved.length,
+      dicResolvedCount: 0,
+      resolvedCount: agentResolved.length
+    };
+  }
+  const agentResolved = (agentPreview.resolved || []).map(r => ({ ...r, importSource: 'agent' }));
+  const agentPids = new Set(agentResolved.map(r => r.personnelId).filter(Boolean));
+  const dicResolved = (dicPreview.resolved || [])
+    .filter(r => !r.personnelId || !agentPids.has(r.personnelId))
+    .map(r => ({ ...r, importSource: 'dic' }));
+  const unmatchedCodes = [
+    ...(agentPreview.unmatchedCodes || []).map(u => ({ ...u, importSource: 'agent' })),
+    ...(dicPreview.unmatchedCodes || []).map(u => ({ ...u, importSource: 'dic' }))
+  ];
+  const resolved = [...agentResolved, ...dicResolved];
+  return {
+    sheetName: [agentPreview.sheetName, dicPreview.sheetName].filter(Boolean).join(' + '),
+    dateInfo: agentPreview.dateInfo || dicPreview.dateInfo,
+    detailRows: [...(agentPreview.detailRows || []), ...(dicPreview.detailRows || [])],
+    codeToShift: {
+      ...(agentPreview.codeToShift || {}),
+      ...(dicPreview.codeToShift || {})
+    },
+    personCount: resolved.length + unmatchedCodes.length,
+    resolvedCount: resolved.length,
+    agentResolvedCount: agentResolved.length,
+    dicResolvedCount: dicResolved.length,
+    unmatchedCodes,
+    countMismatchRows: [
+      ...(agentPreview.countMismatchRows || []),
+      ...(dicPreview.countMismatchRows || [])
+    ],
+    resolved
+  };
+}
+function getRollCallImportFileState() {
+  const todayAgent = document.getElementById('rollCallTodayAgentFile')?.files?.[0] || null;
+  const todayDic = document.getElementById('rollCallTodayDicFile')?.files?.[0] || null;
+  const tomorrowAgent = document.getElementById('rollCallTomorrowAgentFile')?.files?.[0] || null;
+  const tomorrowDic = document.getElementById('rollCallTomorrowDicFile')?.files?.[0] || null;
+  return {
+    todayAgent,
+    todayDic,
+    tomorrowAgent,
+    tomorrowDic,
+    hasExistingPeople: people.length > 0
+  };
+}
+function detectRollCallImportMode(fileState) {
+  const { todayAgent, todayDic, tomorrowAgent, tomorrowDic, hasExistingPeople } = fileState;
+  const hasToday = !!(todayAgent || todayDic);
+  const hasTomorrow = !!(tomorrowAgent || tomorrowDic);
+  if (!hasToday && hasTomorrow && hasExistingPeople) return 'supplementNextDay';
+  if (todayDic && !todayAgent && hasExistingPeople) return 'appendDic';
+  if (todayAgent) return 'fullRoster';
+  return null;
+}
+function rollCallImportModeLabel(mode) {
+  if (mode === 'fullRoster') return '匯入當日上班人員（Agent＋DIC）';
+  if (mode === 'appendDic') return '追加 DIC 人員';
+  if (mode === 'supplementNextDay') return '補匯隔日班別';
+  return '—';
 }
 let rollCallImportPreviewState = null;
 function rollCallManualMapKey(item) {
@@ -14471,20 +14600,72 @@ function buildRollCallPreviewFromWorkbook(workbook, refDateISO) {
     resolved
   };
 }
-function renderRollCallImportPreviewHtml(todayPreview, tomorrowPreview) {
+function renderRollCallNextDaySupplementPreviewHtml(tomorrowAgentRaw, tomorrowDicRaw) {
+  const schedRef = getScheduleReferenceDate();
+  const tomorrowMerged = mergeRollCallTomorrowPreviews(tomorrowAgentRaw, tomorrowDicRaw);
+  const codeToShift = tomorrowMerged.codeToShift || buildRollCallCodeToShiftMap(tomorrowMerged.detailRows);
+  const changes = [];
+  people.forEach(p => {
+    const code = cleanRollCallCell(p.code || p.name);
+    const newNext = resolveRollCallPreviewNextShift(code, codeToShift);
+    const oldNext = p.nextDayShift || p.nextShift || '休';
+    if (newNext !== oldNext) {
+      changes.push({
+        name: rollCallImportPersonLabel(p),
+        code: rollCallImportPersonCode(p),
+        oldNext,
+        newNext
+      });
+    }
+  });
+  const lines = [];
+  lines.push(`<p><strong>模式：</strong>${escapeHtml(rollCallImportModeLabel('supplementNextDay'))}</p>`);
+  lines.push('<h4>摘要</h4><ul>');
+  lines.push(`<li>畫面班表日期：${escapeHtml(formatScheduleDateDisplay(schedRef) || schedRef)}</li>`);
+  lines.push(`<li>隔日 Agent 點名表日期：${escapeHtml(tomorrowAgentRaw?.dateInfo?.display || '—')}</li>`);
+  lines.push(`<li>隔日 DIC 點名表日期：${escapeHtml(tomorrowDicRaw?.dateInfo?.display || '—')}</li>`);
+  lines.push(`<li>現有名單人數：${people.length}</li>`);
+  lines.push(`<li>隔日班別將變更：${changes.length} 人</li>`);
+  lines.push('</ul>');
+  lines.push('<p>套用後僅更新隔日班別，不會增刪人員或變更當日班別。</p>');
+  if (changes.length) {
+    lines.push('<h4>隔日班別變更預覽</h4>');
+    lines.push('<table class="rc-unmatched-table"><thead><tr><th>姓名</th><th>代號</th><th>原隔日班別</th><th>新隔日班別</th></tr></thead><tbody>');
+    changes.forEach(row => {
+      lines.push(`<tr><td>${escapeHtml(row.name)}</td><td>${escapeHtml(row.code)}</td><td>${escapeHtml(row.oldNext)}</td><td>${escapeHtml(row.newNext)}</td></tr>`);
+    });
+    lines.push('</tbody></table>');
+  } else {
+    lines.push('<p>所有人員的隔日班別與目前相同。</p>');
+  }
+  return lines.join('');
+}
+function renderRollCallImportPreviewHtml(todayPreview, tomorrowAgentRaw, tomorrowDicRaw, importState) {
   const schedRef = getScheduleReferenceDate();
   const lines = [];
+  const mode = importState?.mode || 'fullRoster';
+  lines.push(`<p><strong>模式：</strong>${escapeHtml(rollCallImportModeLabel(mode))}</p>`);
   const todayIso = todayPreview.dateInfo?.iso || '';
   if (todayIso && isValidISODate(schedRef) && todayIso !== schedRef) {
     lines.push('<div class="rc-date-mismatch">點名表日期與目前班表日期不同，請確認是否選錯日期</div>');
   }
   lines.push('<h4>摘要</h4><ul>');
   lines.push(`<li>畫面班表日期：${escapeHtml(formatScheduleDateDisplay(schedRef) || schedRef)}</li>`);
-  lines.push(`<li>當日點名表日期：${escapeHtml(todayPreview.dateInfo?.display || '—')}</li>`);
-  lines.push(`<li>隔日點名表日期：${escapeHtml(tomorrowPreview.dateInfo?.display || '—')}</li>`);
+  lines.push(`<li>當日 Agent 點名表日期：${escapeHtml(importState?.todayAgentRaw?.dateInfo?.display || todayPreview.dateInfo?.display || '—')}</li>`);
+  lines.push(`<li>當日 DIC 點名表日期：${escapeHtml(importState?.todayDicRaw?.dateInfo?.display || '—')}</li>`);
+  lines.push(`<li>隔日 Agent 點名表日期：${escapeHtml(tomorrowAgentRaw?.dateInfo?.display || '—')}</li>`);
+  lines.push(`<li>隔日 DIC 點名表日期：${escapeHtml(tomorrowDicRaw?.dateInfo?.display || '—')}</li>`);
   lines.push(`<li>當日上班人數：${todayPreview.personCount ?? 0}</li>`);
-  lines.push(`<li>當日成功對應人數：${todayPreview.resolvedCount ?? 0}</li>`);
+  lines.push(`<li>Agent 對應人數：${todayPreview.agentResolvedCount ?? importState?.todayAgentRaw?.resolvedCount ?? 0}</li>`);
+  lines.push(`<li>DIC 對應人數：${todayPreview.dicResolvedCount ?? importState?.todayDicRaw?.resolvedCount ?? 0}</li>`);
+  lines.push(`<li>合計成功對應：${todayPreview.resolvedCount ?? 0}</li>`);
   lines.push(`<li>人員管理沒有此代號：${todayPreview.unmatchedCodes?.length ?? 0}</li>`);
+  if (tomorrowAgentRaw || tomorrowDicRaw) {
+    const stats = todayPreview.nextShiftStats || computeRollCallNextShiftStats(todayPreview.resolved);
+    lines.push(`<li>隔日有班：${stats.withShift} · 假別：${stats.leave} · 休：${stats.absent}</li>`);
+  } else {
+    lines.push('<li>未選隔日點名表，隔日班別預設為「休」（可之後再補匯）</li>');
+  }
   lines.push('</ul>');
   if (todayPreview.unmatchedCodes?.length) {
     lines.push('<h4 class="rc-err">找不到主檔的代號</h4>');
@@ -14601,13 +14782,13 @@ function bindRollCallManualMappingHandlers() {
 }
 function getRollCallImportMergedTodayPreview() {
   if (!rollCallImportPreviewState) return null;
+  const { mode, todayAgentRaw, todayDicRaw, tomorrowAgentRaw, tomorrowDicRaw, manualMappings } = rollCallImportPreviewState;
+  if (mode === 'supplementNextDay') return null;
   const ref = getScheduleReferenceDate();
-  const merged = mergeRollCallPreviewWithManualMappings(
-    rollCallImportPreviewState.todayRaw,
-    rollCallImportPreviewState.manualMappings,
-    ref
-  );
-  return enrichRollCallPreviewWithNextShift(merged, rollCallImportPreviewState.tomorrowRaw);
+  const mergedRaw = mergeRollCallTodayPreviews(todayAgentRaw, todayDicRaw);
+  if (!mergedRaw || mergedRaw.error) return null;
+  const merged = mergeRollCallPreviewWithManualMappings(mergedRaw, manualMappings, ref);
+  return enrichRollCallPreviewWithMergedTomorrow(merged, tomorrowAgentRaw, tomorrowDicRaw);
 }
 function buildPersonFromRollCallResolvedRow(row) {
   const nextDayShift = row.nextShift ?? '休';
@@ -14623,6 +14804,79 @@ function buildPersonFromRollCallResolvedRow(row) {
     radioNo: '',
     ircsNo: '',
     clockedOut: false
+  });
+}
+function applyRollCallNextDayShiftFromTomorrowPreviews(tomorrowAgentRaw, tomorrowDicRaw) {
+  const tomorrowMerged = mergeRollCallTomorrowPreviews(tomorrowAgentRaw, tomorrowDicRaw);
+  const codeToShift = tomorrowMerged.codeToShift || buildRollCallCodeToShiftMap(tomorrowMerged.detailRows);
+  let changeCount = 0;
+  people.forEach(p => {
+    const code = cleanRollCallCell(p.code || p.name);
+    const newNext = resolveRollCallPreviewNextShift(code, codeToShift);
+    const oldNext = p.nextDayShift || p.nextShift || '休';
+    if (newNext !== oldNext) changeCount += 1;
+    p.nextDayShift = newNext;
+    p.nextShift = newNext;
+  });
+  return changeCount;
+}
+function applyRollCallNextDaySupplement() {
+  const state = rollCallImportPreviewState;
+  if (!state || state.mode !== 'supplementNextDay') return;
+  if (!state.tomorrowAgentRaw && !state.tomorrowDicRaw) {
+    appAlert('請先選擇隔日 Agent 或 DIC 點名表。', '無法套用');
+    return;
+  }
+  pushUndoSnapshot();
+  const changeCount = applyRollCallNextDayShiftFromTomorrowPreviews(state.tomorrowAgentRaw, state.tomorrowDicRaw);
+  markUnsynced();
+  renderRows();
+  rollCallImportPreviewState = null;
+  setRollCallStaffImportOpen(false);
+  showAppNotice({
+    type: 'success',
+    title: '隔日班別已更新',
+    message: changeCount
+      ? `已更新 ${changeCount} 位人員的隔日班別。`
+      : '所有人員的隔日班別與目前相同，已重新套用隔日點名表結果。',
+    details: [],
+    confirmText: '確定',
+    showCancel: false
+  });
+}
+function applyRollCallAppendDicImport(preview) {
+  const newDicPeople = preview.resolved.map(buildPersonFromRollCallResolvedRow);
+  const existingPids = new Set(
+    people.map(p => resolvePersonnelId(p)).filter(Boolean)
+  );
+  const toAppend = newDicPeople.filter(p => {
+    const pid = resolvePersonnelId(p);
+    return pid && !existingPids.has(pid);
+  });
+  if (!toAppend.length) {
+    appAlert('DIC 點名表中的人員皆已在名單內。', '無法套用');
+    return;
+  }
+  pushUndoSnapshot();
+  people = [...people, ...toAppend];
+  const state = rollCallImportPreviewState;
+  if (state?.tomorrowAgentRaw || state?.tomorrowDicRaw) {
+    applyRollCallNextDayShiftFromTomorrowPreviews(state.tomorrowAgentRaw, state.tomorrowDicRaw);
+  }
+  resetPeopleDisplayOrderToAutoSort();
+  rollCallStaffImportApplied = true;
+  markUnsynced();
+  renderRows();
+  if (typeof syncAssignmentTableFromSchedule === 'function') syncAssignmentTableFromSchedule();
+  rollCallImportPreviewState = null;
+  setRollCallStaffImportOpen(false);
+  showAppNotice({
+    type: 'success',
+    title: 'DIC 人員已追加',
+    message: `已追加 ${toAppend.length} 位 DIC 人員至名單最後。`,
+    details: [],
+    confirmText: '確定',
+    showCancel: false
   });
 }
 function remapSchedulePersonIndicesByPersonnelId(oldPeople, newPeople, sched) {
@@ -14791,11 +15045,21 @@ function showRollCallImportApplyResult(options = {}) {
   });
 }
 function applyRollCallStaffImport() {
+  const mode = rollCallImportPreviewState?.mode;
+  if (mode === 'supplementNextDay') {
+    applyRollCallNextDaySupplement();
+    return;
+  }
   const preview = getRollCallImportMergedTodayPreview();
   if (!preview?.resolved?.length) {
     appAlert('請先解析預覽，且至少有一位成功對應的人員。', '無法套用');
     return;
   }
+  if (mode === 'appendDic') {
+    applyRollCallAppendDicImport(preview);
+    return;
+  }
+  pushUndoSnapshot();
   const newPeople = preview.resolved.map(buildPersonFromRollCallResolvedRow);
   const isFirstImport = !schedule.length;
   const oldPeople = people.slice();
@@ -14828,16 +15092,18 @@ function applyRollCallStaffImport() {
 function refreshRollCallImportPreview() {
   const preview = document.getElementById('rollCallStaffImportPreview');
   if (!preview || !rollCallImportPreviewState) return;
-  const { tomorrowRaw, manualMappings } = rollCallImportPreviewState;
+  const state = rollCallImportPreviewState;
+  const { tomorrowAgentRaw, tomorrowDicRaw, manualMappings, mode } = state;
   const ref = getScheduleReferenceDate();
   const resolvedExpanded = preview.querySelector('#rollCallResolvedToggle')?.dataset.collapsed === '0';
-  const merged = mergeRollCallPreviewWithManualMappings(
-    rollCallImportPreviewState.todayRaw,
-    manualMappings,
-    ref
-  );
-  const enriched = enrichRollCallPreviewWithNextShift(merged, tomorrowRaw);
-  preview.innerHTML = renderRollCallImportPreviewHtml(enriched, tomorrowRaw);
+  if (mode === 'supplementNextDay') {
+    preview.innerHTML = renderRollCallNextDaySupplementPreviewHtml(tomorrowAgentRaw, tomorrowDicRaw);
+  } else {
+    const mergedRaw = mergeRollCallTodayPreviews(state.todayAgentRaw, state.todayDicRaw);
+    const merged = mergeRollCallPreviewWithManualMappings(mergedRaw, manualMappings, ref);
+    const enriched = enrichRollCallPreviewWithMergedTomorrow(merged, tomorrowAgentRaw, tomorrowDicRaw);
+    preview.innerHTML = renderRollCallImportPreviewHtml(enriched, tomorrowAgentRaw, tomorrowDicRaw, state);
+  }
   preview.hidden = false;
   if (resolvedExpanded) {
     const wrap = preview.querySelector('#rollCallResolvedTableWrap');
@@ -14958,12 +15224,27 @@ function setRollCallStaffImportOpen(open) {
   }
 }
 function syncRollCallImportFileStatusLabels() {
-  const today = document.getElementById('rollCallTodayFile');
-  const tomorrow = document.getElementById('rollCallTomorrowFile');
-  const todayStatus = document.getElementById('rollCallTodayFileStatus');
-  const tomorrowStatus = document.getElementById('rollCallTomorrowFileStatus');
-  if (todayStatus) todayStatus.textContent = today?.files?.[0]?.name || '尚未選擇檔案';
-  if (tomorrowStatus) tomorrowStatus.textContent = tomorrow?.files?.[0]?.name || '尚未選擇檔案';
+  const pairs = [
+    ['rollCallTodayAgentFile', 'rollCallTodayAgentFileStatus'],
+    ['rollCallTodayDicFile', 'rollCallTodayDicFileStatus'],
+    ['rollCallTomorrowAgentFile', 'rollCallTomorrowAgentFileStatus'],
+    ['rollCallTomorrowDicFile', 'rollCallTomorrowDicFileStatus']
+  ];
+  pairs.forEach(([inputId, statusId]) => {
+    const input = document.getElementById(inputId);
+    const status = document.getElementById(statusId);
+    if (status) status.textContent = input?.files?.[0]?.name || '尚未選擇檔案';
+  });
+}
+function rollCallImportParseReady() {
+  return !!detectRollCallImportMode(getRollCallImportFileState());
+}
+function rollCallImportApplyReady() {
+  const state = rollCallImportPreviewState;
+  if (!state) return false;
+  if (state.mode === 'supplementNextDay') return !!(state.tomorrowAgentRaw || state.tomorrowDicRaw);
+  const merged = getRollCallImportMergedTodayPreview();
+  return !!(merged?.resolved?.length);
 }
 function rollCallImportParsePreviewReady() {
   const previewEl = document.getElementById('rollCallStaffImportPreview');
@@ -14989,59 +15270,87 @@ function onRollCallImportFileChange() {
 function updateRollCallImportBtnState() {
   const parseBtn = document.getElementById('rollCallStaffImportParse');
   const applyBtn = document.getElementById('rollCallStaffImportApply');
-  const today = document.getElementById('rollCallTodayFile');
-  const tomorrow = document.getElementById('rollCallTomorrowFile');
   syncRollCallImportFileStatusLabels();
-  const hasFiles = !!(today?.files?.[0] && tomorrow?.files?.[0]);
   const parsePreviewShown = rollCallImportParsePreviewReady();
-  if (parseBtn) parseBtn.disabled = !hasFiles || parsePreviewShown;
-  if (applyBtn) {
-    const merged = getRollCallImportMergedTodayPreview();
-    applyBtn.disabled = !(merged?.resolved?.length);
-  }
+  if (parseBtn) parseBtn.disabled = !rollCallImportParseReady() || parsePreviewShown;
+  if (applyBtn) applyBtn.disabled = !rollCallImportApplyReady();
   document.getElementById('rollCallStaffImportModal')?.classList.toggle('is-preview-open', parsePreviewShown);
 }
 function updateRollCallImportParseBtnState() {
   updateRollCallImportBtnState();
 }
 function openRollCallStaffImportModal() {
-  const today = document.getElementById('rollCallTodayFile');
-  const tomorrow = document.getElementById('rollCallTomorrowFile');
-  if (today) today.value = '';
-  if (tomorrow) tomorrow.value = '';
+  [
+    'rollCallTodayAgentFile',
+    'rollCallTodayDicFile',
+    'rollCallTomorrowAgentFile',
+    'rollCallTomorrowDicFile'
+  ].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
   clearRollCallImportPreview();
   syncRollCallImportFileStatusLabels();
   updateRollCallImportParseBtnState();
   setRollCallStaffImportOpen(true);
+}
+async function readRollCallPreviewFromFile(file, ref, label) {
+  if (!file) return null;
+  const wb = XLSX.read(await file.arrayBuffer(), { type: 'array' });
+  const preview = buildRollCallPreviewFromWorkbook(wb, ref);
+  if (preview.error) {
+    const err = new Error(preview.error);
+    err.rollCallLabel = label;
+    throw err;
+  }
+  return preview;
 }
 async function runRollCallStaffImportPreview() {
   if (typeof XLSX === 'undefined') {
     appAlert('Excel 讀取套件尚未載入。請確認網路連線後重新整理頁面。', '無法解析');
     return;
   }
-  const todayFile = document.getElementById('rollCallTodayFile')?.files?.[0];
-  const tomorrowFile = document.getElementById('rollCallTomorrowFile')?.files?.[0];
-  if (!todayFile || !tomorrowFile) {
-    appAlert('請同時選擇當日與隔日點名表。', '無法解析');
+  const fileState = getRollCallImportFileState();
+  const mode = detectRollCallImportMode(fileState);
+  if (!mode) {
+    appAlert(
+      '請選擇檔案：初次匯入需當日 Agent 點名表（可另加 DIC）；已有名單時可只選 DIC 追加，或只選隔日檔補隔日班別。',
+      '無法解析'
+    );
     return;
   }
   const ref = getScheduleReferenceDate();
-  const [todayBuf, tomorrowBuf] = await Promise.all([todayFile.arrayBuffer(), tomorrowFile.arrayBuffer()]);
-  const todayWb = XLSX.read(todayBuf, { type: 'array' });
-  const tomorrowWb = XLSX.read(tomorrowBuf, { type: 'array' });
-  const todayPreview = buildRollCallPreviewFromWorkbook(todayWb, ref);
-  const tomorrowPreview = buildRollCallPreviewFromWorkbook(tomorrowWb, ref);
-  if (todayPreview.error) {
-    appAlert(todayPreview.error, '當日點名表');
+  let todayAgentRaw = null;
+  let todayDicRaw = null;
+  let tomorrowAgentRaw = null;
+  let tomorrowDicRaw = null;
+  try {
+    if (fileState.todayAgent) todayAgentRaw = await readRollCallPreviewFromFile(fileState.todayAgent, ref, '當日 Agent 點名表');
+    if (fileState.todayDic) todayDicRaw = await readRollCallPreviewFromFile(fileState.todayDic, ref, '當日 DIC 點名表');
+    if (fileState.tomorrowAgent) tomorrowAgentRaw = await readRollCallPreviewFromFile(fileState.tomorrowAgent, ref, '隔日 Agent 點名表');
+    if (fileState.tomorrowDic) tomorrowDicRaw = await readRollCallPreviewFromFile(fileState.tomorrowDic, ref, '隔日 DIC 點名表');
+  } catch (err) {
+    appAlert(err.message || '解析失敗', err.rollCallLabel || '點名表');
     return;
   }
-  if (tomorrowPreview.error) {
-    appAlert(tomorrowPreview.error, '隔日點名表');
+  if (mode === 'fullRoster' && !todayAgentRaw) {
+    appAlert('請選擇當日 Agent 點名表。', '無法解析');
+    return;
+  }
+  if (mode === 'appendDic' && !todayDicRaw) {
+    appAlert('請選擇當日 DIC 點名表。', '無法解析');
+    return;
+  }
+  if (mode === 'supplementNextDay' && !tomorrowAgentRaw && !tomorrowDicRaw) {
+    appAlert('請選擇隔日 Agent 或 DIC 點名表。', '無法解析');
     return;
   }
   rollCallImportPreviewState = {
-    todayRaw: todayPreview,
-    tomorrowRaw: tomorrowPreview,
+    mode,
+    todayAgentRaw,
+    todayDicRaw,
+    tomorrowAgentRaw,
+    tomorrowDicRaw,
     manualMappings: {},
     staffPool: buildRollCallManualStaffPool(ref)
   };
@@ -15057,8 +15366,14 @@ function initRollCallStaffImportModal() {
   document.getElementById('rollCallStaffImportClose')?.addEventListener('click', () => setRollCallStaffImportOpen(false));
   document.getElementById('rollCallStaffImportCancel')?.addEventListener('click', () => setRollCallStaffImportOpen(false));
   modal.querySelector('[data-rollcall-import-dismiss]')?.addEventListener('click', () => setRollCallStaffImportOpen(false));
-  document.getElementById('rollCallTodayFile')?.addEventListener('change', onRollCallImportFileChange);
-  document.getElementById('rollCallTomorrowFile')?.addEventListener('change', onRollCallImportFileChange);
+  [
+    'rollCallTodayAgentFile',
+    'rollCallTodayDicFile',
+    'rollCallTomorrowAgentFile',
+    'rollCallTomorrowDicFile'
+  ].forEach(id => {
+    document.getElementById(id)?.addEventListener('change', onRollCallImportFileChange);
+  });
   document.getElementById('rollCallStaffImportParse')?.addEventListener('click', () => runRollCallStaffImportPreview());
   document.getElementById('rollCallStaffImportApply')?.addEventListener('click', () => applyRollCallStaffImport());
 }
