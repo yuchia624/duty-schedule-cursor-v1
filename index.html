@@ -6698,16 +6698,20 @@ function personHasActiveScheduleTag(person, tagName) {
   return tags.includes(tagName);
 }
 function getSchedulePersonSortBucket(person) {
+  const shiftType = getShiftType(
+    getShiftFilterKey(person) || getEffectiveShift(person) || String(person?.shift || '').trim()
+  );
+  const shiftRank = shiftType === 'early' ? 0 : shiftType === 'late' ? 1 : 2;
   if (personHasActiveScheduleTag(person, SCHEDULE_DAILY_SCHEDULE_TAG)) {
-    return { block: 'B', group: 0 };
+    return { shiftRank, block: 'B', group: 0 };
   }
   const level = String(person?.level || resolveLevel(person) || '').trim();
   const key = normalizeStaffLevelFilterKey(level);
-  if (level === '支援' || key === '支援') return { block: 'B', group: 1 };
-  if (key === '事務員') return { block: 'B', group: 2 };
-  if (key === 'DIC') return { block: 'B', group: 3 };
-  if (key === '業督') return { block: 'B', group: 4 };
-  return { block: 'A', group: getScheduleBlockALevelRank(level) };
+  if (level === '支援' || key === '支援') return { shiftRank, block: 'B', group: 1 };
+  if (key === '事務員') return { shiftRank, block: 'B', group: 2 };
+  if (key === 'DIC') return { shiftRank, block: 'B', group: 3 };
+  if (key === '業督') return { shiftRank, block: 'B', group: 4 };
+  return { shiftRank, block: 'A', group: getScheduleBlockALevelRank(level) };
 }
 function comparePersonnelIdSort(personA, personB) {
   return String(resolvePersonnelId(personA)).localeCompare(
@@ -6753,6 +6757,7 @@ function comparePersonShiftSort(personA, personB) {
 function compareScheduleDisplayRows(a, b) {
   const bucketA = getSchedulePersonSortBucket(a.person);
   const bucketB = getSchedulePersonSortBucket(b.person);
+  if (bucketA.shiftRank !== bucketB.shiftRank) return bucketA.shiftRank - bucketB.shiftRank;
   if (bucketA.block !== bucketB.block) return bucketA.block === 'A' ? -1 : 1;
   if (bucketA.block === 'B') {
     if (bucketA.group !== bucketB.group) return bucketA.group - bucketB.group;
@@ -6772,9 +6777,91 @@ function compareScheduleDisplayRows(a, b) {
 function sortScheduleDisplayRows(rows) {
   return rows.slice().sort(compareScheduleDisplayRows);
 }
+const SCHEDULE_DISPLAY_SORT_REVISION = 4;
+let peopleDisplayOrder = null;
+function buildAllPersonRows() {
+  return people.map((p, idx) => ({ person: p, originalIndex: idx, matchedRow: false }));
+}
+function computeAutoSortedPersonIndices() {
+  return sortScheduleDisplayRows(buildAllPersonRows()).map(row => row.originalIndex);
+}
+function isValidPeopleDisplayOrder(order) {
+  if (!Array.isArray(order) || order.length !== people.length) return false;
+  const seen = new Set();
+  for (const idx of order) {
+    if (!Number.isInteger(idx) || idx < 0 || idx >= people.length || seen.has(idx)) return false;
+    seen.add(idx);
+  }
+  return seen.size === people.length;
+}
+function maybeRefreshPeopleDisplayOrderForSortRevision(dateStr) {
+  const k = dayStorageKeys(dateStr || selectedDate);
+  const rev = Number(localStorage.getItem(k.peopleDisplayOrderSortRevision) || 0);
+  if (rev >= SCHEDULE_DISPLAY_SORT_REVISION) return;
+  resetPeopleDisplayOrderToAutoSort();
+  localStorage.setItem(k.peopleDisplayOrderSortRevision, String(SCHEDULE_DISPLAY_SORT_REVISION));
+}
+function ensurePeopleDisplayOrder() {
+  if (isValidPeopleDisplayOrder(peopleDisplayOrder)) return;
+  if (Array.isArray(peopleDisplayOrder) && peopleDisplayOrder.length) {
+    const reconciled = [];
+    const seen = new Set();
+    peopleDisplayOrder.forEach(idx => {
+      if (!Number.isInteger(idx) || idx < 0 || idx >= people.length || seen.has(idx)) return;
+      reconciled.push(idx);
+      seen.add(idx);
+    });
+    for (let idx = 0; idx < people.length; idx++) {
+      if (!seen.has(idx)) reconciled.push(idx);
+    }
+    if (reconciled.length === people.length) {
+      peopleDisplayOrder = reconciled;
+      return;
+    }
+  }
+  peopleDisplayOrder = people.length ? computeAutoSortedPersonIndices() : [];
+}
+function resetPeopleDisplayOrderToAutoSort() {
+  peopleDisplayOrder = people.length ? computeAutoSortedPersonIndices() : [];
+}
+function getDisplaySortedRows() {
+  ensurePeopleDisplayOrder();
+  const allRows = buildAllPersonRows();
+  const rowMap = new Map(allRows.map(row => [row.originalIndex, row]));
+  const ordered = [];
+  const seen = new Set();
+  peopleDisplayOrder.forEach(idx => {
+    const row = rowMap.get(idx);
+    if (!row || seen.has(idx)) return;
+    ordered.push(row);
+    seen.add(idx);
+  });
+  allRows.forEach(row => {
+    if (seen.has(row.originalIndex)) return;
+    ordered.push(row);
+    seen.add(row.originalIndex);
+  });
+  return ordered;
+}
+function getOrderedAllRows() {
+  return getDisplaySortedRows();
+}
+function reorderDisplayRows(fromOriginalIndex, toOriginalIndex) {
+  if (fromOriginalIndex === toOriginalIndex) return;
+  pushUndoSnapshot();
+  ensurePeopleDisplayOrder();
+  const fromPos = peopleDisplayOrder.indexOf(fromOriginalIndex);
+  const toPos = peopleDisplayOrder.indexOf(toOriginalIndex);
+  if (fromPos < 0 || toPos < 0) return;
+  const next = peopleDisplayOrder.slice();
+  next.splice(fromPos, 1);
+  next.splice(toPos, 0, fromOriginalIndex);
+  peopleDisplayOrder = next;
+  renderRows();
+  markUnsynced();
+}
 function getStableShiftRows() {
-  const allRows = people.map((p, idx) => ({ person: p, originalIndex: idx, matchedRow: false }));
-  return sortScheduleDisplayRows(allRows.filter(row => personMatchesShiftView(row.person)));
+  return getDisplaySortedRows().filter(row => personMatchesShiftView(row.person));
 }
 function refreshRestStatusDisplay(cell, personIndex) {
   const person = people[personIndex];
@@ -7199,7 +7286,7 @@ function getDutyBlockExportLabel(item) {
   if (item.role === '自訂') return String(item.label || item.compactLabel || '自訂').trim();
   return String(item.compactLabel || compactDutyLabel(item.flight, item.role)).trim();
 }
-function buildControlScheduleSheetRows() {
+function buildControlScheduleSheetRows(orderedRows) {
   const slotStep = 15;
   const gridStart = START_MIN;
   const gridEnd = 24 * 60 + 5 * 60;
@@ -7214,9 +7301,11 @@ function buildControlScheduleSheetRows() {
     [],
     ['序', '代號', '姓名', '戰力', '班別', ...timeSlots]
   ];
-  people.forEach((person, idx) => {
+  orderedRows.forEach((rowInfo, displayIdx) => {
+    const person = rowInfo.person;
+    const personIndex = rowInfo.originalIndex;
     const row = [
-      idx + 1,
+      displayIdx + 1,
       excelCell(person.code),
       excelCell(resolveFullName(person) || person.name),
       excelCell(person.level || resolveLevel(person)),
@@ -7224,7 +7313,7 @@ function buildControlScheduleSheetRows() {
       ...timeSlots.map(() => '')
     ];
     schedule
-      .filter(s => s.personIndex === idx)
+      .filter(s => s.personIndex === personIndex)
       .sort((a, b) => a.start - b.start)
       .forEach(item => {
         const col = Math.floor((item.start - gridStart) / slotStep);
@@ -7299,7 +7388,8 @@ function exportScheduleWorkbookExcel() {
   }
   const wb = XLSX.utils.book_new();
   if (people.length) {
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(buildControlScheduleSheetRows()), '管制表');
+    const orderedRows = getDisplaySortedRows();
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(buildControlScheduleSheetRows(orderedRows)), '管制表');
   }
   if (flightDefs.some(f => f.type === 'DEP')) {
     XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(buildAssignmentDepSheetRows()), '出境分配');
@@ -7544,6 +7634,8 @@ function dayStorageKeys(dateStr) {
   const d = String(dateStr || '').trim();
   return {
     peopleOrder: `${LS_PREFIX}_day_${d}_people_order`,
+    peopleDisplayOrder: `${LS_PREFIX}_day_${d}_people_display_order`,
+    peopleDisplayOrderSortRevision: `${LS_PREFIX}_day_${d}_people_display_order_sort_revision`,
     schedule: `${LS_PREFIX}_day_${d}_schedule`,
     flightDefs: `${LS_PREFIX}_day_${d}_flight_defs`,
     customTemplates: `${LS_PREFIX}_day_${d}_custom_templates`,
@@ -10583,6 +10675,9 @@ if (!Array.isArray(people)) people = initialPeople;
 people = people.map(normalizePerson);
 initStaffPersonnelRegistry();
 if (staffDirectory.length) people = mergePeopleWithStaffDirectory(people);
+peopleDisplayOrder = readJsonLS(_dayK0.peopleDisplayOrder, null);
+if (!isValidPeopleDisplayOrder(peopleDisplayOrder)) resetPeopleDisplayOrderToAutoSort();
+maybeRefreshPeopleDisplayOrderForSortRevision(selectedDate);
 let schedule = readJsonLS(_dayK0.schedule, []);
 if (!Array.isArray(schedule)) schedule = [];
 let flightDefs = readJsonLS(_dayK0.flightDefs, null);
@@ -10728,6 +10823,7 @@ function getSyncMeta() {
 function cloudStatePayload(data) {
   return {
     people: data.people,
+    peopleDisplayOrder: data.peopleDisplayOrder,
     schedule: data.schedule,
     flightDefs: data.flightDefs,
     customTemplates: data.customTemplates,
@@ -11331,6 +11427,7 @@ function getCloudState() {
   return {
     ...cloudStatePayload({
       people,
+      peopleDisplayOrder,
       schedule,
       flightDefs: flightsImported ? flightDefs : [],
       customTemplates,
@@ -11383,6 +11480,9 @@ function applyCloudState(data) {
   if (staffDirectory.length && Array.isArray(people) && people.length) {
     people = mergePeopleWithStaffDirectory(people);
   }
+  if (Array.isArray(data.peopleDisplayOrder)) peopleDisplayOrder = data.peopleDisplayOrder;
+  if (!isValidPeopleDisplayOrder(peopleDisplayOrder)) resetPeopleDisplayOrderToAutoSort();
+  maybeRefreshPeopleDisplayOrderForSortRevision(selectedDate);
   schedule = Array.isArray(data.schedule) ? data.schedule : [];
   flightsImported = data.flightsImported === true;
   flightDefs = flightsImported && Array.isArray(data.flightDefs) ? data.flightDefs : [];
@@ -11402,6 +11502,7 @@ function applyCloudState(data) {
   const k = dayStorageKeys(selectedDate);
   localStorage.setItem(k.schedule, JSON.stringify(schedule));
   localStorage.setItem(k.peopleOrder, JSON.stringify(people));
+  localStorage.setItem(k.peopleDisplayOrder, JSON.stringify(peopleDisplayOrder || []));
   localStorage.setItem(k.flightDefs, JSON.stringify(flightDefs));
   localStorage.setItem(k.flightsImported, flightsImported ? '1' : '0');
   saveCustomTemplates();
@@ -11552,6 +11653,7 @@ function seedEmptyDayStateForCloud() {
   applyingRemote = true;
   people = JSON.parse(JSON.stringify(initialPeople)).map(normalizePerson);
   if (staffDirectory.length) people = mergePeopleWithStaffDirectory(people);
+  resetPeopleDisplayOrderToAutoSort();
   schedule = [];
   flightDefs = [];
   flightsImported = false;
@@ -11565,6 +11667,7 @@ function seedEmptyDayStateForCloud() {
   const k = dayStorageKeys(selectedDate);
   localStorage.setItem(k.schedule, JSON.stringify(schedule));
   localStorage.setItem(k.peopleOrder, JSON.stringify(people));
+  localStorage.setItem(k.peopleDisplayOrder, JSON.stringify(peopleDisplayOrder || []));
   localStorage.setItem(k.flightDefs, JSON.stringify(flightDefs));
   localStorage.setItem(k.flightsImported, '0');
   saveCustomTemplates();
@@ -11618,6 +11721,7 @@ function attachFirebaseForSelectedDate() {
       remoteDayEditorMeta = captureRemoteEditorMeta(data);
       const remoteState = {
         people: data.people,
+        peopleDisplayOrder: data.peopleDisplayOrder,
         schedule: data.schedule,
         flightDefs: data.flightDefs,
         customTemplates: data.customTemplates,
@@ -14048,6 +14152,7 @@ function rebuildAfterExcelImport(newFlightDefs, newPeople) {
   normalizeFlightDefsInPlace();
   people = newPeople.map(normalizePerson);
   if (staffDirectory.length) people = mergePeopleWithStaffDirectory(people);
+  resetPeopleDisplayOrderToAutoSort();
   renderAssignmentTableFromFlightDefs();
   schedule = [];
   selectedBlockId = null;
@@ -14704,6 +14809,7 @@ function applyRollCallStaffImport() {
     dutyOrphans = remapSchedulePersonIndicesByPersonnelId(oldPeople, newPeople, schedule).orphans;
   }
   people = newPeople;
+  resetPeopleDisplayOrderToAutoSort();
   rollCallStaffImportApplied = true;
   markUnsynced();
   renderRows();
@@ -14779,6 +14885,7 @@ function clearScheduleDutyData() {
 }
 function clearPeopleData() {
   people = [];
+  peopleDisplayOrder = [];
   shiftChangeAlerts.clear();
   dutyInheritanceAlerts.clear();
   rollCallStaffImportApplied = false;
@@ -15138,6 +15245,9 @@ function loadDayDataFromLocalStorage(dateStr) {
   if (staffDirectory.length && people.length) {
     people = mergePeopleWithStaffDirectory(people);
   }
+  peopleDisplayOrder = readJsonLS(k.peopleDisplayOrder, null);
+  if (!isValidPeopleDisplayOrder(peopleDisplayOrder)) resetPeopleDisplayOrderToAutoSort();
+  maybeRefreshPeopleDisplayOrderForSortRevision(dateStr);
   clearUndoHistory();
 }
 const SCHEDULE_WEEKDAY_ZH = ['日', '一', '二', '三', '四', '五', '六'];
@@ -15861,9 +15971,11 @@ function markUnsynced() {
   setCloudStatus('尚未同步', 'pending', 'day');
 }
 function captureUndoState() {
+  ensurePeopleDisplayOrder();
   return {
     schedule: JSON.parse(JSON.stringify(schedule)),
     people: JSON.parse(JSON.stringify(people)),
+    peopleDisplayOrder: peopleDisplayOrder.slice(),
     customTemplates: JSON.parse(JSON.stringify(customTemplates)),
     blockSeq,
     selectedBlockId
@@ -15890,6 +16002,8 @@ function undoLastChange() {
   schedule = snap.schedule;
   people = snap.people.map(normalizePerson);
   if (staffDirectory.length && people.length) people = mergePeopleWithStaffDirectory(people);
+  peopleDisplayOrder = Array.isArray(snap.peopleDisplayOrder) ? snap.peopleDisplayOrder.slice() : null;
+  if (!isValidPeopleDisplayOrder(peopleDisplayOrder)) resetPeopleDisplayOrderToAutoSort();
   customTemplates = JSON.parse(JSON.stringify(snap.customTemplates || []));
   blockSeq = snap.blockSeq;
   selectedBlockId = snap.selectedBlockId;
@@ -15932,8 +16046,10 @@ function refreshRollCallShiftBand(cell, personIndex) {
 }
 function saveLocal() {
   const k = dayStorageKeys(selectedDate);
+  ensurePeopleDisplayOrder();
   localStorage.setItem(k.schedule, JSON.stringify(schedule));
   localStorage.setItem(k.peopleOrder, JSON.stringify(people));
+  localStorage.setItem(k.peopleDisplayOrder, JSON.stringify(peopleDisplayOrder || []));
   localStorage.setItem(k.flightDefs, JSON.stringify(flightsImported ? flightDefs : []));
   localStorage.setItem(k.flightsImported, flightsImported ? '1' : '0');
   saveCustomTemplates();
@@ -16270,40 +16386,40 @@ function selectBlock(uid) {
 }
 
 function getDisplayRows() {
-  const allRows = people.map((p, idx) => ({ person: p, originalIndex: idx, matchedRow: false }));
+  const sortedRows = getDisplaySortedRows();
   const filterShift = rows => rows.filter(row => personMatchesShiftView(row.person));
-  const sortShiftRows = rows => sortScheduleDisplayRows(filterShift(rows));
+  const shiftRows = rows => filterShift(rows);
   if (paletteDragTemplateId) {
     const tpl = getPaletteDragTemplate();
-    if (tpl && isPaletteFunctionDrag(tpl)) return sortShiftRows(allRows);
+    if (tpl && isPaletteFunctionDrag(tpl)) return shiftRows(sortedRows);
   }
-  if (blockMoveDragItem && isFunctionDuty(blockMoveDragItem)) return sortShiftRows(allRows);
+  if (blockMoveDragItem && isFunctionDuty(blockMoveDragItem)) return shiftRows(sortedRows);
   const placementCtx = getDutyPlacementContext();
   if (placementCtx) {
     const { duty, start, end, excludeUid } = placementCtx;
-    const shiftRows = filterShift(allRows);
+    const visibleRows = filterShift(sortedRows);
     const freeRows = [];
     const busyRows = [];
-    shiftRows.forEach(row => {
+    visibleRows.forEach(row => {
       if (dutyRequiresPersonQualification(duty) && !personQualifiesForDuty(row.person, duty)) return;
       if (personHasDutyInRange(row.originalIndex, start, end, excludeUid)) busyRows.push(row);
       else freeRows.push(row);
     });
-    return [...sortScheduleDisplayRows(freeRows), ...sortScheduleDisplayRows(busyRows)];
+    return [...freeRows, ...busyRows];
   }
   const query = String(timelineFlightSearch || '').trim();
-  if (!query) return sortShiftRows(allRows);
+  if (!query) return shiftRows(sortedRows);
   const snap = getUniversalSearchSnap();
-  if (!snap) return sortShiftRows(allRows);
+  if (!snap) return shiftRows(sortedRows);
   const topRows = [];
   const restRows = [];
-  filterShift(allRows).forEach(row => {
+  filterShift(sortedRows).forEach(row => {
     const hit = snap.personIndices.has(row.originalIndex);
     const entry = { person: row.person, originalIndex: row.originalIndex, matchedRow: hit };
     if (hit) topRows.push(entry);
     else restRows.push(entry);
   });
-  return [...sortScheduleDisplayRows(topRows), ...sortScheduleDisplayRows(restRows)];
+  return [...topRows, ...restRows];
 }
 
 function createBlockEl(item, normalizedSearch) {
@@ -16443,7 +16559,7 @@ function renderRows() {
       const fromIdx = Number(e.dataTransfer.getData('text/person-row'));
       const toIdx = Number(left.dataset.originalIndex);
       if (Number.isNaN(fromIdx) || Number.isNaN(toIdx) || fromIdx === toIdx) return;
-      reorderPeople(fromIdx, toIdx); clearHoverStates();
+      reorderDisplayRows(fromIdx, toIdx); clearHoverStates();
     });
     if (rollCallMode) {
       const adjustedShiftInput = left.querySelector('.adjusted-shift-input');
@@ -16582,18 +16698,6 @@ function renderRows() {
   document.querySelectorAll('.timeline').forEach(t => t.addEventListener('click', () => selectBlock(null)));
   syncAssignmentTableFromSchedule();
   renderOvertimePanel();
-}
-
-function reorderPeople(fromIdx, toIdx) {
-  pushUndoSnapshot();
-  const moved = people.splice(fromIdx, 1)[0];
-  people.splice(toIdx, 0, moved);
-  schedule.forEach(item => {
-    if (item.personIndex === fromIdx) item.personIndex = toIdx;
-    else if (fromIdx < toIdx && item.personIndex > fromIdx && item.personIndex <= toIdx) item.personIndex -= 1;
-    else if (fromIdx > toIdx && item.personIndex >= toIdx && item.personIndex < fromIdx) item.personIndex += 1;
-  });
-  renderRows(); markUnsynced();
 }
 
 function startMoveBlock(e, item) {
