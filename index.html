@@ -10,6 +10,7 @@
 <script src="fis-flight-parser.js"></script>
 <script src="foreign-schedule-parser.js?v=20260527-bx792"></script>
 <script src="flight-assignment-utils.js"></script>
+<script src="foreign-duty-rules.js"></script>
 <title>今天的完整拖拉管制表 v2</title>
 <style>
   :root {
@@ -12129,6 +12130,8 @@ function getDepDestinationAirport(f) {
 }
 function getPptConfigForFlightDef(f) {
   if (!f || f.type !== 'DEP' || f.status === 'CANX') return null;
+  const hxPpt = ForeignDutyRules?.getHxPptConfig?.(f);
+  if (hxPpt) return hxPpt;
   const dest = getDepDestinationAirport(f);
   if (!dest) return null;
   if (PPT_NA_DESTINATION_AIRPORTS.has(dest)) {
@@ -12162,6 +12165,8 @@ function isBrOrB7DepFlight(f) {
   return flight.startsWith('BR') || flight.startsWith('B7');
 }
 function getAbgSlotsForFlightDef(f) {
+  const hxSlots = ForeignDutyRules?.getHxAbgSlots?.(f);
+  if (hxSlots) return hxSlots;
   return isBrOrB7DepFlight(f) ? ABG_BR_B7_SLOTS : ABG_DEFAULT_SLOTS;
 }
 function getAbgSlotsForTemplate(t) {
@@ -12211,6 +12216,9 @@ function isFlightTemplateFullyScheduled(t) {
   if (t.role === 'ABG') {
     return countAbgAssignments(t.flight, t.flightType) >= getAbgSlotsForTemplate(t);
   }
+  if (t.connectingDuty) {
+    return schedule.some(x => scheduleItemMatchesTemplate(x, t));
+  }
   return schedule.some(x => `${x.flight}_${x.role}_${x.flightType}` === t.id);
 }
 function getPptSlotsRemaining(t) {
@@ -12226,6 +12234,13 @@ function normalizeFlightSearch(q) {
 }
 function scheduleItemMatchesFlightSearch(item, normalized) {
   if (!normalized || !item || item.role === '休') return false;
+  if (item.connectingDuty) {
+    const arr = String(item.arrFlight || '').trim().toUpperCase();
+    const dep = String(item.depFlight || item.flight || '').trim().toUpperCase();
+    if (arr && (arr === normalized || compactFlightNo(arr) === compactFlightNo(normalized))) return true;
+    if (dep && (dep === normalized || compactFlightNo(dep) === compactFlightNo(normalized))) return true;
+    return false;
+  }
   const f = String(item.flight || '').trim().toUpperCase();
   if (!f) return false;
   if (f === normalized) return true;
@@ -12233,6 +12248,13 @@ function scheduleItemMatchesFlightSearch(item, normalized) {
 }
 function templateMatchesFlightSearch(t, normalized) {
   if (!normalized || !t || t.role === '休' || t.role === '自訂') return false;
+  if (t.connectingDuty) {
+    const arr = String(t.arrFlight || '').trim().toUpperCase();
+    const dep = String(t.depFlight || t.flight || '').trim().toUpperCase();
+    if (arr && (arr === normalized || compactFlightNo(arr) === compactFlightNo(normalized))) return true;
+    if (dep && (dep === normalized || compactFlightNo(dep) === compactFlightNo(normalized))) return true;
+    return false;
+  }
   const f = String(t.flight || '').trim().toUpperCase();
   if (!f) return false;
   if (f === normalized) return true;
@@ -12249,7 +12271,7 @@ function scheduleItemSearchHaystack(item) {
   const label = item.role === '自訂'
     ? (item.label || item.compactLabel || '自訂')
     : (item.role === '休' ? '休' : (item.compactLabel || compactDutyLabel(item.flight, item.role)));
-  return [item.flight, item.label, item.compactLabel, item.role, label]
+  return [item.flight, item.arrFlight, item.depFlight, item.label, item.compactLabel, item.role, label]
     .filter(Boolean)
     .join(' ')
     .toLowerCase();
@@ -12263,7 +12285,7 @@ function scheduleItemTimeSearchHaystack(item) {
 function templateSearchHaystack(t) {
   if (!t) return '';
   const label = t.role === '自訂' ? (t.label || t.compactLabel || '') : (t.compactLabel || t.label || '');
-  return [t.id, t.flight, t.role, label, t.compactLabel].filter(Boolean).join(' ').toLowerCase();
+  return [t.id, t.flight, t.arrFlight, t.depFlight, t.role, label, t.compactLabel].filter(Boolean).join(' ').toLowerCase();
 }
 function templateTimeSearchHaystack(t) {
   if (!t || t.start == null || t.end == null) return '';
@@ -12543,13 +12565,15 @@ function normalizeImportedFlightNo(value) {
 }
 
 const FOREIGN_SCHEDULE_URL = '外家時刻表.xlsx';
-/** 與外家時刻表 Excel I～L 欄下拉選項一致（匯入時會再從檔案更新） */
+/** 外家時刻表 Excel 機型欄（parser 用） */
 const FOREIGN_AC_TYPE_OPTIONS = {
   OZ: ['380', '350', '777', '330', '32Q', '321'],
   HX: ['333', '33G', '32G', '32K', '32S', '32Y', '32T', '321', '32U'],
   BX: ['321'],
   NZ: ['787']
 };
+/** 匯入預覽畫面：外家接飛僅提供兩種機型 */
+const FOREIGN_PREVIEW_AC_TYPES = ['330', '321'];
 
 function syncForeignAcTypeOptionsFromWorkbook(workbook) {
   if (typeof ForeignScheduleParser === 'undefined'
@@ -12562,12 +12586,26 @@ function syncForeignAcTypeOptionsFromWorkbook(workbook) {
   });
 }
 
+function isForeignPreviewFlight(flight) {
+  const s = String(flight || '').trim().toUpperCase();
+  if (!s) return false;
+  return !s.startsWith('BR') && !s.startsWith('B7');
+}
+
+function normalizeForeignPreviewAcType(acType) {
+  const v = String(acType ?? '').trim().toUpperCase();
+  if (!v) return '';
+  if (v === '330' || v === '333' || v === '33G') return '330';
+  if (v === '321' || /^32/.test(v)) return '321';
+  return FOREIGN_PREVIEW_AC_TYPES.includes(v) ? v : '';
+}
+
 function resolveForeignPreviewAcType(flight, acType) {
-  const v = String(acType ?? '').trim();
-  if (v) return v;
+  const normalized = normalizeForeignPreviewAcType(acType);
+  if (normalized) return normalized;
+  if (!isForeignPreviewFlight(flight)) return '';
   const airline = foreignAirlineFromFlight(flight);
   if (airline === 'BX') return '321';
-  if (airline === 'NZ') return '787';
   return '';
 }
 const ASSIGNMENT_CANX_HTML = '<span class="assignment-canx-cell">CANX</span>';
@@ -12629,13 +12667,8 @@ function foreignAirlineFromFlight(flight) {
 }
 
 function foreignAcTypeOptionsForFlight(flight, selectedAcType) {
-  const airline = foreignAirlineFromFlight(flight);
-  const base = airline && FOREIGN_AC_TYPE_OPTIONS[airline]
-    ? FOREIGN_AC_TYPE_OPTIONS[airline].slice()
-    : [...new Set(Object.values(FOREIGN_AC_TYPE_OPTIONS).flat())];
-  const selected = String(selectedAcType || '').trim();
-  if (selected && !base.includes(selected)) base.unshift(selected);
-  return base;
+  if (!isForeignPreviewFlight(flight)) return [];
+  return FOREIGN_PREVIEW_AC_TYPES.slice();
 }
 
 function fillForeignAcTypeSelect(select, flight, selectedAcType) {
@@ -12806,6 +12839,44 @@ function closeForeignFlightPreviewModal() {
   pendingFlightPreview = null;
 }
 
+function readPreviewRowFlight(row) {
+  if (!row) return '';
+  const flightInput = row.querySelector('.foreign-preview-flight-input');
+  const raw = flightInput
+    ? flightInput.value.trim()
+    : (row.querySelector('td:nth-child(3)')?.textContent || '').replace(/與 FIS 重複/g, '').trim();
+  return normalizeImportedFlightNo(raw);
+}
+
+function getForeignConnectingPair(flight, type) {
+  const utils = window.FlightAssignmentUtils;
+  if (!utils?.buildFixedConnectingMap) return null;
+  const map = utils.buildFixedConnectingMap(normalizeImportedFlightNo);
+  const norm = normalizeImportedFlightNo(flight);
+  if (!norm) return null;
+  if (type === 'ARR' && map.has(norm)) {
+    return { partner: map.get(norm), partnerType: 'DEP' };
+  }
+  if (type === 'DEP') {
+    for (const [arr, dep] of map.entries()) {
+      if (dep === norm) return { partner: arr, partnerType: 'ARR' };
+    }
+  }
+  return null;
+}
+
+function findForeignPreviewRowByFlightAndType(flight, type) {
+  const norm = normalizeImportedFlightNo(flight);
+  if (!norm || !type) return null;
+  const body = document.getElementById('foreignFlightPreviewBody');
+  if (!body) return null;
+  for (const row of body.querySelectorAll('tr[data-preview-id]')) {
+    if (row.dataset.previewType !== type) continue;
+    if (readPreviewRowFlight(row) === norm) return row;
+  }
+  return null;
+}
+
 function syncForeignPreviewCanxRow(row) {
   if (!row) return;
   const canxInput = row.querySelector('.foreign-preview-canx');
@@ -12816,6 +12887,92 @@ function syncForeignPreviewCanxRow(row) {
   if (isCanx) confirmInput.checked = true;
 }
 
+function syncForeignPreviewConnectingCanx(sourceRow, syncing) {
+  if (!sourceRow) return;
+  const visited = syncing || new WeakSet();
+  if (visited.has(sourceRow)) return;
+  visited.add(sourceRow);
+  const type = sourceRow.dataset.previewType;
+  const flight = readPreviewRowFlight(sourceRow);
+  const pair = getForeignConnectingPair(flight, type);
+  if (!pair) return;
+  const partnerRow = findForeignPreviewRowByFlightAndType(pair.partner, pair.partnerType);
+  if (!partnerRow) return;
+  const sourceCanx = sourceRow.querySelector('.foreign-preview-canx');
+  const partnerCanx = partnerRow.querySelector('.foreign-preview-canx');
+  if (!sourceCanx || !partnerCanx) return;
+  partnerCanx.checked = sourceCanx.checked;
+  syncForeignPreviewCanxRow(partnerRow);
+  syncForeignPreviewConnectingCanx(partnerRow, visited);
+}
+
+function syncAllForeignPreviewConnectingCanx() {
+  const body = document.getElementById('foreignFlightPreviewBody');
+  if (!body) return;
+  body.querySelectorAll('tr[data-preview-id]').forEach(row => {
+    if (row.querySelector('.foreign-preview-canx')?.checked) {
+      syncForeignPreviewConnectingCanx(row);
+    }
+  });
+}
+
+function syncForeignPreviewConnectingAcType(sourceRow, syncing) {
+  if (!sourceRow) return;
+  const visited = syncing || new WeakSet();
+  if (visited.has(sourceRow)) return;
+  visited.add(sourceRow);
+  const type = sourceRow.dataset.previewType;
+  const flight = readPreviewRowFlight(sourceRow);
+  const pair = getForeignConnectingPair(flight, type);
+  if (!pair) return;
+  const partnerRow = findForeignPreviewRowByFlightAndType(pair.partner, pair.partnerType);
+  if (!partnerRow) return;
+  const sourceSelect = sourceRow.querySelector('.foreign-preview-actype-select');
+  const partnerSelect = partnerRow.querySelector('.foreign-preview-actype-select');
+  if (!sourceSelect || !partnerSelect) return;
+  const value = sourceSelect.value;
+  if (!value) return;
+  if (partnerSelect.value !== value) partnerSelect.value = value;
+  syncForeignPreviewConnectingAcType(partnerRow, visited);
+}
+
+function syncAllForeignPreviewConnectingAcType() {
+  const body = document.getElementById('foreignFlightPreviewBody');
+  if (!body) return;
+  const synced = new Set();
+  body.querySelectorAll('tr[data-preview-id]').forEach(row => {
+    const flight = readPreviewRowFlight(row);
+    const type = row.dataset.previewType;
+    const key = `${flight}|${type}`;
+    if (synced.has(key)) return;
+    const pair = getForeignConnectingPair(flight, type);
+    if (!pair) return;
+    const partnerRow = findForeignPreviewRowByFlightAndType(pair.partner, pair.partnerType);
+    if (!partnerRow) return;
+    const select = row.querySelector('.foreign-preview-actype-select');
+    const partnerSelect = partnerRow.querySelector('.foreign-preview-actype-select');
+    const value = select?.value || partnerSelect?.value || '';
+    if (!value) return;
+    if (select) select.value = value;
+    if (partnerSelect) partnerSelect.value = value;
+    synced.add(key);
+    synced.add(`${pair.partner}|${pair.partnerType}`);
+  });
+}
+
+function bindForeignPreviewAcTypeRow(row) {
+  if (!row || row.dataset.acTypeBound === '1') return;
+  row.dataset.acTypeBound = '1';
+  const select = row.querySelector('.foreign-preview-actype-select');
+  if (!select) return;
+  select.addEventListener('change', () => syncForeignPreviewConnectingAcType(row));
+}
+
+function bindForeignPreviewAcTypeRows(root) {
+  root.querySelectorAll('tr[data-preview-id]').forEach(bindForeignPreviewAcTypeRow);
+  syncAllForeignPreviewConnectingAcType();
+}
+
 function bindForeignPreviewCanxRow(row) {
   if (!row || row.dataset.canxBound === '1') return;
   row.dataset.canxBound = '1';
@@ -12823,7 +12980,10 @@ function bindForeignPreviewCanxRow(row) {
   const confirmInput = row.querySelector('.foreign-preview-check');
   if (!canxInput) return;
   syncForeignPreviewCanxRow(row);
-  canxInput.addEventListener('change', () => syncForeignPreviewCanxRow(row));
+  canxInput.addEventListener('change', () => {
+    syncForeignPreviewCanxRow(row);
+    syncForeignPreviewConnectingCanx(row);
+  });
   confirmInput?.addEventListener('change', () => {
     if (canxInput.checked && !confirmInput.checked) confirmInput.checked = true;
   });
@@ -12831,6 +12991,7 @@ function bindForeignPreviewCanxRow(row) {
 
 function bindForeignPreviewCanxRows(root) {
   root.querySelectorAll('tr[data-preview-id]').forEach(bindForeignPreviewCanxRow);
+  syncAllForeignPreviewConnectingCanx();
 }
 
 function renderFlightPreviewTableRow(item, type, fisDefs) {
@@ -12929,17 +13090,23 @@ function bindFlightPreviewSectionActions(body, fisDefs) {
       newRow?.querySelector('.foreign-preview-flight-input')?.addEventListener('input', e => {
         const row = e.target.closest('tr');
         fillForeignAcTypeSelect(row?.querySelector('.foreign-preview-actype-select'), e.target.value.trim(), row?.querySelector('.foreign-preview-actype-select')?.value || '');
+        syncAllForeignPreviewConnectingAcType();
       });
-      if (newRow) bindForeignPreviewCanxRow(newRow);
+      if (newRow) {
+        bindForeignPreviewCanxRow(newRow);
+        bindForeignPreviewAcTypeRow(newRow);
+      }
     });
   });
   body.querySelectorAll('.foreign-preview-flight-input').forEach(input => {
     input.addEventListener('input', e => {
       const row = e.target.closest('tr');
       fillForeignAcTypeSelect(row?.querySelector('.foreign-preview-actype-select'), e.target.value.trim(), row?.querySelector('.foreign-preview-actype-select')?.value || '');
+      syncAllForeignPreviewConnectingAcType();
     });
   });
   bindForeignPreviewCanxRows(body);
+  bindForeignPreviewAcTypeRows(body);
 }
 
 function collectForeignPreviewDuplicates(fisDefs, candidates) {
@@ -15856,6 +16023,91 @@ function depDutyStart(std, before, ext) {
 function depDutyEnd(std, ext) {
   return std + Math.max(ext, 0);
 }
+function isForeignConnectingDepFlight(f) {
+  return ForeignDutyRules?.isConnectingDepFlight?.(f, flightDefs, normalizeImportedFlightNo) || false;
+}
+function isForeignConnectingArrFlight(f) {
+  return ForeignDutyRules?.isConnectingArrFlight?.(f, flightDefs, normalizeImportedFlightNo) || false;
+}
+function scheduleItemMatchesTemplate(item, tpl) {
+  if (!item || !tpl) return false;
+  if (tpl.connectingDuty || item.connectingDuty) {
+    return !!(
+      item.connectingDuty
+      && tpl.connectingDuty
+      && item.role === tpl.role
+      && normalizeImportedFlightNo(item.arrFlight) === normalizeImportedFlightNo(tpl.arrFlight)
+      && normalizeImportedFlightNo(item.depFlight || item.flight) === normalizeImportedFlightNo(tpl.depFlight || tpl.flight)
+    );
+  }
+  return `${item.flight}_${item.role}_${item.flightType}` === tpl.id;
+}
+function getAssignmentItemsForCell(flight, role) {
+  const norm = normalizeImportedFlightNo(flight);
+  if (role === '接機C') {
+    return schedule.filter(x =>
+      x.connectingDuty
+      && x.role === 'BG'
+      && normalizeImportedFlightNo(x.arrFlight) === norm
+    );
+  }
+  if (role === '接機RC') {
+    return schedule.filter(x =>
+      x.connectingDuty
+      && x.role === 'RC'
+      && normalizeImportedFlightNo(x.arrFlight) === norm
+    );
+  }
+  if (role === 'RC' || role === 'BG') {
+    const direct = schedule.filter(x =>
+      !x.connectingDuty
+      && x.role === role
+      && normalizeImportedFlightNo(x.flight) === norm
+    );
+    const conn = schedule.filter(x =>
+      x.connectingDuty
+      && x.role === role
+      && normalizeImportedFlightNo(x.depFlight || x.flight) === norm
+    );
+    return [...conn, ...direct];
+  }
+  return schedule.filter(x =>
+    !x.connectingDuty
+    && x.role === role
+    && normalizeImportedFlightNo(x.flight) === norm
+  );
+}
+function buildDepCoreDutyEntries(f, std, ext) {
+  const skipRcBg = isForeignConnectingDepFlight(f);
+  const hx = ForeignDutyRules?.getHxDepDutyConfig?.(f);
+  const specs = hx
+    ? [
+        { role: 'RC', before: hx.rcBeforeMin, end: depDutyEnd(std, ext) },
+        { role: 'BG', before: hx.bgBeforeMin, end: depDutyEnd(std, ext) },
+        { role: 'ABG', before: hx.abgBeforeMin, end: std, abgSlots: hx.abgSlots }
+      ]
+    : [
+        { role: 'RC', before: 70, end: depDutyEnd(std, ext) },
+        { role: 'BG', before: 60, end: depDutyEnd(std, ext) },
+        { role: 'ABG', before: 40, end: depDutyEnd(std, ext), abgSlots: getAbgSlotsForFlightDef(f) }
+      ];
+  return specs
+    .filter(spec => !skipRcBg || spec.role === 'ABG')
+    .map(({ role, before, end, abgSlots }) => {
+    const entry = {
+      id: `${f.flight}_${role}_${f.type}`,
+      label: `${f.flight} ${role}`,
+      compactLabel: compactDutyLabel(f.flight, role),
+      flight: f.flight,
+      role,
+      flightType: f.type,
+      start: depDutyStart(std, before, ext),
+      end
+    };
+    if (role === 'ABG') entry.abgSlots = abgSlots ?? getAbgSlotsForFlightDef(f);
+    return entry;
+  });
+}
 function adjustedMinutes(f) {
   if (f.type === 'DEP') return depStdMinutes(f);
   return arrStaMinutes(f);
@@ -15932,11 +16184,34 @@ function createRestTemplates() {
 function hasImportedFlights() {
   return flightsImported === true && Array.isArray(flightDefs) && flightDefs.length > 0;
 }
+function pruneLegacyForeignConnectingScheduleItems() {
+  if (!ForeignDutyRules) return;
+  const before = schedule.length;
+  schedule = schedule.filter(item => {
+    if (item.connectingDuty) return true;
+    if (item.role === '接機RC' || item.role === '接機C') {
+      const arrDef = flightDefs.find(f => f.flight === item.flight && f.type === 'ARR');
+      if (arrDef && isForeignConnectingArrFlight(arrDef)) return false;
+    }
+    if ((item.role === 'RC' || item.role === 'BG') && item.flightType === 'DEP') {
+      const depDef = flightDefs.find(f => f.flight === item.flight && f.type === 'DEP');
+      if (depDef && isForeignConnectingDepFlight(depDef)) return false;
+    }
+    return true;
+  });
+  if (schedule.length === before) return;
+  if (selectedBlockId != null && !schedule.some(x => x.uid === selectedBlockId)) selectedBlockId = null;
+  markUnsynced();
+}
 function pruneOrphanDutyScheduleItems() {
+  pruneLegacyForeignConnectingScheduleItems();
   const tplIds = new Set(templates.map(t => t.id));
   const orphanRoles = new Set(['PPT', 'L1', 'BA', 'G2']);
   const before = schedule.length;
   schedule = schedule.filter(item => {
+    if (item.connectingDuty) {
+      return templates.some(t => scheduleItemMatchesTemplate(item, t));
+    }
     if (item.flightType !== 'DEP' || !orphanRoles.has(item.role)) return true;
     const key = `${item.flight}_${item.role}_${item.flightType}`;
     return tplIds.has(key);
@@ -15960,22 +16235,7 @@ function buildTemplates() {
     if (f.type === 'DEP') {
       const std = depStdMinutes(f);
       const ext = Number(f.extension || 0);
-      [['RC',70],['BG',60],['ABG',40]].forEach(([role, before]) => {
-        const start = depDutyStart(std, before, ext);
-        const end = depDutyEnd(std, ext);
-        const entry = {
-          id: `${f.flight}_${role}_${f.type}`,
-          label: `${f.flight} ${role}`,
-          compactLabel: compactDutyLabel(f.flight, role),
-          flight: f.flight,
-          role,
-          flightType: f.type,
-          start,
-          end
-        };
-        if (role === 'ABG') entry.abgSlots = getAbgSlotsForFlightDef(f);
-        out.push(entry);
-      });
+      buildDepCoreDutyEntries(f, std, ext).forEach(entry => out.push(entry));
       if (isBaDepFlight(f)) {
         const role = 'BA';
         const start = depDutyStart(std, BA_BEFORE_MIN, ext);
@@ -16010,7 +16270,7 @@ function buildTemplates() {
       if (pptConfig) {
         const role = 'PPT';
         const start = depDutyStart(std, pptConfig.beforeMinutes, ext);
-        const end = depDutyEnd(std, ext);
+        const end = pptConfig.endAtStd ? std : depDutyEnd(std, ext);
         out.push({
           id: `${f.flight}_${role}_${f.type}`,
           label: `${f.flight} ${role}`,
@@ -16024,10 +16284,12 @@ function buildTemplates() {
         });
       }
     } else {
-      const { start, end } = getArrDutyWindow(f);
-      ['接機RC','接機C'].forEach(role => {
-        out.push({ id: `${f.flight}_${role}_${f.type}`, label: `${f.flight} ${role}`, compactLabel: compactDutyLabel(f.flight, role), flight: f.flight, role, flightType: f.type, start, end });
-      });
+      if (!isForeignConnectingArrFlight(f)) {
+        const { start, end } = getArrDutyWindow(f);
+        ['接機RC', '接機C'].forEach(role => {
+          out.push({ id: `${f.flight}_${role}_${f.type}`, label: `${f.flight} ${role}`, compactLabel: compactDutyLabel(f.flight, role), flight: f.flight, role, flightType: f.type, start, end });
+        });
+      }
       if (isArrG2Flight(f)) {
         const role = 'G2';
         const g2Window = getG2DutyWindow(f);
@@ -16044,6 +16306,13 @@ function buildTemplates() {
       }
     }
   });
+  const connecting = ForeignDutyRules?.buildConnectingTemplates?.(
+    flightDefs,
+    normalizeImportedFlightNo,
+    arrStaMinutes,
+    depStdMinutes
+  ) || [];
+  connecting.forEach(tpl => out.push(tpl));
   return out;
 }
 let templates = [];
@@ -16052,10 +16321,15 @@ rebuildTemplates();
 function syncScheduleWindows() {
   const map = new Map(templates.map(t => [t.id, t]));
   schedule.forEach(item => {
-    const key = `${item.flight}_${item.role}_${item.flightType}`;
-    const tpl = map.get(key);
+    let tpl = null;
+    if (item.connectingDuty) {
+      tpl = templates.find(t => scheduleItemMatchesTemplate(item, t));
+    } else {
+      tpl = map.get(`${item.flight}_${item.role}_${item.flightType}`);
+    }
     if (!tpl) return;
     item.compactLabel = tpl.compactLabel;
+    item.label = tpl.label;
     item.start = tpl.start;
     item.end = tpl.end;
   });
@@ -16919,7 +17193,7 @@ function filteredUnscheduledTemplates() {
   return templates.filter(t => {
     if (isFlightTemplateFullyScheduled(t)) return false;
     if (!templateMatchesTimelineSearch(t)) return false;
-    const text = (t.compactLabel + ' ' + minutesToTime(t.start) + '-' + minutesToTime(t.end) + ' ' + t.flight + ' ' + t.role).toLowerCase();
+    const text = (t.compactLabel + ' ' + minutesToTime(t.start) + '-' + minutesToTime(t.end) + ' ' + [t.flight, t.arrFlight, t.depFlight, t.role].filter(Boolean).join(' ')).toLowerCase();
     if (q && !text.includes(q)) return false;
     return true;
   });
@@ -16984,7 +17258,7 @@ function scheduleFitDutyChipLabels(root) {
   if (!palette) return;
   requestAnimationFrame(() => fitAllDutyChipLabels(palette));
 }
-function renderPaletteRoleFilters(palette) {
+function renderPaletteRoleFilters(palette, grouped) {
   const bar = document.createElement('div');
   bar.className = 'palette-role-filters';
   const allBtn = document.createElement('button');
@@ -16998,6 +17272,7 @@ function renderPaletteRoleFilters(palette) {
   });
   bar.appendChild(allBtn);
   PALETTE_ROLE_CATEGORIES.forEach(cat => {
+    if (!(grouped[cat.id] || []).length) return;
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.className = 'palette-role-filter' + (cat.id === activePaletteRoleCategory ? ' active' : '');
@@ -17014,18 +17289,12 @@ function renderPaletteRoleFilters(palette) {
 }
 function renderPaletteRoleGroups(palette, grouped) {
   PALETTE_ROLE_ORDER.forEach(roleName => {
+    const list = sortPaletteTemplates(grouped[roleName] || []);
+    if (!list.length) return;
     const title = document.createElement('div');
     title.className = 'group-title';
     title.textContent = roleName;
     palette.appendChild(title);
-    const list = sortPaletteTemplates(grouped[roleName] || []);
-    if (!list.length) {
-      const empty = document.createElement('div');
-      empty.className = 'empty-msg';
-      empty.textContent = '目前沒有待安排';
-      palette.appendChild(empty);
-      return;
-    }
     list.forEach(t => palette.appendChild(makeChip(t)));
   });
 }
@@ -17118,21 +17387,18 @@ function renderPalette() {
   }
   if (activePaletteTab === 'byRole') {
     const grouped = groupTemplatesByPaletteRole(tabItems);
-    renderPaletteRoleFilters(palette);
-    if (!activePaletteRoleCategory) {
+    const roleCategory = (grouped[activePaletteRoleCategory] || []).length
+      ? activePaletteRoleCategory
+      : null;
+    if (activePaletteRoleCategory && !roleCategory) activePaletteRoleCategory = null;
+    renderPaletteRoleFilters(palette, grouped);
+    if (!roleCategory) {
       renderPaletteRoleGroups(palette, grouped);
       scheduleFitDutyChipLabels(palette);
       return;
     }
-    const list = sortPaletteTemplates(grouped[activePaletteRoleCategory] || []);
-    if (!list.length) {
-      const empty = document.createElement('div');
-      empty.className = 'empty-msg';
-      empty.textContent = '目前沒有待安排';
-      palette.appendChild(empty);
-      return;
-    }
-    list.forEach(t => palette.appendChild(makeChip(t)));
+    sortPaletteTemplates(grouped[roleCategory]).forEach(t => palette.appendChild(makeChip(t)));
+    scheduleFitDutyChipLabels(palette);
   } else if (activePaletteTab === 'byFunction') {
     const title = document.createElement('div');
     title.className = 'timeline-list-title';
@@ -17553,6 +17819,8 @@ function renderRows() {
         } else if (tpl.role === 'ABG') {
           if (countAbgAssignments(tpl.flight, tpl.flightType) >= getAbgSlotsForTemplate(tpl)) return;
           if (personHasAbgAssignment(targetPersonIndex, tpl.flight, tpl.flightType)) return;
+        } else if (tpl.connectingDuty) {
+          if (schedule.some(x => scheduleItemMatchesTemplate(x, tpl))) return;
         } else if (schedule.some(x => `${x.flight}_${x.role}_${x.flightType}` === templateId)) {
           return;
         }
@@ -17585,6 +17853,9 @@ function renderRows() {
         role: tpl.role,
         flight,
         flightType: tpl.flightType,
+        connectingDuty: !!tpl.connectingDuty,
+        arrFlight: tpl.arrFlight || '',
+        depFlight: tpl.depFlight || tpl.flight || '',
         personIndex: targetPersonIndex,
         start,
         end
@@ -17871,7 +18142,7 @@ function syncAssignmentTableFromSchedule() {
       cell.title = '';
       return;
     }
-    const matchedItems = schedule.filter(item => item.flight === flight && item.role === role);
+    const matchedItems = getAssignmentItemsForCell(flight, role);
     const hasContent = renderAssignmentGenericRoleCell(cell, matchedItems);
     cell.classList.toggle('assignment-clickable', hasContent);
     cell.onclick = null;
