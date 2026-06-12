@@ -10,7 +10,7 @@
 <script src="fis-flight-parser.js"></script>
 <script src="foreign-schedule-parser.js?v=20260527-bx792"></script>
 <script src="flight-assignment-utils.js"></script>
-<script src="foreign-duty-rules.js"></script>
+<script src="foreign-duty-rules.js?v=20260613-hx253ckin-end40"></script>
 <title>今天的完整拖拉管制表 v2</title>
 <style>
   :root {
@@ -360,7 +360,7 @@
   .duty-chip strong { font-size:15px; }
   .duty-chip small,.mini,.editor-sub,.panel-sub,.empty-msg { color:#6b7280; }
   .empty-msg { font-size:13px; padding:6px 4px 2px; }
-  .role-RC { background:#e0f2fe; } .role-BG { background:#dcfce7; } .role-ABG { background:#fef3c7; } .role-接機RC { background:#ede9fe; } .role-接機C { background:#fde2e8; } .role-G2 { background:#fef08a; } .role-PPT { background:#ffe4e6; } .role-L1 { background:#e0e7ff; } .role-BA { background:#cffafe; }
+  .role-RC { background:#e0f2fe; } .role-BG { background:#dcfce7; } .role-ABG { background:#fef3c7; } .role-接機RC { background:#ede9fe; } .role-接機C { background:#fde2e8; } .role-G2 { background:#fef08a; } .role-PPT { background:#ffe4e6; } .role-L1 { background:#e0e7ff; } .role-BA { background:#cffafe; } .role-CKIN { background:#fce7f3; }
   .flight-editor { border-top:1px solid var(--line); padding:8px 12px 12px; overflow:auto; flex:0 0 auto; min-height:0; }
   .flight-editor.collapsed { flex:0 0 auto; overflow:hidden; padding-bottom:8px; }
   .editor-topbar { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:8px; }
@@ -2734,6 +2734,10 @@
     text-align: center;
     margin: 0;
   }
+  .duty-chip:has(small) strong,
+  .duty-chip.duty-chip-deleted strong {
+    white-space: nowrap;
+  }
   .duty-chip:hover {
     box-shadow: 0 4px 10px rgba(15,23,42,0.08);
     transform: translateY(-1px);
@@ -2745,6 +2749,7 @@
   .duty-chip.role-接機C { background: #fde2e8; }
   .duty-chip.role-G2 { background: #fef08a; }
   .duty-chip.role-PPT { background: #ffe4e6; }
+  .duty-chip.role-CKIN { background: #fce7f3; }
   .duty-chip.role-L1 { background: #e0e7ff; }
   .duty-chip.role-BA { background: #cffafe; }
   .duty-chip.role-休:not(.rest-chip-30):not(.rest-chip-60) { background: #f3f4f6; }
@@ -2755,6 +2760,7 @@
   .duty-chip.role-接機C:hover { background: #fbcfe8; }
   .duty-chip.role-G2:hover { background: #fde047; }
   .duty-chip.role-PPT:hover { background: #fecdd3; }
+  .duty-chip.role-CKIN:hover { background: #fbcfe8; }
   .duty-chip.role-L1:hover { background: #c7d2fe; }
   .duty-chip.role-BA:hover { background: #a5f3fc; }
   .duty-chip.role-休:not(.rest-chip-30):not(.rest-chip-60):hover { background: #e5e7eb; }
@@ -7757,7 +7763,7 @@ const EARLY_VIEW_END_MIN = 17 * 60;
 let pxPerMinute = 1.4;
 let activePaletteTab = 'byRole';
 let activePaletteRoleCategory = null;
-const PALETTE_ROLE_ORDER = ['RC', 'BG', 'ABG', 'BA', 'L1', 'G2', '接機RC', '接機C', 'PPT'];
+const PALETTE_ROLE_ORDER = ['RC', 'BG', 'ABG', 'BA', 'L1', 'G2', '接機RC', '接機C', 'PPT', 'CKIN'];
 const PALETTE_ROLE_CATEGORIES = PALETTE_ROLE_ORDER.map(role => ({ id: role, label: role, roles: [role] }));
 let activeFlightEditorTab = 'DEP';
 const LS_PREFIX = 'cursor_v1';
@@ -15982,6 +15988,7 @@ function roleShort(role) {
   if (role === 'L1') return 'L1';
   if (role === 'BA') return 'BA';
   if (role === 'G2') return 'G2';
+  if (role === 'CKIN') return 'CKIN';
   return role;
 }
 /** 僅供管制表 duty 區塊／待排 chip 的緊湊標籤；不影響分配表、搜尋等 compactFlightNo */
@@ -16206,7 +16213,7 @@ function pruneLegacyForeignConnectingScheduleItems() {
 function pruneOrphanDutyScheduleItems() {
   pruneLegacyForeignConnectingScheduleItems();
   const tplIds = new Set(templates.map(t => t.id));
-  const orphanRoles = new Set(['PPT', 'L1', 'BA', 'G2']);
+  const orphanRoles = new Set(['PPT', 'L1', 'BA', 'G2', 'CKIN']);
   const before = schedule.length;
   schedule = schedule.filter(item => {
     if (item.connectingDuty) {
@@ -16281,6 +16288,19 @@ function buildTemplates() {
           start,
           end,
           pptSlots: pptConfig.slots
+        });
+      }
+      const ckinConfig = ForeignDutyRules?.getHx253CkinConfig?.(f, normalizeImportedFlightNo);
+      if (ckinConfig) {
+        out.push({
+          id: `${f.flight}_CKIN_${f.type}`,
+          label: ckinConfig.label,
+          compactLabel: compactDutyLabel(f.flight, 'CKIN'),
+          flight: f.flight,
+          role: 'CKIN',
+          flightType: f.type,
+          start: depDutyStart(std, ckinConfig.beforeMinutes, ext),
+          end: ckinConfig.endBeforeStdMin != null ? std - Number(ckinConfig.endBeforeStdMin) : depDutyEnd(std, ext)
         });
       }
     } else {

@@ -77,6 +77,29 @@
     return getHxDepDutyConfig(f)?.abgSlots ?? 0;
   }
 
+  /** HX253 專用 check-in 協勤：STD 前 2h40m～STD 前 40m，1 人，分配表不顯示 */
+  const HX253_CKIN_BEFORE_MIN = 160;
+  const HX253_CKIN_END_BEFORE_STD_MIN = 40;
+
+  function isHx253CkinFlight(f, normalizeFlightNo) {
+    if (!f || f.type !== 'DEP' || f.status === 'CANX') return false;
+    const norm = typeof normalizeFlightNo === 'function'
+      ? normalizeFlightNo
+      : (v) => String(v || '').trim().toUpperCase();
+    return norm(f.flight) === norm('HX253');
+  }
+
+  function getHx253CkinConfig(f, normalizeFlightNo) {
+    if (!isHx253CkinFlight(f, normalizeFlightNo)) return null;
+    const flight = String(f.flight || '').trim();
+    const label = `${flight} CKIN`;
+    return {
+      label,
+      beforeMinutes: HX253_CKIN_BEFORE_MIN,
+      endBeforeStdMin: HX253_CKIN_END_BEFORE_STD_MIN
+    };
+  }
+
   function roleShort(role) {
     if (role === 'RC') return 'R';
     if (role === 'BG') return 'B';
@@ -212,6 +235,8 @@
     getHxDepDutyConfig,
     getHxPptConfig,
     getHxAbgSlots,
+    isHx253CkinFlight,
+    getHx253CkinConfig,
     connectingCompactLabel,
     connectingTemplateId,
     getConnectingPair,
