@@ -359,7 +359,7 @@
   .duty-chip strong { font-size:15px; }
   .duty-chip small,.mini,.editor-sub,.panel-sub,.empty-msg { color:#6b7280; }
   .empty-msg { font-size:13px; padding:6px 4px 2px; }
-  .role-RC { background:#e0f2fe; } .role-BG { background:#dcfce7; } .role-ABG { background:#fef3c7; } .role-接機RC { background:#ede9fe; } .role-接機C { background:#fde2e8; } .role-PPT { background:#ffe4e6; }
+  .role-RC { background:#e0f2fe; } .role-BG { background:#dcfce7; } .role-ABG { background:#fef3c7; } .role-接機RC { background:#ede9fe; } .role-接機C { background:#fde2e8; } .role-G2 { background:#fef08a; } .role-PPT { background:#ffe4e6; } .role-L1 { background:#e0e7ff; } .role-BA { background:#cffafe; }
   .flight-editor { border-top:1px solid var(--line); padding:8px 12px 12px; overflow:auto; flex:0 0 auto; min-height:0; }
   .flight-editor.collapsed { flex:0 0 auto; overflow:hidden; padding-bottom:8px; }
   .editor-topbar { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:8px; }
@@ -2301,11 +2301,99 @@
   }
   .assignment-clickable { cursor: pointer; background: #fffdfa; }
   .assignment-clickable:hover { background: #fff3bf; }
+  .assignment-code-clickable {
+    cursor: pointer;
+  }
+  .assignment-code-clickable:hover {
+    text-decoration: underline;
+  }
+  .assignment-role-codes-inner {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1.5ch;
+    width: 100%;
+    min-width: 0;
+  }
+  .assignment-role-code {
+    flex: 0 0 auto;
+    white-space: nowrap;
+  }
+  .assignment-abg-cell-inner {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    min-width: 0;
+    gap: 1ch;
+  }
+  .assignment-abg-cell-inner--center,
+  .assignment-abg-cell-inner--multi {
+    justify-content: center;
+  }
+  .assignment-abg-codes,
+  .assignment-abg-l1,
+  .assignment-abg-ba {
+    display: inline-flex;
+    align-items: center;
+    gap: 1ch;
+    flex: 0 0 auto;
+    white-space: nowrap;
+  }
+  .assignment-ppt-cell-inner {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1.5ch;
+    width: 100%;
+    min-width: 0;
+  }
+  .assignment-ppt-code {
+    flex: 0 0 auto;
+    white-space: nowrap;
+  }
   .assignment-flight-no {
     cursor: pointer;
+    position: relative;
+    overflow: visible;
   }
   .assignment-flight-no:hover {
     background: #fff3bf;
+  }
+  .assignment-flight-no-text {
+    display: inline-block;
+  }
+  .assignment-flight-pax-tip {
+    position: absolute;
+    left: 50%;
+    bottom: calc(100% + 6px);
+    transform: translateX(-50%);
+    padding: 4px 8px;
+    border-radius: 6px;
+    background: #1e293b;
+    color: #f8fafc;
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1.3;
+    white-space: nowrap;
+    pointer-events: none;
+    opacity: 0;
+    visibility: hidden;
+    z-index: 30;
+    box-shadow: 0 6px 18px rgba(15, 23, 42, 0.22);
+    transition: opacity 0.12s ease, visibility 0.12s ease;
+  }
+  .assignment-flight-pax-tip::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 100%;
+    transform: translateX(-50%);
+    border: 5px solid transparent;
+    border-top-color: #1e293b;
+  }
+  .assignment-flight-no--has-pax:hover .assignment-flight-pax-tip {
+    opacity: 1;
+    visibility: visible;
   }
   .assignment-table tbody tr.assignment-flight-match td {
     background: #fffbea !important;
@@ -2585,11 +2673,12 @@
     border-color: #111827;
   }
   .duty-chip {
+    position: relative;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     box-sizing: border-box;
-    width: max-content;
+    width: 100%;
     max-width: 100%;
     justify-self: center;
     min-width: 0;
@@ -2602,13 +2691,26 @@
     font-weight: 800;
     color: #334155;
     white-space: nowrap;
-    overflow: visible;
+    overflow: hidden;
     cursor: grab;
     user-select: none;
     box-shadow: 0 1px 3px rgba(15,23,42,0.06);
     transition: transform .15s ease, box-shadow .15s ease, background .15s ease;
     margin: 0;
     gap: 0;
+  }
+  .duty-chip:has(.duty-chip-slot-badge) {
+    padding-left: 14px;
+  }
+  .duty-chip-slot-badge {
+    position: absolute;
+    top: 4px;
+    left: 5px;
+    pointer-events: none;
+    color: #64748b;
+    font-size: 9px;
+    font-weight: 600;
+    line-height: 1;
   }
   .duty-chip:has(small),
   .duty-chip.duty-chip-deleted {
@@ -2640,21 +2742,29 @@
   .duty-chip.role-ABG { background: #fef3c7; }
   .duty-chip.role-接機RC { background: #ede9fe; }
   .duty-chip.role-接機C { background: #fde2e8; }
+  .duty-chip.role-G2 { background: #fef08a; }
   .duty-chip.role-PPT { background: #ffe4e6; }
+  .duty-chip.role-L1 { background: #e0e7ff; }
+  .duty-chip.role-BA { background: #cffafe; }
   .duty-chip.role-休:not(.rest-chip-30):not(.rest-chip-60) { background: #f3f4f6; }
   .duty-chip.role-RC:hover { background: #dbeafe; }
   .duty-chip.role-BG:hover { background: #bbf7d0; }
   .duty-chip.role-ABG:hover { background: #fde68a; }
   .duty-chip.role-接機RC:hover { background: #ddd6fe; }
   .duty-chip.role-接機C:hover { background: #fbcfe8; }
+  .duty-chip.role-G2:hover { background: #fde047; }
   .duty-chip.role-PPT:hover { background: #fecdd3; }
+  .duty-chip.role-L1:hover { background: #c7d2fe; }
+  .duty-chip.role-BA:hover { background: #a5f3fc; }
   .duty-chip.role-休:not(.rest-chip-30):not(.rest-chip-60):hover { background: #e5e7eb; }
   .duty-chip strong {
     font-size: 15px;
     font-weight: 900;
     line-height: 1.15;
     letter-spacing: 0.2px;
-    flex: 0 0 auto;
+    flex: 1 1 auto;
+    min-width: 0;
+    max-width: 100%;
   }
   .duty-chip small {
     font-size: 10px;
@@ -2662,6 +2772,8 @@
     color: #64748b;
     letter-spacing: -0.02em;
     line-height: 1.2;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
   }
   .duty-chip.role-休 {
     justify-content: center;
@@ -7296,17 +7408,166 @@ function getScheduleExportFileDate() {
 function getScheduleExportDateText() {
   return formatScheduleDateDisplay(selectedDate) || selectedDate || '';
 }
+function getAssignmentPersonCode(item) {
+  const p = people[item.personIndex];
+  return p ? String(p.code || p.name || '').trim() : '';
+}
+function bindAssignmentCodeClick(span, personIndex) {
+  if (personIndex == null || personIndex < 0) return;
+  span.classList.add('assignment-code-clickable');
+  span.title = '點一下可定位到下方該人員';
+  span.onclick = (e) => {
+    e.stopPropagation();
+    focusPersonInSchedule(personIndex);
+  };
+}
+function makeAssignmentCodeSpan(text, personIndex, className = 'assignment-role-code') {
+  const span = document.createElement('span');
+  span.className = className;
+  span.textContent = text;
+  bindAssignmentCodeClick(span, personIndex);
+  return span;
+}
+function renderAssignmentGenericRoleCell(cell, items) {
+  const entries = items
+    .map(item => ({ text: getAssignmentPersonCode(item), personIndex: item.personIndex }))
+    .filter(entry => entry.text);
+  cell.replaceChildren();
+  if (!entries.length) return false;
+  if (entries.length === 1) {
+    cell.appendChild(makeAssignmentCodeSpan(entries[0].text, entries[0].personIndex));
+    return true;
+  }
+  const inner = document.createElement('span');
+  inner.className = 'assignment-role-codes-inner';
+  entries.forEach(entry => {
+    inner.appendChild(makeAssignmentCodeSpan(entry.text, entry.personIndex));
+  });
+  cell.appendChild(inner);
+  return true;
+}
 function getAssignmentRoleCodes(flight, role) {
   const fDef = flightDefs.find(f => f.flight === flight);
   if (fDef?.status === 'CANX') return '-';
   const codes = schedule
     .filter(item => item.flight === flight && item.role === role)
-    .map(item => {
-      const p = people[item.personIndex];
-      return p ? String(p.code || p.name || '').trim() : '';
-    })
+    .map(getAssignmentPersonCode)
     .filter(Boolean);
   return codes.length ? codes.join(' ') : '';
+}
+function getAssignmentAbgCellItems(flight) {
+  return schedule.filter(item =>
+    item.flight === flight && (item.role === 'ABG' || item.role === 'L1' || item.role === 'BA')
+  );
+}
+function getAssignmentAbgCodes(flight) {
+  return schedule
+    .filter(item => item.flight === flight && item.role === 'ABG')
+    .map(getAssignmentPersonCode)
+    .filter(Boolean);
+}
+function getAssignmentL1Codes(flight) {
+  return schedule
+    .filter(item => item.flight === flight && item.role === 'L1')
+    .map(getAssignmentPersonCode)
+    .filter(Boolean);
+}
+function getAssignmentBaCodes(flight) {
+  return schedule
+    .filter(item => item.flight === flight && item.role === 'BA')
+    .map(getAssignmentPersonCode)
+    .filter(Boolean);
+}
+function getAssignmentAbgCellText(flight) {
+  const fDef = flightDefs.find(f => f.flight === flight);
+  if (fDef?.status === 'CANX') return '';
+  const parts = [
+    ...getAssignmentL1Codes(flight).map(code => `L1:${code}`),
+    ...getAssignmentBaCodes(flight).map(code => `BA:${code}`),
+    ...getAssignmentAbgCodes(flight)
+  ];
+  return parts.join(' \u2009');
+}
+function appendAssignmentAbgRoleSpans(parent, items, className, prefix = '') {
+  items.forEach(item => {
+    const code = getAssignmentPersonCode(item);
+    if (!code) return;
+    parent.appendChild(makeAssignmentCodeSpan(`${prefix}${code}`, item.personIndex, className));
+  });
+}
+function renderAssignmentAbgCell(cell, flight) {
+  const segments = [
+    {
+      items: schedule.filter(item => item.flight === flight && item.role === 'L1'),
+      wrapClass: 'assignment-abg-l1',
+      codeClass: 'assignment-abg-l1-code',
+      prefix: 'L1:'
+    },
+    {
+      items: schedule.filter(item => item.flight === flight && item.role === 'BA'),
+      wrapClass: 'assignment-abg-ba',
+      codeClass: 'assignment-abg-ba-code',
+      prefix: 'BA:'
+    },
+    {
+      items: schedule.filter(item => item.flight === flight && item.role === 'ABG'),
+      wrapClass: 'assignment-abg-codes',
+      codeClass: 'assignment-abg-code',
+      prefix: ''
+    }
+  ].filter(segment => segment.items.length);
+  cell.replaceChildren();
+  if (!segments.length) return false;
+  const inner = document.createElement('span');
+  inner.className = 'assignment-abg-cell-inner';
+  if (segments.length === 1) {
+    inner.classList.add('assignment-abg-cell-inner--center');
+    const segment = segments[0];
+    appendAssignmentAbgRoleSpans(inner, segment.items, segment.codeClass, segment.prefix);
+  } else {
+    inner.classList.add('assignment-abg-cell-inner--multi');
+    segments.forEach(segment => {
+      const wrap = document.createElement('span');
+      wrap.className = segment.wrapClass;
+      appendAssignmentAbgRoleSpans(wrap, segment.items, segment.codeClass, segment.prefix);
+      inner.appendChild(wrap);
+    });
+  }
+  cell.appendChild(inner);
+  return true;
+}
+function getAssignmentPptCodes(flight) {
+  return schedule
+    .filter(item => item.flight === flight && item.role === 'PPT')
+    .map(getAssignmentPersonCode)
+    .filter(Boolean);
+}
+function getAssignmentPptCellText(flight) {
+  const fDef = flightDefs.find(f => f.flight === flight);
+  if (fDef?.status === 'CANX') return '';
+  const codes = getAssignmentPptCodes(flight);
+  if (!codes.length) return '';
+  if (codes.length === 1) return codes[0];
+  return codes.join(' \u2009');
+}
+function renderAssignmentPptCell(cell, flight) {
+  const items = schedule.filter(item => item.flight === flight && item.role === 'PPT');
+  const entries = items
+    .map(item => ({ text: getAssignmentPersonCode(item), personIndex: item.personIndex }))
+    .filter(entry => entry.text);
+  cell.replaceChildren();
+  if (!entries.length) return false;
+  if (entries.length === 1) {
+    cell.appendChild(makeAssignmentCodeSpan(entries[0].text, entries[0].personIndex, 'assignment-ppt-code'));
+    return true;
+  }
+  const inner = document.createElement('span');
+  inner.className = 'assignment-ppt-cell-inner';
+  entries.forEach(entry => {
+    inner.appendChild(makeAssignmentCodeSpan(entry.text, entry.personIndex, 'assignment-ppt-code'));
+  });
+  cell.appendChild(inner);
+  return true;
 }
 function getDutyBlockExportLabel(item) {
   if (item.role === '休') return '休';
@@ -7368,8 +7629,8 @@ function buildAssignmentDepSheetRows() {
       excelCell(f.flight),
       excelCell(getAssignmentDepStdDisplayValue(f)),
       excelCell(isCanx ? '-' : (f.depGate || '')),
-      excelCell(isCanx ? '-' : getAssignmentRoleCodes(f.flight, 'PPT')),
-      excelCell(isCanx ? '-' : getAssignmentRoleCodes(f.flight, 'ABG')),
+      excelCell(isCanx ? '-' : (isPptDepFlight(f) ? getAssignmentPptCellText(f.flight) : '')),
+      excelCell(isCanx ? '-' : getAssignmentAbgCellText(f.flight)),
       excelCell(isCanx ? '-' : getAssignmentRoleCodes(f.flight, 'BG')),
       excelCell(isCanx ? '-' : getAssignmentRoleCodes(f.flight, 'RC')),
       excelCell(isCanx ? 'CANX' : '')
@@ -7395,7 +7656,7 @@ function buildAssignmentArrSheetRows() {
       excelCell(getAssignmentArrStaDisplayValue(f)),
       excelCell(isCanx ? '-' : (f.arrGate || '')),
       excelCell(isCanx ? '-' : eta),
-      excelCell(isCanx ? '-' : ''),
+      excelCell(isCanx ? '-' : (isArrG2Flight(f) ? getAssignmentRoleCodes(f.flight, 'G2') : '')),
       excelCell(isCanx ? '-' : ''),
       excelCell(isCanx ? '-' : getAssignmentRoleCodes(f.flight, '接機C')),
       excelCell(isCanx ? '-' : getAssignmentRoleCodes(f.flight, '接機RC')),
@@ -7495,7 +7756,7 @@ const EARLY_VIEW_END_MIN = 17 * 60;
 let pxPerMinute = 1.4;
 let activePaletteTab = 'byRole';
 let activePaletteRoleCategory = null;
-const PALETTE_ROLE_ORDER = ['RC', 'BG', 'ABG', '接機RC', '接機C', 'PPT'];
+const PALETTE_ROLE_ORDER = ['RC', 'BG', 'ABG', 'BA', 'L1', 'G2', '接機RC', '接機C', 'PPT'];
 const PALETTE_ROLE_CATEGORIES = PALETTE_ROLE_ORDER.map(role => ({ id: role, label: role, roles: [role] }));
 let activeFlightEditorTab = 'DEP';
 const LS_PREFIX = 'cursor_v1';
@@ -11799,9 +12060,162 @@ function compactFlightNo(flight) {
   }
   return s.replace(/^[A-Z]+/i, '');
 }
-function isPptDepFlightNo(flight) {
-  const m = String(flight || '').toUpperCase().match(/^BR0*(\d+)$/);
-  return !!m && (m[1] === '8' || m[1] === '6');
+/** 出境 PPT：美國線 + 多倫多（依 FIS 出境 ARR；不含 YVR）→ 2 人 */
+const PPT_NA_DESTINATION_AIRPORTS = new Set([
+  'LAX', 'SFO', 'SEA', 'ORD', 'JFK', 'IAH', 'DFW', 'IAD',
+  'YYZ'
+]);
+const PPT_NA_SLOTS = 2;
+const PPT_NA_BEFORE_MIN = 80;
+/** BKK 且 STD 早於 09:00 → 1 人，STD 前 60 分鐘起 */
+const PPT_EARLY_BKK_DESTINATION = 'BKK';
+const PPT_EARLY_BKK_STD_CUTOFF_MIN = 9 * 60;
+const PPT_EARLY_BKK_SLOTS = 1;
+const PPT_EARLY_BKK_BEFORE_MIN = 60;
+/** 出境 L1：僅美國線（不含加拿大），STD 前 50 分鐘起，1 人 */
+const L1_US_DESTINATION_AIRPORTS = new Set([
+  'LAX', 'SFO', 'SEA', 'ORD', 'JFK', 'IAH', 'DFW', 'IAD'
+]);
+const L1_BEFORE_MIN = 50;
+/** 出境 BA：僅美國線（不含加拿大），STD 前 40 分鐘至 STD，1 人 */
+const BA_BEFORE_MIN = 40;
+/** 入境接機 RC/C：美加線依 FIS 入境 DEP（起點機場）判斷 */
+const ARR_US_CANADA_ORIGIN_AIRPORTS = new Set([
+  'LAX', 'SFO', 'SEA', 'ORD', 'JFK', 'IAH', 'DFW', 'IAD',
+  'YYZ', 'YVR'
+]);
+const ARR_DUTY_BEFORE_STA_MIN = 15;
+const ARR_DUTY_AFTER_STA_NA_MIN = 35;
+const ARR_DUTY_AFTER_STA_DEFAULT_MIN = 25;
+/** 入境 G2：僅美加線，1 人；錨點前 5 分至錨點後 35 分（有 ETA 用 ETA，否則 STA） */
+const G2_BEFORE_ANCHOR_MIN = 5;
+const G2_AFTER_ANCHOR_MIN = 35;
+function getArrOriginAirport(f) {
+  const dep = String(f?.dep || '').trim().toUpperCase();
+  if (dep) return dep;
+  return parseRouteEndpoints(f?.route).dep;
+}
+function isArrUsCanadaFlight(f) {
+  if (!f || f.type !== 'ARR') return false;
+  const origin = getArrOriginAirport(f);
+  return !!origin && ARR_US_CANADA_ORIGIN_AIRPORTS.has(origin);
+}
+function isArrG2Flight(f) {
+  return isArrUsCanadaFlight(f);
+}
+function getG2DutyWindow(f) {
+  const anchor = getArrSortMinutes(f);
+  const ext = Number(f?.extension || 0);
+  return {
+    start: Math.max(0, anchor - G2_BEFORE_ANCHOR_MIN),
+    end: anchor + G2_AFTER_ANCHOR_MIN + ext
+  };
+}
+function getArrDutyWindow(f) {
+  const anchor = getArrSortMinutes(f);
+  const ext = Number(f?.extension || 0);
+  const afterAnchor = isArrUsCanadaFlight(f)
+    ? ARR_DUTY_AFTER_STA_NA_MIN
+    : ARR_DUTY_AFTER_STA_DEFAULT_MIN;
+  return {
+    start: Math.max(0, anchor - ARR_DUTY_BEFORE_STA_MIN),
+    end: anchor + afterAnchor + ext
+  };
+}
+function getDepDestinationAirport(f) {
+  const arr = String(f?.arr || '').trim().toUpperCase();
+  if (arr) return arr;
+  return parseRouteEndpoints(f?.route).arr;
+}
+function getPptConfigForFlightDef(f) {
+  if (!f || f.type !== 'DEP' || f.status === 'CANX') return null;
+  const dest = getDepDestinationAirport(f);
+  if (!dest) return null;
+  if (PPT_NA_DESTINATION_AIRPORTS.has(dest)) {
+    return { slots: PPT_NA_SLOTS, beforeMinutes: PPT_NA_BEFORE_MIN };
+  }
+  if (dest === PPT_EARLY_BKK_DESTINATION) {
+    const std = depStdMinutes(f);
+    if (std != null && std < PPT_EARLY_BKK_STD_CUTOFF_MIN) {
+      return { slots: PPT_EARLY_BKK_SLOTS, beforeMinutes: PPT_EARLY_BKK_BEFORE_MIN };
+    }
+  }
+  return null;
+}
+function isPptDepFlight(f) {
+  return !!getPptConfigForFlightDef(f);
+}
+function isL1DepFlight(f) {
+  if (!f || f.type !== 'DEP' || f.status === 'CANX') return false;
+  const dest = getDepDestinationAirport(f);
+  return !!dest && L1_US_DESTINATION_AIRPORTS.has(dest);
+}
+function isBaDepFlight(f) {
+  return isL1DepFlight(f);
+}
+/** 出境 ABG：BR／B7 航班 2 人，其餘 1 人 */
+const ABG_BR_B7_SLOTS = 2;
+const ABG_DEFAULT_SLOTS = 1;
+function isBrOrB7DepFlight(f) {
+  if (!f || f.type !== 'DEP') return false;
+  const flight = String(f.flight || '').trim().toUpperCase();
+  return flight.startsWith('BR') || flight.startsWith('B7');
+}
+function getAbgSlotsForFlightDef(f) {
+  return isBrOrB7DepFlight(f) ? ABG_BR_B7_SLOTS : ABG_DEFAULT_SLOTS;
+}
+function getAbgSlotsForTemplate(t) {
+  if (!t || t.role !== 'ABG') return 0;
+  if (Number.isFinite(t.abgSlots) && t.abgSlots > 0) return t.abgSlots;
+  const f = flightDefs.find(x => x.flight === t.flight && x.type === t.flightType);
+  return getAbgSlotsForFlightDef(f);
+}
+function countAbgAssignments(flight, flightType = 'DEP') {
+  return schedule.filter(x =>
+    x.flight === flight && x.role === 'ABG' && x.flightType === flightType
+  ).length;
+}
+function personHasAbgAssignment(personIndex, flight, flightType = 'DEP') {
+  return schedule.some(x =>
+    x.personIndex === personIndex && x.flight === flight && x.role === 'ABG' && x.flightType === flightType
+  );
+}
+function getAbgSlotsRemaining(t) {
+  if (!t || t.role !== 'ABG') return 0;
+  return Math.max(0, getAbgSlotsForTemplate(t) - countAbgAssignments(t.flight, t.flightType));
+}
+function getPptSlotsForFlightDef(f) {
+  return getPptConfigForFlightDef(f)?.slots ?? 0;
+}
+function getPptSlotsForTemplate(t) {
+  if (!t || t.role !== 'PPT') return 0;
+  if (Number.isFinite(t.pptSlots) && t.pptSlots > 0) return t.pptSlots;
+  const f = flightDefs.find(x => x.flight === t.flight && x.type === t.flightType);
+  return getPptSlotsForFlightDef(f);
+}
+function countPptAssignments(flight, flightType = 'DEP') {
+  return schedule.filter(x =>
+    x.flight === flight && x.role === 'PPT' && x.flightType === flightType
+  ).length;
+}
+function personHasPptAssignment(personIndex, flight, flightType = 'DEP') {
+  return schedule.some(x =>
+    x.personIndex === personIndex && x.flight === flight && x.role === 'PPT' && x.flightType === flightType
+  );
+}
+function isFlightTemplateFullyScheduled(t) {
+  if (!t || t.role === '休' || t.role === '自訂') return false;
+  if (t.role === 'PPT') {
+    return countPptAssignments(t.flight, t.flightType) >= getPptSlotsForTemplate(t);
+  }
+  if (t.role === 'ABG') {
+    return countAbgAssignments(t.flight, t.flightType) >= getAbgSlotsForTemplate(t);
+  }
+  return schedule.some(x => `${x.flight}_${x.role}_${x.flightType}` === t.id);
+}
+function getPptSlotsRemaining(t) {
+  if (!t || t.role !== 'PPT') return 0;
+  return Math.max(0, getPptSlotsForTemplate(t) - countPptAssignments(t.flight, t.flightType));
 }
 function normalizeFlightSearch(q) {
   const s = String(q || '').trim().toUpperCase();
@@ -12935,6 +13349,20 @@ function normalizeImportedTime(value) {
 }
 function formatAssignmentFlightLabel(f) {
   return escapeHtml(f.flight);
+}
+function getAssignmentDepPaxDisplay(f) {
+  if (!f || f.type !== 'DEP') return '';
+  return String(f.pax ?? '').trim();
+}
+function renderAssignmentDepFlightNoCell(f) {
+  const label = formatAssignmentFlightLabel(f);
+  const flightAttr = escapeHtml(f.flight);
+  const title = '點一下篩選下方管制表人員';
+  const pax = getAssignmentDepPaxDisplay(f);
+  if (!pax) {
+    return `<td class="assignment-flight-no" data-flight="${flightAttr}" title="${title}">${label}</td>`;
+  }
+  return `<td class="assignment-flight-no assignment-flight-no--has-pax" data-flight="${flightAttr}" title="${title}"><span class="assignment-flight-no-text">${label}</span><span class="assignment-flight-pax-tip" role="tooltip">訂位 ${escapeHtml(pax)}</span></td>`;
 }
 function formatAssignmentGate(f, type) {
   const gate = type === 'DEP' ? (f.depGate || '') : (f.arrGate || '');
@@ -14119,10 +14547,10 @@ function renderAssignmentTableFromFlightDefs() {
     const isCanx = f.status === 'CANX';
     return `
     <tr data-flight="${f.flight}" data-flight-def-id="${escapeHtml(f.id)}"${isCanx ? ' class="flight-row-canx"' : ''}>
-      <td class="assignment-flight-no" data-flight="${f.flight}" title="點一下篩選下方管制表人員">${formatAssignmentFlightLabel(f)}</td>
+      ${renderAssignmentDepFlightNoCell(f)}
       <td>${renderAssignmentDepStdCell(f)}</td>
       <td>${renderAssignmentGateCell(f, 'DEP')}</td>
-      <td data-flight="${f.flight}" data-role="PPT">${isCanx ? ASSIGNMENT_CANX_DASH_HTML : ''}</td>
+      <td${isCanx || isPptDepFlight(f) ? ` data-flight="${f.flight}" data-role="PPT"` : ''}>${isCanx ? ASSIGNMENT_CANX_DASH_HTML : ''}</td>
       <td data-flight="${f.flight}" data-role="ABG">${isCanx ? ASSIGNMENT_CANX_DASH_HTML : ''}</td>
       <td data-flight="${f.flight}" data-role="BG">${isCanx ? ASSIGNMENT_CANX_DASH_HTML : ''}</td>
       <td data-flight="${f.flight}" data-role="RC">${isCanx ? ASSIGNMENT_CANX_DASH_HTML : ''}</td>
@@ -14140,7 +14568,7 @@ function renderAssignmentTableFromFlightDefs() {
       <td>${renderAssignmentArrStaCell(f)}</td>
       <td>${renderAssignmentGateCell(f, 'ARR')}</td>
       <td>${renderAssignmentEtaCell(f)}</td>
-      <td>${isCanx ? ASSIGNMENT_CANX_DASH_HTML : ''}</td>
+      <td${isCanx || isArrG2Flight(f) ? ` data-flight="${f.flight}" data-role="G2"` : ''}>${isCanx ? ASSIGNMENT_CANX_DASH_HTML : ''}</td>
       <td>${isCanx ? ASSIGNMENT_CANX_DASH_HTML : ''}</td>
       <td data-flight="${f.flight}" data-role="接機C">${isCanx ? ASSIGNMENT_CANX_DASH_HTML : ''}</td>
       <td data-flight="${f.flight}" data-role="接機RC">${isCanx ? ASSIGNMENT_CANX_DASH_HTML : ''}</td>
@@ -15384,9 +15812,35 @@ function roleShort(role) {
   if (role === '接機RC') return 'R';
   if (role === '接機C') return 'C';
   if (role === 'PPT') return 'P';
+  if (role === 'L1') return 'L1';
+  if (role === 'BA') return 'BA';
+  if (role === 'G2') return 'G2';
   return role;
 }
-function compactDutyLabel(flight, role) { return `${compactFlightNo(flight)}${roleShort(role)}`; }
+/** 僅供管制表 duty 區塊／待排 chip 的緊湊標籤；不影響分配表、搜尋等 compactFlightNo */
+function compactDutyFlightNo(flight) {
+  const s = String(flight || '').trim().toUpperCase();
+  if (!s) return '';
+  const formatDutyNum = (numPart) => {
+    if (!/^\d+$/.test(numPart)) return numPart;
+    const trimmed = numPart.replace(/^0+/, '') || '0';
+    return trimmed.length === 1 ? trimmed.padStart(2, '0') : trimmed;
+  };
+  if (s.startsWith('B7')) {
+    const numPart = s.slice(2);
+    if (/^\d+$/.test(numPart)) return `B7${formatDutyNum(numPart)}`;
+  }
+  if (s.startsWith('BR')) {
+    const numPart = s.slice(2);
+    if (/^\d+$/.test(numPart)) return formatDutyNum(numPart);
+  }
+  const m = s.match(/^([A-Z]{2})(\d+)$/);
+  if (m) return `${m[1]}${formatDutyNum(m[2])}`;
+  const stripped = s.replace(/^[A-Z]+/i, '');
+  if (/^\d+$/.test(stripped)) return formatDutyNum(stripped);
+  return stripped || s;
+}
+function compactDutyLabel(flight, role) { return `${compactDutyFlightNo(flight)}${roleShort(role)}`; }
 function snap5(v) { return Math.round(v / 5) * 5; }
 function depStdMinutes(f) {
   const changed = parseTimeToMinutes(f.changeTime);
@@ -15451,6 +15905,7 @@ function normalizeFlightDefsInPlace() {
     if (!Array.isArray(f.edits)) f.edits = [];
     else f.edits = f.edits.filter(e => e.field !== 'connectingFlight');
     if (f.type === 'DEP') {
+      if (f.pax == null) f.pax = '';
       if (f.changeTime == null) f.changeTime = '';
       if (f.eta == null) f.eta = '';
       if (!f.changeTime && Number(f.offset || 0) !== 0) {
@@ -15477,10 +15932,24 @@ function createRestTemplates() {
 function hasImportedFlights() {
   return flightsImported === true && Array.isArray(flightDefs) && flightDefs.length > 0;
 }
+function pruneOrphanDutyScheduleItems() {
+  const tplIds = new Set(templates.map(t => t.id));
+  const orphanRoles = new Set(['PPT', 'L1', 'BA', 'G2']);
+  const before = schedule.length;
+  schedule = schedule.filter(item => {
+    if (item.flightType !== 'DEP' || !orphanRoles.has(item.role)) return true;
+    const key = `${item.flight}_${item.role}_${item.flightType}`;
+    return tplIds.has(key);
+  });
+  if (schedule.length === before) return;
+  if (selectedBlockId != null && !schedule.some(x => x.uid === selectedBlockId)) selectedBlockId = null;
+  markUnsynced();
+}
 function rebuildTemplates() {
   templates = hasImportedFlights()
     ? [...buildTemplates(), ...createRestTemplates(), ...customTemplates]
     : [];
+  pruneOrphanDutyScheduleItems();
 }
 
 function buildTemplates() {
@@ -15494,21 +15963,85 @@ function buildTemplates() {
       [['RC',70],['BG',60],['ABG',40]].forEach(([role, before]) => {
         const start = depDutyStart(std, before, ext);
         const end = depDutyEnd(std, ext);
-        out.push({ id: `${f.flight}_${role}_${f.type}`, label: `${f.flight} ${role}`, compactLabel: compactDutyLabel(f.flight, role), flight: f.flight, role, flightType: f.type, start, end });
+        const entry = {
+          id: `${f.flight}_${role}_${f.type}`,
+          label: `${f.flight} ${role}`,
+          compactLabel: compactDutyLabel(f.flight, role),
+          flight: f.flight,
+          role,
+          flightType: f.type,
+          start,
+          end
+        };
+        if (role === 'ABG') entry.abgSlots = getAbgSlotsForFlightDef(f);
+        out.push(entry);
       });
-      if (isPptDepFlightNo(f.flight)) {
-        const role = 'PPT';
-        const start = depDutyStart(std, 80, ext);
+      if (isBaDepFlight(f)) {
+        const role = 'BA';
+        const start = depDutyStart(std, BA_BEFORE_MIN, ext);
+        const end = std;
+        out.push({
+          id: `${f.flight}_${role}_${f.type}`,
+          label: `${f.flight} ${role}`,
+          compactLabel: compactDutyLabel(f.flight, role),
+          flight: f.flight,
+          role,
+          flightType: f.type,
+          start,
+          end
+        });
+      }
+      if (isL1DepFlight(f)) {
+        const role = 'L1';
+        const start = depDutyStart(std, L1_BEFORE_MIN, ext);
         const end = depDutyEnd(std, ext);
-        out.push({ id: `${f.flight}_${role}_${f.type}`, label: `${f.flight} ${role}`, compactLabel: compactDutyLabel(f.flight, role), flight: f.flight, role, flightType: f.type, start, end });
+        out.push({
+          id: `${f.flight}_${role}_${f.type}`,
+          label: `${f.flight} ${role}`,
+          compactLabel: compactDutyLabel(f.flight, role),
+          flight: f.flight,
+          role,
+          flightType: f.type,
+          start,
+          end
+        });
+      }
+      const pptConfig = getPptConfigForFlightDef(f);
+      if (pptConfig) {
+        const role = 'PPT';
+        const start = depDutyStart(std, pptConfig.beforeMinutes, ext);
+        const end = depDutyEnd(std, ext);
+        out.push({
+          id: `${f.flight}_${role}_${f.type}`,
+          label: `${f.flight} ${role}`,
+          compactLabel: compactDutyLabel(f.flight, role),
+          flight: f.flight,
+          role,
+          flightType: f.type,
+          start,
+          end,
+          pptSlots: pptConfig.slots
+        });
       }
     } else {
-      const anchor = getArrSortMinutes(f);
-      const start = Math.max(0, anchor - 15);
-      const end = anchor + 30 + ext;
+      const { start, end } = getArrDutyWindow(f);
       ['接機RC','接機C'].forEach(role => {
         out.push({ id: `${f.flight}_${role}_${f.type}`, label: `${f.flight} ${role}`, compactLabel: compactDutyLabel(f.flight, role), flight: f.flight, role, flightType: f.type, start, end });
       });
+      if (isArrG2Flight(f)) {
+        const role = 'G2';
+        const g2Window = getG2DutyWindow(f);
+        out.push({
+          id: `${f.flight}_${role}_${f.type}`,
+          label: `${f.flight} ${role}`,
+          compactLabel: compactDutyLabel(f.flight, role),
+          flight: f.flight,
+          role,
+          flightType: f.type,
+          start: g2Window.start,
+          end: g2Window.end
+        });
+      }
     }
   });
   return out;
@@ -15516,7 +16049,6 @@ function buildTemplates() {
 let templates = [];
 rebuildTemplates();
 
-function scheduledTemplateIds() { return new Set(schedule.map(item => `${item.flight}_${item.role}_${item.flightType}`)); }
 function syncScheduleWindows() {
   const map = new Map(templates.map(t => [t.id, t]));
   schedule.forEach(item => {
@@ -16384,9 +16916,8 @@ function isFlightSchedulePaletteTemplate(t) {
 }
 function filteredUnscheduledTemplates() {
   const q = document.getElementById('searchInput').value.trim().toLowerCase();
-  const used = scheduledTemplateIds();
   return templates.filter(t => {
-    if (t.role !== '休' && t.role !== '自訂' && used.has(t.id)) return false;
+    if (isFlightTemplateFullyScheduled(t)) return false;
     if (!templateMatchesTimelineSearch(t)) return false;
     const text = (t.compactLabel + ' ' + minutesToTime(t.start) + '-' + minutesToTime(t.end) + ' ' + t.flight + ' ' + t.role).toLowerCase();
     if (q && !text.includes(q)) return false;
@@ -16420,6 +16951,38 @@ function paletteNeedsThreeColumns(items) {
 }
 function applyPaletteGridColumns(palette, items) {
   if (paletteNeedsThreeColumns(items)) palette.classList.add('palette-view--cols-3');
+}
+const DUTY_CHIP_LABEL_MAX_PX = 15;
+const DUTY_CHIP_LABEL_MIN_PX = 10;
+function fitDutyChipLabel(chip) {
+  if (!chip?.classList.contains('duty-chip')) return;
+  const strong = chip.querySelector(':scope > strong');
+  if (!strong) return;
+  const label = String(strong.textContent || '').trim();
+  if (!label) return;
+  const style = getComputedStyle(chip);
+  const padL = parseFloat(style.paddingLeft) || 0;
+  const padR = parseFloat(style.paddingRight) || 0;
+  const maxWidth = chip.clientWidth - padL - padR;
+  if (maxWidth <= 0) return;
+  let size = DUTY_CHIP_LABEL_MAX_PX;
+  strong.style.fontSize = `${size}px`;
+  while (size > DUTY_CHIP_LABEL_MIN_PX && strong.scrollWidth > maxWidth) {
+    size -= 0.5;
+    strong.style.fontSize = `${size}px`;
+  }
+  const remainTitle = chip.title && chip.title.includes('尚可排') ? `${chip.title} · ` : '';
+  strong.title = `${remainTitle}${label}`;
+}
+function fitAllDutyChipLabels(root) {
+  const palette = root || document.getElementById('palette');
+  if (!palette) return;
+  palette.querySelectorAll('.duty-chip').forEach(fitDutyChipLabel);
+}
+function scheduleFitDutyChipLabels(root) {
+  const palette = root || document.getElementById('palette');
+  if (!palette) return;
+  requestAnimationFrame(() => fitAllDutyChipLabels(palette));
 }
 function renderPaletteRoleFilters(palette) {
   const bar = document.createElement('div');
@@ -16488,6 +17051,30 @@ function makeChip(t) {
     delBtn.addEventListener('mousedown', e => e.stopPropagation());
   } else {
     chip.innerHTML = `<strong>${t.compactLabel}</strong> <small>${minutesToTime(t.start)}-${minutesToTime(t.end)}</small>`;
+    const pptRemain = getPptSlotsRemaining(t);
+    const pptSlots = getPptSlotsForTemplate(t);
+    if (t.role === 'PPT' && pptRemain > 0) {
+      chip.title = `尚可排 ${pptRemain} 人`;
+      if (pptSlots > 1) {
+        const badge = document.createElement('span');
+        badge.className = 'duty-chip-slot-badge';
+        badge.setAttribute('aria-label', `尚可排 ${pptRemain} 人`);
+        badge.textContent = String(pptRemain);
+        chip.appendChild(badge);
+      }
+    }
+    const abgRemain = getAbgSlotsRemaining(t);
+    const abgSlots = getAbgSlotsForTemplate(t);
+    if (t.role === 'ABG' && abgRemain > 0) {
+      chip.title = `尚可排 ${abgRemain} 人`;
+      if (abgSlots > 1) {
+        const badge = document.createElement('span');
+        badge.className = 'duty-chip-slot-badge';
+        badge.setAttribute('aria-label', `尚可排 ${abgRemain} 人`);
+        badge.textContent = String(abgRemain);
+        chip.appendChild(badge);
+      }
+    }
   }
 
   chip.addEventListener('dragstart', e => {
@@ -16534,6 +17121,7 @@ function renderPalette() {
     renderPaletteRoleFilters(palette);
     if (!activePaletteRoleCategory) {
       renderPaletteRoleGroups(palette, grouped);
+      scheduleFitDutyChipLabels(palette);
       return;
     }
     const list = sortPaletteTemplates(grouped[activePaletteRoleCategory] || []);
@@ -16567,6 +17155,7 @@ function renderPalette() {
     palette.appendChild(title);
     tabItems.slice().sort((a,b) => (a.start ?? 99999) - (b.start ?? 99999) || (a.end ?? 99999) - (b.end ?? 99999) || a.label.localeCompare(b.label)).forEach(t => palette.appendChild(makeChip(t)));
   }
+  scheduleFitDutyChipLabels(palette);
 }
 
 function buildEditorRowDep(f) {
@@ -16956,9 +17545,18 @@ function renderRows() {
       const templateId = e.dataTransfer.getData('text/template');
       const tpl = templates.find(x => x.id === templateId);
       if (!tpl) return;
-      const exists = tpl.role !== '休' && tpl.role !== '自訂' && schedule.some(x => `${x.flight}_${x.role}_${x.flightType}` === templateId);
-      if (exists) return;
       const targetPersonIndex = Number(timeline.dataset.originalIndex);
+      if (tpl.role !== '休' && tpl.role !== '自訂') {
+        if (tpl.role === 'PPT') {
+          if (countPptAssignments(tpl.flight, tpl.flightType) >= getPptSlotsForTemplate(tpl)) return;
+          if (personHasPptAssignment(targetPersonIndex, tpl.flight, tpl.flightType)) return;
+        } else if (tpl.role === 'ABG') {
+          if (countAbgAssignments(tpl.flight, tpl.flightType) >= getAbgSlotsForTemplate(tpl)) return;
+          if (personHasAbgAssignment(targetPersonIndex, tpl.flight, tpl.flightType)) return;
+        } else if (schedule.some(x => `${x.flight}_${x.role}_${x.flightType}` === templateId)) {
+          return;
+        }
+      }
 
       let start = tpl.start;
       let end = tpl.end;
@@ -17259,24 +17857,25 @@ function syncAssignmentTableFromSchedule() {
       cell.title = '';
       return;
     }
-    const matchedItems = schedule.filter(item => item.flight === flight && item.role === role);
-    const codes = matchedItems
-      .map(item => (people[item.personIndex] ? (people[item.personIndex].code || people[item.personIndex].name) : ''))
-      .filter(Boolean);
-    cell.textContent = codes.join(' ');
-    if (codes.length) {
-      cell.classList.add('assignment-clickable');
-      cell.onclick = (e) => {
-        e.stopPropagation();
-        const targets = [...new Set(matchedItems.map(item => item.personIndex))];
-        targets.forEach(idx => focusPersonInSchedule(idx));
-      };
-      cell.title = '點一下可定位到下方該人員';
-    } else {
-      cell.classList.remove('assignment-clickable');
+    if (role === 'ABG') {
+      const hasContent = renderAssignmentAbgCell(cell, flight);
+      cell.classList.toggle('assignment-clickable', hasContent);
       cell.onclick = null;
       cell.title = '';
+      return;
     }
+    if (role === 'PPT') {
+      const hasContent = renderAssignmentPptCell(cell, flight);
+      cell.classList.toggle('assignment-clickable', hasContent);
+      cell.onclick = null;
+      cell.title = '';
+      return;
+    }
+    const matchedItems = schedule.filter(item => item.flight === flight && item.role === role);
+    const hasContent = renderAssignmentGenericRoleCell(cell, matchedItems);
+    cell.classList.toggle('assignment-clickable', hasContent);
+    cell.onclick = null;
+    cell.title = '';
   });
   if (timelineFlightSearch) updateAssignmentFlightHighlight(null, { skipScroll: true });
   else syncAssignmentRowHeights();

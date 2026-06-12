@@ -1,0 +1,11 @@
+---
+description: Palette duty chip time display preference
+globs: index.html
+alwaysApply: false
+---
+
+# Duty chip time display
+
+- Time ranges in palette duty chips must always stay on a single line (e.g. `14:00-14:40`, not wrapped at the hyphen).
+- Use `white-space: nowrap` and `font-variant-numeric: tabular-nums` on `.duty-chip small`.
+- Do not revert to `white-space: normal` on time text unless the user explicitly asks.
