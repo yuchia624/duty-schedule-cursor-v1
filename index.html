@@ -11949,21 +11949,29 @@ function scheduleSharedConfigSave() {
 }
 
 function saveCloudNow() {
-  if (!cloudReady || !scheduleDocRef || applyingRemote) return;
+  if (!cloudReady || !scheduleDocRef || applyingRemote) return Promise.resolve(false);
   const state = getCloudState();
   const json = JSON.stringify(cloudStatePayload(state));
-  if (json === lastCloudJson) return;
+  if (json === lastCloudJson) {
+    setCloudStatus('已同步', 'synced');
+    return Promise.resolve(true);
+  }
   lastCloudJson = json;
   setCloudStatus('上傳中', 'saving');
-  scheduleDocRef.set({
+  return scheduleDocRef.set({
     ...state,
     updatedAt: firebase.firestore.FieldValue.serverTimestamp()
   }, { merge: true })
-  .then(() => setCloudStatus('已同步', 'synced'))
-  .catch(err => {
-    console.error(err);
-    setCloudStatus('同步失敗', 'offline');
-  });
+    .then(() => {
+      setCloudStatus('已同步', 'synced');
+      return true;
+    })
+    .catch(err => {
+      console.error(err);
+      lastCloudJson = '';
+      setCloudStatus('同步失敗', 'offline');
+      return false;
+    });
 }
 
 function scheduleCloudSave() {
@@ -12223,6 +12231,106 @@ function parseArrStaAnchor(staStr) {
     return { minutes: hh * 60 + mm, daySuffix: '' };
   }
   return null;
+}
+function getPrefilingOriginStdMeta(f) {
+  if (!f || f.type !== 'ARR') return null;
+  const raw = String(f.std || '').trim();
+  if (!raw) return null;
+  const anchor = parseArrStaAnchor(raw);
+  if (anchor) {
+    return { minutes: anchor.minutes, label: `STD ${minutesToTime(anchor.minutes)}` };
+  }
+  const normalized = normalizeImportedTime(raw);
+  const mins = parseTimeToMinutes(normalized);
+  if (mins == null) return null;
+  return { minutes: mins, label: `STD ${minutesToTime(mins)}` };
+}
+/** PRE 起點機場 STD 日期（FIS 後綴對應班表日／隔日，邏輯同 resolveArrScheduleStaDateIso） */
+function resolvePrefilingStdDateIso(f) {
+  const anchor = parseArrStaAnchor(f?.std || '');
+  if (!anchor) return '';
+  if (!anchor.daySuffix) return getScheduleReferenceDate();
+  const ref = getScheduleReferenceDate();
+  if (!isValidISODate(ref)) return '';
+  const [y, mo, da] = ref.split('-').map(Number);
+  let month = mo - 1;
+  let year = y;
+  const day = Number(anchor.daySuffix);
+  if (!day) return '';
+  if (day < da) {
+    month += 1;
+    if (month > 11) {
+      month = 0;
+      year += 1;
+    }
+  }
+  return isoFromParts(year, month, day);
+}
+/** 管制表分鐘：班表日為基準，隔日 STD 加 24h（例：6/13 班表上 02:35(14) → 1655） */
+function getPrefilingStdTimelineMinutesFromFlight(f) {
+  if (!f) return null;
+  const anchor = parseArrStaAnchor(f.std || '');
+  if (!anchor) {
+    const normalized = normalizeImportedTime(f.std || '');
+    const mins = parseTimeToMinutes(normalized);
+    return mins == null ? null : mins;
+  }
+  let mins = anchor.minutes;
+  const refIso = getScheduleReferenceDate();
+  const stdDateIso = resolvePrefilingStdDateIso(f);
+  if (refIso && stdDateIso && stdDateIso !== refIso) {
+    const refMs = new Date(`${refIso}T12:00:00`).getTime();
+    const stdMs = new Date(`${stdDateIso}T12:00:00`).getTime();
+    const deltaDays = Math.round((stdMs - refMs) / 86400000);
+    mins += deltaDays * 24 * 60;
+  }
+  return mins;
+}
+function findPrefilingFlightDefForDuty(source) {
+  if (!source) return null;
+  const key = String(source.prefilingKey || '').trim();
+  if (key) {
+    const hit = flightDefs.find(f =>
+      f.isPrefilingImport && buildPrefilingAssignmentKey(f) === key
+    );
+    if (hit) return hit;
+  }
+  const flight = source.flight;
+  if (flight) {
+    return flightDefs.find(f =>
+      f.isPrefilingImport
+      && normalizeImportedFlightNo(f.flight) === normalizeImportedFlightNo(flight)
+    ) || null;
+  }
+  return null;
+}
+function getPrefilingStdTimelineMinutes(source) {
+  if (source?.prefilingStdTimelineMin != null && Number.isFinite(Number(source.prefilingStdTimelineMin))) {
+    return Number(source.prefilingStdTimelineMin);
+  }
+  const f = findPrefilingFlightDefForDuty(source);
+  if (f) return getPrefilingStdTimelineMinutesFromFlight(f);
+  if (source?.paletteSortMinutes != null && Number.isFinite(Number(source.paletteSortMinutes))) {
+    return Number(source.paletteSortMinutes);
+  }
+  return null;
+}
+function isPrefilingStartOnOrAfterStd(source, startMin) {
+  const stdMin = getPrefilingStdTimelineMinutes(source);
+  if (stdMin == null) return true;
+  return Number(startMin) >= stdMin;
+}
+function enforcePrefilingStartMin(source, startMin) {
+  const stdMin = getPrefilingStdTimelineMinutes(source);
+  if (stdMin == null) return Number(startMin);
+  return Math.max(Number(startMin), stdMin);
+}
+function getPaletteTemplateSortMinutes(t) {
+  if (t?.paletteSortMinutes != null && Number.isFinite(Number(t.paletteSortMinutes))) {
+    return Number(t.paletteSortMinutes);
+  }
+  if (t?.start != null && Number.isFinite(Number(t.start))) return Number(t.start);
+  return 99999;
 }
 function getArrStaAnchorForPrefiling(f) {
   if (!f || f.type !== 'ARR') return null;
@@ -16869,6 +16977,8 @@ function buildTemplates() {
       }
       if (isArrPrefilingEligibleFlight(f)) {
         const prefilingKey = buildPrefilingAssignmentKey(f);
+        const stdMeta = getPrefilingOriginStdMeta(f);
+        const stdTimelineMin = getPrefilingStdTimelineMinutesFromFlight(f);
         out.push({
           id: `PRE_${prefilingKey}`,
           label: `${f.flight} PRE-FILING`,
@@ -16880,7 +16990,10 @@ function buildTemplates() {
           start: null,
           end: null,
           duration: PREFILING_DURATION_MIN,
-          isFunction: true
+          isFunction: true,
+          paletteSortMinutes: stdMeta?.minutes ?? null,
+          paletteSortLabel: stdMeta?.label || '',
+          prefilingStdTimelineMin: stdTimelineMin
         });
       }
     }
@@ -16909,8 +17022,10 @@ function syncScheduleWindows() {
     const connectingLabel = resolveConnectingDutyCompactLabel(item);
     item.compactLabel = connectingLabel || tpl.compactLabel;
     item.label = tpl.label;
-    item.start = tpl.start;
-    item.end = tpl.end;
+    if (item.role !== 'PRE' && item.role !== '休') {
+      item.start = tpl.start;
+      item.end = tpl.end;
+    }
   });
 }
 function loadDayDataFromLocalStorage(dateStr) {
@@ -17357,7 +17472,6 @@ function switchScheduleDate(newDate) {
   clearUndoHistory();
   if (typeof renderWorkbenchDashboard === 'function') renderWorkbenchDashboard();
 }
-function overlaps(aStart, aEnd, bStart, bEnd) { return aStart < bEnd && aEnd > bStart; }
 function confirmConflict(personIndex, itemUid, start, end, duty) {
   if (duty && dutyRequiresPersonQualification(duty) && !personQualifiesForDuty(people[personIndex], duty)) return false;
   return true;
@@ -17368,8 +17482,6 @@ function timeToLeft(mins) { return (mins - getViewStartMin()) * pxPerMinute; }
 function durationToWidth(start, end) { return Math.max((end - start) * pxPerMinute, 50); }
 let paletteDragTemplateId = null;
 let paletteDragSlotRange = null;
-let blockMoveDragItem = null;
-let blockMoveSlotRange = null;
 let paletteDropHoverPersonIndex = null;
 function setPaletteDropHover(personIndex) {
   const idx = Number(personIndex);
@@ -17384,32 +17496,7 @@ function clearPaletteDropHover() {
   paletteDropHoverPersonIndex = null;
   document.querySelectorAll('.row.palette-drop-hover').forEach(el => el.classList.remove('palette-drop-hover'));
 }
-function personHasDutyInRange(personIndex, start, end, excludeUid = null) {
-  return schedule.some(item =>
-    item.personIndex === personIndex &&
-    item.uid !== excludeUid &&
-    overlaps(item.start, item.end, start, end)
-  );
-}
-function getDutyPlacementContext() {
-  if (paletteDragTemplateId && paletteDragSlotRange) {
-    const tpl = getPaletteDragTemplate();
-    if (!tpl) return null;
-    return { duty: tpl, start: paletteDragSlotRange.start, end: paletteDragSlotRange.end, excludeUid: null };
-  }
-  if (blockMoveDragItem && blockMoveSlotRange && !isFunctionDuty(blockMoveDragItem)) {
-    return {
-      duty: blockMoveDragItem,
-      start: blockMoveSlotRange.start,
-      end: blockMoveSlotRange.end,
-      excludeUid: blockMoveDragItem.uid
-    };
-  }
-  return null;
-}
 function endBlockMoveSession() {
-  blockMoveDragItem = null;
-  blockMoveSlotRange = null;
   clearPaletteDropHover();
 }
 function updatePaletteDragSlotRange(range) {
@@ -17782,7 +17869,7 @@ function groupTemplatesByPaletteRole(tabItems) {
 }
 function sortPaletteTemplates(list) {
   return list.slice().sort((a, b) =>
-    (a.start ?? 99999) - (b.start ?? 99999) ||
+    getPaletteTemplateSortMinutes(a) - getPaletteTemplateSortMinutes(b) ||
     (a.end ?? 99999) - (b.end ?? 99999) ||
     String(a.compactLabel || a.label || '').localeCompare(String(b.compactLabel || b.label || ''))
   );
@@ -17880,7 +17967,10 @@ function makeChip(t) {
     chip.classList.add(t.duration >= 60 ? 'rest-chip-60' : 'rest-chip-30');
     chip.innerHTML = `<strong>${t.label}</strong>`;
   } else if (t.role === 'PRE') {
-    chip.innerHTML = `<strong>${escapeHtml(t.compactLabel)}</strong>`;
+    const stdLine = t.paletteSortLabel
+      ? `<small>${escapeHtml(t.paletteSortLabel)}</small>`
+      : '';
+    chip.innerHTML = `<strong>${escapeHtml(t.compactLabel)}</strong>${stdLine}`;
   } else if (t.role === '自訂') {
     chip.classList.add('duty-chip-custom');
     chip.innerHTML = `<span class="duty-chip-body"><strong class="duty-chip-custom-label">${escapeHtml(t.label)}</strong><small class="duty-chip-custom-time">${minutesToTime(t.start)}-${minutesToTime(t.end)}</small></span><button type="button" class="duty-chip-delete-btn" title="刪除">×</button>`;
@@ -17977,7 +18067,7 @@ function renderPalette() {
     title.className = 'timeline-list-title';
     title.textContent = '功能區塊';
     palette.appendChild(title);
-    const funcs = tabItems.filter(t => isFunctionBlockPaletteTemplate(t) || (t.isFunction && t.role !== '自訂'));
+    const funcs = tabItems.filter(t => isFunctionBlockPaletteTemplate(t));
     applyPaletteGridColumns(palette, funcs);
     if (!funcs.length) {
       const empty = document.createElement('div');
@@ -17992,7 +18082,11 @@ function renderPalette() {
     title.className = 'timeline-list-title';
     title.textContent = '全部待排 duty，依開始時間先後排列';
     palette.appendChild(title);
-    tabItems.slice().sort((a,b) => (a.start ?? 99999) - (b.start ?? 99999) || (a.end ?? 99999) - (b.end ?? 99999) || a.label.localeCompare(b.label)).forEach(t => palette.appendChild(makeChip(t)));
+    tabItems.slice().sort((a, b) =>
+      getPaletteTemplateSortMinutes(a) - getPaletteTemplateSortMinutes(b) ||
+      (a.end ?? 99999) - (b.end ?? 99999) ||
+      String(a.compactLabel || a.label || '').localeCompare(String(b.compactLabel || b.label || ''))
+    ).forEach(t => palette.appendChild(makeChip(t)));
   }
   scheduleFitDutyChipLabels(palette);
 }
@@ -18132,24 +18226,6 @@ function getDisplayRows() {
   const sortedRows = getDisplaySortedRows();
   const filterShift = rows => rows.filter(row => personMatchesShiftView(row.person));
   const shiftRows = rows => filterShift(rows);
-  if (paletteDragTemplateId) {
-    const tpl = getPaletteDragTemplate();
-    if (tpl && isPaletteFunctionDrag(tpl)) return shiftRows(sortedRows);
-  }
-  if (blockMoveDragItem && isFunctionDuty(blockMoveDragItem)) return shiftRows(sortedRows);
-  const placementCtx = getDutyPlacementContext();
-  if (placementCtx) {
-    const { duty, start, end, excludeUid } = placementCtx;
-    const visibleRows = filterShift(sortedRows);
-    const freeRows = [];
-    const busyRows = [];
-    visibleRows.forEach(row => {
-      if (dutyRequiresPersonQualification(duty) && !personQualifiesForDuty(row.person, duty)) return;
-      if (personHasDutyInRange(row.originalIndex, start, end, excludeUid)) busyRows.push(row);
-      else freeRows.push(row);
-    });
-    return [...freeRows, ...busyRows];
-  }
   const query = String(timelineFlightSearch || '').trim();
   if (!query) return shiftRows(sortedRows);
   const snap = getUniversalSearchSnap();
@@ -18490,6 +18566,16 @@ function renderRows() {
         start = mins;
         end = mins + tpl.duration;
         flight = tpl.role === 'PRE' ? tpl.flight : tpl.id + '_' + blockSeq;
+        if (tpl.role === 'PRE' && !isPrefilingStartOnOrAfterStd(tpl, start)) {
+          const stdMin = getPrefilingStdTimelineMinutes(tpl);
+          appAlert(
+            `PRE 須排在 STD ${minutesToTime(stdMin % (24 * 60))} 之後。`,
+            '無法排入',
+            'info'
+          );
+          endPaletteDragSession();
+          return;
+        }
       } else if (!dutyIntersectsView({ start, end })) {
         return;
       }
@@ -18506,6 +18592,7 @@ function renderRows() {
         flightType: tpl.flightType,
         templateId: tpl.id,
         prefilingKey: tpl.prefilingKey || '',
+        prefilingStdTimelineMin: tpl.role === 'PRE' ? getPrefilingStdTimelineMinutes(tpl) : null,
         connectingDuty: !!tpl.connectingDuty,
         arrFlight: tpl.arrFlight || '',
         depFlight: tpl.depFlight || tpl.flight || '',
@@ -18553,8 +18640,6 @@ function startMoveBlock(e, item) {
       pushUndoSnapshot();
       undoPushed = true;
     }
-    blockMoveDragItem = item;
-    if (!isFuncMove) blockMoveSlotRange = { start: item.start, end: item.end };
     const boardRect = document.getElementById('rows').getBoundingClientRect();
     const rowList = isFuncMove ? stableRows : getDisplayRows();
     let idx = Math.max(0, Math.min(Math.floor((ev.clientY - boardRect.top - 1) / rowHeight), rowList.length - 1));
@@ -18566,8 +18651,9 @@ function startMoveBlock(e, item) {
       const raw = getViewStartMin() + ((ev.clientX - rect.left) / pxPerMinute);
       const snapped = snap5(raw);
       const duration = originalEnd - originalStart;
-      item.start = snapped;
-      item.end = snapped + duration;
+      const nextStart = item.role === 'PRE' ? enforcePrefilingStartMin(item, snapped) : snapped;
+      item.start = nextStart;
+      item.end = nextStart + duration;
     }
     setPaletteDropHover(item.personIndex);
 
@@ -19132,8 +19218,10 @@ document.getElementById('saveBtn').addEventListener('click', () => {
   setTimeout(() => {
     saveLocal();
     saveSharedConfigNow();
-    saveCloudNow();
-    appSuccess('已儲存並同步', '儲存完成');
+    Promise.resolve(saveCloudNow()).then(ok => {
+      if (ok) appSuccess('已儲存並同步', '儲存完成');
+      else appSuccess('已儲存本機', '儲存完成');
+    });
   }, 0);
 });
 

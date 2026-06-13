@@ -1,0 +1,38 @@
+---
+description: 改 index.html／FIS 解析後必做的回歸檢查清單
+globs: index.html,fis-flight-parser.js
+alwaysApply: false
+---
+
+# 改動後回歸檢查（Duty 工作台）
+
+完成 `index.html` 或 `fis-flight-parser.js` 的修改後，**收尾前**依變更範圍對照下列項目；有動到就必查，沒動到可略。
+
+## 1. 同步狀態（有動雲端／按鈕／markUnsynced）
+
+- `saveCloudNow()` 與 `saveSharedConfigNow()` 行為須對齊：資料已一致時也要 `setCloudStatus('已同步', 'synced')`，不可 silent return。
+- `#saveBtn` 成功訊息須等 `saveCloudNow()` 完成；不可無條件 `appSuccess`。
+- 按「同步」後：`#saveBtn` 應出現 `cloud-synced`（綠色）；失敗為 `cloud-offline`，上傳中為 `cloud-saving`。
+
+## 2. Boot／導覽（有動初始化、全域變數順序、boot()）
+
+- 頁面載入後可選角色，功能入口會出現。
+- 「排班作業」可進入；不因 `ReferenceError`（變數／常數宣告順序）中斷。
+- 不在常數（如 PRE 規則、`ARR_*_AIRPORTS`）定義完成前呼叫 `normalizeFlightDefsInPlace()`。
+
+## 3. PRE／FIS（有動匯入、palette、拖放）
+
+- PRE STD 讀 **raw 儲存格值**，勿優先錯位的 `cell.w`（見 `pickFormattedCell`）。
+- 隔日 STD 用日期後綴換算管制表分鐘（`getPrefilingStdTimelineMinutesFromFlight`），不可只用 HH:MM。
+- PRE 拖放：`start >= STD`；`syncScheduleWindows` 仍不覆寫 PRE／休的 `start`／`end`。
+
+## 4. 平行邏輯須一致
+
+新增第二條路徑（例：shared vs day 同步、入境 vs PRE 匯入）時，**複製既有正確分支的全部狀態更新**，不要只複製上傳、漏 UI 回饋。
+
+## 5. 收尾自問（每次改 index.html 都適用）
+
+1. 有沒有動到宣告順序、boot、Firebase attach？
+2. 有沒有動到 `setCloudStatus`／`markUnsynced`／`persistAndSync`？
+3. 改動是否可用「只改需求處」的最小 diff 完成？
+4. 若無法實測，回覆中註明**未驗證項目**與建議手動步驟。

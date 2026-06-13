@@ -231,10 +231,14 @@
   function pickFormattedCell(ws, matrix, r, colIndex, key) {
     const c = colIndex[key];
     if (c == null) return '';
+    const raw = matrix[r]?.[c];
+    if (raw != null && raw !== '') {
+      // FIS 匯出檔常見 cell.w 與儲存格實值錯位（上一列殘留），字串時間以 raw 為準。
+      if (typeof raw !== 'number') return String(raw).trim();
+    }
     const addr = global.XLSX.utils.encode_cell({ r, c });
     const cell = ws?.[addr];
     if (cell?.w != null && String(cell.w).trim()) return String(cell.w).trim();
-    const raw = matrix[r]?.[c];
     if (raw == null || raw === '') return '';
     return String(raw).trim();
   }
