@@ -133,6 +133,34 @@
     return dt.ms >= startMs && dt.ms < endMs;
   }
 
+  /** PRE 匯入（額外、與入境無關）：美加歐澳線、STA 日期 = 班表日+1、隔日 00:01（含）～ 09:00（不含） */
+  const PREFILING_ORIGIN_AIRPORTS = new Set([
+    'LAX', 'SFO', 'SEA', 'ORD', 'JFK', 'IAH', 'DFW', 'IAD',
+    'YYZ', 'YVR',
+    'VIE', 'MUC', 'CDG', 'MXP', 'AMS', 'LHR',
+    'BNE'
+  ]);
+  const PREFILING_IMPORT_STA_START_MIN = 1;
+  const PREFILING_IMPORT_STA_END_MIN = 9 * 60;
+
+  function isPrefilingOriginAirport(dep) {
+    const origin = clean(dep).toUpperCase();
+    return !!origin && PREFILING_ORIGIN_AIRPORTS.has(origin);
+  }
+
+  function inPrefilingImportWindow(dt, selectedDate, dep) {
+    if (!dt || !isPrefilingOriginAirport(dep)) return false;
+    const nextIso = isoFromDate(addDays(selectedDate, 1));
+    if (dt.dateIso !== nextIso) return false;
+    return dt.minutes >= PREFILING_IMPORT_STA_START_MIN && dt.minutes < PREFILING_IMPORT_STA_END_MIN;
+  }
+
+  function matchesPrefilingImportWindow(parsed, suffixMap, selectedDate, dep) {
+    const dt = datetimeFromFisTime(parsed, suffixMap, selectedDate);
+    if (!dt) return false;
+    return inPrefilingImportWindow(dt, selectedDate, dep);
+  }
+
   function matchesSelectedScheduleDay(type, parsed, suffixMap, selectedDate) {
     const dt = datetimeFromFisTime(parsed, suffixMap, selectedDate);
     if (!dt) return false;
@@ -200,7 +228,18 @@
     return { depCount, arrCount };
   }
 
-  function rowToObject(matrix, r, colIndex) {
+  function pickFormattedCell(ws, matrix, r, colIndex, key) {
+    const c = colIndex[key];
+    if (c == null) return '';
+    const addr = global.XLSX.utils.encode_cell({ r, c });
+    const cell = ws?.[addr];
+    if (cell?.w != null && String(cell.w).trim()) return String(cell.w).trim();
+    const raw = matrix[r]?.[c];
+    if (raw == null || raw === '') return '';
+    return String(raw).trim();
+  }
+
+  function rowToObject(ws, matrix, r, colIndex) {
     const row = matrix[r] || [];
     const pick = key => (colIndex[key] != null ? row[colIndex[key]] : '');
     return {
@@ -208,10 +247,10 @@
       acNo: clean(pick('acNo')),
       dep: clean(pick('dep')).toUpperCase(),
       arr: clean(pick('arr')).toUpperCase(),
-      std: pick('std'),
-      sta: pick('sta'),
-      etd: pick('etd'),
-      eta: pick('eta'),
+      std: pickFormattedCell(ws, matrix, r, colIndex, 'std'),
+      sta: pickFormattedCell(ws, matrix, r, colIndex, 'sta'),
+      etd: pickFormattedCell(ws, matrix, r, colIndex, 'etd'),
+      eta: pickFormattedCell(ws, matrix, r, colIndex, 'eta'),
       depGate: pick('depGate'),
       arrGate: pick('arrGate'),
       pax: clean(pick('pax')),
@@ -235,7 +274,7 @@
     let arrTpe = 0;
     const rows = [];
     for (let r = headerRowIdx + 1; r < matrix.length; r++) {
-      const obj = rowToObject(matrix, r, colIndex);
+      const obj = rowToObject(ws, matrix, r, colIndex);
       if (!obj.flt) continue;
       rows.push(obj);
       if (obj.dep === STATION) depTpe += 1;
@@ -407,6 +446,7 @@
     );
 
     const flightDefs = [];
+    let prefilingArrAdded = 0;
 
     depCandidates.forEach(row => {
       const parsed = parseFisTimeValue(row.std);
@@ -418,9 +458,32 @@
     arrCandidates.forEach(row => {
       const parsed = parseFisTimeValue(row.sta);
       if (!matchesSelectedScheduleDay('ARR', parsed, suffixMap, selectedDate)) return;
+      if (matchesPrefilingImportWindow(parsed, suffixMap, selectedDate, row.dep)) return;
       const def = buildFlightDef('ARR', row, normalizeFlightNo);
-      if (def) flightDefs.push(def);
+      if (!def) return;
+      const dt = datetimeFromFisTime(parsed, suffixMap, selectedDate);
+      if (dt?.dateIso) def.scheduleStaDateIso = dt.dateIso;
+      def.isPrefilingImport = false;
+      def.isInboundImport = true;
+      flightDefs.push(def);
     });
+
+    arrCandidates.forEach(row => {
+      const parsed = parseFisTimeValue(row.sta);
+      if (!matchesPrefilingImportWindow(parsed, suffixMap, selectedDate, row.dep)) return;
+      const def = buildFlightDef('ARR', row, normalizeFlightNo);
+      if (!def) return;
+      const dt = datetimeFromFisTime(parsed, suffixMap, selectedDate);
+      if (dt?.dateIso) def.scheduleStaDateIso = dt.dateIso;
+      def.isPrefilingImport = true;
+      def.isInboundImport = false;
+      flightDefs.push(def);
+      prefilingArrAdded += 1;
+    });
+
+    if (prefilingArrAdded) {
+      warnings.push(`PRE 額外匯入 ${prefilingArrAdded} 筆隔日美加歐澳航班（STA 日期為班表日+1，00:01～09:00）`);
+    }
 
     flightDefs.sort((a, b) => {
       if (a.type !== b.type) return a.type === 'DEP' ? -1 : 1;

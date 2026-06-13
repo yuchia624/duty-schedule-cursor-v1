@@ -360,7 +360,7 @@
   .duty-chip strong { font-size:15px; }
   .duty-chip small,.mini,.editor-sub,.panel-sub,.empty-msg { color:#6b7280; }
   .empty-msg { font-size:13px; padding:6px 4px 2px; }
-  .role-RC { background:#e0f2fe; } .role-BG { background:#dcfce7; } .role-ABG { background:#fef3c7; } .role-接機RC { background:#ede9fe; } .role-接機C { background:#fde2e8; } .role-G2 { background:#fef08a; } .role-PPT { background:#ffe4e6; } .role-L1 { background:#e0e7ff; } .role-BA { background:#cffafe; } .role-CKIN { background:#fce7f3; }
+  .role-RC { background:#e0f2fe; } .role-BG { background:#dcfce7; } .role-ABG { background:#fef3c7; } .role-接機RC { background:#ede9fe; } .role-接機C { background:#fde2e8; } .role-G2 { background:#fef08a; } .role-PPT { background:#ffe4e6; } .role-L1 { background:#e0e7ff; } .role-BA { background:#cffafe; } .role-CKIN { background:#fce7f3; } .role-PRE { background:#ede9fe; }
   .flight-editor { border-top:1px solid var(--line); padding:8px 12px 12px; overflow:auto; flex:0 0 auto; min-height:0; }
   .flight-editor.collapsed { flex:0 0 auto; overflow:hidden; padding-bottom:8px; }
   .editor-topbar { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:8px; }
@@ -1977,6 +1977,34 @@
     table-layout: fixed;
     width: 100%;
   }
+  .assignment-table.assign-fixed-table--prefiling {
+    table-layout: fixed;
+    width: 100%;
+  }
+  .assignment-table.assign-fixed-table--prefiling .assign-fixed-row-label-col {
+    width: 64px;
+  }
+  .assignment-table.assign-fixed-table--prefiling .assign-fixed-row-label {
+    max-width: 64px;
+    white-space: normal;
+    line-height: 1.15;
+    font-size: 11px;
+    overflow: hidden;
+    padding: 4px 2px;
+    word-break: break-word;
+  }
+  .assignment-table.assign-fixed-table th:not(.assign-fixed-row-label):not(.assign-fixed-corner) {
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1.3;
+    padding: 4px 6px;
+    vertical-align: middle;
+  }
+  .assignment-table.assign-fixed-table--prefiling th:not(.assign-fixed-row-label) {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
   .assignment-table.assign-fixed-table--duties .assign-fixed-row-label-col {
     width: 64px;
   }
@@ -1993,7 +2021,7 @@
   .assignment-table.assign-fixed-table .assign-fixed-row-label,
   .assignment-table.assign-fixed-table .assign-fixed-corner {
     min-width: 64px;
-    font-weight: 800;
+    font-weight: 700;
   }
   .assignment-table.assign-fixed-table td[data-assignment-fixed-duty],
   .assignment-table.assign-fixed-table td[data-assignment-prefiling],
@@ -2802,6 +2830,7 @@
   .duty-chip.role-G2 { background: #fef08a; }
   .duty-chip.role-PPT { background: #ffe4e6; }
   .duty-chip.role-CKIN { background: #fce7f3; }
+  .duty-chip.role-PRE { background: #ede9fe; }
   .duty-chip.role-L1 { background: #e0e7ff; }
   .duty-chip.role-BA { background: #cffafe; }
   .duty-chip.role-休:not(.rest-chip-30):not(.rest-chip-60) { background: #f3f4f6; }
@@ -2813,6 +2842,7 @@
   .duty-chip.role-G2:hover { background: #fde047; }
   .duty-chip.role-PPT:hover { background: #fecdd3; }
   .duty-chip.role-CKIN:hover { background: #fbcfe8; }
+  .duty-chip.role-PRE:hover { background: #ddd6fe; }
   .duty-chip.role-L1:hover { background: #c7d2fe; }
   .duty-chip.role-BA:hover { background: #a5f3fc; }
   .duty-chip.role-休:not(.rest-chip-30):not(.rest-chip-60):hover { background: #e5e7eb; }
@@ -6868,7 +6898,7 @@ function isFunctionDuty(duty) {
   return !!duty && (duty.role === '休' || duty.role === '自訂' || duty.isFunction || duty.isCustom);
 }
 function isPaletteFreeTimeDrag(tpl) {
-  return !!tpl && tpl.role === '休';
+  return !!tpl && (tpl.role === '休' || tpl.role === 'PRE');
 }
 function isPaletteFunctionDrag(tpl) {
   return isPaletteFreeTimeDrag(tpl);
@@ -7199,7 +7229,7 @@ function getDutyDisplayLabel(item) {
   return item.compactLabel || compactDutyLabel(item.flight, item.role);
 }
 function getItemOvertimeRanges(item, person) {
-  if (!person || item.role === '休') return [];
+  if (!person || item.role === '休' || item.role === 'PRE') return [];
   const bounds = getPersonShiftBounds(person);
   if (!bounds) return [];
   const ranges = [];
@@ -7264,7 +7294,7 @@ function collectOvertimeRecords() {
   const records = [];
   const byPerson = new Map();
   schedule.forEach(item => {
-    if (item.role === '休') return;
+    if (item.role === '休' || item.role === 'PRE') return;
     const pid = item.personIndex;
     if (people[pid] == null) return;
     if (!byPerson.has(pid)) byPerson.set(pid, []);
@@ -7720,7 +7750,7 @@ function buildAssignmentDepSheetRows() {
 }
 function buildAssignmentArrSheetRows() {
   const arrRows = flightDefs
-    .filter(f => f.type === 'ARR')
+    .filter(isInboundAssignmentArrFlight)
     .sort((a, b) => getArrSortMinutes(a) - getArrSortMinutes(b) || a.flight.localeCompare(b.flight));
   const rows = [
     ['日期', getScheduleExportDateText()],
@@ -7836,7 +7866,7 @@ const EARLY_VIEW_END_MIN = 17 * 60;
 let pxPerMinute = 1.4;
 let activePaletteTab = 'byRole';
 let activePaletteRoleCategory = null;
-const PALETTE_ROLE_ORDER = ['RC', 'BG', 'ABG', 'BA', 'L1', 'G2', '接機RC', '接機C', 'PPT', 'CKIN'];
+const PALETTE_ROLE_ORDER = ['RC', 'BG', 'ABG', 'BA', 'L1', 'G2', '接機RC', '接機C', 'PPT', 'CKIN', 'PRE'];
 const PALETTE_ROLE_CATEGORIES = PALETTE_ROLE_ORDER.map(role => ({ id: role, label: role, roles: [role] }));
 let activeFlightEditorTab = 'DEP';
 const LS_PREFIX = 'cursor_v1';
@@ -7848,6 +7878,49 @@ const LS_KEYS_GLOBAL = {
   staffPersonnel: `${LS_PREFIX}_staff_personnel`,
   staffListRefDate: `${LS_PREFIX}_staff_list_ref_date`
 };
+const LS_WORKBENCH_ROLE = `${LS_PREFIX}_workbench_role`;
+let workbenchRoleMemory = '';
+const ROLE_ALLOWED_MODULES = {
+  admin: ['home', 'schedule-ops', 'staff', 'flights', 'rules', 'settings'],
+  scheduler: ['home', 'schedule-ops', 'staff', 'flights', 'rules', 'settings'],
+  supervisor: ['home', 'schedule-ops', 'supervisor-hub'],
+  employee: ['home', 'my-duty']
+};
+function getWorkbenchRole() {
+  if (workbenchRoleMemory && ROLE_ALLOWED_MODULES[workbenchRoleMemory]) return workbenchRoleMemory;
+  try {
+    const role = localStorage.getItem(LS_WORKBENCH_ROLE) || '';
+    if (ROLE_ALLOWED_MODULES[role]) {
+      workbenchRoleMemory = role;
+      return role;
+    }
+  } catch (_) {}
+  return '';
+}
+function setWorkbenchRole(role) {
+  if (!ROLE_ALLOWED_MODULES[role]) return;
+  workbenchRoleMemory = role;
+  try { localStorage.setItem(LS_WORKBENCH_ROLE, role); } catch (_) {}
+  document.querySelectorAll('.workbench-role-option').forEach(el => {
+    const selected = el.dataset.role === role;
+    el.classList.toggle('selected', selected);
+    const input = el.querySelector('input[type="radio"]');
+    if (input) input.checked = selected;
+  });
+  updateErpNavForRole();
+  renderWorkbenchDashboard();
+  if (window.matchMedia('(max-width: 768px)').matches) {
+    requestAnimationFrame(() => {
+      document.getElementById('workbenchStatus')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    });
+  }
+}
+function canAccessErpModule(moduleKey) {
+  if (moduleKey === 'home') return true;
+  const role = getWorkbenchRole();
+  if (!role) return false;
+  return ROLE_ALLOWED_MODULES[role].includes(moduleKey);
+}
 const STAFF_PERSONNEL_BASELINE = '2026-01-01';
 /** 種子／匯入基準事件的生效日：無限期（不列入歷史時間軸） */
 const STAFF_IMPORT_BASELINE_FOREVER = '';
@@ -7890,6 +7963,17 @@ function getLocalDateISO() {
 }
 function isValidISODate(s) {
   return /^\d{4}-\d{2}-\d{2}$/.test(String(s || '').trim());
+}
+const LS_ERP_NAV_CLOSED = `${LS_PREFIX}_erp_nav_closed`;
+const LS_ERP_NAV_OPEN_TOP_REF = `${LS_PREFIX}_erp_nav_open_top_ref`;
+const SCHEDULE_WEEKDAY_ZH = ['日', '一', '二', '三', '四', '五', '六'];
+let activeErpModule = localStorage.getItem('cursor_v1_erp_module') || 'home';
+function formatScheduleDateDisplay(iso) {
+  if (!isValidISODate(iso)) return '';
+  const [y, m, d] = iso.split('-').map(Number);
+  const dt = new Date(y, m - 1, d);
+  const w = SCHEDULE_WEEKDAY_ZH[dt.getDay()];
+  return `${y}/${String(m).padStart(2, '0')}/${String(d).padStart(2, '0')} (${w})`;
 }
 function readJsonLS(key, fallback) {
   try {
@@ -8027,21 +8111,15 @@ function migrateLegacyUndatedDayStorage() {
     if (ct && !localStorage.getItem(k.customTemplates)) localStorage.setItem(k.customTemplates, ct);
   }
 }
-migrateLegacyUndatedDayStorage();
 
 let activeShiftView = localStorage.getItem(LS_KEYS_GLOBAL.shiftView) || 'early';
 let rollCallMode = localStorage.getItem(LS_KEYS_GLOBAL.rollCallMode) === '1';
 if (!['early', 'late'].includes(activeShiftView)) activeShiftView = 'early';
 
-const _bootDayK = dayStorageKeys(selectedDate);
-let customTemplates = readJsonLS(_bootDayK.customTemplates, []);
-let deletedCustomTemplates = readJsonLS(_bootDayK.deletedCustomTemplates, []);
-let staffDirectory = readJsonLS(LS_KEYS_GLOBAL.staffDirectory, []);
-let staffPersonnelRegistry = readJsonLS(LS_KEYS_GLOBAL.staffPersonnel, null);
-if (!Array.isArray(customTemplates)) customTemplates = [];
-if (!Array.isArray(deletedCustomTemplates)) deletedCustomTemplates = [];
-if (!Array.isArray(staffDirectory)) staffDirectory = [];
-if (!staffPersonnelRegistry || !Array.isArray(staffPersonnelRegistry.people)) staffPersonnelRegistry = null;
+let customTemplates = [];
+let deletedCustomTemplates = [];
+let staffDirectory = [];
+let staffPersonnelRegistry = null;
 
 function getScheduleReferenceDate() {
   return isValidISODate(selectedDate) ? selectedDate : getLocalDateISO();
@@ -11035,30 +11113,14 @@ function createCustomTemplate(name, startHHMM, duration) {
 }
 
 let timelineFlightSearch = '';
-initialPeople.forEach(p => { if (!('shift' in p)) p.shift = ''; });
-initialPeople.forEach(p => { if (!('code' in p)) p.code = p.name; });
-const _dayK0 = dayStorageKeys(selectedDate);
-let people = readJsonLS(_dayK0.peopleOrder, null) || initialPeople;
-if (!Array.isArray(people)) people = initialPeople;
-people = people.map(normalizePerson);
-initStaffPersonnelRegistry();
-if (staffDirectory.length) people = mergePeopleWithStaffDirectory(people);
-peopleDisplayOrder = readJsonLS(_dayK0.peopleDisplayOrder, null);
-if (!isValidPeopleDisplayOrder(peopleDisplayOrder)) resetPeopleDisplayOrderToAutoSort();
-maybeRefreshPeopleDisplayOrderForSortRevision(selectedDate);
-let schedule = readJsonLS(_dayK0.schedule, []);
-if (!Array.isArray(schedule)) schedule = [];
-let flightDefs = readJsonLS(_dayK0.flightDefs, null);
-if (!Array.isArray(flightDefs)) flightDefs = [];
-let flightsImported = localStorage.getItem(_dayK0.flightsImported) === '1';
-if (!flightsImported) flightDefs = [];
-normalizeFlightDefsInPlace();
-let overtimeHourOverrides = readJsonLS(_dayK0.overtimeOverrides, {});
-if (!overtimeHourOverrides || typeof overtimeHourOverrides !== 'object') overtimeHourOverrides = {};
-let dicOvertimeApprovals = readJsonLS(_dayK0.dicOvertimeApprovals, {});
-if (!dicOvertimeApprovals || typeof dicOvertimeApprovals !== 'object') dicOvertimeApprovals = {};
+let people = [];
+let schedule = [];
+let flightDefs = [];
+let flightsImported = false;
+let overtimeHourOverrides = {};
+let dicOvertimeApprovals = {};
 let selectedBlockId = null;
-let blockSeq = schedule.length ? Math.max(...schedule.map(x => x.uid || 0)) + 1 : 1;
+let blockSeq = 1;
 let editorExpanded = false;
 
 const firebaseConfig = {
@@ -11216,16 +11278,6 @@ const ERP_MODULE_PAGES = {
   'supervisor-hub': 'erpPageSupervisor',
   'my-duty': 'erpPageMyDuty'
 };
-const LS_WORKBENCH_ROLE = `${LS_PREFIX}_workbench_role`;
-const LS_ERP_NAV_CLOSED = `${LS_PREFIX}_erp_nav_closed`;
-const LS_ERP_NAV_OPEN_TOP_REF = `${LS_PREFIX}_erp_nav_open_top_ref`;
-let workbenchRoleMemory = '';
-const ROLE_ALLOWED_MODULES = {
-  admin: ['home', 'schedule-ops', 'staff', 'flights', 'rules', 'settings'],
-  scheduler: ['home', 'schedule-ops', 'staff', 'flights', 'rules', 'settings'],
-  supervisor: ['home', 'schedule-ops', 'supervisor-hub'],
-  employee: ['home', 'my-duty']
-};
 const WORKBENCH_ENTRIES = {
   admin: [
     { title: '人員管理', desc: '在職／停用人員、調入與狀態變更；可刪除測試人員。', module: 'staff', tag: '人員' },
@@ -11252,42 +11304,6 @@ const WORKBENCH_ENTRIES = {
   ]
 };
 const erpHomeSlots = new Map();
-let activeErpModule = localStorage.getItem('cursor_v1_erp_module') || 'home';
-function getWorkbenchRole() {
-  if (workbenchRoleMemory && ROLE_ALLOWED_MODULES[workbenchRoleMemory]) return workbenchRoleMemory;
-  try {
-    const role = localStorage.getItem(LS_WORKBENCH_ROLE) || '';
-    if (ROLE_ALLOWED_MODULES[role]) {
-      workbenchRoleMemory = role;
-      return role;
-    }
-  } catch (_) {}
-  return '';
-}
-function setWorkbenchRole(role) {
-  if (!ROLE_ALLOWED_MODULES[role]) return;
-  workbenchRoleMemory = role;
-  try { localStorage.setItem(LS_WORKBENCH_ROLE, role); } catch (_) {}
-  document.querySelectorAll('.workbench-role-option').forEach(el => {
-    const selected = el.dataset.role === role;
-    el.classList.toggle('selected', selected);
-    const input = el.querySelector('input[type="radio"]');
-    if (input) input.checked = selected;
-  });
-  updateErpNavForRole();
-  renderWorkbenchDashboard();
-  if (window.matchMedia('(max-width: 768px)').matches) {
-    requestAnimationFrame(() => {
-      document.getElementById('workbenchStatus')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    });
-  }
-}
-function canAccessErpModule(moduleKey) {
-  if (moduleKey === 'home') return true;
-  const role = getWorkbenchRole();
-  if (!role) return false;
-  return ROLE_ALLOWED_MODULES[role].includes(moduleKey);
-}
 function updateErpNavForRole() {
   const role = getWorkbenchRole();
   document.querySelectorAll('.erp-nav-btn[data-erp-module]').forEach(btn => {
@@ -12183,6 +12199,104 @@ function isArrUsCanadaFlight(f) {
 function isArrG2Flight(f) {
   return isArrUsCanadaFlight(f);
 }
+/** PRE-FILING 排班／PRE 匯入條件：見 isPrefilingImportFlight（與 fis-flight-parser 第二段相同） */
+const ARR_PREFILING_EUROPE_ORIGIN_AIRPORTS = new Set(['VIE', 'MUC', 'CDG', 'MXP', 'AMS', 'LHR']);
+/** PRE-FILING：澳洲線入境起點 */
+const ARR_PREFILING_AUSTRALIA_ORIGIN_AIRPORTS = new Set(['BNE']);
+const PREFILING_STA_START_MIN = 1;
+const PREFILING_STA_CUTOFF_MIN = 9 * 60;
+const PREFILING_DURATION_MIN = 60;
+function parseArrStaAnchor(staStr) {
+  const s = String(staStr || '').trim();
+  const withSuffix = s.match(/^(\d{1,2}):(\d{2})(?::\d{2})?\((\d+)\)$/);
+  if (withSuffix) {
+    const hh = Number(withSuffix[1]);
+    const mm = Number(withSuffix[2]);
+    if (Number.isNaN(hh) || Number.isNaN(mm)) return null;
+    return { minutes: hh * 60 + mm, daySuffix: withSuffix[3] };
+  }
+  const plain = s.match(/^(\d{1,2}):(\d{2})(?::\d{2})?$/);
+  if (plain) {
+    const hh = Number(plain[1]);
+    const mm = Number(plain[2]);
+    if (Number.isNaN(hh) || Number.isNaN(mm)) return null;
+    return { minutes: hh * 60 + mm, daySuffix: '' };
+  }
+  return null;
+}
+function getArrStaAnchorForPrefiling(f) {
+  if (!f || f.type !== 'ARR') return null;
+  const rawSta = f.sta || f.baseTime || '';
+  const baseAnchor = parseArrStaAnchor(rawSta);
+  const changed = parseTimeToMinutes(f.changeTime);
+  if (changed == null) return baseAnchor;
+  return {
+    minutes: changed,
+    daySuffix: baseAnchor?.daySuffix || ''
+  };
+}
+function getScheduleNextDayIso(iso) {
+  if (!isValidISODate(iso)) return '';
+  return shiftScheduleISODate(iso, 1);
+}
+function resolveArrScheduleStaDateIso(f) {
+  if (f?.scheduleStaDateIso && isValidISODate(f.scheduleStaDateIso)) return f.scheduleStaDateIso;
+  const anchor = parseArrStaAnchor(f?.sta || f?.baseTime || '');
+  if (!anchor?.daySuffix) return '';
+  const ref = getScheduleReferenceDate();
+  const [y, mo, da] = ref.split('-').map(Number);
+  let month = mo - 1;
+  let year = y;
+  const day = Number(anchor.daySuffix);
+  if (!day) return '';
+  if (day < da) {
+    month += 1;
+    if (month > 11) {
+      month = 0;
+      year += 1;
+    }
+  }
+  return isoFromParts(year, month, day);
+}
+function isArrPrefilingRouteFlight(f) {
+  if (!f || f.type !== 'ARR') return false;
+  const origin = getArrOriginAirport(f);
+  if (!origin) return false;
+  return ARR_US_CANADA_ORIGIN_AIRPORTS.has(origin)
+    || ARR_PREFILING_EUROPE_ORIGIN_AIRPORTS.has(origin)
+    || ARR_PREFILING_AUSTRALIA_ORIGIN_AIRPORTS.has(origin);
+}
+/** PRE 匯入／PRE-FILING：美加歐澳、STA 日期 = 班表日+1、00:01～09:00（與 fis-flight-parser 第二段相同） */
+function isPrefilingImportFlight(f) {
+  if (!f || f.type !== 'ARR' || f.status === 'CANX') return false;
+  if (!isArrPrefilingRouteFlight(f)) return false;
+  const nextIso = getScheduleNextDayIso(getScheduleReferenceDate());
+  const staDateIso = resolveArrScheduleStaDateIso(f);
+  if (!staDateIso || staDateIso !== nextIso) return false;
+  const anchor = getArrStaAnchorForPrefiling(f);
+  if (!anchor || anchor.minutes < PREFILING_STA_START_MIN || anchor.minutes >= PREFILING_STA_CUTOFF_MIN) return false;
+  return true;
+}
+function isArrPrefilingEligibleFlight(f) {
+  return isPrefilingImportFlight(f);
+}
+/** 入境分配表：非 PRE 匯入的入境班（與 isPrefilingImportFlight 互斥，不靠去重） */
+function isInboundImportFlight(f) {
+  if (!f || f.type !== 'ARR' || f.status === 'CANX') return false;
+  return !isPrefilingImportFlight(f);
+}
+function buildPrefilingAssignmentKey(f) {
+  const origin = getArrOriginAirport(f);
+  if (!origin) return '';
+  const flight = normalizeImportedFlightNo(f.flight);
+  return `${flight}-${origin}`;
+}
+function getPrefilingEligibleFlightDefs() {
+  return flightDefs
+    .filter(isArrPrefilingEligibleFlight)
+    .slice()
+    .sort((a, b) => arrStaMinutes(a) - arrStaMinutes(b) || buildPrefilingAssignmentKey(a).localeCompare(buildPrefilingAssignmentKey(b)));
+}
 function getG2DutyWindow(f) {
   const anchor = getArrSortMinutes(f);
   const ext = Number(f?.extension || 0);
@@ -12313,6 +12427,12 @@ function personHasPptAssignment(personIndex, flight, flightType = 'DEP') {
 }
 function isFlightTemplateFullyScheduled(t) {
   if (!t || t.role === '休' || t.role === '自訂') return false;
+  if (t.role === 'PRE') {
+    return schedule.some(x =>
+      x.role === 'PRE'
+      && (x.templateId === t.id || (t.prefilingKey && x.prefilingKey === t.prefilingKey))
+    );
+  }
   if (t.role === 'PPT') {
     return countPptAssignments(t.flight, t.flightType) >= getPptSlotsForTemplate(t);
   }
@@ -12483,11 +12603,14 @@ function personLevelMatches(person, levelToken) {
 }
 function normalizeLevelTier(person) {
   const raw = String(person?.level || resolveLevel(person) || '').trim();
+  if (!raw) return '';
   if (raw === 'M') return 'M';
-  if (raw === 'm') return 'm';
-  const core = raw.replace(/[*!]/g, '').toUpperCase();
+  const stripped = raw.replace(/[*!\-]/g, '');
+  if (stripped === 'm') return 'm';
+  const core = stripped.toUpperCase();
   if (core === '2A') return '2A';
   if (core === '1A') return '1A';
+  if (core === 'M') return 'M';
   return core;
 }
 function isOzFlight(flight) {
@@ -12503,6 +12626,9 @@ function personQualifiesForDuty(person, duty) {
   if (!dutyRequiresPersonQualification(duty)) return true;
   const tier = normalizeLevelTier(person);
   const role = duty.role;
+  if (role === 'PRE') {
+    return tier === 'M' || tier === 'm' || tier === '2A' || tier === '1A';
+  }
   const flightType = duty.flightType;
   const flight = duty.flight;
   if (tier === 'M') return true;
@@ -13747,6 +13873,10 @@ function getAssignmentDepStdDisplayValue(f) {
   return minutesToTime(depStdMinutes(f));
 }
 
+function isInboundAssignmentArrFlight(f) {
+  return isInboundImportFlight(f);
+}
+
 function getAssignmentArrStaDisplayValue(f) {
   return minutesToTime(arrStaMinutes(f));
 }
@@ -14874,10 +15004,6 @@ const ASSIGNMENT_FIXED_DUTIES = [
   { label: '遺失物', slots: 2 },
   { label: 'NZ人/件', slots: 1 }
 ];
-const ASSIGNMENT_PREFILING_FLIGHTS = [
-  'BR0025-SEA', 'BR0035-YYZ', 'BR0045-SFO', 'BR09D-YVR', 'BR027-SEA', 'BR017-SFO',
-  'BR007-LAX', 'BR007-SEA', 'BR001-SFO', 'BR007-DFW', 'BR011-IAD', 'BR011-SEA'
-];
 const ASSIGNMENT_SHIFT_ROLES = ['客服專員', 'TC', 'TA', 'Q2'];
 const ASSIGNMENT_SHIFT_SLOTS = Array.from({ length: 20 }, (_, i) => {
   const h = 4 + i;
@@ -14886,8 +15012,42 @@ const ASSIGNMENT_SHIFT_SLOTS = Array.from({ length: 20 }, (_, i) => {
 function getAssignmentFixedDutyCellText(_dutyKey) {
   return '';
 }
-function getAssignmentPrefilingCellText(_flightKey) {
-  return '';
+function getAssignmentPrefilingCellText(flightKey) {
+  const codes = schedule
+    .filter(item => item.role === 'PRE' && item.prefilingKey === flightKey)
+    .map(getAssignmentPersonCode)
+    .filter(Boolean);
+  return codes.length ? codes.join(' ') : '';
+}
+function getAssignmentPrefilingFlightKeys() {
+  return getPrefilingEligibleFlightDefs()
+    .map(buildPrefilingAssignmentKey)
+    .filter(Boolean);
+}
+function formatPrefilingAssignmentHeadLabel(flightKey) {
+  const key = String(flightKey || '').trim();
+  const idx = key.lastIndexOf('-');
+  const flight = idx > 0 ? key.slice(0, idx) : key;
+  return escapeHtml(flight);
+}
+function renderAssignmentPrefilingColgroup(keys) {
+  const dataCols = keys.map(() => '<col>').join('');
+  return `<colgroup><col class="assign-fixed-row-label-col">${dataCols}</colgroup>`;
+}
+function syncAssignmentPrefilingColWidths() {
+  const table = document.querySelector('.assign-fixed-table--prefiling');
+  if (!table) return;
+  const labelCell = table.querySelector('th.assign-fixed-row-label');
+  const cols = [...table.querySelectorAll('colgroup col:not(.assign-fixed-row-label-col)')];
+  if (!cols.length) return;
+  const tableW = table.clientWidth;
+  if (tableW <= 0) return;
+  const labelW = labelCell?.getBoundingClientRect().width || 64;
+  const dataW = Math.max(0, tableW - labelW);
+  const colW = dataW / cols.length;
+  cols.forEach(col => {
+    col.style.width = `${Math.max(1, Math.floor(colW))}px`;
+  });
 }
 function getAssignmentShiftCellText(_role, _slot) {
   return '';
@@ -14940,10 +15100,11 @@ function renderAssignmentFixedSection() {
   const dutyAgt = ASSIGNMENT_FIXED_DUTIES.map(d =>
     `<td data-assignment-fixed-duty="${escapeHtml(d.label)}">${escapeHtml(getAssignmentFixedDutyCellText(d.label))}</td>`
   ).join('');
-  const prefilingHead = ASSIGNMENT_PREFILING_FLIGHTS.map(flight =>
-    `<th>${escapeHtml(flight)}</th>`
+  const prefilingKeys = getAssignmentPrefilingFlightKeys();
+  const prefilingHead = prefilingKeys.map(flight =>
+    `<th>${formatPrefilingAssignmentHeadLabel(flight)}</th>`
   ).join('');
-  const prefilingCells = ASSIGNMENT_PREFILING_FLIGHTS.map(flight =>
+  const prefilingCells = prefilingKeys.map(flight =>
     `<td data-assignment-prefiling="${escapeHtml(flight)}">${escapeHtml(getAssignmentPrefilingCellText(flight))}</td>`
   ).join('');
   const shiftHead = ASSIGNMENT_SHIFT_SLOTS.map(slot =>
@@ -14975,6 +15136,7 @@ function renderAssignmentFixedSection() {
     </div>
     <div class="assign-fixed-block">
       <table class="assignment-table assign-fixed-table assign-fixed-table--prefiling">
+        ${renderAssignmentPrefilingColgroup(prefilingKeys)}
         <thead>
           <tr>
             <th class="assign-fixed-row-label">航班</th>
@@ -14983,7 +15145,7 @@ function renderAssignmentFixedSection() {
         </thead>
         <tbody>
           <tr>
-            <th class="assign-fixed-row-label">PRE-FILING</th>
+            <th class="assign-fixed-row-label">PRE<br>FILING</th>
             ${prefilingCells}
           </tr>
         </tbody>
@@ -15011,7 +15173,10 @@ function syncAssignmentFixedSectionWidth() {
   if (!grid || !section) return;
   const w = grid.getBoundingClientRect().width;
   if (w > 0) section.style.width = `${Math.ceil(w)}px`;
-  requestAnimationFrame(() => requestAnimationFrame(syncAssignmentFixedDutyColWidths));
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    syncAssignmentFixedDutyColWidths();
+    syncAssignmentPrefilingColWidths();
+  }));
 }
 
 function renderAssignmentTableFromFlightDefs() {
@@ -15024,7 +15189,7 @@ function renderAssignmentTableFromFlightDefs() {
     .sort((a,b) => depStdMinutes(a) - depStdMinutes(b) || a.flight.localeCompare(b.flight));
 
   const arrRows = flightDefs
-    .filter(f => f.type === 'ARR')
+    .filter(isInboundAssignmentArrFlight)
     .sort((a,b) => getArrSortMinutes(a) - getArrSortMinutes(b) || a.flight.localeCompare(b.flight));
 
   depBody.innerHTML = depRows.map(f => {
@@ -16540,6 +16705,12 @@ function normalizeFlightDefsInPlace() {
     }
     if (f.type === 'ARR') {
       if (f.changeTime == null) f.changeTime = '';
+      if (!f.scheduleStaDateIso) {
+        const derived = resolveArrScheduleStaDateIso(f);
+        if (derived) f.scheduleStaDateIso = derived;
+      }
+      f.isPrefilingImport = isPrefilingImportFlight(f);
+      f.isInboundImport = isInboundImportFlight(f);
       migrateTimeFieldEditsFromChangeTime(f, 'arrSta');
     }
   });
@@ -16582,11 +16753,14 @@ function pruneLegacyForeignConnectingScheduleItems() {
 function pruneOrphanDutyScheduleItems() {
   pruneLegacyForeignConnectingScheduleItems();
   const tplIds = new Set(templates.map(t => t.id));
-  const orphanRoles = new Set(['PPT', 'L1', 'BA', 'G2', 'CKIN']);
+  const orphanRoles = new Set(['PPT', 'L1', 'BA', 'G2', 'CKIN', 'PRE']);
   const before = schedule.length;
   schedule = schedule.filter(item => {
     if (item.connectingDuty) {
       return templates.some(t => scheduleItemMatchesTemplate(item, t));
+    }
+    if (item.role === 'PRE') {
+      return templates.some(t => t.role === 'PRE' && t.prefilingKey && t.prefilingKey === item.prefilingKey);
     }
     if (item.flightType !== 'DEP' || !orphanRoles.has(item.role)) return true;
     const key = `${item.flight}_${item.role}_${item.flightType}`;
@@ -16673,13 +16847,13 @@ function buildTemplates() {
         });
       }
     } else {
-      if (!isForeignConnectingArrFlight(f)) {
+      if (!isForeignConnectingArrFlight(f) && !isArrPrefilingEligibleFlight(f)) {
         const { start, end } = getArrDutyWindow(f);
         ['接機RC', '接機C'].forEach(role => {
           out.push({ id: `${f.flight}_${role}_${f.type}`, label: `${f.flight} ${role}`, compactLabel: compactDutyLabel(f.flight, role), flight: f.flight, role, flightType: f.type, start, end });
         });
       }
-      if (isArrG2Flight(f)) {
+      if (isArrG2Flight(f) && !isArrPrefilingEligibleFlight(f)) {
         const role = 'G2';
         const g2Window = getG2DutyWindow(f);
         out.push({
@@ -16691,6 +16865,22 @@ function buildTemplates() {
           flightType: f.type,
           start: g2Window.start,
           end: g2Window.end
+        });
+      }
+      if (isArrPrefilingEligibleFlight(f)) {
+        const prefilingKey = buildPrefilingAssignmentKey(f);
+        out.push({
+          id: `PRE_${prefilingKey}`,
+          label: `${f.flight} PRE-FILING`,
+          compactLabel: `${compactDutyFlightNo(f.flight)} PRE`,
+          flight: f.flight,
+          role: 'PRE',
+          flightType: f.type,
+          prefilingKey,
+          start: null,
+          end: null,
+          duration: PREFILING_DURATION_MIN,
+          isFunction: true
         });
       }
     }
@@ -16705,7 +16895,6 @@ function buildTemplates() {
   return out;
 }
 let templates = [];
-rebuildTemplates();
 
 function syncScheduleWindows() {
   const map = new Map(templates.map(t => [t.id, t]));
@@ -16759,14 +16948,6 @@ function loadDayDataFromLocalStorage(dateStr) {
   if (!isValidPeopleDisplayOrder(peopleDisplayOrder)) resetPeopleDisplayOrderToAutoSort();
   maybeRefreshPeopleDisplayOrderForSortRevision(dateStr);
   clearUndoHistory();
-}
-const SCHEDULE_WEEKDAY_ZH = ['日', '一', '二', '三', '四', '五', '六'];
-function formatScheduleDateDisplay(iso) {
-  if (!isValidISODate(iso)) return '';
-  const [y, m, d] = iso.split('-').map(Number);
-  const dt = new Date(y, m - 1, d);
-  const w = SCHEDULE_WEEKDAY_ZH[dt.getDay()];
-  return `${y}/${String(m).padStart(2, '0')}/${String(d).padStart(2, '0')} (${w})`;
 }
 function shiftScheduleISODate(iso, deltaDays) {
   if (!isValidISODate(iso)) return iso;
@@ -17287,7 +17468,7 @@ function getTemplateDragTimeRange(tpl, timelineEl, clientX) {
   const rect = timelineEl.getBoundingClientRect();
   const x = clientX - rect.left;
   const start = snap5(getViewStartMin() + Math.max(0, x / pxPerMinute));
-  const duration = tpl.role === '休'
+  const duration = (tpl.role === '休' || tpl.role === 'PRE')
     ? tpl.duration
     : Math.max(5, tpl.duration || ((tpl.end != null && tpl.start != null) ? tpl.end - tpl.start : 30));
   return { start, end: start + duration };
@@ -17698,6 +17879,8 @@ function makeChip(t) {
   if (t.role === '休') {
     chip.classList.add(t.duration >= 60 ? 'rest-chip-60' : 'rest-chip-30');
     chip.innerHTML = `<strong>${t.label}</strong>`;
+  } else if (t.role === 'PRE') {
+    chip.innerHTML = `<strong>${escapeHtml(t.compactLabel)}</strong>`;
   } else if (t.role === '自訂') {
     chip.classList.add('duty-chip-custom');
     chip.innerHTML = `<span class="duty-chip-body"><strong class="duty-chip-custom-label">${escapeHtml(t.label)}</strong><small class="duty-chip-custom-time">${minutesToTime(t.start)}-${minutesToTime(t.end)}</small></span><button type="button" class="duty-chip-delete-btn" title="刪除">×</button>`;
@@ -17909,6 +18092,7 @@ function renderFlightEditor() {
     const text = `${f.flight} ${compactFlightNo(f.flight)} ${f.type === 'DEP' ? 'std' : 'sta'} ${f.baseTime} ${f.eta || ''}`.toLowerCase();
     if (q && !text.includes(q)) return false;
     if (f.type !== activeFlightEditorTab) return false;
+    if (activeFlightEditorTab === 'ARR' && !isInboundAssignmentArrFlight(f)) return false;
     return true;
   }).sort((a,b) => {
     if (activeFlightEditorTab === 'ARR') {
@@ -18305,7 +18489,7 @@ function renderRows() {
         const mins = snap5(getViewStartMin() + Math.max(0, x / pxPerMinute));
         start = mins;
         end = mins + tpl.duration;
-        flight = tpl.id + '_' + blockSeq;
+        flight = tpl.role === 'PRE' ? tpl.flight : tpl.id + '_' + blockSeq;
       } else if (!dutyIntersectsView({ start, end })) {
         return;
       }
@@ -18321,6 +18505,7 @@ function renderRows() {
         flight,
         flightType: tpl.flightType,
         templateId: tpl.id,
+        prefilingKey: tpl.prefilingKey || '',
         connectingDuty: !!tpl.connectingDuty,
         arrFlight: tpl.arrFlight || '',
         depFlight: tpl.depFlight || tpl.flight || '',
@@ -18375,7 +18560,7 @@ function startMoveBlock(e, item) {
     let idx = Math.max(0, Math.min(Math.floor((ev.clientY - boardRect.top - 1) / rowHeight), rowList.length - 1));
     item.personIndex = rowList[idx]?.originalIndex ?? item.personIndex;
 
-    if (item.role === '休') {
+    if (item.role === '休' || item.role === 'PRE') {
       const targetTimeline = document.querySelector(`.timeline[data-original-index="${item.personIndex}"]`) || originTimeline;
       const rect = targetTimeline.getBoundingClientRect();
       const raw = getViewStartMin() + ((ev.clientX - rect.left) / pxPerMinute);
@@ -18619,9 +18804,71 @@ function syncAssignmentTableFromSchedule() {
     cell.onclick = null;
     cell.title = '';
   });
+  document.querySelectorAll('[data-assignment-prefiling]').forEach(cell => {
+    const flightKey = cell.dataset.assignmentPrefiling;
+    const text = getAssignmentPrefilingCellText(flightKey);
+    cell.textContent = text;
+    cell.classList.toggle('assignment-clickable', !!text);
+    cell.onclick = null;
+    cell.title = '';
+  });
   if (timelineFlightSearch) updateAssignmentFlightHighlight(null, { skipScroll: true });
   else syncAssignmentRowHeights();
 }
+/** 啟動入口：所有會讀寫狀態、綁定事件、渲染畫面的副作用集中於 boot()，避免在檔案中段執行時踩到尚未宣告的常數。 */
+function showBootFailure(err) {
+  const msg = String(err?.message || err || '未知錯誤');
+  console.error('[boot] 初始化失敗', err);
+  const statusEl = document.getElementById('workbenchStatus');
+  if (statusEl) {
+    statusEl.textContent = `系統載入失敗：${msg}。請重新整理頁面（建議 Cmd+Shift+R）。`;
+    statusEl.style.background = '#fef2f2';
+    statusEl.style.color = '#991b1b';
+  }
+  try {
+    appAlert(`系統載入失敗：${msg}\n\n請重新整理頁面後再試。`, '載入失敗');
+  } catch (_) {}
+}
+function bootLoadGlobalStorage() {
+  migrateLegacyUndatedDayStorage();
+  const dayK = dayStorageKeys(selectedDate);
+  customTemplates = readJsonLS(dayK.customTemplates, []);
+  deletedCustomTemplates = readJsonLS(dayK.deletedCustomTemplates, []);
+  staffDirectory = readJsonLS(LS_KEYS_GLOBAL.staffDirectory, []);
+  staffPersonnelRegistry = readJsonLS(LS_KEYS_GLOBAL.staffPersonnel, null);
+  if (!Array.isArray(customTemplates)) customTemplates = [];
+  if (!Array.isArray(deletedCustomTemplates)) deletedCustomTemplates = [];
+  if (!Array.isArray(staffDirectory)) staffDirectory = [];
+  if (!staffPersonnelRegistry || !Array.isArray(staffPersonnelRegistry.people)) staffPersonnelRegistry = null;
+}
+function bootLoadDayState() {
+  initialPeople.forEach(p => { if (!('shift' in p)) p.shift = ''; });
+  initialPeople.forEach(p => { if (!('code' in p)) p.code = p.name; });
+  const dayK = dayStorageKeys(selectedDate);
+  people = readJsonLS(dayK.peopleOrder, null) || initialPeople;
+  if (!Array.isArray(people)) people = initialPeople;
+  people = people.map(normalizePerson);
+  initStaffPersonnelRegistry();
+  if (staffDirectory.length) people = mergePeopleWithStaffDirectory(people);
+  peopleDisplayOrder = readJsonLS(dayK.peopleDisplayOrder, null);
+  if (!isValidPeopleDisplayOrder(peopleDisplayOrder)) resetPeopleDisplayOrderToAutoSort();
+  maybeRefreshPeopleDisplayOrderForSortRevision(selectedDate);
+  schedule = readJsonLS(dayK.schedule, []);
+  if (!Array.isArray(schedule)) schedule = [];
+  flightDefs = readJsonLS(dayK.flightDefs, null);
+  if (!Array.isArray(flightDefs)) flightDefs = [];
+  flightsImported = localStorage.getItem(dayK.flightsImported) === '1';
+  if (!flightsImported) flightDefs = [];
+  overtimeHourOverrides = readJsonLS(dayK.overtimeOverrides, {});
+  if (!overtimeHourOverrides || typeof overtimeHourOverrides !== 'object') overtimeHourOverrides = {};
+  dicOvertimeApprovals = readJsonLS(dayK.dicOvertimeApprovals, {});
+  if (!dicOvertimeApprovals || typeof dicOvertimeApprovals !== 'object') dicOvertimeApprovals = {};
+  selectedBlockId = null;
+  blockSeq = schedule.length ? Math.max(...schedule.map(x => Number(x.uid) || 0)) + 1 : 1;
+  editorExpanded = false;
+  rebuildTemplates();
+}
+function bootBindEvents() {
 document.getElementById('assignmentToggleBtn').addEventListener('click', () => toggleAssignmentPanel());
 initWorkspaceSplitter();
 bindStaffPersonnelEditor();
@@ -18972,6 +19219,8 @@ document.addEventListener('keydown', e => {
   }
 });
 
+}
+function bootInitUI() {
 syncScheduleWindows();
 updateUndoButtonState();
 renderTimeHeader();
@@ -19008,8 +19257,20 @@ attachFirebaseForSelectedDate();
 attachFirebaseSharedConfig();
 toggleAssignmentPanel(false);
 initErpNavigation();
-console.log('[boot] ForeignScheduleParser version', typeof ForeignScheduleParser !== 'undefined' ? ForeignScheduleParser.PARSER_VERSION : 'MISSING');
-console.log('[boot] foreignScheduleDebug=0 可關閉 parser 詳細 log');
+}
+function boot() {
+  try {
+    bootLoadGlobalStorage();
+    bootLoadDayState();
+    bootBindEvents();
+    bootInitUI();
+    console.log('[boot] ForeignScheduleParser version', typeof ForeignScheduleParser !== 'undefined' ? ForeignScheduleParser.PARSER_VERSION : 'MISSING');
+    console.log('[boot] foreignScheduleDebug=0 可關閉 parser 詳細 log');
+  } catch (err) {
+    showBootFailure(err);
+  }
+}
+boot();
 </script>
 </body>
 </html>
