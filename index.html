@@ -1952,6 +1952,56 @@
   tr.flight-row-canx .assignment-canx-cell {
     color: #dc2626;
   }
+  .assign-fixed-section {
+    flex: 0 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 10px 0 6px;
+    border-top: 1px solid #e5e7eb;
+    width: 100%;
+    box-sizing: border-box;
+  }
+  .assign-fixed-block {
+    flex: 0 0 auto;
+    width: 100%;
+  }
+  .assignment-table.assign-fixed-table {
+    width: 100%;
+    margin: 0;
+  }
+  .assignment-table.assign-fixed-table--shift {
+    table-layout: fixed;
+  }
+  .assignment-table.assign-fixed-table--duties {
+    table-layout: fixed;
+    width: 100%;
+  }
+  .assignment-table.assign-fixed-table--duties .assign-fixed-row-label-col {
+    width: 64px;
+  }
+  .assignment-table.assign-fixed-table--duties th:not(.assign-fixed-row-label) {
+    white-space: normal;
+    overflow: visible;
+    line-height: 1.25;
+    word-break: keep-all;
+    padding: 4px 3px;
+  }
+  .assignment-table.assign-fixed-table--duties td[data-assignment-fixed-duty] {
+    white-space: nowrap;
+  }
+  .assignment-table.assign-fixed-table .assign-fixed-row-label,
+  .assignment-table.assign-fixed-table .assign-fixed-corner {
+    min-width: 64px;
+    font-weight: 800;
+  }
+  .assignment-table.assign-fixed-table td[data-assignment-fixed-duty],
+  .assignment-table.assign-fixed-table td[data-assignment-prefiling],
+  .assignment-table.assign-fixed-table td[data-assignment-shift] {
+    min-height: 26px;
+    font-size: 12px;
+    font-weight: 700;
+  }
   #flightImportHubModal .rollcall-import-panel,
   #flightManualAddModal .rollcall-import-panel {
     width: min(480px, calc(100vw - 32px));
@@ -2483,6 +2533,8 @@
     min-width: 0;
     overflow: auto;
     -webkit-overflow-scrolling: touch;
+    display: flex;
+    flex-direction: column;
   }
   .workspace--assignment-open .assignment-overlay-panel {
     flex: 0 0 auto;
@@ -5404,6 +5456,7 @@
         </table>
       </section>
     </div>
+    <section class="assign-fixed-section" id="assignmentFixedSection" aria-label="固定勤務分配"></section>
     </div>
   </div>
   <div id="workspaceSplitter" class="workspace-splitter" role="separator" aria-label="拖曳調整分配表高度" hidden></div>
@@ -14805,6 +14858,162 @@ function appConfirm(message, opts = {}) {
   });
 }
 
+const ASSIGNMENT_FIXED_DUTIES = [
+  { label: '入境通報', slots: 2 },
+  { label: '抄LOAD', slots: 1 },
+  { label: '查房員', slots: 1 },
+  { label: 'C5R(6-7)', slots: 1 },
+  { label: 'C5R(7-8)', slots: 1 },
+  { label: '抓關單', slots: 5 },
+  { label: 'BRIEFING', slots: 10 },
+  { label: '小天使', slots: 2 },
+  { label: '轉機通報', slots: 1 },
+  { label: '值日生', slots: 4 },
+  { label: 'SSBD', slots: 2 },
+  { label: '漏查單', slots: 1 },
+  { label: '遺失物', slots: 2 },
+  { label: 'NZ人/件', slots: 1 }
+];
+const ASSIGNMENT_PREFILING_FLIGHTS = [
+  'BR0025-SEA', 'BR0035-YYZ', 'BR0045-SFO', 'BR09D-YVR', 'BR027-SEA', 'BR017-SFO',
+  'BR007-LAX', 'BR007-SEA', 'BR001-SFO', 'BR007-DFW', 'BR011-IAD', 'BR011-SEA'
+];
+const ASSIGNMENT_SHIFT_ROLES = ['客服專員', 'TC', 'TA', 'Q2'];
+const ASSIGNMENT_SHIFT_SLOTS = Array.from({ length: 20 }, (_, i) => {
+  const h = 4 + i;
+  return `${String(h).padStart(2, '0')}-${String(h + 1).padStart(2, '0')}`;
+});
+function getAssignmentFixedDutyCellText(_dutyKey) {
+  return '';
+}
+function getAssignmentPrefilingCellText(_flightKey) {
+  return '';
+}
+function getAssignmentShiftCellText(_role, _slot) {
+  return '';
+}
+function estimateAssignmentLabelWidth(text, { padX = 14 } = {}) {
+  let w = padX;
+  for (const ch of String(text || '')) {
+    w += ch.charCodeAt(0) <= 0xff ? 7 : 12;
+  }
+  return Math.ceil(w);
+}
+function renderAssignmentFixedDutyColgroup() {
+  const dataCols = ASSIGNMENT_FIXED_DUTIES.map(() => '<col>').join('');
+  return `<colgroup><col class="assign-fixed-row-label-col">${dataCols}</colgroup>`;
+}
+function syncAssignmentFixedDutyColWidths() {
+  const table = document.querySelector('.assign-fixed-table--duties');
+  if (!table) return;
+  const labelCell = table.querySelector('th.assign-fixed-row-label');
+  const cols = [...table.querySelectorAll('colgroup col:not(.assign-fixed-row-label-col)')];
+  if (!cols.length) return;
+  const tableW = table.clientWidth;
+  if (tableW <= 0) return;
+  const labelW = labelCell?.getBoundingClientRect().width || 64;
+  const dataW = Math.max(0, tableW - labelW);
+  const mins = ASSIGNMENT_FIXED_DUTIES.map(d => estimateAssignmentLabelWidth(d.label));
+  const bonuses = ASSIGNMENT_FIXED_DUTIES.map(d => Math.max(0, d.slots - 1) * 6);
+  const minSum = mins.reduce((a, b) => a + b, 0);
+  const bonusSum = bonuses.reduce((a, b) => a + b, 0);
+  let widths;
+  if (minSum >= dataW) {
+    widths = mins.map(m => (m / minSum) * dataW);
+  } else {
+    const remaining = dataW - minSum;
+    widths = mins.map((min, i) => {
+      const bonus = bonusSum ? (bonuses[i] / bonusSum) * remaining : remaining / mins.length;
+      return min + bonus;
+    });
+  }
+  cols.forEach((col, i) => {
+    col.style.width = `${Math.max(1, Math.floor(widths[i] || 0))}px`;
+  });
+}
+function renderAssignmentFixedSection() {
+  const host = document.getElementById('assignmentFixedSection');
+  if (!host) return;
+  const dutyHead = ASSIGNMENT_FIXED_DUTIES.map(d =>
+    `<th>${escapeHtml(d.label)}</th>`
+  ).join('');
+  const dutyAgt = ASSIGNMENT_FIXED_DUTIES.map(d =>
+    `<td data-assignment-fixed-duty="${escapeHtml(d.label)}">${escapeHtml(getAssignmentFixedDutyCellText(d.label))}</td>`
+  ).join('');
+  const prefilingHead = ASSIGNMENT_PREFILING_FLIGHTS.map(flight =>
+    `<th>${escapeHtml(flight)}</th>`
+  ).join('');
+  const prefilingCells = ASSIGNMENT_PREFILING_FLIGHTS.map(flight =>
+    `<td data-assignment-prefiling="${escapeHtml(flight)}">${escapeHtml(getAssignmentPrefilingCellText(flight))}</td>`
+  ).join('');
+  const shiftHead = ASSIGNMENT_SHIFT_SLOTS.map(slot =>
+    `<th>${escapeHtml(slot)}</th>`
+  ).join('');
+  const shiftRows = ASSIGNMENT_SHIFT_ROLES.map(role => {
+    const cells = ASSIGNMENT_SHIFT_SLOTS.map(slot =>
+      `<td data-assignment-shift-role="${escapeHtml(role)}" data-assignment-shift-slot="${escapeHtml(slot)}">${escapeHtml(getAssignmentShiftCellText(role, slot))}</td>`
+    ).join('');
+    return `<tr><th class="assign-fixed-row-label">${escapeHtml(role)}</th>${cells}</tr>`;
+  }).join('');
+  host.innerHTML = `
+    <div class="assign-fixed-block">
+      <table class="assignment-table assign-fixed-table assign-fixed-table--duties">
+        ${renderAssignmentFixedDutyColgroup()}
+        <thead>
+          <tr>
+            <th class="assign-fixed-row-label">勤務</th>
+            ${dutyHead}
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <th class="assign-fixed-row-label">AGT</th>
+            ${dutyAgt}
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="assign-fixed-block">
+      <table class="assignment-table assign-fixed-table assign-fixed-table--prefiling">
+        <thead>
+          <tr>
+            <th class="assign-fixed-row-label">航班</th>
+            ${prefilingHead}
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <th class="assign-fixed-row-label">PRE-FILING</th>
+            ${prefilingCells}
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="assign-fixed-block">
+      <table class="assignment-table assign-fixed-table assign-fixed-table--shift">
+        <thead>
+          <tr>
+            <th class="assign-fixed-corner">勤務<br>時段</th>
+            ${shiftHead}
+          </tr>
+        </thead>
+        <tbody>
+          ${shiftRows}
+        </tbody>
+      </table>
+    </div>
+  `;
+  syncAssignmentFixedSectionWidth();
+}
+function syncAssignmentFixedSectionWidth() {
+  const grid = document.querySelector('.assignment-grid');
+  const section = document.getElementById('assignmentFixedSection');
+  if (!grid || !section) return;
+  const w = grid.getBoundingClientRect().width;
+  if (w > 0) section.style.width = `${Math.ceil(w)}px`;
+  requestAnimationFrame(() => requestAnimationFrame(syncAssignmentFixedDutyColWidths));
+}
+
 function renderAssignmentTableFromFlightDefs() {
   const depBody = document.getElementById('assignmentDepBody') || document.querySelectorAll('.assignment-table tbody')[0];
   const arrBody = document.getElementById('assignmentArrBody') || document.querySelectorAll('.assignment-table tbody')[1];
@@ -14858,6 +15067,7 @@ function renderAssignmentTableFromFlightDefs() {
     syncAssignmentRowHeights();
   }
   syncAssignmentColumnEditUi();
+  renderAssignmentFixedSection();
 }
 
 function rebuildAfterFlightImport(newFlightDefs) {
@@ -18277,6 +18487,7 @@ function toggleAssignmentPanel(forceOpen) {
   setToolbarIconBtnLabel(btn, willOpen ? '收合人員分配表' : '展開人員分配表');
   if (willOpen) {
     resetAssignmentRowHeights();
+    renderAssignmentFixedSection();
     requestAnimationFrame(() => syncAssignmentRowHeights());
   }
 }
@@ -18345,6 +18556,7 @@ function syncAssignmentRowHeights() {
       depRows[i].style.height = hPx;
       arrRows[i].style.height = hPx;
     }
+    syncAssignmentFixedSectionWidth();
   };
   requestAnimationFrame(() => requestAnimationFrame(applyHeights));
 }

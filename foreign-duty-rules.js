@@ -5,6 +5,7 @@
  * Phase 3：OZ 依機型分人力、接飛 ABG×2、A380 指引；OZ/BX 接飛 STA 前 20 分
  * Phase 4：BX 出境 ABG×1（STD 前 40 分）；BX794 ABG 含 check-in（STD 前 2h45m，管制表 CKIN+A）
  * Phase 5：NZ 出境 PPT×2（STD 前 70 分）；ABG CKIN×2（STD 前 3h35m，CKIN+A）＋登機門×1（STD 前 50 分）
+ * Phase 6：TK 出境 RC×1（STD 前 90 分～STD 前 60 分）
  */
 (function (global) {
   const HOMELINE_PREFIXES = ['BR', 'B7'];
@@ -48,6 +49,11 @@
     abgGateBeforeMin: 50
   };
 
+  const TK_DEP_DUTY = {
+    rcBeforeMin: 90,
+    rcEndBeforeStdMin: 60
+  };
+
   function flightAirline(flight) {
     const m = String(flight || '').trim().toUpperCase().match(/^([A-Z]{2})/);
     return m ? m[1] : '';
@@ -76,6 +82,10 @@
 
   function isNzFlightDef(f) {
     return isForeignFlightDef(f) && flightAirline(f.flight) === 'NZ';
+  }
+
+  function isTkFlightDef(f) {
+    return isForeignFlightDef(f) && flightAirline(f.flight) === 'TK';
   }
 
   function normalizeAcType(acType) {
@@ -222,6 +232,15 @@
   function getNzAbgSlots(f) {
     if (!f || f.type !== 'DEP' || !isNzFlightDef(f)) return 0;
     return NZ_DEP_DUTY.abgCkinSlots + NZ_DEP_DUTY.abgGateSlots;
+  }
+
+  /** TK 出境 RC×1：STD 前 90 分～STD 前 60 分 */
+  function getTkRcConfig(f) {
+    if (!f || f.type !== 'DEP' || f.status === 'CANX' || !isTkFlightDef(f)) return null;
+    return {
+      beforeMinutes: TK_DEP_DUTY.rcBeforeMin,
+      endBeforeStdMin: TK_DEP_DUTY.rcEndBeforeStdMin
+    };
   }
 
   /** HX253 專用 check-in 協勤：STD 前 2h40m～STD 前 40m，1 人，分配表不顯示 */
@@ -403,6 +422,7 @@
     isOzFlightDef,
     isBxFlightDef,
     isNzFlightDef,
+    isTkFlightDef,
     getHxAcFamily,
     getOzAcFamily,
     getHxDepDutyConfig,
@@ -416,6 +436,7 @@
     getNzPptConfig,
     getNzAbgConfigs,
     getNzAbgSlots,
+    getTkRcConfig,
     getConnectingBeforeStaMin,
     isHx253CkinFlight,
     getHx253CkinConfig,
