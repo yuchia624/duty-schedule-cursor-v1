@@ -10,7 +10,7 @@
 <script src="fis-flight-parser.js"></script>
 <script src="foreign-schedule-parser.js?v=20260527-bx792"></script>
 <script src="flight-assignment-utils.js"></script>
-<script src="foreign-duty-rules.js?v=20260613-hx253ckin-end40"></script>
+<script src="foreign-duty-rules.js?v=20260613-oz-abg-label"></script>
 <title>今天的完整拖拉管制表 v2</title>
 <style>
   :root {
@@ -7130,9 +7130,19 @@ function getShiftFilterKey(person) {
 function getPersonShiftBounds(person) {
   return getShiftKeyTimeBounds(getEffectiveShift(person));
 }
+function resolveConnectingDutyCompactLabel(item) {
+  if (!item?.connectingDuty || !ForeignDutyRules?.connectingCompactLabel) return '';
+  const arr = item.arrFlight || '';
+  const dep = item.depFlight || item.flight || '';
+  const role = item.role || '';
+  if (!arr || !dep || !role) return '';
+  return ForeignDutyRules.connectingCompactLabel(arr, dep, role);
+}
 function getDutyDisplayLabel(item) {
   if (item.role === '休') return '休';
   if (item.role === '自訂') return item.label || '自訂';
+  const connectingLabel = resolveConnectingDutyCompactLabel(item);
+  if (connectingLabel) return connectingLabel;
   return item.compactLabel || compactDutyLabel(item.flight, item.role);
 }
 function getItemOvertimeRanges(item, person) {
@@ -7549,19 +7559,29 @@ function getAssignmentPptCodes(flight) {
     .map(getAssignmentPersonCode)
     .filter(Boolean);
 }
+function getOzGuideAssignmentPrefix(flight) {
+  const fDef = flightDefs.find(f => f.flight === flight && f.type === 'DEP');
+  return ForeignDutyRules?.getOzGuideConfig?.(fDef)?.assignmentPrefix || '';
+}
 function getAssignmentPptCellText(flight) {
   const fDef = flightDefs.find(f => f.flight === flight);
   if (fDef?.status === 'CANX') return '';
+  const prefix = getOzGuideAssignmentPrefix(flight);
   const codes = getAssignmentPptCodes(flight);
   if (!codes.length) return '';
-  if (codes.length === 1) return codes[0];
+  if (codes.length === 1) return prefix ? `${prefix}${codes[0]}` : codes[0];
   return codes.join(' \u2009');
 }
 function renderAssignmentPptCell(cell, flight) {
+  const prefix = getOzGuideAssignmentPrefix(flight);
   const items = schedule.filter(item => item.flight === flight && item.role === 'PPT');
   const entries = items
-    .map(item => ({ text: getAssignmentPersonCode(item), personIndex: item.personIndex }))
-    .filter(entry => entry.text);
+    .map(item => {
+      const code = getAssignmentPersonCode(item);
+      if (!code) return null;
+      return { text: prefix ? `${prefix}${code}` : code, personIndex: item.personIndex };
+    })
+    .filter(Boolean);
   cell.replaceChildren();
   if (!entries.length) return false;
   if (entries.length === 1) {
@@ -7579,7 +7599,7 @@ function renderAssignmentPptCell(cell, flight) {
 function getDutyBlockExportLabel(item) {
   if (item.role === '休') return '休';
   if (item.role === '自訂') return String(item.label || item.compactLabel || '自訂').trim();
-  return String(item.compactLabel || compactDutyLabel(item.flight, item.role)).trim();
+  return String(getDutyDisplayLabel(item)).trim();
 }
 function buildControlScheduleSheetRows(orderedRows) {
   const slotStep = 15;
@@ -12136,8 +12156,12 @@ function getDepDestinationAirport(f) {
 }
 function getPptConfigForFlightDef(f) {
   if (!f || f.type !== 'DEP' || f.status === 'CANX') return null;
+  const ozGuide = ForeignDutyRules?.getOzGuideConfig?.(f);
+  if (ozGuide) return ozGuide;
   const hxPpt = ForeignDutyRules?.getHxPptConfig?.(f);
   if (hxPpt) return hxPpt;
+  const nzPpt = ForeignDutyRules?.getNzPptConfig?.(f);
+  if (nzPpt) return nzPpt;
   const dest = getDepDestinationAirport(f);
   if (!dest) return null;
   if (PPT_NA_DESTINATION_AIRPORTS.has(dest)) {
@@ -12171,6 +12195,12 @@ function isBrOrB7DepFlight(f) {
   return flight.startsWith('BR') || flight.startsWith('B7');
 }
 function getAbgSlotsForFlightDef(f) {
+  const nzSlots = ForeignDutyRules?.getNzAbgSlots?.(f);
+  if (nzSlots) return nzSlots;
+  const bxSlots = ForeignDutyRules?.getBxAbgSlots?.(f);
+  if (bxSlots) return bxSlots;
+  const ozSlots = ForeignDutyRules?.getOzAbgSlots?.(f);
+  if (ozSlots) return ozSlots;
   const hxSlots = ForeignDutyRules?.getHxAbgSlots?.(f);
   if (hxSlots) return hxSlots;
   return isBrOrB7DepFlight(f) ? ABG_BR_B7_SLOTS : ABG_DEFAULT_SLOTS;
@@ -12186,6 +12216,20 @@ function countAbgAssignments(flight, flightType = 'DEP') {
     x.flight === flight && x.role === 'ABG' && x.flightType === flightType
   ).length;
 }
+function abgAssignmentMatchesTemplate(item, t) {
+  if (!item || !t || item.role !== 'ABG' || t.role !== 'ABG') return false;
+  if (item.flight !== t.flight || item.flightType !== t.flightType) return false;
+  if (t.abgSlotScoped) return item.templateId === t.id;
+  if (item.templateId) return item.templateId === t.id;
+  return true;
+}
+function countAbgAssignmentsForTemplate(t) {
+  if (!t || t.role !== 'ABG') return 0;
+  if (t.abgSlotScoped) {
+    return schedule.filter(x => abgAssignmentMatchesTemplate(x, t)).length;
+  }
+  return countAbgAssignments(t.flight, t.flightType);
+}
 function personHasAbgAssignment(personIndex, flight, flightType = 'DEP') {
   return schedule.some(x =>
     x.personIndex === personIndex && x.flight === flight && x.role === 'ABG' && x.flightType === flightType
@@ -12193,7 +12237,7 @@ function personHasAbgAssignment(personIndex, flight, flightType = 'DEP') {
 }
 function getAbgSlotsRemaining(t) {
   if (!t || t.role !== 'ABG') return 0;
-  return Math.max(0, getAbgSlotsForTemplate(t) - countAbgAssignments(t.flight, t.flightType));
+  return Math.max(0, getAbgSlotsForTemplate(t) - countAbgAssignmentsForTemplate(t));
 }
 function getPptSlotsForFlightDef(f) {
   return getPptConfigForFlightDef(f)?.slots ?? 0;
@@ -12220,9 +12264,12 @@ function isFlightTemplateFullyScheduled(t) {
     return countPptAssignments(t.flight, t.flightType) >= getPptSlotsForTemplate(t);
   }
   if (t.role === 'ABG') {
-    return countAbgAssignments(t.flight, t.flightType) >= getAbgSlotsForTemplate(t);
+    return countAbgAssignmentsForTemplate(t) >= getAbgSlotsForTemplate(t);
   }
   if (t.connectingDuty) {
+    if (t.role === 'ABG' && getAbgSlotsForTemplate(t) > 1) {
+      return countAbgAssignmentsForTemplate(t) >= getAbgSlotsForTemplate(t);
+    }
     return schedule.some(x => scheduleItemMatchesTemplate(x, t));
   }
   return schedule.some(x => `${x.flight}_${x.role}_${x.flightType}` === t.id);
@@ -12276,7 +12323,7 @@ function scheduleItemSearchHaystack(item) {
   if (!item) return '';
   const label = item.role === '自訂'
     ? (item.label || item.compactLabel || '自訂')
-    : (item.role === '休' ? '休' : (item.compactLabel || compactDutyLabel(item.flight, item.role)));
+    : (item.role === '休' ? '休' : getDutyDisplayLabel(item));
   return [item.flight, item.arrFlight, item.depFlight, item.label, item.compactLabel, item.role, label]
     .filter(Boolean)
     .join(' ')
@@ -12598,21 +12645,61 @@ function isForeignPreviewFlight(flight) {
   return !s.startsWith('BR') && !s.startsWith('B7');
 }
 
-function normalizeForeignPreviewAcType(acType) {
+const FOREIGN_AC_TYPE_REQUIRED_AIRLINES = new Set(['OZ', 'HX']);
+
+function normalizeForeignPreviewAcType(acType, flight) {
   const v = String(acType ?? '').trim().toUpperCase();
   if (!v) return '';
+  const airline = foreignAirlineFromFlight(flight);
+  if (airline === 'OZ') {
+    const opts = FOREIGN_AC_TYPE_OPTIONS.OZ || [];
+    if (opts.includes(v)) return v;
+    return '';
+  }
+  if (airline === 'HX') {
+    if (v === '330' || v === '333' || v === '33G') return '330';
+    if (v === '321' || /^32/.test(v)) return '321';
+    return '';
+  }
+  if (airline === 'NZ') {
+    const opts = FOREIGN_AC_TYPE_OPTIONS.NZ || [];
+    if (opts.includes(v)) return v;
+    return '';
+  }
   if (v === '330' || v === '333' || v === '33G') return '330';
   if (v === '321' || /^32/.test(v)) return '321';
   return FOREIGN_PREVIEW_AC_TYPES.includes(v) ? v : '';
 }
 
 function resolveForeignPreviewAcType(flight, acType) {
-  const normalized = normalizeForeignPreviewAcType(acType);
+  const normalized = normalizeForeignPreviewAcType(acType, flight);
   if (normalized) return normalized;
   if (!isForeignPreviewFlight(flight)) return '';
   const airline = foreignAirlineFromFlight(flight);
   if (airline === 'BX') return '321';
+  if (airline === 'NZ') return '787';
   return '';
+}
+
+function flightRequiresForeignAcType(flight) {
+  return FOREIGN_AC_TYPE_REQUIRED_AIRLINES.has(foreignAirlineFromFlight(flight));
+}
+
+function findMissingForeignAcTypeFlights(rowDataList) {
+  const missing = [];
+  const seen = new Set();
+  (rowDataList || []).forEach(rowData => {
+    if (!rowData || rowData.canx) return;
+    if (!flightRequiresForeignAcType(rowData.flight)) return;
+    const flight = normalizeImportedFlightNo(rowData.flight);
+    if (seen.has(flight)) return;
+    const acType = resolveForeignPreviewAcType(rowData.flight, rowData.acType);
+    if (!acType) {
+      seen.add(flight);
+      missing.push(flight);
+    }
+  });
+  return missing;
 }
 const ASSIGNMENT_CANX_HTML = '<span class="assignment-canx-cell">CANX</span>';
 const ASSIGNMENT_CANX_DASH_HTML = '<span class="assignment-canx-dash">-</span>';
@@ -12674,6 +12761,14 @@ function foreignAirlineFromFlight(flight) {
 
 function foreignAcTypeOptionsForFlight(flight, selectedAcType) {
   if (!isForeignPreviewFlight(flight)) return [];
+  const airline = foreignAirlineFromFlight(flight);
+  if (airline === 'OZ' && Array.isArray(FOREIGN_AC_TYPE_OPTIONS.OZ) && FOREIGN_AC_TYPE_OPTIONS.OZ.length) {
+    return FOREIGN_AC_TYPE_OPTIONS.OZ.slice();
+  }
+  if (airline === 'HX') return FOREIGN_PREVIEW_AC_TYPES.slice();
+  if (airline === 'NZ' && Array.isArray(FOREIGN_AC_TYPE_OPTIONS.NZ) && FOREIGN_AC_TYPE_OPTIONS.NZ.length) {
+    return FOREIGN_AC_TYPE_OPTIONS.NZ.slice();
+  }
   return FOREIGN_PREVIEW_AC_TYPES.slice();
 }
 
@@ -13435,6 +13530,13 @@ function initFlightImportModals() {
       });
       if (invalidRows.length) {
         appAlert('已勾選的列請填寫 FLT NO 與有效時間（例：06:20）。', '無法匯入');
+        return;
+      }
+      syncAllForeignPreviewConnectingAcType();
+      const checkedRowData = checkedRows.map(row => readPreviewRowFromDom(row)).filter(Boolean);
+      const missingAcType = findMissingForeignAcTypeFlights(checkedRowData);
+      if (missingAcType.length) {
+        appAlert(`請確認 ${missingAcType.join('、')} 機型`, '無法匯入');
         return;
       }
       const selectedDefs = collectSelectedPreviewFlightDefs();
@@ -16047,7 +16149,7 @@ function scheduleItemMatchesTemplate(item, tpl) {
       && normalizeImportedFlightNo(item.depFlight || item.flight) === normalizeImportedFlightNo(tpl.depFlight || tpl.flight)
     );
   }
-  return `${item.flight}_${item.role}_${item.flightType}` === tpl.id;
+  return item.templateId === tpl.id || `${item.flight}_${item.role}_${item.flightType}` === tpl.id;
 }
 function getAssignmentItemsForCell(flight, role) {
   const norm = normalizeImportedFlightNo(flight);
@@ -16078,30 +16180,48 @@ function getAssignmentItemsForCell(flight, role) {
     );
     return [...conn, ...direct];
   }
+  if (role === 'ABG') {
+    const direct = schedule.filter(x =>
+      !x.connectingDuty
+      && x.role === role
+      && normalizeImportedFlightNo(x.flight) === norm
+    );
+    const conn = schedule.filter(x =>
+      x.connectingDuty
+      && x.role === role
+      && normalizeImportedFlightNo(x.depFlight || x.flight) === norm
+    );
+    return [...conn, ...direct];
+  }
   return schedule.filter(x =>
     !x.connectingDuty
     && x.role === role
     && normalizeImportedFlightNo(x.flight) === norm
   );
 }
+function isOzConnectingDepFlight(f) {
+  return ForeignDutyRules?.isOzConnectingDepFlight?.(f, flightDefs, normalizeImportedFlightNo) || false;
+}
 function buildDepCoreDutyEntries(f, std, ext) {
   const skipRcBg = isForeignConnectingDepFlight(f);
+  const skipAbg = isOzConnectingDepFlight(f);
   const hx = ForeignDutyRules?.getHxDepDutyConfig?.(f);
-  const specs = hx
+  const bxAbg = ForeignDutyRules?.getBxAbgConfig?.(f, normalizeImportedFlightNo);
+  const nzAbgConfigs = ForeignDutyRules?.getNzAbgConfigs?.(f);
+  const defaultAbgBefore = bxAbg?.beforeMinutes ?? 40;
+  const defaultAbgEnd = bxAbg?.endAtStd ? std : depDutyEnd(std, ext);
+  const coreSpecs = hx
     ? [
         { role: 'RC', before: hx.rcBeforeMin, end: depDutyEnd(std, ext) },
-        { role: 'BG', before: hx.bgBeforeMin, end: depDutyEnd(std, ext) },
-        { role: 'ABG', before: hx.abgBeforeMin, end: std, abgSlots: hx.abgSlots }
+        { role: 'BG', before: hx.bgBeforeMin, end: depDutyEnd(std, ext) }
       ]
     : [
         { role: 'RC', before: 70, end: depDutyEnd(std, ext) },
-        { role: 'BG', before: 60, end: depDutyEnd(std, ext) },
-        { role: 'ABG', before: 40, end: depDutyEnd(std, ext), abgSlots: getAbgSlotsForFlightDef(f) }
+        { role: 'BG', before: 60, end: depDutyEnd(std, ext) }
       ];
-  return specs
-    .filter(spec => !skipRcBg || spec.role === 'ABG')
-    .map(({ role, before, end, abgSlots }) => {
-    const entry = {
+  const entries = coreSpecs
+    .filter(() => !skipRcBg)
+    .map(({ role, before, end }) => ({
       id: `${f.flight}_${role}_${f.type}`,
       label: `${f.flight} ${role}`,
       compactLabel: compactDutyLabel(f.flight, role),
@@ -16110,10 +16230,45 @@ function buildDepCoreDutyEntries(f, std, ext) {
       flightType: f.type,
       start: depDutyStart(std, before, ext),
       end
-    };
-    if (role === 'ABG') entry.abgSlots = abgSlots ?? getAbgSlotsForFlightDef(f);
-    return entry;
+    }));
+  if (skipAbg) return entries;
+  if (nzAbgConfigs) {
+    nzAbgConfigs.forEach(cfg => {
+      entries.push({
+        id: `${f.flight}_ABG_${cfg.kind}_${f.type}`,
+        label: `${f.flight} ABG`,
+        compactLabel: cfg.compactLabel,
+        flight: f.flight,
+        role: 'ABG',
+        flightType: f.type,
+        start: depDutyStart(std, cfg.beforeMinutes, ext),
+        end: cfg.endAtStd ? std : depDutyEnd(std, ext),
+        abgSlots: cfg.abgSlots,
+        abgSlotScoped: true
+      });
+    });
+    return entries;
+  }
+  const abgSpec = hx
+    ? { before: hx.abgBeforeMin, end: std, abgSlots: hx.abgSlots }
+    : {
+        before: defaultAbgBefore,
+        end: defaultAbgEnd,
+        abgSlots: bxAbg?.abgSlots ?? getAbgSlotsForFlightDef(f),
+        compactLabel: bxAbg?.compactLabel
+      };
+  entries.push({
+    id: `${f.flight}_ABG_${f.type}`,
+    label: `${f.flight} ABG`,
+    compactLabel: abgSpec.compactLabel || compactDutyLabel(f.flight, 'ABG'),
+    flight: f.flight,
+    role: 'ABG',
+    flightType: f.type,
+    start: depDutyStart(std, abgSpec.before, ext),
+    end: abgSpec.end,
+    abgSlots: abgSpec.abgSlots
   });
+  return entries;
 }
 function adjustedMinutes(f) {
   if (f.type === 'DEP') return depStdMinutes(f);
@@ -16204,6 +16359,10 @@ function pruneLegacyForeignConnectingScheduleItems() {
       const depDef = flightDefs.find(f => f.flight === item.flight && f.type === 'DEP');
       if (depDef && isForeignConnectingDepFlight(depDef)) return false;
     }
+    if (item.role === 'ABG' && item.flightType === 'DEP' && !item.connectingDuty) {
+      const depDef = flightDefs.find(f => f.flight === item.flight && f.type === 'DEP');
+      if (depDef && isOzConnectingDepFlight(depDef)) return false;
+    }
     return true;
   });
   if (schedule.length === before) return;
@@ -16280,8 +16439,8 @@ function buildTemplates() {
         const end = pptConfig.endAtStd ? std : depDutyEnd(std, ext);
         out.push({
           id: `${f.flight}_${role}_${f.type}`,
-          label: `${f.flight} ${role}`,
-          compactLabel: compactDutyLabel(f.flight, role),
+          label: pptConfig.compactLabel ? `${f.flight} 指引` : `${f.flight} ${role}`,
+          compactLabel: pptConfig.compactLabel || compactDutyLabel(f.flight, role),
           flight: f.flight,
           role,
           flightType: f.type,
@@ -16345,10 +16504,11 @@ function syncScheduleWindows() {
     if (item.connectingDuty) {
       tpl = templates.find(t => scheduleItemMatchesTemplate(item, t));
     } else {
-      tpl = map.get(`${item.flight}_${item.role}_${item.flightType}`);
+      tpl = map.get(item.templateId || `${item.flight}_${item.role}_${item.flightType}`);
     }
     if (!tpl) return;
-    item.compactLabel = tpl.compactLabel;
+    const connectingLabel = resolveConnectingDutyCompactLabel(item);
+    item.compactLabel = connectingLabel || tpl.compactLabel;
     item.label = tpl.label;
     item.start = tpl.start;
     item.end = tpl.end;
@@ -17661,7 +17821,81 @@ function createBlockEl(item, normalizedSearch) {
     startMoveBlock(e, item);
   });
 
+  const fullLabel = getDutyDisplayLabel(item);
+  if (fullLabel) block.title = fullLabel;
+
   return block;
+}
+
+const BLOCK_LABEL_MIN_FONT_PX = 6;
+
+function resetBlockLabelFit(label) {
+  label.style.fontSize = '';
+  label.style.transform = '';
+  label.style.display = '';
+}
+
+function prepareBlockLabelSpace(block) {
+  block.style.paddingLeft = '';
+  block.style.paddingRight = '';
+  if (block.clientWidth > 0 && block.clientWidth < 88) {
+    block.style.paddingLeft = '4px';
+    block.style.paddingRight = '4px';
+  }
+}
+
+function getBlockLabelAvailableWidth(block) {
+  const blockStyles = getComputedStyle(block);
+  return block.clientWidth
+    - (parseFloat(blockStyles.paddingLeft) || 0)
+    - (parseFloat(blockStyles.paddingRight) || 0);
+}
+
+function measureLabelWidthAtSize(label, fontSizePx) {
+  const prevSize = label.style.fontSize;
+  label.style.fontSize = `${fontSizePx}px`;
+  const width = label.scrollWidth;
+  label.style.fontSize = prevSize;
+  return width;
+}
+
+function fitBlockLabelFont(block) {
+  const label = block?.querySelector?.('.label');
+  if (!label || !block.isConnected) return;
+  resetBlockLabelFit(label);
+  prepareBlockLabelSpace(block);
+
+  const available = getBlockLabelAvailableWidth(block);
+  if (available <= 0) return;
+
+  const defaultSize = parseFloat(getComputedStyle(label).fontSize) || 16;
+  if (!label.textContent) return;
+
+  if (measureLabelWidthAtSize(label, defaultSize) <= available) return;
+
+  let low = BLOCK_LABEL_MIN_FONT_PX;
+  let high = defaultSize;
+  let best = low;
+
+  while (high - low > 0.1) {
+    const mid = (low + high) / 2;
+    if (measureLabelWidthAtSize(label, mid) <= available) {
+      best = mid;
+      low = mid;
+    } else {
+      high = mid;
+    }
+  }
+
+  label.style.fontSize = `${best}px`;
+}
+
+function fitAllBlockLabels() {
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      document.querySelectorAll('.block').forEach(fitBlockLabelFont);
+    });
+  });
 }
 
 function renderRows() {
@@ -17837,11 +18071,14 @@ function renderRows() {
           if (countPptAssignments(tpl.flight, tpl.flightType) >= getPptSlotsForTemplate(tpl)) return;
           if (personHasPptAssignment(targetPersonIndex, tpl.flight, tpl.flightType)) return;
         } else if (tpl.role === 'ABG') {
-          if (countAbgAssignments(tpl.flight, tpl.flightType) >= getAbgSlotsForTemplate(tpl)) return;
+          if (countAbgAssignmentsForTemplate(tpl) >= getAbgSlotsForTemplate(tpl)) return;
           if (personHasAbgAssignment(targetPersonIndex, tpl.flight, tpl.flightType)) return;
         } else if (tpl.connectingDuty) {
-          if (schedule.some(x => scheduleItemMatchesTemplate(x, tpl))) return;
-        } else if (schedule.some(x => `${x.flight}_${x.role}_${x.flightType}` === templateId)) {
+          if (tpl.role === 'ABG') {
+            if (countAbgAssignmentsForTemplate(tpl) >= getAbgSlotsForTemplate(tpl)) return;
+            if (personHasAbgAssignment(targetPersonIndex, tpl.flight, tpl.flightType)) return;
+          } else if (schedule.some(x => scheduleItemMatchesTemplate(x, tpl))) return;
+        } else if (schedule.some(x => scheduleItemMatchesTemplate(x, tpl))) {
           return;
         }
       }
@@ -17873,6 +18110,7 @@ function renderRows() {
         role: tpl.role,
         flight,
         flightType: tpl.flightType,
+        templateId: tpl.id,
         connectingDuty: !!tpl.connectingDuty,
         arrFlight: tpl.arrFlight || '',
         depFlight: tpl.depFlight || tpl.flight || '',
@@ -17901,6 +18139,7 @@ function renderRows() {
   document.querySelectorAll('.timeline').forEach(t => t.addEventListener('click', () => selectBlock(null)));
   syncAssignmentTableFromSchedule();
   renderOvertimePanel();
+  fitAllBlockLabels();
 }
 
 function startMoveBlock(e, item) {
