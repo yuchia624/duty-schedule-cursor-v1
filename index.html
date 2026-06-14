@@ -11250,11 +11250,22 @@ function getSyncMeta() {
     editedByRoleLabel: actor.roleLabel
   };
 }
+function normalizeScheduleItemForCloud(item) {
+  if (!item || typeof item !== 'object') return item;
+  const out = {};
+  Object.keys(item).sort().forEach(k => {
+    const v = item[k];
+    if (v != null) out[k] = v;
+  });
+  return out;
+}
 function cloudStatePayload(data) {
   return {
     people: data.people,
     peopleDisplayOrder: data.peopleDisplayOrder,
-    schedule: data.schedule,
+    schedule: Array.isArray(data.schedule)
+      ? data.schedule.map(normalizeScheduleItemForCloud)
+      : [],
     flightDefs: data.flightDefs,
     customTemplates: data.customTemplates,
     deletedCustomTemplates: data.deletedCustomTemplates,
@@ -11262,6 +11273,9 @@ function cloudStatePayload(data) {
     dicOvertimeApprovals: data.dicOvertimeApprovals,
     flightsImported: data.flightsImported === true
   };
+}
+function cloudStateFingerprint(data) {
+  return JSON.stringify(cloudStatePayload(data));
 }
 function sharedConfigPayload(data) {
   return {
@@ -11951,24 +11965,23 @@ function scheduleSharedConfigSave() {
 function saveCloudNow() {
   if (!cloudReady || !scheduleDocRef || applyingRemote) return Promise.resolve(false);
   const state = getCloudState();
-  const json = JSON.stringify(cloudStatePayload(state));
+  const json = cloudStateFingerprint(state);
   if (json === lastCloudJson) {
     setCloudStatus('已同步', 'synced');
     return Promise.resolve(true);
   }
-  lastCloudJson = json;
   setCloudStatus('上傳中', 'saving');
   return scheduleDocRef.set({
     ...state,
     updatedAt: firebase.firestore.FieldValue.serverTimestamp()
   }, { merge: true })
     .then(() => {
+      lastCloudJson = json;
       setCloudStatus('已同步', 'synced');
       return true;
     })
     .catch(err => {
       console.error(err);
-      lastCloudJson = '';
       setCloudStatus('同步失敗', 'offline');
       return false;
     });
@@ -12123,8 +12136,20 @@ function attachFirebaseForSelectedDate() {
         flightsImported: data.flightsImported === true,
         updatedAtLocal: data.updatedAtLocal
       };
-      const remoteJson = JSON.stringify(cloudStatePayload(remoteState));
-      if (remoteJson === lastCloudJson) {
+      const remoteJson = cloudStateFingerprint(remoteState);
+      const localLiveJson = cloudStateFingerprint({
+        people,
+        peopleDisplayOrder,
+        schedule,
+        flightDefs: flightsImported ? flightDefs : [],
+        customTemplates,
+        deletedCustomTemplates,
+        overtimeHourOverrides,
+        dicOvertimeApprovals,
+        flightsImported
+      });
+      if (remoteJson === lastCloudJson || remoteJson === localLiveJson) {
+        lastCloudJson = remoteJson;
         setCloudStatus('已同步', 'synced');
         cloudReady = true;
         return;
@@ -12595,7 +12620,13 @@ function templateMatchesFlightSearch(t, normalized) {
   return compactFlightNo(f) === compactFlightNo(normalized);
 }
 function normalizeSearchQuery(query) {
-  return String(query || '').trim().toLowerCase();
+  return normalizeSearchHaystackText(String(query || '').trim()).toLowerCase();
+}
+function normalizeSearchHaystackText(value) {
+  return String(value ?? '').replace(/PRE\s*-\s*FILING/gi, 'PREFILING');
+}
+function searchHaystackFromParts(parts) {
+  return normalizeSearchHaystackText(parts.filter(Boolean).join(' ')).toLowerCase();
 }
 function isTimeLikeSearchQuery(queryNorm) {
   return /^\d{1,2}:\d{2}$/.test(String(queryNorm || '').trim());
@@ -12605,10 +12636,9 @@ function scheduleItemSearchHaystack(item) {
   const label = item.role === '自訂'
     ? (item.label || item.compactLabel || '自訂')
     : (item.role === '休' ? '休' : getDutyDisplayLabel(item));
-  return [item.flight, item.arrFlight, item.depFlight, item.label, item.compactLabel, item.role, label]
-    .filter(Boolean)
-    .join(' ')
-    .toLowerCase();
+  return searchHaystackFromParts([
+    item.flight, item.arrFlight, item.depFlight, item.label, item.compactLabel, item.role, label
+  ]);
 }
 function scheduleItemTimeSearchHaystack(item) {
   if (!item || item.start == null || item.end == null) return '';
@@ -12619,7 +12649,9 @@ function scheduleItemTimeSearchHaystack(item) {
 function templateSearchHaystack(t) {
   if (!t) return '';
   const label = t.role === '自訂' ? (t.label || t.compactLabel || '') : (t.compactLabel || t.label || '');
-  return [t.id, t.flight, t.arrFlight, t.depFlight, t.role, label, t.compactLabel].filter(Boolean).join(' ').toLowerCase();
+  return searchHaystackFromParts([
+    t.id, t.flight, t.arrFlight, t.depFlight, t.role, label, t.compactLabel
+  ]);
 }
 function templateTimeSearchHaystack(t) {
   if (!t || t.start == null || t.end == null) return '';
@@ -12632,18 +12664,16 @@ function personSearchHaystack(person) {
   const found = findStaffDirectoryEntry(person);
   const rec = findStaffPersonnelByPerson(person);
   const activeTags = rec ? getStaffTagNamesFromRecords(rec.tagRecords, getScheduleReferenceDate()).join(' ') : '';
-  return [
+  return searchHaystackFromParts([
     person.name,
     person.code,
     person.shift,
     person.adjustedShift,
-    person.level,
-    resolveLevel(person),
     resolveFullName(person),
     found?.fullName,
     found?.code,
     activeTags
-  ].filter(Boolean).join(' ').toLowerCase();
+  ]);
 }
 function scheduleItemMatchesUniversalSearch(item, queryNorm) {
   if (!queryNorm || !item) return false;
@@ -12661,12 +12691,22 @@ function templateMatchesUniversalSearch(t, queryNorm) {
   if (flightToken && templateMatchesFlightSearch(t, flightToken)) return true;
   return false;
 }
-function personMatchesUniversalSearch(person, queryNorm) {
+function personMatchesUniversalSearch(person, queryNorm, rawQuery) {
   if (!queryNorm || !person) return false;
+  const raw = String(rawQuery ?? queryNorm).trim();
   if (personSearchHaystack(person).includes(queryNorm)) return true;
   if (personMatchesNameSearch(person, queryNorm)) return true;
   if (resolveShiftKey(queryNorm) && personMatchesShiftSearch(person, queryNorm)) return true;
-  if (personLevelMatches(person, queryNorm)) return true;
+  const parsed = parseTimelineSearch(raw);
+  if (parsed.mode === 'level') {
+    return parsed.levels.some(tok => personLevelMatches(person, tok));
+  }
+  if (parsed.mode === 'mixed') {
+    return (
+      parsed.shifts.some(tok => personMatchesShiftSearch(person, tok)) ||
+      parsed.levels.some(tok => personLevelMatches(person, tok))
+    );
+  }
   return false;
 }
 let universalSearchSnap = null;
@@ -12679,7 +12719,7 @@ function rebuildUniversalSearchSnap(query) {
   const personIndices = new Set();
   const blockUids = new Set();
   people.forEach((p, idx) => {
-    if (personMatchesUniversalSearch(p, q)) personIndices.add(idx);
+    if (personMatchesUniversalSearch(p, q, query)) personIndices.add(idx);
   });
   schedule.forEach(item => {
     if (scheduleItemMatchesUniversalSearch(item, q)) {
@@ -12693,19 +12733,36 @@ function getUniversalSearchSnap() {
   return universalSearchSnap;
 }
 function templateMatchesTimelineSearch(t) {
-  const q = normalizeSearchQuery(timelineFlightSearch);
-  if (!q) return true;
+  const raw = String(timelineFlightSearch || '').trim();
+  if (!raw) return true;
+  const parsed = parseTimelineSearch(raw);
+  // 班別／戰力／姓名搜尋只篩管制表人員列，待排 palette 維持完整清單。
+  if (parsed.mode === 'shift' || parsed.mode === 'level' || parsed.mode === 'name' || parsed.mode === 'mixed') {
+    return true;
+  }
+  const q = normalizeSearchQuery(raw);
   return templateMatchesUniversalSearch(t, q);
+}
+function normalizeLevelSearchToken(value) {
+  return String(value ?? '').trim()
+    .replace(/\uFF01/g, '!')
+    .replace(/\uFF0A/g, '*')
+    .replace(/\uFF0D/g, '-');
+}
+function stripLevelSearchCore(value) {
+  return normalizeLevelSearchToken(value).replace(/[*!\-]/g, '');
 }
 function personLevelMatches(person, levelToken) {
   const level = String(person?.level || resolveLevel(person) || '').trim();
-  const token = String(levelToken || '').trim();
+  const token = normalizeLevelSearchToken(levelToken);
   if (!level || !token) return false;
+  if (token === '-' || token === '*' || token === '!') return level.includes(token);
   if (level === token) return true;
-  const strip = s => s.replace(/[*!]/g, '');
-  if (strip(level) === strip(token)) return true;
-  if (/^\d+[a-zA-Z*!]+$/.test(token)) {
-    return strip(level).toUpperCase() === strip(token).toUpperCase();
+  const levelCore = stripLevelSearchCore(level);
+  const tokenCore = stripLevelSearchCore(token);
+  if (levelCore === tokenCore) return true;
+  if (/^\d/.test(tokenCore)) {
+    return levelCore.toUpperCase() === tokenCore.toUpperCase();
   }
   return false;
 }
@@ -12784,7 +12841,7 @@ function personMatchesShiftSearch(person, token) {
   return shift === key || adjusted === key;
 }
 function parseTimelineSearch(query) {
-  const raw = String(query || '').trim();
+  const raw = normalizeLevelSearchToken(query);
   if (!raw) return { mode: 'none' };
   if (/[/,，、]/.test(raw)) {
     const parts = raw.split(/[/,，、\s]+/).map(s => s.trim()).filter(Boolean);
@@ -12809,7 +12866,7 @@ function parseTimelineSearch(query) {
   if (/^BR/i.test(raw)) {
     return { mode: 'flight', flight: normalizeFlightSearch(raw) };
   }
-  if (/^[a-zA-Z0-9!*]+$/.test(raw)) {
+  if (/^[a-zA-Z0-9!*-]+$/.test(raw)) {
     if (resolveShiftKey(raw)) return { mode: 'shift', shifts: [raw] };
     return { mode: 'level', levels: [raw] };
   }
@@ -18029,6 +18086,7 @@ function makeChip(t) {
 function renderPalette() {
   const palette = document.getElementById('palette');
   if (!palette) return;
+  if (String(timelineFlightSearch || '').trim()) rebuildUniversalSearchSnap(timelineFlightSearch);
   palette.innerHTML = '';
   palette.className = 'palette-view';
   if (activePaletteTab === 'deleted') {
@@ -18984,6 +19042,7 @@ window.addEventListener('resize', () => {
 document.getElementById('searchInput').addEventListener('input', renderPalette);
 document.getElementById('clearDutySearchBtn').addEventListener('click', () => {
   document.getElementById('searchInput').value = '';
+  if (activePaletteTab === 'byRole') activePaletteRoleCategory = null;
   renderPalette();
 });
 document.getElementById('flightSearchInput').addEventListener('input', renderFlightEditor);
@@ -19219,8 +19278,12 @@ document.getElementById('saveBtn').addEventListener('click', () => {
     saveLocal();
     saveSharedConfigNow();
     Promise.resolve(saveCloudNow()).then(ok => {
-      if (ok) appSuccess('已儲存並同步', '儲存完成');
-      else appSuccess('已儲存本機', '儲存完成');
+      if (ok) {
+        setCloudStatus('已同步', 'synced');
+        appSuccess('已儲存並同步', '儲存完成');
+      } else {
+        appSuccess('已儲存本機', '儲存完成');
+      }
     });
   }, 0);
 });
