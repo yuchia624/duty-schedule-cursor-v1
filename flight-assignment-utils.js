@@ -209,6 +209,11 @@
     return !!(String(arr?.arrGate || '').trim() && String(dep?.depGate || '').trim());
   }
 
+  function isHomelineFlightNo(flight, normalizeFlightNo) {
+    const norm = normalizeFlightNo(flight);
+    return norm.startsWith('BR') || norm.startsWith('B7');
+  }
+
   function computeConnectingFlights(flightDefs, selectedDate, opts = {}) {
     if (!Array.isArray(flightDefs) || !flightDefs.length) return;
     ensureFlightDefIds(flightDefs);
@@ -242,8 +247,11 @@
       let bestDep = null;
       let bestDiff = Infinity;
 
+      const homelineArr = isHomelineFlightNo(arr.flight, normalizeFlightNo);
+
       depFlights.forEach(dep => {
         if (cleanAcNo(dep.acNo) !== acNo) return;
+        if (homelineArr && !isHomelineFlightNo(dep.flight, normalizeFlightNo)) return;
         const diffMs = turnaroundDiffMs(selectedDate, arr.baseTime, dep.baseTime);
         if (diffMs == null || diffMs <= 0) return;
 

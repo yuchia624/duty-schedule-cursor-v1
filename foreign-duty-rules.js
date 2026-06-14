@@ -335,6 +335,72 @@
     ) || null;
   }
 
+  function getHomelineConnectingPair(arrDef, flightDefs, normalizeFlightNo) {
+    if (!arrDef || arrDef.type !== 'ARR' || arrDef.status === 'CANX') return null;
+    if (!isHomelineFlight(arrDef.flight)) return null;
+    const depNorm = arrDef.connectingFlight ? normalizeFlightNo(arrDef.connectingFlight) : '';
+    if (!depNorm) return null;
+    const depDef = findFlightDef(flightDefs, depNorm, 'DEP', normalizeFlightNo);
+    if (!depDef || depDef.status === 'CANX' || !isHomelineFlight(depDef.flight)) return null;
+    return {
+      arrFlight: arrDef.flight,
+      depFlight: depDef.flight,
+      arrDef,
+      depDef
+    };
+  }
+
+  function isHomelineConnectingArrFlight(arrDef, flightDefs, normalizeFlightNo) {
+    return !!getHomelineConnectingPair(arrDef, flightDefs, normalizeFlightNo);
+  }
+
+  function isHomelineConnectingDepFlight(depDef, flightDefs, normalizeFlightNo) {
+    if (!depDef || depDef.type !== 'DEP' || depDef.status === 'CANX') return false;
+    if (!isHomelineFlight(depDef.flight)) return false;
+    const depNorm = normalizeFlightNo(depDef.flight);
+    return (flightDefs || []).some(arr => {
+      if (arr?.type !== 'ARR' || arr.status === 'CANX') return false;
+      const pair = getHomelineConnectingPair(arr, flightDefs, normalizeFlightNo);
+      return !!(pair && normalizeFlightNo(pair.depFlight) === depNorm);
+    });
+  }
+
+  function buildHomelineConnectingTemplates(flightDefs, normalizeFlightNo, getArrAnchorMin, getDepStdMin, shouldMergePair) {
+    const out = [];
+    const seen = new Set();
+    const mergeCheck = typeof shouldMergePair === 'function' ? shouldMergePair : () => true;
+    (flightDefs || []).forEach(arrDef => {
+      const pair = getHomelineConnectingPair(arrDef, flightDefs, normalizeFlightNo);
+      if (!pair) return;
+      const key = `${normalizeFlightNo(pair.arrFlight)}|${normalizeFlightNo(pair.depFlight)}`;
+      if (seen.has(key)) return;
+      seen.add(key);
+      if (!mergeCheck(pair.arrFlight, pair.depFlight)) return;
+      const anchor = getArrAnchorMin(pair.arrDef);
+      const std = getDepStdMin(pair.depDef);
+      if (anchor == null || std == null) return;
+      const start = Math.max(0, anchor - CONNECTING_BEFORE_STA_MIN);
+      const end = std;
+      ['RC', 'BG'].forEach(role => {
+        out.push({
+          id: connectingTemplateId(pair.arrFlight, pair.depFlight, role),
+          label: `${pair.arrFlight}/${pair.depFlight} ${role}`,
+          compactLabel: connectingCompactLabel(pair.arrFlight, pair.depFlight, role),
+          role,
+          flight: pair.depFlight,
+          arrFlight: pair.arrFlight,
+          depFlight: pair.depFlight,
+          flightType: 'CONN',
+          connectingDuty: true,
+          homelineConnecting: true,
+          start,
+          end
+        });
+      });
+    });
+    return out;
+  }
+
   function getConnectingPair(arrDef, flightDefs, normalizeFlightNo) {
     if (!arrDef || arrDef.type !== 'ARR' || arrDef.status === 'CANX') return null;
     if (!isForeignFlightDef(arrDef)) return null;
@@ -373,15 +439,17 @@
     return isConnectingDepFlight(depDef, flightDefs, normalizeFlightNo) && isOzFlightDef(depDef);
   }
 
-  function buildConnectingTemplates(flightDefs, normalizeFlightNo, getArrStaMin, getDepStdMin) {
+  function buildConnectingTemplates(flightDefs, normalizeFlightNo, getArrStaMin, getDepStdMin, shouldMergePair) {
     const out = [];
     const seen = new Set();
+    const mergeCheck = typeof shouldMergePair === 'function' ? shouldMergePair : () => true;
     (flightDefs || []).forEach(arrDef => {
       const pair = getConnectingPair(arrDef, flightDefs, normalizeFlightNo);
       if (!pair) return;
       const key = `${normalizeFlightNo(pair.arrFlight)}|${normalizeFlightNo(pair.depFlight)}`;
       if (seen.has(key)) return;
       seen.add(key);
+      if (!mergeCheck(pair.arrFlight, pair.depFlight)) return;
       const sta = getArrStaMin(pair.arrDef);
       const std = getDepStdMin(pair.depDef);
       if (sta == null || std == null) return;
@@ -401,6 +469,7 @@
           depFlight: pair.depFlight,
           flightType: 'CONN',
           connectingDuty: true,
+          foreignConnecting: true,
           start,
           end
         };
@@ -443,6 +512,10 @@
     connectingCompactLabel,
     connectingTemplateId,
     getConnectingPair,
+    getHomelineConnectingPair,
+    isHomelineConnectingArrFlight,
+    isHomelineConnectingDepFlight,
+    buildHomelineConnectingTemplates,
     isConnectingArrFlight,
     isConnectingDepFlight,
     isOzConnectingDepFlight,
