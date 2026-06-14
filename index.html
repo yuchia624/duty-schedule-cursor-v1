@@ -7813,6 +7813,64 @@ function getDutyBlockExportLabel(item) {
   if (item.role === '自訂') return String(item.label || item.compactLabel || '自訂').trim();
   return String(getDutyDisplayLabel(item)).trim();
 }
+function formatScheduleExportTimeMinutes(total) {
+  if (total == null || !Number.isFinite(total)) return '';
+  const plusOne = total >= 24 * 60;
+  const normalized = plusOne ? total - 24 * 60 : total;
+  const base = minutesToTime(normalized);
+  return plusOne ? `${base}(+1)` : base;
+}
+function formatPersonDutyTimelineTimeRange(start, end) {
+  if (start == null || end == null || !Number.isFinite(start) || !Number.isFinite(end)) return '';
+  return `${formatScheduleExportTimeMinutes(start)}-${formatScheduleExportTimeMinutes(end)}`;
+}
+function formatPersonDutyTimelineDutyLabel(item) {
+  if (!item) return '';
+  return String(getDutyBlockExportLabel(item)).trim();
+}
+function getPersonDutyTimelineSegments(personIndex) {
+  const segments = [];
+  schedule
+    .filter(s => s.personIndex === personIndex)
+    .forEach(item => {
+      const dutyLabel = formatPersonDutyTimelineDutyLabel(item);
+      getTcItemSegments(item).forEach(seg => {
+        if (seg.start == null || seg.end == null) return;
+        segments.push({ start: seg.start, end: seg.end, dutyLabel });
+      });
+    });
+  return segments.sort((a, b) => a.start - b.start || a.end - b.end);
+}
+function formatPersonDutyTimelineText(personIndex) {
+  return getPersonDutyTimelineSegments(personIndex)
+    .map(seg => {
+      const time = formatPersonDutyTimelineTimeRange(seg.start, seg.end);
+      return time ? `${seg.dutyLabel} ${time}` : seg.dutyLabel;
+    })
+    .filter(Boolean)
+    .join('、');
+}
+function buildPersonDutyTimelineSheetRows(orderedRows) {
+  const rows = [
+    ['日期', getScheduleExportDateText()],
+    ['匯出時間', new Date().toLocaleString('zh-TW', { hour12: false })],
+    [],
+    ['序', '代號', '姓名', '戰力', '班別', '行程']
+  ];
+  orderedRows.forEach((rowInfo, displayIdx) => {
+    const person = rowInfo.person;
+    const personIndex = rowInfo.originalIndex;
+    rows.push([
+      displayIdx + 1,
+      excelCell(person.code),
+      excelCell(resolveFullName(person) || person.name),
+      excelCell(person.level || resolveLevel(person)),
+      excelCell(getShiftFilterKey(person) || person.shift),
+      excelCell(formatPersonDutyTimelineText(personIndex))
+    ]);
+  });
+  return rows;
+}
 function buildControlScheduleSheetRows(orderedRows) {
   const slotStep = 15;
   const gridStart = START_MIN;
@@ -7919,6 +7977,7 @@ function exportScheduleWorkbookExcel() {
   if (people.length) {
     const orderedRows = getDisplaySortedRows();
     XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(buildControlScheduleSheetRows(orderedRows)), '管制表');
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(buildPersonDutyTimelineSheetRows(orderedRows)), '人員行程');
   }
   if (flightDefs.some(f => f.type === 'DEP')) {
     XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(buildAssignmentDepSheetRows()), '出境分配');
