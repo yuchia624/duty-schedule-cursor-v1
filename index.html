@@ -2812,6 +2812,10 @@
   .duty-chip:has(.duty-chip-slot-badge) {
     padding-right: 14px;
   }
+  .duty-chip:has(.duty-chip-slot-badge):has(.duty-chip-edit-btn),
+  .duty-chip:has(.duty-chip-edit-btn) {
+    padding-left: 14px;
+  }
   .duty-chip-slot-badge {
     position: absolute;
     top: 4px;
@@ -2896,10 +2900,30 @@
   .t-editor-staff-status { font-size: 12px; color: #64748b; }
   .duty-chip-edit-btn, .block-edit-btn, .tc-defaults-edit-btn {
     border: 0; background: transparent; color: #475569; cursor: pointer;
-    font-size: 12px; line-height: 1; padding: 2px 4px; border-radius: 4px;
+    font-size: 12px; line-height: 0; padding: 2px 4px; border-radius: 4px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .duty-chip-edit-btn .edit-gear-icon,
+  .block-edit-btn .edit-gear-icon {
+    width: 10px;
+    height: 10px;
+    display: block;
+  }
+  .tc-defaults-edit-btn .edit-gear-icon {
+    width: 12px;
+    height: 12px;
+    display: block;
   }
   .duty-chip-edit-btn:hover, .block-edit-btn:hover, .tc-defaults-edit-btn:hover { background: rgba(15,23,42,.08); color: #0f172a; }
-  .duty-chip-edit-btn { position: absolute; left: 4px; top: 4px; z-index: 2; }
+  .duty-chip-edit-btn {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    z-index: 2;
+    padding: 0;
+  }
   .group-title--tc { display: flex; align-items: center; gap: 6px; }
   .block-edit-btn { position: absolute; left: 2px; top: 2px; z-index: 3; opacity: 0; pointer-events: none; }
   .block:hover .block-edit-btn, .block.selected .block-edit-btn { opacity: 1; pointer-events: auto; }
@@ -2925,6 +2949,10 @@
   .tc-editor-apply-row { margin-top: 8px; font-size: 12px; color: #475569; }
   .duty-chip.role-TC { padding-left: 22px; }
   .duty-chip.role-T { padding-left: 22px; }
+  .duty-chip.role-TC:has(.duty-chip-slot-badge),
+  .duty-chip.role-T:has(.duty-chip-slot-badge) {
+    padding-left: 14px;
+  }
   .duty-chip.role-T.duty-chip--tc-slot { cursor: pointer; }
   .duty-chip.role-T.duty-chip--tc-slot:not([draggable="true"]) { opacity: 0.95; }
   .block .label.block-label--t {
@@ -5382,13 +5410,13 @@
               <th class="assignment-col-header assignment-col-editable" data-assignment-edit-col="depStd">
                 <span class="assignment-col-label">STD</span>
                 <button type="button" class="assignment-col-edit-btn" aria-label="解鎖 STD 欄編輯" title="解鎖此欄編輯">
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
                 </button>
               </th>
               <th class="assignment-col-header assignment-col-editable" data-assignment-edit-col="depGate">
                 <span class="assignment-col-label">Gate</span>
                 <button type="button" class="assignment-col-edit-btn" aria-label="解鎖 Gate 欄編輯" title="解鎖此欄編輯">
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
                 </button>
               </th>
               <th>PPT CHK</th>
@@ -5494,25 +5522,25 @@
               <th class="assignment-col-header assignment-col-editable" data-assignment-edit-col="connectingFlight">
                 <span class="assignment-col-label">接飛</span>
                 <button type="button" class="assignment-col-edit-btn" aria-label="解鎖接飛欄編輯" title="解鎖此欄編輯">
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
                 </button>
               </th>
               <th class="assignment-col-header assignment-col-editable" data-assignment-edit-col="arrSta">
                 <span class="assignment-col-label">STA</span>
                 <button type="button" class="assignment-col-edit-btn" aria-label="解鎖 STA 欄編輯" title="解鎖此欄編輯">
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
                 </button>
               </th>
               <th class="assignment-col-header assignment-col-editable" data-assignment-edit-col="arrGate">
                 <span class="assignment-col-label">Gate</span>
                 <button type="button" class="assignment-col-edit-btn" aria-label="解鎖 Gate 欄編輯" title="解鎖此欄編輯">
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
                 </button>
               </th>
               <th class="assignment-col-header assignment-col-editable" data-assignment-edit-col="eta">
                 <span class="assignment-col-label">ETA</span>
                 <button type="button" class="assignment-col-edit-btn" aria-label="解鎖 ETA 欄編輯" title="解鎖此欄編輯">
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
                 </button>
               </th>
               <th>G2</th>
@@ -5968,7 +5996,7 @@
                   <h4>基本資料</h4>
                   <button type="button" id="erpStaffEditToggleBtn" aria-pressed="false">
                     <span class="erp-staff-edit-toggle-icon" aria-hidden="true">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
                     </span>
                     <span class="erp-staff-edit-toggle-label">新增異動</span>
                   </button>
@@ -7584,6 +7612,9 @@ function renderOvertimePanel() {
     listEl.appendChild(item);
   });
 }
+const EDIT_GEAR_ICON = '⚙';
+const EDIT_GEAR_ICON_PATHS = '<path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/>';
+const EDIT_GEAR_ICON_HTML = `<svg class="edit-gear-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${EDIT_GEAR_ICON_PATHS}</svg>`;
 function excelCell(val) {
   if (val === null || val === undefined) return '-';
   if (typeof val === 'number') return Number.isNaN(val) ? '-' : val;
@@ -8285,6 +8316,7 @@ function dayStorageKeys(dateStr) {
     tcTemplateDefaults: `${LS_PREFIX}_day_${d}_tc_template_defaults`,
     tTemplateDefaults: `${LS_PREFIX}_day_${d}_t_template_defaults`,
     tTcSlotAssignments: `${LS_PREFIX}_day_${d}_t_tc_slot_assignments`,
+    abgSlotOverrides: `${LS_PREFIX}_day_${d}_abg_slot_overrides`,
     flightsImported: `${LS_PREFIX}_day_${d}_flights_imported`,
     overtimeOverrides: `${LS_PREFIX}_day_${d}_overtime_overrides`,
     dicOvertimeApprovals: `${LS_PREFIX}_day_${d}_dic_ot`
@@ -8314,6 +8346,7 @@ let deletedCustomTemplates = [];
 let tcTemplateDefaults = {};
 let tTemplateDefaults = {};
 let tTcSlotAssignments = {};
+let abgSlotOverrides = {};
 let staffDirectory = [];
 let staffPersonnelRegistry = null;
 
@@ -11476,6 +11509,7 @@ function getLiveCloudFingerprint() {
     tcTemplateDefaults: normalizeTcTemplateDefaultsForCloud(tcTemplateDefaults),
     tTemplateDefaults: normalizeTTemplateDefaultsForCloud(tTemplateDefaults),
     tTcSlotAssignments: normalizeTTcSlotAssignmentsForCloud(tTcSlotAssignments),
+    abgSlotOverrides: normalizeAbgSlotOverridesForCloud(abgSlotOverrides),
     overtimeHourOverrides,
     dicOvertimeApprovals,
     flightsImported
@@ -11494,6 +11528,7 @@ function cloudStatePayload(data) {
     tcTemplateDefaults: normalizeTcTemplateDefaultsForCloud(data.tcTemplateDefaults),
     tTemplateDefaults: normalizeTTemplateDefaultsForCloud(data.tTemplateDefaults),
     tTcSlotAssignments: normalizeTTcSlotAssignmentsForCloud(data.tTcSlotAssignments),
+    abgSlotOverrides: normalizeAbgSlotOverridesForCloud(data.abgSlotOverrides),
     overtimeHourOverrides: data.overtimeHourOverrides,
     dicOvertimeApprovals: data.dicOvertimeApprovals,
     flightsImported: data.flightsImported === true
@@ -12058,6 +12093,7 @@ function getCloudState() {
       tcTemplateDefaults: normalizeTcTemplateDefaultsForCloud(tcTemplateDefaults),
     tTemplateDefaults: normalizeTTemplateDefaultsForCloud(tTemplateDefaults),
     tTcSlotAssignments: normalizeTTcSlotAssignmentsForCloud(tTcSlotAssignments),
+    abgSlotOverrides: normalizeAbgSlotOverridesForCloud(abgSlotOverrides),
       overtimeHourOverrides,
       dicOvertimeApprovals,
       flightsImported
@@ -12124,6 +12160,9 @@ function applyCloudState(data) {
   tTcSlotAssignments = data.tTcSlotAssignments && typeof data.tTcSlotAssignments === 'object'
     ? data.tTcSlotAssignments
     : tTcSlotAssignments;
+  abgSlotOverrides = data.abgSlotOverrides && typeof data.abgSlotOverrides === 'object'
+    ? normalizeAbgSlotOverridesForCloud(data.abgSlotOverrides)
+    : abgSlotOverrides;
   migrateLegacyTTcSlotAssignments();
   overtimeHourOverrides = data.overtimeHourOverrides && typeof data.overtimeHourOverrides === 'object'
     ? data.overtimeHourOverrides
@@ -12146,6 +12185,7 @@ function applyCloudState(data) {
   saveTcTemplateDefaults();
   saveTTemplateDefaults();
   saveTTcSlotAssignments();
+  saveAbgSlotOverrides();
   saveOvertimeOverrides();
   saveDicOvertimeApprovals();
 
@@ -12374,6 +12414,7 @@ function attachFirebaseForSelectedDate() {
         tcTemplateDefaults: normalizeTcTemplateDefaultsForCloud(data.tcTemplateDefaults),
         tTemplateDefaults: normalizeTTemplateDefaultsForCloud(data.tTemplateDefaults),
         tTcSlotAssignments: normalizeTTcSlotAssignmentsForCloud(data.tTcSlotAssignments),
+        abgSlotOverrides: normalizeAbgSlotOverridesForCloud(data.abgSlotOverrides),
         overtimeHourOverrides: data.overtimeHourOverrides,
         dicOvertimeApprovals: data.dicOvertimeApprovals,
         flightsImported: data.flightsImported === true,
@@ -12727,6 +12768,61 @@ function isBrOrB7DepFlight(f) {
   const flight = String(f.flight || '').trim().toUpperCase();
   return flight.startsWith('BR') || flight.startsWith('B7');
 }
+function getAbgSlotOverrideKey(flight, flightType = 'DEP') {
+  return `${String(flight || '').trim().toUpperCase()}_${flightType}`;
+}
+function canEditBrB7AbgSlots(f) {
+  if (!isBrOrB7DepFlight(f)) return false;
+  if (ForeignDutyRules?.getNzAbgSlots?.(f)) return false;
+  if (ForeignDutyRules?.getBxAbgSlots?.(f)) return false;
+  if (ForeignDutyRules?.getOzAbgSlots?.(f)) return false;
+  if (ForeignDutyRules?.getHxAbgSlots?.(f)) return false;
+  return true;
+}
+function canEditAbgSlotsForTemplate(t) {
+  if (!t || t.role !== 'ABG' || t.abgSlotScoped) return false;
+  const f = flightDefs.find(x => x.flight === t.flight && x.type === t.flightType);
+  return !!(f && canEditBrB7AbgSlots(f));
+}
+function getAbgSlotOverride(flight, flightType = 'DEP') {
+  const key = getAbgSlotOverrideKey(flight, flightType);
+  const n = abgSlotOverrides?.[key];
+  return Number.isFinite(n) && n > 0 ? n : null;
+}
+function setAbgSlotOverride(flight, flightType, slots) {
+  const key = getAbgSlotOverrideKey(flight, flightType);
+  if (!abgSlotOverrides || typeof abgSlotOverrides !== 'object') abgSlotOverrides = {};
+  abgSlotOverrides[key] = Math.max(1, Math.min(12, parseInt(slots, 10) || 1));
+  saveAbgSlotOverrides();
+}
+function saveAbgSlotOverrides() {
+  localStorage.setItem(dayStorageKeys(selectedDate).abgSlotOverrides, JSON.stringify(abgSlotOverrides || {}));
+}
+function normalizeAbgSlotOverridesForCloud(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
+  const out = {};
+  Object.keys(value).forEach(k => {
+    const n = parseInt(value[k], 10);
+    if (Number.isFinite(n) && n >= 1 && n <= 12) out[k] = n;
+  });
+  return out;
+}
+function trimAbgAssignmentsToCount(flight, flightType, targetCount) {
+  const target = Math.max(1, Math.min(12, Number(targetCount) || 1));
+  const assigned = schedule.filter(x =>
+    x.flight === flight && x.role === 'ABG' && x.flightType === flightType
+  );
+  let removedAssigned = 0;
+  if (assigned.length > target) {
+    const sorted = assigned.slice().sort((a, b) => b.uid - a.uid);
+    sorted.slice(0, assigned.length - target).forEach(item => {
+      schedule = schedule.filter(x => x.uid !== item.uid);
+      removedAssigned++;
+    });
+    if (selectedBlockId != null && !schedule.some(x => x.uid === selectedBlockId)) selectedBlockId = null;
+  }
+  return { removedAssigned };
+}
 function getAbgSlotsForFlightDef(f) {
   const nzSlots = ForeignDutyRules?.getNzAbgSlots?.(f);
   if (nzSlots) return nzSlots;
@@ -12736,7 +12832,12 @@ function getAbgSlotsForFlightDef(f) {
   if (ozSlots) return ozSlots;
   const hxSlots = ForeignDutyRules?.getHxAbgSlots?.(f);
   if (hxSlots) return hxSlots;
-  return isBrOrB7DepFlight(f) ? ABG_BR_B7_SLOTS : ABG_DEFAULT_SLOTS;
+  if (canEditBrB7AbgSlots(f)) {
+    const override = getAbgSlotOverride(f.flight, f.type);
+    if (override != null) return override;
+    return ABG_BR_B7_SLOTS;
+  }
+  return ABG_DEFAULT_SLOTS;
 }
 function getAbgSlotsForTemplate(t) {
   if (!t || t.role !== 'ABG') return 0;
@@ -18602,7 +18703,7 @@ function openTEditor(ctx) {
           ? ''
           : (isTcSlot
             ? `<div class="t-editor-orphan-section">
-                <div class="t-editor-orphan-hint">改由其他 AGT 辦T：勾選「改派其他AGT」並確認後，左側會出現「${escapeHtml(groupLabel)} 待排」；全部改派後 ${escapeHtml(groupLabel)} 會消失。點待排 ✎ 指定人數，再拖到人員列。</div>
+                <div class="t-editor-orphan-hint">改由其他 AGT 辦T：勾選「改派其他AGT」並確認後，左側會出現「${escapeHtml(groupLabel)} 待排」；全部改派後 ${escapeHtml(groupLabel)} 會消失。點待排 ${EDIT_GEAR_ICON} 指定人數，再拖到人員列。</div>
               </div>`
             : ''))));
   const endValue = kind === 't2220_last' ? formatTSlotMinutes(bounds.end) : formatTSlotMinutes(bounds.end);
@@ -19204,11 +19305,13 @@ function loadDayDataFromLocalStorage(dateStr) {
   tcTemplateDefaults = readJsonLS(k.tcTemplateDefaults, {});
   tTemplateDefaults = readJsonLS(k.tTemplateDefaults, {});
   tTcSlotAssignments = readJsonLS(k.tTcSlotAssignments, {});
+  abgSlotOverrides = readJsonLS(k.abgSlotOverrides, {});
   if (!Array.isArray(customTemplates)) customTemplates = [];
   if (!Array.isArray(deletedCustomTemplates)) deletedCustomTemplates = [];
   if (!tcTemplateDefaults || typeof tcTemplateDefaults !== 'object') tcTemplateDefaults = {};
   if (!tTemplateDefaults || typeof tTemplateDefaults !== 'object') tTemplateDefaults = {};
   if (!tTcSlotAssignments || typeof tTcSlotAssignments !== 'object') tTcSlotAssignments = {};
+  if (!abgSlotOverrides || typeof abgSlotOverrides !== 'object') abgSlotOverrides = {};
   migrateLegacyTTcSlotAssignments();
   selectedBlockId = null;
   blockSeq = schedule.length ? Math.max(...schedule.map(x => Number(x.uid) || 0)) + 1 : 1;
@@ -19996,6 +20099,7 @@ function saveLocal() {
   saveTcTemplateDefaults();
   saveTTemplateDefaults();
   saveTTcSlotAssignments();
+  saveAbgSlotOverrides();
   saveStaffDirectory();
 }
 function clearHoverStates() { document.querySelectorAll('.person-cell').forEach(el => el.classList.remove('over', 'dragging')); }
@@ -20140,7 +20244,7 @@ function renderPaletteRoleGroups(palette, grouped) {
       editBtn.type = 'button';
       editBtn.className = 'tc-defaults-edit-btn';
       editBtn.title = '調整 TC 時段';
-      editBtn.textContent = '✎';
+      editBtn.innerHTML = EDIT_GEAR_ICON_HTML;
       editBtn.addEventListener('click', e => {
         e.stopPropagation();
         openTcDefaultsPicker();
@@ -20152,7 +20256,7 @@ function renderPaletteRoleGroups(palette, grouped) {
       editBtn.type = 'button';
       editBtn.className = 'tc-defaults-edit-btn';
       editBtn.title = '調整辦T時段';
-      editBtn.textContent = '✎';
+      editBtn.innerHTML = EDIT_GEAR_ICON_HTML;
       editBtn.addEventListener('click', e => {
         e.stopPropagation();
         openTDefaultsPicker();
@@ -20194,6 +20298,66 @@ function openTcDefaultsPicker() {
     });
   });
 }
+function openAbgSlotEditor(flight, flightType = 'DEP') {
+  const f = flightDefs.find(x => x.flight === flight && x.type === flightType);
+  if (!f || !canEditBrB7AbgSlots(f)) return;
+  const current = getAbgSlotsForFlightDef(f);
+  const assigned = countAbgAssignments(flight, flightType);
+  let overlay = document.getElementById('abgSlotEditorOverlay');
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.id = 'abgSlotEditorOverlay';
+    overlay.className = 'tc-editor-overlay hidden';
+    document.body.appendChild(overlay);
+  }
+  overlay.innerHTML = `
+    <div class="tc-editor-panel">
+      <h3>調整 ABG 人數</h3>
+      <p>${escapeHtml(flight)} 出境 · 預設 ${ABG_BR_B7_SLOTS} 人</p>
+      <div class="t-editor-staff-row">
+        <label>人數 <input type="number" min="1" max="12" data-abg-slot-count value="${current}"></label>
+      </div>
+      <p class="t-editor-staff-status" data-abg-slot-status>已指派 ${assigned} 人</p>
+      <div class="tc-editor-actions">
+        <button type="button" class="btn-secondary" data-abg-editor-cancel>取消</button>
+        <button type="button" class="btn-primary" data-abg-editor-save>確認</button>
+      </div>
+    </div>
+  `;
+  overlay.classList.remove('hidden');
+  const close = () => overlay.classList.add('hidden');
+  const countInput = overlay.querySelector('[data-abg-slot-count]');
+  const statusEl = overlay.querySelector('[data-abg-slot-status]');
+  const syncStatus = () => {
+    const target = parseInt(countInput?.value, 10);
+    const targetText = Number.isFinite(target) && target > 0 ? Math.min(12, target) : 1;
+    const remain = Math.max(0, targetText - assigned);
+    statusEl.textContent = `尚可排 ${remain} / 目標 ${targetText}${assigned ? `（已排 ${assigned}）` : ''}`;
+  };
+  countInput?.addEventListener('input', syncStatus);
+  syncStatus();
+  overlay.querySelector('[data-abg-editor-cancel]')?.addEventListener('click', close);
+  overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
+  overlay.querySelector('[data-abg-editor-save]')?.addEventListener('click', () => {
+    const next = parseInt(countInput?.value, 10);
+    if (!Number.isFinite(next) || next < 1 || next > 12) {
+      appAlert('請輸入有效人數（1–12）。', '無法儲存');
+      return;
+    }
+    pushUndoSnapshot();
+    setAbgSlotOverride(flight, flightType, next);
+    const syncSummary = trimAbgAssignmentsToCount(flight, flightType, next);
+    rebuildTemplates();
+    markUnsynced();
+    renderPalette();
+    renderRows();
+    syncAssignmentTableFromSchedule();
+    close();
+    if (syncSummary.removedAssigned) {
+      appAlert(`人數已更新，已移除 ${syncSummary.removedAssigned} 個已指派區塊。`, '人數已更新', 'info');
+    }
+  });
+}
 function makeChip(t) {
   const chip = document.createElement('div');
   chip.className = 'duty-chip';
@@ -20210,7 +20374,7 @@ function makeChip(t) {
       : '';
     chip.innerHTML = `<strong>${escapeHtml(t.compactLabel)}</strong>${stdLine}`;
   } else if (t.role === 'TC') {
-    chip.innerHTML = `<button type="button" class="duty-chip-edit-btn" title="調整時段">✎</button><strong>${escapeHtml(t.tcLabel || t.label)}</strong><small>${formatTcSegmentRange(t.segments || getTcKindSegments(t.tcKind))}</small>`;
+    chip.innerHTML = `<button type="button" class="duty-chip-edit-btn" title="調整時段">${EDIT_GEAR_ICON_HTML}</button><strong>${escapeHtml(t.tcLabel || t.label)}</strong><small>${formatTcSegmentRange(t.segments || getTcKindSegments(t.tcKind))}</small>`;
     const editBtn = chip.querySelector('.duty-chip-edit-btn');
     editBtn?.addEventListener('click', e => {
       e.stopPropagation();
@@ -20230,9 +20394,9 @@ function makeChip(t) {
       if (display.scheduled) chip.classList.add('duty-chip--t-scheduled');
       chip.draggable = display.draggable;
       chip.title = display.scheduled
-        ? `${display.title}：已指派 TC；改由 AGT 辦T請 ✎ → 改派其他AGT`
-        : `${display.title}：點 ✎ 指派航班給 TC，或改派其他AGT`;
-      chip.innerHTML = `<button type="button" class="duty-chip-edit-btn" title="調整航班">✎</button><strong>${escapeHtml(display.title)}</strong><small>${escapeHtml(range)}</small>`;
+        ? `${display.title}：已指派 TC；改由 AGT 辦T請 ${EDIT_GEAR_ICON} → 改派其他AGT`
+        : `${display.title}：點 ${EDIT_GEAR_ICON} 指派航班給 TC，或改派其他AGT`;
+      chip.innerHTML = `<button type="button" class="duty-chip-edit-btn" title="調整航班">${EDIT_GEAR_ICON_HTML}</button><strong>${escapeHtml(display.title)}</strong><small>${escapeHtml(range)}</small>`;
       const openTcSlotEditor = e => {
         e.stopPropagation();
         e.preventDefault();
@@ -20263,8 +20427,8 @@ function makeChip(t) {
           : `${flightCount} 班待指派；恢復預設可讓 ${groupLabel} 重新出現`)
         : (staffTarget
           ? `${orphanName}：尚可排 ${remaining} 人，拖到人員列分配`
-          : `${flightCount} 班待指派，請先 ✎ 指定人數`);
-      chip.innerHTML = `<button type="button" class="duty-chip-edit-btn" title="調整待排航班">✎</button><strong class="duty-chip-orphan-label" title="雙擊可重新命名">${escapeHtml(orphanName)}</strong><small>${escapeHtml(range)}</small>`;
+          : `${flightCount} 班待指派，請先 ${EDIT_GEAR_ICON} 指定人數`);
+      chip.innerHTML = `<button type="button" class="duty-chip-edit-btn" title="調整待排航班">${EDIT_GEAR_ICON_HTML}</button><strong class="duty-chip-orphan-label" title="雙擊可重新命名">${escapeHtml(orphanName)}</strong><small>${escapeHtml(range)}</small>`;
       if (badgeCount > 0) {
         appendDutyChipSlotBadge(chip, badgeCount, staffTarget
           ? `尚可排 ${remaining} 人`
@@ -20295,7 +20459,7 @@ function makeChip(t) {
       const range = `${formatTSlotMinutes(staffBounds.start)}-${formatTSlotMinutes(staffBounds.end)}`;
       const remaining = getTStaffSlotsRemaining(t.tKind);
       chip.title = remaining ? `尚可排 ${remaining} 人` : '';
-      chip.innerHTML = `<button type="button" class="duty-chip-edit-btn" title="調整時段">✎</button><strong>${escapeHtml(groupLabel)}</strong><small>${escapeHtml(range)}</small>`;
+      chip.innerHTML = `<button type="button" class="duty-chip-edit-btn" title="調整時段">${EDIT_GEAR_ICON_HTML}</button><strong>${escapeHtml(groupLabel)}</strong><small>${escapeHtml(range)}</small>`;
       if (remaining > 0) appendDutyChipSlotBadge(chip, remaining, `尚可排 ${remaining} 人`);
       const editBtn = chip.querySelector('.duty-chip-edit-btn');
       editBtn?.addEventListener('click', e => {
@@ -20316,7 +20480,19 @@ function makeChip(t) {
     });
     delBtn.addEventListener('mousedown', e => e.stopPropagation());
   } else {
-    chip.innerHTML = `<strong>${t.compactLabel}</strong> <small>${minutesToTime(t.start)}-${minutesToTime(t.end)}</small>`;
+    const showAbgGear = canEditAbgSlotsForTemplate(t);
+    if (showAbgGear) {
+      chip.innerHTML = `<button type="button" class="duty-chip-edit-btn" title="調整 ABG 人數">${EDIT_GEAR_ICON_HTML}</button><strong>${t.compactLabel}</strong> <small>${minutesToTime(t.start)}-${minutesToTime(t.end)}</small>`;
+      const editBtn = chip.querySelector('.duty-chip-edit-btn');
+      editBtn?.addEventListener('click', e => {
+        e.stopPropagation();
+        e.preventDefault();
+        openAbgSlotEditor(t.flight, t.flightType);
+      });
+      editBtn?.addEventListener('mousedown', e => e.stopPropagation());
+    } else {
+      chip.innerHTML = `<strong>${t.compactLabel}</strong> <small>${minutesToTime(t.start)}-${minutesToTime(t.end)}</small>`;
+    }
     const pptRemain = getPptSlotsRemaining(t);
     const pptSlots = getPptSlotsForTemplate(t);
     if (t.role === 'PPT' && pptRemain > 0) {
@@ -20585,7 +20761,7 @@ function buildBlockElForSlice(item, slice, normalizedSearch, options = {}) {
   if (otRanges.length) block.classList.add('block-overtime');
   const otBadge = otRanges.length ? '<span class="block-overtime-badge">加班</span>' : '';
   const editBtn = options.showEdit && (item.role === 'TC' || item.role === 'T')
-    ? '<button class="block-edit-btn" type="button" title="調整時段">✎</button>'
+    ? `<button class="block-edit-btn" type="button" title="調整時段">${EDIT_GEAR_ICON_HTML}</button>`
     : '';
   const labelHtml = item.role === 'T'
     ? (() => {
@@ -21353,8 +21529,10 @@ function bootLoadGlobalStorage() {
   tcTemplateDefaults = readJsonLS(dayK.tcTemplateDefaults, {});
   tTemplateDefaults = readJsonLS(dayK.tTemplateDefaults, {});
   tTcSlotAssignments = readJsonLS(dayK.tTcSlotAssignments, {});
+  abgSlotOverrides = readJsonLS(dayK.abgSlotOverrides, {});
   if (!tTemplateDefaults || typeof tTemplateDefaults !== 'object') tTemplateDefaults = {};
   if (!tTcSlotAssignments || typeof tTcSlotAssignments !== 'object') tTcSlotAssignments = {};
+  if (!abgSlotOverrides || typeof abgSlotOverrides !== 'object') abgSlotOverrides = {};
   staffDirectory = readJsonLS(LS_KEYS_GLOBAL.staffDirectory, []);
   staffPersonnelRegistry = readJsonLS(LS_KEYS_GLOBAL.staffPersonnel, null);
   if (!Array.isArray(customTemplates)) customTemplates = [];
