@@ -17567,18 +17567,30 @@ function scheduleItemMatchesTemplate(item, tpl) {
 function getAssignmentItemsForCell(flight, role) {
   const norm = normalizeImportedFlightNo(flight);
   if (role === '接機C') {
-    return schedule.filter(x =>
+    const direct = schedule.filter(x =>
+      !x.connectingDuty
+      && x.role === '接機C'
+      && normalizeImportedFlightNo(x.flight) === norm
+    );
+    const conn = schedule.filter(x =>
       x.connectingDuty
       && x.role === 'BG'
       && normalizeImportedFlightNo(x.arrFlight) === norm
     );
+    return [...direct, ...conn];
   }
   if (role === '接機RC') {
-    return schedule.filter(x =>
+    const direct = schedule.filter(x =>
+      !x.connectingDuty
+      && x.role === '接機RC'
+      && normalizeImportedFlightNo(x.flight) === norm
+    );
+    const conn = schedule.filter(x =>
       x.connectingDuty
       && x.role === 'RC'
       && normalizeImportedFlightNo(x.arrFlight) === norm
     );
+    return [...direct, ...conn];
   }
   if (role === 'RC' || role === 'BG') {
     const direct = schedule.filter(x =>
