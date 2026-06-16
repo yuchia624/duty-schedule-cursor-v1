@@ -7557,6 +7557,8 @@ function setOvertimeExpanded(expanded) {
   syncScheduleSideDockLayout();
 }
 function renderOvertimePanel() {
+  console.time('renderOvertimePanel');
+  try {
   const countEl = document.getElementById('overtimeCount');
   const listEl = document.getElementById('overtimeList');
   const exportBtn = document.getElementById('exportOvertimeBtn');
@@ -7628,6 +7630,9 @@ function renderOvertimePanel() {
     });
     listEl.appendChild(item);
   });
+  } finally {
+    console.timeEnd('renderOvertimePanel');
+  }
 }
 const EDIT_GEAR_ICON = '⚙';
 const EDIT_GEAR_ICON_PATHS = '<path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/>';
@@ -11386,6 +11391,9 @@ let cloudReady = false;
 let applyingRemote = false;
 let cloudSaveTimer = null;
 let lastCloudJson = '';
+let lastCloudUpdatedAtLocal = '';
+let liveCloudFingerprintCache = '';
+let liveCloudFingerprintDirty = true;
 let firebaseUnsub = null;
 let sharedConfigDocRef = null;
 let sharedConfigUnsub = null;
@@ -11405,6 +11413,8 @@ let undoRestoring = false;
 
 function setCloudStatus(text, mode = '', scope = 'day') {
   const status = { text: text || '', mode: mode || '' };
+  const prev = scope === 'shared' ? sharedCloudStatus : dayCloudStatus;
+  if (prev.text === status.text && prev.mode === status.mode) return;
   if (scope === 'shared') sharedCloudStatus = status;
   else dayCloudStatus = status;
   renderCloudStatusUI();
@@ -11517,8 +11527,15 @@ function normalizeScheduleItemForCloud(item) {
 function normalizeTcTemplateDefaultsForCloud(value) {
   return value && typeof value === 'object' && !Array.isArray(value) ? value : {};
 }
+function invalidateLiveCloudFingerprint() {
+  liveCloudFingerprintDirty = true;
+  liveCloudFingerprintCache = '';
+}
 function getLiveCloudFingerprint() {
-  return cloudStateFingerprint({
+  console.time('getLiveCloudFingerprint');
+  try {
+  if (!liveCloudFingerprintDirty && liveCloudFingerprintCache) return liveCloudFingerprintCache;
+  liveCloudFingerprintCache = cloudStateFingerprint({
     people,
     peopleDisplayOrder,
     schedule,
@@ -11534,6 +11551,11 @@ function getLiveCloudFingerprint() {
     dicOvertimeApprovals,
     flightsImported
   });
+  liveCloudFingerprintDirty = false;
+  return liveCloudFingerprintCache;
+  } finally {
+    console.timeEnd('getLiveCloudFingerprint');
+  }
 }
 function cloudStatePayload(data) {
   return {
@@ -11556,7 +11578,12 @@ function cloudStatePayload(data) {
   };
 }
 function cloudStateFingerprint(data) {
+  console.time('cloudStateFingerprint');
+  try {
   return JSON.stringify(cloudStatePayload(data));
+  } finally {
+    console.timeEnd('cloudStateFingerprint');
+  }
 }
 function sharedConfigPayload(data) {
   return {
@@ -12158,8 +12185,11 @@ function applySharedConfigState(data) {
 }
 
 function applyCloudState(data) {
+  console.time('applyCloudState');
+  try {
   if (!data) return;
   applyingRemote = true;
+  invalidateLiveCloudFingerprint();
   people = Array.isArray(data.people) ? data.people.map(normalizePerson) : people;
   if (staffDirectory.length && Array.isArray(people) && people.length) {
     people = mergePeopleWithStaffDirectory(people);
@@ -12228,6 +12258,9 @@ function applyCloudState(data) {
 
   applyingRemote = false;
   clearUndoHistory();
+  } finally {
+    console.timeEnd('applyCloudState');
+  }
 }
 
 function flushPendingSharedConfigSave() {
@@ -12286,6 +12319,7 @@ function saveCloudNow() {
   }, { merge: true })
     .then(() => {
       lastCloudJson = getLiveCloudFingerprint();
+      lastCloudUpdatedAtLocal = getSyncMeta().updatedAtLocal;
       setCloudStatus('已同步', 'synced');
       return true;
     })
@@ -12310,9 +12344,91 @@ function detachFirebaseSync() {
   }
   scheduleDocRef = null;
   cloudReady = false;
+  lastCloudUpdatedAtLocal = '';
   if (cloudSaveTimer) {
     clearTimeout(cloudSaveTimer);
     cloudSaveTimer = null;
+  }
+}
+
+function processScheduleFirestoreSnapshot(doc) {
+  console.time('processScheduleFirestoreSnapshot');
+  try {
+  if (!doc.exists) {
+    const k = dayStorageKeys(selectedDate);
+    const hasLocal = [k.peopleOrder, k.schedule, k.flightDefs, k.customTemplates].some(key => localStorage.getItem(key) !== null);
+    if (hasLocal) {
+      loadDayDataFromLocalStorage(selectedDate);
+      cloudReady = true;
+      setCloudStatus('上傳本機資料至雲端', 'saving');
+      if (typeof renderTimeHeader === 'function') renderTimeHeader();
+      if (typeof renderAssignmentTableFromFlightDefs === 'function') renderAssignmentTableFromFlightDefs();
+      if (typeof renderFlightEditor === 'function') renderFlightEditor();
+      if (typeof renderPalette === 'function') renderPalette();
+      if (typeof renderRows === 'function') renderRows();
+      if (typeof syncAssignmentTableFromSchedule === 'function') syncAssignmentTableFromSchedule();
+      scheduleCloudSave();
+      return;
+    }
+    seedEmptyDayStateForCloud();
+    cloudReady = true;
+    setCloudStatus('尚未同步', 'pending');
+    if (typeof renderTimeHeader === 'function') renderTimeHeader();
+    if (typeof renderAssignmentTableFromFlightDefs === 'function') renderAssignmentTableFromFlightDefs();
+    if (typeof renderFlightEditor === 'function') renderFlightEditor();
+    if (typeof renderPalette === 'function') renderPalette();
+    if (typeof renderRows === 'function') renderRows();
+    if (typeof syncAssignmentTableFromSchedule === 'function') syncAssignmentTableFromSchedule();
+    markUnsynced();
+    return;
+  }
+  const data = doc.data();
+  remoteDayEditorMeta = captureRemoteEditorMeta(data);
+  const remoteUpdated = String(data.updatedAtLocal || '');
+  if (remoteUpdated && remoteUpdated === lastCloudUpdatedAtLocal && lastCloudJson) {
+    setCloudStatus('已同步', 'synced');
+    cloudReady = true;
+    return;
+  }
+  const remoteState = {
+    people: data.people,
+    peopleDisplayOrder: data.peopleDisplayOrder,
+    schedule: data.schedule,
+    flightDefs: data.flightDefs,
+    customTemplates: data.customTemplates,
+    deletedCustomTemplates: data.deletedCustomTemplates,
+    tcTemplateDefaults: normalizeTcTemplateDefaultsForCloud(data.tcTemplateDefaults),
+    tTemplateDefaults: normalizeTTemplateDefaultsForCloud(data.tTemplateDefaults),
+    tTcSlotAssignments: normalizeTTcSlotAssignmentsForCloud(data.tTcSlotAssignments),
+    abgSlotOverrides: normalizeAbgSlotOverridesForCloud(data.abgSlotOverrides),
+    homelineConnectingDutyModes: normalizeHomelineConnectingDutyModesForCloud(data.homelineConnectingDutyModes),
+    overtimeHourOverrides: data.overtimeHourOverrides,
+    dicOvertimeApprovals: data.dicOvertimeApprovals,
+    flightsImported: data.flightsImported === true,
+    updatedAtLocal: data.updatedAtLocal
+  };
+  const remoteJson = cloudStateFingerprint(remoteState);
+  if (remoteJson === lastCloudJson) {
+    lastCloudUpdatedAtLocal = remoteUpdated;
+    setCloudStatus('已同步', 'synced');
+    cloudReady = true;
+    return;
+  }
+  const localLiveJson = getLiveCloudFingerprint();
+  if (remoteJson === localLiveJson) {
+    lastCloudJson = remoteJson;
+    lastCloudUpdatedAtLocal = remoteUpdated;
+    setCloudStatus('已同步', 'synced');
+    cloudReady = true;
+    return;
+  }
+  lastCloudJson = remoteJson;
+  lastCloudUpdatedAtLocal = remoteUpdated;
+  applyCloudState(remoteState);
+  cloudReady = true;
+  setCloudStatus('已同步', 'synced');
+  } finally {
+    console.timeEnd('processScheduleFirestoreSnapshot');
   }
 }
 
@@ -12398,70 +12514,13 @@ function attachFirebaseForSelectedDate() {
     }
     detachFirebaseSync();
     lastCloudJson = '';
+    lastCloudUpdatedAtLocal = '';
     if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
     db = firebase.firestore();
     scheduleDocRef = db.collection('dutySchedules').doc(selectedDate);
 
     firebaseUnsub = scheduleDocRef.onSnapshot((doc) => {
-      if (!doc.exists) {
-        const k = dayStorageKeys(selectedDate);
-        const hasLocal = [k.peopleOrder, k.schedule, k.flightDefs, k.customTemplates].some(key => localStorage.getItem(key) !== null);
-        if (hasLocal) {
-          loadDayDataFromLocalStorage(selectedDate);
-          cloudReady = true;
-          setCloudStatus('上傳本機資料至雲端', 'saving');
-          if (typeof renderTimeHeader === 'function') renderTimeHeader();
-          if (typeof renderAssignmentTableFromFlightDefs === 'function') renderAssignmentTableFromFlightDefs();
-          if (typeof renderFlightEditor === 'function') renderFlightEditor();
-          if (typeof renderPalette === 'function') renderPalette();
-          if (typeof renderRows === 'function') renderRows();
-          if (typeof syncAssignmentTableFromSchedule === 'function') syncAssignmentTableFromSchedule();
-          scheduleCloudSave();
-          return;
-        }
-        seedEmptyDayStateForCloud();
-        cloudReady = true;
-        setCloudStatus('尚未同步', 'pending');
-        if (typeof renderTimeHeader === 'function') renderTimeHeader();
-        if (typeof renderAssignmentTableFromFlightDefs === 'function') renderAssignmentTableFromFlightDefs();
-        if (typeof renderFlightEditor === 'function') renderFlightEditor();
-        if (typeof renderPalette === 'function') renderPalette();
-        if (typeof renderRows === 'function') renderRows();
-        if (typeof syncAssignmentTableFromSchedule === 'function') syncAssignmentTableFromSchedule();
-        markUnsynced();
-        return;
-      }
-      const data = doc.data();
-      remoteDayEditorMeta = captureRemoteEditorMeta(data);
-      const remoteState = {
-        people: data.people,
-        peopleDisplayOrder: data.peopleDisplayOrder,
-        schedule: data.schedule,
-        flightDefs: data.flightDefs,
-        customTemplates: data.customTemplates,
-        deletedCustomTemplates: data.deletedCustomTemplates,
-        tcTemplateDefaults: normalizeTcTemplateDefaultsForCloud(data.tcTemplateDefaults),
-        tTemplateDefaults: normalizeTTemplateDefaultsForCloud(data.tTemplateDefaults),
-        tTcSlotAssignments: normalizeTTcSlotAssignmentsForCloud(data.tTcSlotAssignments),
-        abgSlotOverrides: normalizeAbgSlotOverridesForCloud(data.abgSlotOverrides),
-        homelineConnectingDutyModes: normalizeHomelineConnectingDutyModesForCloud(data.homelineConnectingDutyModes),
-        overtimeHourOverrides: data.overtimeHourOverrides,
-        dicOvertimeApprovals: data.dicOvertimeApprovals,
-        flightsImported: data.flightsImported === true,
-        updatedAtLocal: data.updatedAtLocal
-      };
-      const remoteJson = cloudStateFingerprint(remoteState);
-      const localLiveJson = getLiveCloudFingerprint();
-      if (remoteJson === lastCloudJson || remoteJson === localLiveJson) {
-        lastCloudJson = remoteJson;
-        setCloudStatus('已同步', 'synced');
-        cloudReady = true;
-        return;
-      }
-      lastCloudJson = remoteJson;
-      applyCloudState(remoteState);
-      cloudReady = true;
-      setCloudStatus('已同步', 'synced');
+      processScheduleFirestoreSnapshot(doc);
     }, (err) => {
       console.error(err);
       setCloudStatus('雲端連線失敗', 'offline');
@@ -19747,6 +19806,7 @@ function syncScheduleWindows() {
   });
 }
 function loadDayDataFromLocalStorage(dateStr) {
+  invalidateLiveCloudFingerprint();
   const k = dayStorageKeys(dateStr);
   const rawPeople = localStorage.getItem(k.peopleOrder);
   if (rawPeople) {
@@ -20235,15 +20295,11 @@ function endBlockMoveSession() {
 }
 function updatePaletteDragSlotRange(range) {
   if (!range) {
-    if (paletteDragSlotRange !== null) {
-      paletteDragSlotRange = null;
-      renderRows();
-    }
+    paletteDragSlotRange = null;
     return;
   }
   if (paletteDragSlotRange && paletteDragSlotRange.start === range.start && paletteDragSlotRange.end === range.end) return;
   paletteDragSlotRange = range;
-  renderRows();
 }
 function endPaletteDragSession() {
   paletteDragTemplateId = null;
@@ -20480,6 +20536,7 @@ function persistAndSync(opts = {}) {
   if (scope === 'shared' || scope === 'both') scheduleSharedConfigSave();
 }
 function markUnsynced() {
+  invalidateLiveCloudFingerprint();
   setCloudStatus('尚未同步', 'pending', 'day');
 }
 function captureUndoState() {
@@ -20562,6 +20619,8 @@ function refreshRollCallShiftBand(cell, personIndex) {
   appendShiftBandToTimeline(timeline, personShift);
 }
 function saveLocal() {
+  console.time('saveLocal');
+  try {
   const k = dayStorageKeys(selectedDate);
   ensurePeopleDisplayOrder();
   localStorage.setItem(k.schedule, JSON.stringify(schedule));
@@ -20578,6 +20637,9 @@ function saveLocal() {
   saveAbgSlotOverrides();
   saveHomelineConnectingDutyModes();
   saveStaffDirectory();
+  } finally {
+    console.timeEnd('saveLocal');
+  }
 }
 function clearHoverStates() { document.querySelectorAll('.person-cell').forEach(el => el.classList.remove('over', 'dragging')); }
 
@@ -20662,15 +20724,134 @@ function fitDutyChipLabel(chip) {
   const remainTitle = chip.title && chip.title.includes('尚可排') ? `${chip.title} · ` : '';
   strong.title = `${remainTitle}${label}`;
 }
-function fitAllDutyChipLabels(root) {
-  const palette = root || document.getElementById('palette');
-  if (!palette) return;
-  palette.querySelectorAll('.duty-chip').forEach(fitDutyChipLabel);
+const DUTY_CHIP_LABEL_FIT_BATCH_SIZE = 18;
+let dutyChipLabelFitJobId = 0;
+let dutyChipLabelFitTiming = false;
+let dutyChipLabelFitIdleId = null;
+let dutyChipLabelFitRafId = null;
+let dutyChipLabelFitJob = null;
+
+function cancelScheduledDutyChipLabelFit(reason) {
+  const cancelledJob = dutyChipLabelFitJob;
+  dutyChipLabelFitJobId += 1;
+  if (dutyChipLabelFitIdleId != null && typeof cancelIdleCallback === 'function') {
+    cancelIdleCallback(dutyChipLabelFitIdleId);
+    dutyChipLabelFitIdleId = null;
+  }
+  if (dutyChipLabelFitRafId != null) {
+    cancelAnimationFrame(dutyChipLabelFitRafId);
+    dutyChipLabelFitRafId = null;
+  }
+  if (dutyChipLabelFitTiming) {
+    if (cancelledJob) {
+      const remaining = cancelledJob.total - cancelledJob.processed;
+      console.log(
+        `[duty-chip-fit] 取消 job #${cancelledJob.id}（${reason || '新排程'}）` +
+        ` 已處理 ${cancelledJob.processed}/${cancelledJob.total} chip，剩 ${remaining} 未縮字`
+      );
+    }
+    console.timeEnd('fitAllDutyChipLabels');
+    dutyChipLabelFitTiming = false;
+  }
+  dutyChipLabelFitJob = null;
 }
-function scheduleFitDutyChipLabels(root) {
+
+function scheduleDutyChipLabelFitBatch(jobId, runBatch) {
+  if (jobId !== dutyChipLabelFitJobId) return;
+  if (typeof requestIdleCallback === 'function') {
+    dutyChipLabelFitIdleId = requestIdleCallback(deadline => {
+      dutyChipLabelFitIdleId = null;
+      runBatch(deadline);
+    }, { timeout: 120 });
+  } else {
+    dutyChipLabelFitRafId = requestAnimationFrame(() => {
+      dutyChipLabelFitRafId = null;
+      runBatch(null);
+    });
+  }
+}
+
+function finishDutyChipLabelFit(jobId) {
+  if (jobId !== dutyChipLabelFitJobId || !dutyChipLabelFitTiming) return;
+  const job = dutyChipLabelFitJob;
+  if (job) {
+    console.log(
+      `[duty-chip-fit] 完成 job #${job.id} 共 ${job.total} chip，` +
+      `${job.batchNo} 批，每批最多 ${DUTY_CHIP_LABEL_FIT_BATCH_SIZE} 個`
+    );
+  }
+  console.timeEnd('fitAllDutyChipLabels');
+  dutyChipLabelFitTiming = false;
+  dutyChipLabelFitJob = null;
+}
+
+function fitAllDutyChipLabels(root, jobId) {
   const palette = root || document.getElementById('palette');
-  if (!palette) return;
-  requestAnimationFrame(() => fitAllDutyChipLabels(palette));
+  if (!palette || jobId !== dutyChipLabelFitJobId) return;
+  const chips = [...palette.querySelectorAll('.duty-chip')];
+  const job = dutyChipLabelFitJob;
+  if (job) job.total = chips.length;
+  if (!chips.length) {
+    finishDutyChipLabelFit(jobId);
+    return;
+  }
+  console.log(`[duty-chip-fit] 開始 job #${jobId}，共 ${chips.length} chip，每批 ${DUTY_CHIP_LABEL_FIT_BATCH_SIZE} 個`);
+  let index = 0;
+  const runBatch = deadline => {
+    if (jobId !== dutyChipLabelFitJobId) return;
+    const batchStart = performance.now();
+    let batchCount = 0;
+    const processOneBatch = () => {
+      const end = Math.min(index + DUTY_CHIP_LABEL_FIT_BATCH_SIZE, chips.length);
+      for (let i = index; i < end; i++) fitDutyChipLabel(chips[i]);
+      batchCount += end - index;
+      index = end;
+    };
+    if (deadline && typeof deadline.timeRemaining === 'function') {
+      while (index < chips.length && deadline.timeRemaining() > 2) {
+        processOneBatch();
+      }
+      if (index < chips.length && batchCount === 0) processOneBatch();
+    } else {
+      processOneBatch();
+    }
+    if (job) {
+      job.processed = index;
+      job.batchNo += 1;
+      console.log(
+        `[duty-chip-fit] job #${jobId} 第 ${job.batchNo} 批：` +
+        `${batchCount} chip（累計 ${job.processed}/${job.total}）` +
+        ` 本批 ${Math.round(performance.now() - batchStart)}ms`
+      );
+    }
+    if (index >= chips.length) {
+      finishDutyChipLabelFit(jobId);
+      return;
+    }
+    scheduleDutyChipLabelFitBatch(jobId, runBatch);
+  };
+  scheduleDutyChipLabelFitBatch(jobId, runBatch);
+}
+
+function scheduleFitDutyChipLabels(root) {
+  console.time('scheduleFitDutyChipLabels');
+  const palette = root || document.getElementById('palette');
+  if (!palette) {
+    console.timeEnd('scheduleFitDutyChipLabels');
+    return;
+  }
+  const chipCount = palette.querySelectorAll('.duty-chip').length;
+  cancelScheduledDutyChipLabelFit('renderPalette');
+  const jobId = dutyChipLabelFitJobId;
+  dutyChipLabelFitJob = { id: jobId, total: chipCount, processed: 0, batchNo: 0 };
+  console.time('fitAllDutyChipLabels');
+  dutyChipLabelFitTiming = true;
+  console.log(`[duty-chip-fit] 排程 job #${jobId}，待縮字 ${chipCount} chip`);
+  console.timeEnd('scheduleFitDutyChipLabels');
+  requestAnimationFrame(() => {
+    if (jobId !== dutyChipLabelFitJobId) return;
+    fitAllDutyChipLabels(palette, jobId);
+  });
 }
 function renderPaletteRoleFilters(palette, grouped) {
   const bar = document.createElement('div');
@@ -21076,6 +21257,8 @@ function makeChip(t, paletteRoleContext = '') {
   return chip;
 }
 function renderPalette() {
+  console.time('renderPalette');
+  try {
   const palette = document.getElementById('palette');
   if (!palette) return;
   if (String(timelineFlightSearch || '').trim()) rebuildUniversalSearchSnap(timelineFlightSearch);
@@ -21139,6 +21322,9 @@ function renderPalette() {
     ).forEach(t => palette.appendChild(makeChip(t)));
   }
   scheduleFitDutyChipLabels(palette);
+  } finally {
+    console.timeEnd('renderPalette');
+  }
 }
 
 function buildEditorRowDep(f) {
@@ -21428,6 +21614,8 @@ function measureLabelWidthAtSize(label, fontSizePx) {
 }
 
 function fitBlockLabelFont(block) {
+  console.time('fitBlockLabelFont');
+  try {
   const label = block?.querySelector?.('.label');
   if (!label || !block.isConnected) return;
   resetBlockLabelFit(label);
@@ -21456,12 +21644,17 @@ function fitBlockLabelFont(block) {
   }
 
   label.style.fontSize = `${best}px`;
+  } finally {
+    console.timeEnd('fitBlockLabelFont');
+  }
 }
 
 function fitAllBlockLabels() {
+  console.time('fitAllBlockLabels');
   requestAnimationFrame(() => {
     requestAnimationFrame(() => {
       document.querySelectorAll('.block').forEach(fitBlockLabelFont);
+      console.timeEnd('fitAllBlockLabels');
     });
   });
 }
@@ -21621,6 +21814,8 @@ function bindTimelinePaletteDrop(timeline) {
 }
 
 function renderRows() {
+  console.time('renderRows');
+  try {
   refreshHomelineConnectingStaleFlags();
   const rows = document.getElementById('rows');
   if (!rows) return;
@@ -21790,6 +21985,31 @@ function renderRows() {
   syncAssignmentTableFromSchedule();
   renderOvertimePanel();
   fitAllBlockLabels();
+  } finally {
+    console.timeEnd('renderRows');
+  }
+}
+
+function getBlockMovePreviewKey(item) {
+  return `${item.personIndex}:${item.start}:${item.end}`;
+}
+function updateBlockMovePreview(item) {
+  const blocks = document.querySelectorAll(`.block[data-uid="${item.uid}"]`);
+  if (!blocks.length) return false;
+  const timeline = document.querySelector(`.timeline[data-original-index="${item.personIndex}"]`);
+  if (!timeline) return false;
+  blocks.forEach(block => {
+    if (block.parentElement !== timeline) timeline.appendChild(block);
+  });
+  if (item.role === '休' || item.role === 'PRE') {
+    const slice = getVisibleDutySlice({ start: item.start, end: item.end });
+    if (!slice) return true;
+    blocks.forEach(block => {
+      block.style.left = `${timeToLeft(slice.start)}px`;
+      block.style.width = `${durationToWidth(slice.start, slice.end)}px`;
+    });
+  }
+  return true;
 }
 
 function startMoveBlock(e, item) {
@@ -21799,6 +22019,8 @@ function startMoveBlock(e, item) {
   const originalStart = item.start;
   const originalEnd = item.end;
   let undoPushed = false;
+  let lastPreviewKey = '';
+  let moveRaf = 0;
   const rowHeight = document.querySelector('.row').getBoundingClientRect().height;
   const originTimeline = e.currentTarget.parentElement;
   const stableRows = getStableShiftRows();
@@ -21825,10 +22047,21 @@ function startMoveBlock(e, item) {
     }
     setPaletteDropHover(item.personIndex);
 
-    renderRows();
-    selectBlock(item.uid);
+    const previewKey = getBlockMovePreviewKey(item);
+    if (previewKey === lastPreviewKey) return;
+    lastPreviewKey = previewKey;
+    if (moveRaf) cancelAnimationFrame(moveRaf);
+    moveRaf = requestAnimationFrame(() => {
+      moveRaf = 0;
+      if (!updateBlockMovePreview(item)) renderRows();
+      selectBlock(item.uid);
+    });
   }
   function onUp() {
+    if (moveRaf) {
+      cancelAnimationFrame(moveRaf);
+      moveRaf = 0;
+    }
     document.removeEventListener('mousemove', onMove);
     document.removeEventListener('mouseup', onUp);
     endBlockMoveSession();
@@ -21843,6 +22076,8 @@ function startMoveBlock(e, item) {
       selectBlock(item.uid);
       return;
     }
+    renderRows();
+    selectBlock(item.uid);
     markUnsynced();
   }
   document.addEventListener('mousemove', onMove);
@@ -22030,6 +22265,8 @@ function updateAssignmentFlightHighlight(preferredRow, options = {}) {
   }
 }
 function syncAssignmentTableFromSchedule() {
+  console.time('syncAssignmentTableFromSchedule');
+  try {
   const mappedCells = document.querySelectorAll('[data-flight][data-role]');
   mappedCells.forEach(cell => {
     const flight = cell.dataset.flight;
@@ -22072,6 +22309,9 @@ function syncAssignmentTableFromSchedule() {
   syncAssignmentFixedSectionFromSchedule();
   if (timelineFlightSearch) updateAssignmentFlightHighlight(null, { skipScroll: true });
   else syncAssignmentRowHeights();
+  } finally {
+    console.timeEnd('syncAssignmentTableFromSchedule');
+  }
 }
 /** 啟動入口：所有會讀寫狀態、綁定事件、渲染畫面的副作用集中於 boot()，避免在檔案中段執行時踩到尚未宣告的常數。 */
 function showBootFailure(err) {
@@ -22110,6 +22350,7 @@ function bootLoadGlobalStorage() {
   if (!staffPersonnelRegistry || !Array.isArray(staffPersonnelRegistry.people)) staffPersonnelRegistry = null;
 }
 function bootLoadDayState() {
+  invalidateLiveCloudFingerprint();
   initialPeople.forEach(p => { if (!('shift' in p)) p.shift = ''; });
   initialPeople.forEach(p => { if (!('code' in p)) p.code = p.name; });
   const dayK = dayStorageKeys(selectedDate);
