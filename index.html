@@ -1061,35 +1061,6 @@
     background: #fffbeb;
     box-shadow: inset 3px 0 0 #f59e0b;
   }
-  .board.roll-call-mode .row.row--temp-row .person-cell.shift-early {
-    background: #ecfdf5;
-    box-shadow: inset 3px 0 0 #f59e0b;
-  }
-  .board.roll-call-mode .row.row--temp-row .person-cell.shift-late {
-    background: #eff6ff;
-    box-shadow: inset 3px 0 0 #f59e0b;
-  }
-  .board.roll-call-mode .row.row--temp-row .rollcall-grid .rc-col .temp-row-name-input,
-  .board.roll-call-mode .row.row--temp-row .rollcall-grid .rc-col .temp-row-shift-input,
-  .board.roll-call-mode .row.row--temp-row .rollcall-grid .rc-col .temp-row-level-select,
-  .board.roll-call-mode .row.row--temp-row .rollcall-grid .rc-col .next-shift-input,
-  .board.roll-call-mode .row.row--temp-row .rollcall-grid .rc-col .adjusted-shift-input {
-    background: #fffbeb;
-  }
-  .board.roll-call-mode .row.row--temp-row .person-cell.shift-early .rollcall-grid .rc-col .temp-row-name-input,
-  .board.roll-call-mode .row.row--temp-row .person-cell.shift-early .rollcall-grid .rc-col .temp-row-shift-input,
-  .board.roll-call-mode .row.row--temp-row .person-cell.shift-early .rollcall-grid .rc-col .temp-row-level-select,
-  .board.roll-call-mode .row.row--temp-row .person-cell.shift-early .rollcall-grid .rc-col .next-shift-input,
-  .board.roll-call-mode .row.row--temp-row .person-cell.shift-early .rollcall-grid .rc-col .adjusted-shift-input {
-    background: #f0fdf4;
-  }
-  .board.roll-call-mode .row.row--temp-row .person-cell.shift-late .rollcall-grid .rc-col .temp-row-name-input,
-  .board.roll-call-mode .row.row--temp-row .person-cell.shift-late .rollcall-grid .rc-col .temp-row-shift-input,
-  .board.roll-call-mode .row.row--temp-row .person-cell.shift-late .rollcall-grid .rc-col .temp-row-level-select,
-  .board.roll-call-mode .row.row--temp-row .person-cell.shift-late .rollcall-grid .rc-col .next-shift-input,
-  .board.roll-call-mode .row.row--temp-row .person-cell.shift-late .rollcall-grid .rc-col .adjusted-shift-input {
-    background: #eff6ff;
-  }
   .temp-row-name-input,
   .temp-row-shift-input {
     width: 100%;
@@ -1353,6 +1324,25 @@
   .board .person-cell.rollcall-grid.shift-early { background:#f0fdf4; box-shadow:inset 3px 0 0 #16a34a; }
   .board .person-cell.rollcall-grid.shift-late { background:#eff6ff; box-shadow:inset 3px 0 0 #2563eb; }
   .board .person-cell.rollcall-grid.on-duty-by-radio:not(.clocked-out) { background:#f0fdf4; }
+  .board.roll-call-mode .row.row--temp-row .person-cell.rollcall-grid,
+  .board.roll-call-mode .row.row--temp-row .person-cell.rollcall-grid.shift-early,
+  .board.roll-call-mode .row.row--temp-row .person-cell.rollcall-grid.shift-late,
+  .board.roll-call-mode .row.row--temp-row .person-cell.rollcall-grid.on-duty-by-radio:not(.clocked-out) {
+    background: #fffbeb;
+    box-shadow: inset 3px 0 0 #f59e0b;
+  }
+  .board.roll-call-mode .row.row--temp-row .rollcall-grid .rc-col .temp-row-name-input,
+  .board.roll-call-mode .row.row--temp-row .rollcall-grid .rc-col .temp-row-shift-input,
+  .board.roll-call-mode .row.row--temp-row .rollcall-grid .rc-col .temp-row-level-select,
+  .board.roll-call-mode .row.row--temp-row .rollcall-grid .rc-col .next-shift-input,
+  .board.roll-call-mode .row.row--temp-row .rollcall-grid .rc-col .adjusted-shift-input,
+  .board.roll-call-mode .row.row--temp-row .rollcall-grid .rc-col .person-radio-input,
+  .board.roll-call-mode .row.row--temp-row .rollcall-grid .rc-col .person-ircs-input,
+  .board.roll-call-mode .row.row--temp-row .rollcall-grid .rc-col .temp-row-shift-input.is-invalid,
+  .board.roll-call-mode .row.row--temp-row .rollcall-grid .rc-col .adjusted-shift-input.is-invalid,
+  .board.roll-call-mode .row.row--temp-row .rollcall-grid .rc-col .next-shift-input.is-invalid {
+    background: #fff;
+  }
   .rollcall-grid .rc-col .badge,
   .rollcall-grid .rc-col .person-name,
   .rollcall-grid .rc-col .person-seq,
