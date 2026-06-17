@@ -1050,6 +1050,72 @@
     text-overflow: ellipsis;
     white-space: nowrap;
   }
+  .row.row--temp-row .person-cell {
+    background: linear-gradient(90deg, #fffbeb 0%, #fff 28%);
+    box-shadow: inset 3px 0 0 #f59e0b;
+  }
+  .temp-row-badge {
+    display: inline-block;
+    margin-top: 2px;
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 800;
+    line-height: 1.2;
+    color: #b45309;
+    background: #fef3c7;
+    border: 1px solid #fcd34d;
+    white-space: nowrap;
+  }
+  .temp-row-name-input,
+  .temp-row-shift-input {
+    width: 100%;
+    min-width: 0;
+    padding: 2px 4px;
+    border: 1px solid #cbd5e1;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: 700;
+    background: #fff;
+  }
+  .temp-row-level-select {
+    width: 100%;
+    min-width: 0;
+    padding: 2px 0;
+    border: 1px solid #cbd5e1;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 800;
+    background: #fff;
+  }
+  .temp-row-code {
+    display: block;
+    margin-top: 2px;
+    font-size: 10px;
+    font-weight: 700;
+    color: #94a3b8;
+    line-height: 1.1;
+  }
+  .temp-row-delete-btn {
+    margin-left: 2px;
+    padding: 0 4px;
+    border: none;
+    border-radius: 4px;
+    background: transparent;
+    color: #94a3b8;
+    font-size: 14px;
+    line-height: 1;
+    cursor: pointer;
+  }
+  .temp-row-delete-btn:hover {
+    color: #dc2626;
+    background: #fee2e2;
+  }
+  .normal-grid .rc-col.rc-level .temp-row-badge,
+  .rollcall-grid .rc-col.rc-level .temp-row-badge {
+    display: block;
+    margin: 2px auto 0;
+  }
   .board:not(.roll-call-mode) .normal-grid .normal-shift-tail {
     display: inline-flex;
     align-items: center;
@@ -5675,6 +5741,10 @@
           <span class="toolbar-icon-btn__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>
           <span class="toolbar-icon-btn__tip">匯入上班人員</span>
         </button>
+        <button type="button" class="toolbar-icon-btn" id="addTempControlRowBtn" aria-label="新增臨時列">
+          <span class="toolbar-icon-btn__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6"/><path d="M16 11h6"/></svg></span>
+          <span class="toolbar-icon-btn__tip">＋ 臨時列</span>
+        </button>
         <button type="button" class="toolbar-icon-btn" id="resetBtn" aria-label="清除資料">
           <span class="toolbar-icon-btn__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M6 6l1.2 14h9.6L18 6"/></svg></span>
           <span class="toolbar-icon-btn__tip">清除資料</span>
@@ -7260,6 +7330,159 @@ function reorderDisplayRows(fromOriginalIndex, toOriginalIndex) {
   renderRows();
   markUnsynced();
 }
+const TEMP_ROW_LEVEL_OPTIONS = ['M', 'm', '2A', '1A', '學生', '見習', 'DIC', '業督', '事務員'];
+function isTempControlRow(person) {
+  return !!person?.isTempRow;
+}
+function isDicSchedulePerson(person) {
+  if (!person || isTempControlRow(person)) return false;
+  const level = String(person.level || resolveLevel(person) || '').trim();
+  return normalizeStaffLevelFilterKey(level) === 'DIC';
+}
+function nextTempControlRowCode() {
+  let max = 0;
+  people.forEach(p => {
+    if (!isTempControlRow(p)) return;
+    const m = String(p.code || '').match(/^CTR(\d+)$/i);
+    if (m) max = Math.max(max, Number(m[1]) || 0);
+  });
+  return `CTR${max + 1}`;
+}
+function insertTempRowIntoDisplayOrder(personIndex) {
+  ensurePeopleDisplayOrder();
+  peopleDisplayOrder = peopleDisplayOrder.filter(idx => idx !== personIndex);
+  let insertAt = peopleDisplayOrder.length;
+  for (let i = 0; i < peopleDisplayOrder.length; i++) {
+    const p = people[peopleDisplayOrder[i]];
+    if (p && isDicSchedulePerson(p)) {
+      insertAt = i;
+      break;
+    }
+  }
+  while (insertAt < peopleDisplayOrder.length && isTempControlRow(people[peopleDisplayOrder[insertAt]])) {
+    insertAt += 1;
+  }
+  peopleDisplayOrder.splice(insertAt, 0, personIndex);
+}
+function restoreTempRowsDisplayOrderBeforeDic() {
+  people.forEach((p, idx) => {
+    if (isTempControlRow(p)) insertTempRowIntoDisplayOrder(idx);
+  });
+}
+function tempRowHasScheduleDuties(personIndex) {
+  return schedule.some(s => s.personIndex === personIndex);
+}
+function buildTempRowLevelOptions(selectedLevel) {
+  const selected = String(selectedLevel || '1A').trim();
+  return TEMP_ROW_LEVEL_OPTIONS.map(level => {
+    const sel = level === selected ? ' selected' : '';
+    return `<option value="${escapeHtml(level)}"${sel}>${escapeHtml(level)}</option>`;
+  }).join('');
+}
+function buildTempRowCoreHtml(opts) {
+  return [
+    `<div class="rc-col rc-seq"><span class="drag-icon">⋮⋮</span><span class="person-seq">${opts.seqNo}</span><button type="button" class="temp-row-delete-btn" title="刪除臨時列" aria-label="刪除臨時列">×</button></div>`,
+    `<div class="rc-col rc-level"><select class="temp-row-level-select" aria-label="戰力">${buildTempRowLevelOptions(opts.displayLevel)}</select><span class="temp-row-badge">臨時</span></div>`,
+    `<div class="rc-col rc-name"><input type="text" class="temp-row-name-input" placeholder="姓名" aria-label="姓名" autocomplete="off" value="${escapeHtml(opts.displayName || '')}" /><span class="temp-row-code">${escapeHtml(opts.code || '')}</span></div>`,
+    `<div class="rc-col rc-shift"><input type="text" class="temp-row-shift-input" placeholder="班別" aria-label="班別" autocomplete="off" value="${escapeHtml(opts.shift || '')}" /></div>`
+  ];
+}
+function buildTempNormalRowHtml(opts) {
+  return buildTempRowCoreHtml(opts).join('');
+}
+function buildTempRollCallRowHtml(opts) {
+  const blankOpt = '<option value=""></option>';
+  const adjInvalid = getAdjustedShiftInputStatus(opts.adjustedShift) === 'invalid';
+  return buildTempRowCoreHtml(opts).concat([
+    `<div class="rc-col rc-adj"><div class="shift-field-wrap"><input type="text" class="adjusted-shift-input${adjInvalid ? ' is-invalid' : ''}" title="${adjInvalid ? '無效班別/假別' : '調班班別'}" aria-label="調班班別" autocomplete="off" value="${escapeHtml(opts.adjustedShift || '')}" /><span class="adjusted-shift-input-hint"${adjInvalid ? '' : ' hidden'}>無效班別/假別</span></div></div>`,
+    `<div class="rc-col rc-radio"><input type="text" class="person-radio-input" title="對講機號碼" aria-label="對講機號碼" inputmode="numeric" autocomplete="off" value="${escapeHtml(opts.radioNo)}" /></div>`,
+    `<div class="rc-col rc-ircs"><input type="text" class="person-ircs-input" title="IRCS號碼" aria-label="IRCS號碼" inputmode="numeric" autocomplete="off" value="${escapeHtml(opts.ircsNo)}" /></div>`,
+    `<div class="rc-col rc-next"><select class="next-shift-select" title="隔日班別" aria-label="隔日班別">${blankOpt}${opts.nextShiftOptions}</select></div>`,
+    `<div class="rc-col rc-out"><label class="person-rollcall-check" title="下班"><input type="checkbox" class="clocked-out-check" ${opts.clockedOut ? 'checked' : ''} /></label></div>`
+  ]).join('');
+}
+function bindTempRowEditorEvents(left, personIndex) {
+  const person = people[personIndex];
+  if (!person || !isTempControlRow(person)) return;
+  left.querySelector('.temp-row-name-input')?.addEventListener('input', e => {
+    people[personIndex].name = e.target.value;
+    markUnsynced();
+  });
+  left.querySelector('.temp-row-level-select')?.addEventListener('change', e => {
+    people[personIndex].level = e.target.value;
+    renderRows();
+    markUnsynced();
+  });
+  left.querySelector('.temp-row-shift-input')?.addEventListener('input', e => {
+    people[personIndex].shift = e.target.value;
+    refreshShiftLabelEl(left, e.target.value, people[personIndex].adjustedShift);
+    refreshRollCallShiftBand(left, personIndex);
+    markUnsynced();
+  });
+  left.querySelector('.temp-row-delete-btn')?.addEventListener('click', e => {
+    e.stopPropagation();
+    e.preventDefault();
+    deleteTempControlRow(personIndex);
+  });
+}
+async function deleteTempControlRow(personIndex) {
+  const person = people[personIndex];
+  if (!person || !isTempControlRow(person)) return;
+  const dutyCount = schedule.filter(s => s.personIndex === personIndex).length;
+  if (dutyCount) {
+    const ok = await appConfirm(
+      `此臨時列已有 ${dutyCount} 筆 duty，刪除後將一併移除。確定要刪除 ${person.code || '臨時列'} 嗎？`,
+      { title: '刪除臨時列', confirmText: '刪除' }
+    );
+    if (!ok) return;
+  }
+  pushUndoSnapshot();
+  schedule = schedule.filter(s => s.personIndex !== personIndex);
+  people.splice(personIndex, 1);
+  schedule.forEach(item => {
+    if (item.personIndex > personIndex) item.personIndex -= 1;
+  });
+  ensurePeopleDisplayOrder();
+  peopleDisplayOrder = peopleDisplayOrder
+    .filter(idx => idx !== personIndex)
+    .map(idx => (idx > personIndex ? idx - 1 : idx));
+  rebuildTemplates();
+  renderPalette();
+  renderRows();
+  markUnsynced();
+  if (typeof syncAssignmentTableFromSchedule === 'function') syncAssignmentTableFromSchedule();
+}
+function addTempControlRow() {
+  pushUndoSnapshot();
+  const personIndex = people.length;
+  people.push(normalizePerson({
+    isTempRow: true,
+    code: nextTempControlRowCode(),
+    name: '',
+    level: '1A',
+    shift: '',
+    personnelId: '',
+    adjustedShift: ''
+  }));
+  insertTempRowIntoDisplayOrder(personIndex);
+  renderRows();
+  markUnsynced();
+}
+function mergePreservedTempRowsAfterRollCallImport(oldPeople, newPeople) {
+  const tempEntries = [];
+  (oldPeople || []).forEach((p, idx) => {
+    if (isTempControlRow(p)) tempEntries.push({ oldIdx: idx, person: p });
+  });
+  if (!tempEntries.length) return newPeople;
+  const merged = newPeople.concat(tempEntries.map(e => normalizePerson({ ...e.person, isTempRow: true })));
+  const baseLen = newPeople.length;
+  tempEntries.forEach((e, i) => {
+    schedule.forEach(item => {
+      if (item.personIndex === e.oldIdx) item.personIndex = baseLen + i;
+    });
+  });
+  return merged;
+}
 function getStableShiftRows() {
   return getDisplaySortedRows().filter(row => personMatchesShiftView(row.person));
 }
@@ -8073,6 +8296,7 @@ function buildRollCallNextShiftSelectOptions(selected) {
   return html;
 }
 function personMatchesShiftView(person) {
+  if (isTempControlRow(person)) return true;
   return getShiftType(getShiftFilterKey(person)) === activeShiftView;
 }
 function getViewStartMin() {
@@ -11837,7 +12061,7 @@ function initErpNavToggle() {
 function erpInitSlots() {
   const sidebar = document.querySelector('#erpPageSchedule .sidebar');
   if (!sidebar) return;
-  ['importStaffDbBtn', 'staffDbImportInput', 'importExcelBtn', 'excelImportInput', 'resetBtn', 'flightEditorPanel'].forEach(id => {
+  ['importStaffDbBtn', 'staffDbImportInput', 'importExcelBtn', 'excelImportInput', 'resetBtn', 'addTempControlRowBtn', 'flightEditorPanel'].forEach(id => {
     const el = document.getElementById(id);
     if (el) erpRememberHome(el);
   });
@@ -15416,7 +15640,8 @@ function normalizePerson(p) {
     radioNo: p.radioNo || '',
     ircsNo: p.ircsNo || '',
     nextDayShift: p.nextDayShift || '',
-    clockedOut: !!p.clockedOut
+    clockedOut: !!p.clockedOut,
+    isTempRow: !!p.isTempRow
   };
 }
 function normalizeText(v) {
@@ -15482,6 +15707,7 @@ function mergePeopleWithStaffDirectory(list) {
   if (!Array.isArray(list) || !list.length) return list;
   const ref = getScheduleReferenceDate();
   return list.map(p => {
+    if (p.isTempRow) return p;
     const rec = findStaffPersonnelByPerson(p);
     if (!rec) return p;
     const snap = getStaffSnapshotAtDate(rec.personnelId, ref);
@@ -16905,8 +17131,9 @@ function applyRollCallStaffImport() {
     }
     dutyOrphans = remapSchedulePersonIndicesByPersonnelId(oldPeople, newPeople, schedule).orphans;
   }
-  people = newPeople;
+  people = mergePreservedTempRowsAfterRollCallImport(oldPeople, newPeople);
   resetPeopleDisplayOrderToAutoSort();
+  restoreTempRowsDisplayOrderBeforeDic();
   rollCallStaffImportApplied = true;
   markUnsynced();
   renderRows();
@@ -22032,6 +22259,7 @@ function renderRows() {
     row.className = 'row';
     if (rowInfo.matchedRow) row.classList.add('flight-match-top');
     else if (searchActive) row.classList.add('search-dim');
+    if (isTempControlRow(rowInfo.person)) row.classList.add('row--temp-row');
 
     const left = document.createElement('div');
     left.className = 'person-cell';
@@ -22044,11 +22272,16 @@ function renderRows() {
     const nextDayShift = rowInfo.person.nextDayShift || '';
     const clockedOut = !!rowInfo.person.clockedOut;
     const seqNo = displayIdx + 1;
+    const isTempRow = isTempControlRow(rowInfo.person);
     const resolvedName = resolveFullName(rowInfo.person);
     const rawName = String(rowInfo.person.name || rowInfo.person.code || '').trim();
-    let displayName = resolvedName || rawName;
-    if (resolvedName && rawName && rawName.length > resolvedName.length) displayName = rawName;
-    const displayLevel = String(rowInfo.person.level || resolveLevel(rowInfo.person) || '').trim();
+    let displayName = isTempRow
+      ? String(rowInfo.person.name || '').trim()
+      : (resolvedName || rawName);
+    if (!isTempRow && resolvedName && rawName && rawName.length > resolvedName.length) displayName = rawName;
+    const displayLevel = isTempRow
+      ? String(rowInfo.person.level || '1A').trim()
+      : String(rowInfo.person.level || resolveLevel(rowInfo.person) || '').trim();
     const shiftType = getShiftType(getShiftFilterKey(rowInfo.person));
     if (shiftType) left.classList.add(`shift-${shiftType}`);
     if (rollCallMode && radioNo && !clockedOut) left.classList.add('on-duty-by-radio');
@@ -22056,30 +22289,52 @@ function renderRows() {
     const nextShiftOptions = buildRollCallNextShiftSelectOptions(nextDayShift);
     if (rollCallMode) {
       left.classList.add('rollcall-grid');
-      left.innerHTML = buildRollCallRowHtml({
-        seqNo,
-        displayLevel,
-        displayName,
-        shift,
-        adjustedShift,
-        hasRest: hasRestForPerson(rowInfo.originalIndex),
-        radioNo,
-        ircsNo,
-        nextShiftOptions,
-        clockedOut
-      });
+      left.innerHTML = isTempRow
+        ? buildTempRollCallRowHtml({
+          seqNo,
+          displayLevel,
+          displayName,
+          code: rowInfo.person.code,
+          shift,
+          adjustedShift,
+          hasRest: hasRestForPerson(rowInfo.originalIndex),
+          radioNo,
+          ircsNo,
+          nextShiftOptions,
+          clockedOut
+        })
+        : buildRollCallRowHtml({
+          seqNo,
+          displayLevel,
+          displayName,
+          shift,
+          adjustedShift,
+          hasRest: hasRestForPerson(rowInfo.originalIndex),
+          radioNo,
+          ircsNo,
+          nextShiftOptions,
+          clockedOut
+        });
     } else {
       left.classList.add('normal-grid');
-      left.innerHTML = buildNormalRowHtml({
-        seqNo,
-        displayLevel,
-        displayName,
-        shift,
-        adjustedShift,
-        hasRest: hasRestForPerson(rowInfo.originalIndex),
-        clockedOut,
-        staffStatusAlert: getStaffStatusAlert(rowInfo.person, getScheduleReferenceDate())
-      }).join('');
+      left.innerHTML = isTempRow
+        ? buildTempNormalRowHtml({
+          seqNo,
+          displayLevel,
+          displayName,
+          code: rowInfo.person.code,
+          shift
+        })
+        : buildNormalRowHtml({
+          seqNo,
+          displayLevel,
+          displayName,
+          shift,
+          adjustedShift,
+          hasRest: hasRestForPerson(rowInfo.originalIndex),
+          clockedOut,
+          staffStatusAlert: getStaffStatusAlert(rowInfo.person, getScheduleReferenceDate())
+        }).join('');
     }
     left.addEventListener('dragstart', e => {
       e.dataTransfer.setData('text/person-row', rowInfo.originalIndex);
@@ -22153,6 +22408,7 @@ function renderRows() {
       el.addEventListener('mousedown', e => e.stopPropagation());
       el.addEventListener('click', e => e.stopPropagation());
     });
+    if (isTempRow) bindTempRowEditorEvents(left, rowInfo.originalIndex);
     const timeline = document.createElement('div');
     timeline.className = 'timeline';
     timeline.dataset.originalIndex = rowInfo.originalIndex;
@@ -22664,6 +22920,9 @@ document.getElementById('importStaffDbBtn').addEventListener('click', () => {
     return;
   }
   openRollCallStaffImportModal();
+});
+document.getElementById('addTempControlRowBtn')?.addEventListener('click', () => {
+  addTempControlRow();
 });
 document.getElementById('excelImportInput').addEventListener('change', async (e) => {
   const input = e.target;
