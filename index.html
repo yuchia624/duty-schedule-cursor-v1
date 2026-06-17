@@ -20277,6 +20277,102 @@ function durationToWidth(start, end) { return Math.max((end - start) * pxPerMinu
 let paletteDragTemplateId = null;
 let paletteDragSlotRange = null;
 let paletteDropHoverPersonIndex = null;
+let paletteDragTplCache = null;
+let paletteDragRaf = 0;
+let paletteDragPending = null;
+let paletteDragLastGuideKey = '';
+let paletteDragGhostEl = null;
+let paletteDragGhostTimeline = null;
+let paletteDragTargetTimeline = null;
+const paletteDragPerf = {
+  dragoverCount: 0,
+  guideUpdateCount: 0,
+  skippedDuplicateCount: 0,
+  updateGuideTotalMs: 0,
+  syncGuidesTotalMs: 0
+};
+
+function resetPaletteDragPerf() {
+  paletteDragPerf.dragoverCount = 0;
+  paletteDragPerf.guideUpdateCount = 0;
+  paletteDragPerf.skippedDuplicateCount = 0;
+  paletteDragPerf.updateGuideTotalMs = 0;
+  paletteDragPerf.syncGuidesTotalMs = 0;
+}
+
+function logPaletteDragPerfSummary() {
+  const { dragoverCount, guideUpdateCount, skippedDuplicateCount, updateGuideTotalMs, syncGuidesTotalMs } = paletteDragPerf;
+  const avgUpdate = guideUpdateCount ? (updateGuideTotalMs / guideUpdateCount).toFixed(1) : '0';
+  const avgSync = guideUpdateCount ? (syncGuidesTotalMs / guideUpdateCount).toFixed(1) : '0';
+  console.log(
+    `[palette-drag] dragover ${dragoverCount} 次，實際 guide 更新 ${guideUpdateCount} 次，` +
+    `跳過重複 ${skippedDuplicateCount} 次`
+  );
+  if (guideUpdateCount) {
+    console.log(
+      `[palette-drag] updatePaletteDragGuide 平均 ${avgUpdate}ms，` +
+      `syncRowTimelineDragGuides 平均 ${avgSync}ms（共 ${guideUpdateCount} 次更新）`
+    );
+  }
+}
+
+function cancelPaletteDragRaf() {
+  if (!paletteDragRaf) return;
+  cancelAnimationFrame(paletteDragRaf);
+  paletteDragRaf = 0;
+}
+
+function makePaletteDragGuideKey(tpl, timelineEl, clientX) {
+  if (!tpl) return '';
+  if (isPaletteFunctionDrag(tpl)) {
+    const hover = timelineEl ? Number(timelineEl.dataset.originalIndex) : 'none';
+    const range = getTemplateDragTimeRange(tpl, timelineEl, clientX);
+    if (!range) return `fn:${hover}:none`;
+    return `fn:${hover}:${range.start}:${range.end}`;
+  }
+  if (!timelineEl) return 'norow';
+  const hover = Number(timelineEl.dataset.originalIndex);
+  return `fx:${hover}:${tpl.start}:${tpl.end}`;
+}
+
+function setPaletteDragTarget(timelineEl) {
+  if (paletteDragTargetTimeline === timelineEl) return;
+  paletteDragTargetTimeline?.classList.remove('palette-drag-target');
+  paletteDragTargetTimeline = timelineEl || null;
+  timelineEl?.classList.add('palette-drag-target');
+}
+
+function ensurePaletteDragGhost(timelineEl) {
+  if (!paletteDragGhostEl) {
+    paletteDragGhostEl = document.createElement('div');
+    paletteDragGhostEl.className = 'timeline-drag-ghost';
+  }
+  if (timelineEl && paletteDragGhostEl.parentElement !== timelineEl) {
+    timelineEl.appendChild(paletteDragGhostEl);
+  }
+  paletteDragGhostTimeline = timelineEl || null;
+  return paletteDragGhostEl;
+}
+
+function clearPaletteDragGhost() {
+  paletteDragGhostEl?.remove();
+  paletteDragGhostEl = null;
+  paletteDragGhostTimeline = null;
+}
+
+function schedulePaletteTemplateDrag(timelineEl, clientX) {
+  paletteDragPerf.dragoverCount += 1;
+  paletteDragPending = { timeline: timelineEl, clientX };
+  if (paletteDragRaf) return;
+  paletteDragRaf = requestAnimationFrame(() => {
+    paletteDragRaf = 0;
+    const pending = paletteDragPending;
+    paletteDragPending = null;
+    if (!pending || !paletteDragTemplateId) return;
+    const tpl = paletteDragTplCache || templates.find(x => x.id === paletteDragTemplateId);
+    if (tpl) scrollControlPanelForTemplateDrag(tpl, pending.timeline, pending.clientX);
+  });
+}
 function setPaletteDropHover(personIndex) {
   const idx = Number(personIndex);
   if (paletteDropHoverPersonIndex === idx) return;
@@ -20302,7 +20398,11 @@ function updatePaletteDragSlotRange(range) {
   paletteDragSlotRange = range;
 }
 function endPaletteDragSession() {
+  if (paletteDragPerf.dragoverCount > 0) logPaletteDragPerfSummary();
+  cancelPaletteDragRaf();
+  paletteDragPending = null;
   paletteDragTemplateId = null;
+  paletteDragTplCache = null;
   paletteDragSlotRange = null;
   clearPaletteDragGuide();
   renderRows();
@@ -20374,7 +20474,9 @@ function clearPaletteDragGuide() {
   document.getElementById('timesPaletteDragGuide')?.classList.remove('is-active');
   document.querySelectorAll('.timeline-palette-drag-guide').forEach(el => el.remove());
   document.querySelectorAll('.timeline.palette-drag-target').forEach(el => el.classList.remove('palette-drag-target', 'drag-over'));
-  document.querySelectorAll('.timeline-drag-ghost').forEach(el => el.remove());
+  clearPaletteDragGhost();
+  paletteDragTargetTimeline = null;
+  paletteDragLastGuideKey = '';
   clearPaletteDropHover();
 }
 function ensureTimelinePaletteDragGuide(timeline) {
@@ -20390,10 +20492,14 @@ function ensureTimelinePaletteDragGuide(timeline) {
 }
 function syncRowTimelineDragGuides(range) {
   if (!range) return;
+  console.time('syncRowTimelineDragGuides');
+  const t0 = performance.now();
   document.querySelectorAll('#rows .timeline').forEach(timeline => {
     const guide = ensureTimelinePaletteDragGuide(timeline);
     applyPaletteDragGuidePositions(guide, range);
   });
+  paletteDragPerf.syncGuidesTotalMs += performance.now() - t0;
+  console.timeEnd('syncRowTimelineDragGuides');
 }
 function applyPaletteDragGuidePositions(layer, range) {
   if (!layer || !range) return;
@@ -20450,11 +20556,20 @@ function ensureTimesPaletteDragGuide() {
 function clearPaletteDragGuideLines() {
   document.getElementById('timesPaletteDragGuide')?.classList.remove('is-active');
   document.querySelectorAll('.timeline-palette-drag-guide').forEach(el => el.remove());
-  document.querySelectorAll('.timeline-drag-ghost').forEach(el => el.remove());
-  document.querySelectorAll('.timeline.palette-drag-target').forEach(el => el.classList.remove('palette-drag-target'));
+  clearPaletteDragGhost();
+  paletteDragTargetTimeline?.classList.remove('palette-drag-target');
+  paletteDragTargetTimeline = null;
+  paletteDragLastGuideKey = '';
 }
 function updatePaletteDragGuide(tpl, timelineEl, clientX) {
   if (!tpl) return clearPaletteDragGuide();
+  const guideKey = makePaletteDragGuideKey(tpl, timelineEl, clientX);
+  if (guideKey && guideKey === paletteDragLastGuideKey) {
+    paletteDragPerf.skippedDuplicateCount += 1;
+    return;
+  }
+  console.time('updatePaletteDragGuide');
+  const updateStart = performance.now();
   if (isPaletteFunctionDrag(tpl)) {
     clearPaletteDragGuideLines();
     if (timelineEl) {
@@ -20463,48 +20578,67 @@ function updatePaletteDragGuide(tpl, timelineEl, clientX) {
     } else {
       setPaletteDropHover(null);
     }
+    paletteDragLastGuideKey = guideKey;
+    paletteDragPerf.guideUpdateCount += 1;
+    paletteDragPerf.updateGuideTotalMs += performance.now() - updateStart;
+    console.timeEnd('updatePaletteDragGuide');
     return;
   }
   const range = getTemplateDragTimeRange(tpl, timelineEl, clientX);
   if (!range) {
     clearPaletteDragGuideLines();
     setPaletteDropHover(null);
+    paletteDragLastGuideKey = '';
+    paletteDragPerf.guideUpdateCount += 1;
+    paletteDragPerf.updateGuideTotalMs += performance.now() - updateStart;
+    console.timeEnd('updatePaletteDragGuide');
     return;
   }
   const timesLayer = ensureTimesPaletteDragGuide();
   timesLayer?.classList.add('is-active');
   applyPaletteDragGuidePositions(timesLayer, range);
   syncRowTimelineDragGuides(range);
-  document.querySelectorAll('.timeline.palette-drag-target').forEach(el => el.classList.remove('palette-drag-target'));
-  document.querySelectorAll('.timeline-drag-ghost').forEach(el => el.remove());
   if (!timelineEl) {
     setPaletteDropHover(null);
+    paletteDragLastGuideKey = guideKey;
+    paletteDragPerf.guideUpdateCount += 1;
+    paletteDragPerf.updateGuideTotalMs += performance.now() - updateStart;
+    console.timeEnd('updatePaletteDragGuide');
     return;
   }
   const hoverIdx = Number(timelineEl.dataset.originalIndex);
   setPaletteDropHover(Number.isNaN(hoverIdx) ? null : hoverIdx);
-  timelineEl.classList.add('palette-drag-target');
+  setPaletteDragTarget(timelineEl);
   const viewStart = getViewStartMin();
   const viewEnd = getViewEndMin();
   const { start, end } = range;
   const visStart = Math.max(viewStart, start);
   const visEnd = Math.min(viewEnd, end);
   const hasVisible = visEnd > visStart;
-  const ghost = document.createElement('div');
-  ghost.className = 'timeline-drag-ghost';
+  const ghost = ensurePaletteDragGhost(timelineEl);
   const label = tpl.role === '休' ? '休' : (tpl.compactLabel || tpl.label || tpl.role);
   const timeLabel = `${minutesToTime(start % 1440)}–${minutesToTime(end % 1440)}`;
+  ghost.classList.toggle('timeline-drag-ghost--offscreen', !hasVisible);
   if (hasVisible) {
     ghost.style.left = timeToLeft(visStart) + 'px';
     ghost.style.width = Math.max((visEnd - visStart) * pxPerMinute, 50) + 'px';
+    ghost.style.right = '';
     ghost.innerHTML = `<span class="timeline-drag-ghost-label">${escapeHtml(label)} · ${timeLabel}</span>`;
   } else {
-    ghost.classList.add('timeline-drag-ghost--offscreen');
-    if (end <= viewStart) ghost.style.left = '0';
-    else ghost.style.right = '0';
+    ghost.style.width = '';
+    if (end <= viewStart) {
+      ghost.style.left = '0';
+      ghost.style.right = '';
+    } else {
+      ghost.style.left = '';
+      ghost.style.right = '0';
+    }
     ghost.innerHTML = `<span class="timeline-drag-ghost-label">${timeLabel}</span>`;
   }
-  timelineEl.appendChild(ghost);
+  paletteDragLastGuideKey = guideKey;
+  paletteDragPerf.guideUpdateCount += 1;
+  paletteDragPerf.updateGuideTotalMs += performance.now() - updateStart;
+  console.timeEnd('updatePaletteDragGuide');
 }
 function scrollControlPanelForTemplateDrag(tpl, timelineEl, clientX) {
   if (!tpl) return;
@@ -21291,7 +21425,10 @@ function makeChip(t, paletteRoleContext = '') {
     if (!chip.draggable) { e.preventDefault(); return; }
     if (e.target.closest('.duty-chip-delete-btn') || e.target.closest('.duty-chip-edit-btn')) { e.preventDefault(); return; }
     e.dataTransfer.setData('text/template', t.id);
+    resetPaletteDragPerf();
     paletteDragTemplateId = t.id;
+    paletteDragTplCache = t;
+    paletteDragLastGuideKey = '';
     if (isPaletteFunctionDrag(t)) {
       updatePaletteDragSlotRange(null);
     } else {
@@ -21850,9 +21987,9 @@ function bindTimelinePaletteDrop(timeline) {
   timeline.addEventListener('dragover', e => {
     if (!e.dataTransfer.types.includes('text/template')) return;
     e.preventDefault();
+    e.stopPropagation();
     timeline.classList.add('drag-over');
-    const tpl = templates.find(x => x.id === paletteDragTemplateId);
-    if (tpl) scrollControlPanelForTemplateDrag(tpl, timeline, e.clientX);
+    schedulePaletteTemplateDrag(timeline, e.clientX);
   });
   timeline.addEventListener('dragleave', e => {
     if (e.currentTarget.contains(e.relatedTarget)) return;
@@ -22437,10 +22574,8 @@ function initPaletteDragAutoScroll() {
   panel.addEventListener('dragover', e => {
     if (!paletteDragTemplateId || !e.dataTransfer.types.includes('text/template')) return;
     e.preventDefault();
-    const tpl = templates.find(x => x.id === paletteDragTemplateId);
-    if (!tpl) return;
-    const timeline = e.target.closest('.timeline');
-    scrollControlPanelForTemplateDrag(tpl, timeline, e.clientX);
+    if (e.target.closest('.timeline')) return;
+    schedulePaletteTemplateDrag(null, e.clientX);
   });
   document.addEventListener('dragend', () => {
     if (paletteDragTemplateId) endPaletteDragSession();
