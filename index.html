@@ -20281,6 +20281,8 @@ let paletteDragTplCache = null;
 let paletteDragRaf = 0;
 let paletteDragPending = null;
 let paletteDragLastGuideKey = '';
+let paletteDragSessionActive = false;
+let paletteDragSessionEnded = false;
 let paletteDragGhostEl = null;
 let paletteDragGhostTimeline = null;
 let paletteDragTargetTimeline = null;
@@ -20398,12 +20400,16 @@ function updatePaletteDragSlotRange(range) {
   paletteDragSlotRange = range;
 }
 function endPaletteDragSession() {
-  if (paletteDragPerf.dragoverCount > 0) logPaletteDragPerfSummary();
+  if (paletteDragSessionEnded) return;
+  paletteDragSessionEnded = true;
+  if (paletteDragSessionActive || paletteDragTemplateId) logPaletteDragPerfSummary();
   cancelPaletteDragRaf();
   paletteDragPending = null;
   paletteDragTemplateId = null;
   paletteDragTplCache = null;
   paletteDragSlotRange = null;
+  paletteDragSessionActive = false;
+  resetPaletteDragPerf();
   clearPaletteDragGuide();
   renderRows();
 }
@@ -21426,9 +21432,12 @@ function makeChip(t, paletteRoleContext = '') {
     if (e.target.closest('.duty-chip-delete-btn') || e.target.closest('.duty-chip-edit-btn')) { e.preventDefault(); return; }
     e.dataTransfer.setData('text/template', t.id);
     resetPaletteDragPerf();
+    paletteDragSessionActive = true;
+    paletteDragSessionEnded = false;
     paletteDragTemplateId = t.id;
     paletteDragTplCache = t;
     paletteDragLastGuideKey = '';
+    console.log('[palette-drag] 開始拖曳', t.compactLabel || t.label || t.role || t.id);
     if (isPaletteFunctionDrag(t)) {
       updatePaletteDragSlotRange(null);
     } else {
