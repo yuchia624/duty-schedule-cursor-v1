@@ -20696,6 +20696,73 @@ function applyPaletteGridColumns(palette, items) {
 }
 const DUTY_CHIP_LABEL_MAX_PX = 15;
 const DUTY_CHIP_LABEL_MIN_PX = 10;
+const DUTY_CHIP_LABEL_SKIP_LEN = 6;
+const dutyChipLabelFitStats = {
+  calls: 0,
+  skippedShort: 0,
+  binarySearchIterations: 0,
+  binarySearchCount: 0
+};
+
+function resetDutyChipLabelFitStats() {
+  dutyChipLabelFitStats.calls = 0;
+  dutyChipLabelFitStats.skippedShort = 0;
+  dutyChipLabelFitStats.binarySearchIterations = 0;
+  dutyChipLabelFitStats.binarySearchCount = 0;
+}
+
+function logDutyChipLabelFitStats() {
+  const avgBinary = dutyChipLabelFitStats.binarySearchCount
+    ? (dutyChipLabelFitStats.binarySearchIterations / dutyChipLabelFitStats.binarySearchCount).toFixed(1)
+    : '0';
+  console.log(
+    `[duty-chip-fit] 統計 fitDutyChipLabel 呼叫 ${dutyChipLabelFitStats.calls} 次，` +
+    `跳過短 label ${dutyChipLabelFitStats.skippedShort} 次，` +
+    `二分搜尋平均 ${avgBinary} 次迭代（${dutyChipLabelFitStats.binarySearchCount} 個需縮字）`
+  );
+}
+
+function fitDutyChipLabel(chip) {
+  dutyChipLabelFitStats.calls += 1;
+  if (!chip?.classList.contains('duty-chip')) return;
+  const strong = chip.querySelector(':scope > strong');
+  if (!strong) return;
+  const label = String(strong.textContent || '').trim();
+  if (!label) return;
+  const remainTitle = chip.title && chip.title.includes('尚可排') ? `${chip.title} · ` : '';
+  strong.title = `${remainTitle}${label}`;
+  if (label.length <= DUTY_CHIP_LABEL_SKIP_LEN) {
+    dutyChipLabelFitStats.skippedShort += 1;
+    return;
+  }
+  const style = getComputedStyle(chip);
+  const padL = parseFloat(style.paddingLeft) || 0;
+  const padR = parseFloat(style.paddingRight) || 0;
+  const maxWidth = chip.clientWidth - padL - padR;
+  if (maxWidth <= 0) return;
+  const minStep = Math.round(DUTY_CHIP_LABEL_MIN_PX * 2);
+  const maxStep = Math.round(DUTY_CHIP_LABEL_MAX_PX * 2);
+  strong.style.fontSize = `${DUTY_CHIP_LABEL_MAX_PX}px`;
+  if (strong.scrollWidth <= maxWidth) return;
+  dutyChipLabelFitStats.binarySearchCount += 1;
+  let low = minStep;
+  let high = maxStep;
+  let best = minStep;
+  let iterations = 0;
+  while (low <= high) {
+    iterations += 1;
+    const mid = Math.floor((low + high) / 2);
+    strong.style.fontSize = `${mid / 2}px`;
+    if (strong.scrollWidth <= maxWidth) {
+      best = mid;
+      low = mid + 1;
+    } else {
+      high = mid - 1;
+    }
+  }
+  dutyChipLabelFitStats.binarySearchIterations += iterations;
+  strong.style.fontSize = `${best / 2}px`;
+}
 function appendDutyChipSlotBadge(chip, count, titleHint) {
   if (!count || count <= 0) return;
   const badge = document.createElement('span');
@@ -20703,26 +20770,6 @@ function appendDutyChipSlotBadge(chip, count, titleHint) {
   badge.setAttribute('aria-label', titleHint || `尚可排 ${count} 人`);
   badge.textContent = String(count);
   chip.appendChild(badge);
-}
-function fitDutyChipLabel(chip) {
-  if (!chip?.classList.contains('duty-chip')) return;
-  const strong = chip.querySelector(':scope > strong');
-  if (!strong) return;
-  const label = String(strong.textContent || '').trim();
-  if (!label) return;
-  const style = getComputedStyle(chip);
-  const padL = parseFloat(style.paddingLeft) || 0;
-  const padR = parseFloat(style.paddingRight) || 0;
-  const maxWidth = chip.clientWidth - padL - padR;
-  if (maxWidth <= 0) return;
-  let size = DUTY_CHIP_LABEL_MAX_PX;
-  strong.style.fontSize = `${size}px`;
-  while (size > DUTY_CHIP_LABEL_MIN_PX && strong.scrollWidth > maxWidth) {
-    size -= 0.5;
-    strong.style.fontSize = `${size}px`;
-  }
-  const remainTitle = chip.title && chip.title.includes('尚可排') ? `${chip.title} · ` : '';
-  strong.title = `${remainTitle}${label}`;
 }
 const DUTY_CHIP_LABEL_FIT_BATCH_SIZE = 18;
 let dutyChipLabelFitJobId = 0;
@@ -20779,6 +20826,7 @@ function finishDutyChipLabelFit(jobId) {
       `[duty-chip-fit] 完成 job #${job.id} 共 ${job.total} chip，` +
       `${job.batchNo} 批，每批最多 ${DUTY_CHIP_LABEL_FIT_BATCH_SIZE} 個`
     );
+    logDutyChipLabelFitStats();
   }
   console.timeEnd('fitAllDutyChipLabels');
   dutyChipLabelFitTiming = false;
@@ -20796,6 +20844,7 @@ function fitAllDutyChipLabels(root, jobId) {
     return;
   }
   console.log(`[duty-chip-fit] 開始 job #${jobId}，共 ${chips.length} chip，每批 ${DUTY_CHIP_LABEL_FIT_BATCH_SIZE} 個`);
+  resetDutyChipLabelFitStats();
   let index = 0;
   const runBatch = deadline => {
     if (jobId !== dutyChipLabelFitJobId) return;
