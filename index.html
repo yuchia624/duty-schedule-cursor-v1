@@ -921,7 +921,7 @@
     flex:1 1 auto; min-width:0; width:0; max-width:56px; padding:2px 4px;
     border:1px solid #d1d5db; border-radius:6px; font-size:11px; background:#fff;
   }
-  .adjusted-shift-select, .adjusted-shift-input, .next-shift-select {
+  .adjusted-shift-select, .adjusted-shift-input, .next-shift-input {
     width:48px; padding:2px 4px; border:1px solid #d1d5db; border-radius:8px; font-size:11px; background:#fff;
   }
   .person-rollcall-check {
@@ -990,10 +990,12 @@
   }
   .normal-grid .rc-col.rc-seq {
     min-width: 36px;
+    display: flex;
     flex-direction: row;
     justify-content: center;
     align-items: center;
     gap: 2px;
+    flex-wrap: nowrap;
     line-height: 1;
   }
   .normal-grid .rc-col.rc-level {
@@ -1006,6 +1008,11 @@
     padding: 2px 3px;
     font-size: 11px;
     line-height: 1.1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    text-align: center;
+    box-sizing: border-box;
   }
   .normal-grid .rc-col.rc-seq .person-seq { font-size: 13px; font-weight: 800; color: #94a3b8; line-height: 1; flex: 0 0 auto; }
   .normal-grid .rc-col.rc-seq .drag-icon { font-size: 11px; color: #9ca3af; line-height: 1; flex: 0 0 auto; }
@@ -1050,22 +1057,38 @@
     text-overflow: ellipsis;
     white-space: nowrap;
   }
-  .row.row--temp-row .person-cell {
-    background: linear-gradient(90deg, #fffbeb 0%, #fff 28%);
+  .board.roll-call-mode .row.row--temp-row .person-cell {
+    background: #fffbeb;
     box-shadow: inset 3px 0 0 #f59e0b;
   }
-  .temp-row-badge {
-    display: inline-block;
-    margin-top: 2px;
-    padding: 1px 5px;
-    border-radius: 4px;
-    font-size: 10px;
-    font-weight: 800;
-    line-height: 1.2;
-    color: #b45309;
-    background: #fef3c7;
-    border: 1px solid #fcd34d;
-    white-space: nowrap;
+  .board.roll-call-mode .row.row--temp-row .person-cell.shift-early {
+    background: #ecfdf5;
+    box-shadow: inset 3px 0 0 #f59e0b;
+  }
+  .board.roll-call-mode .row.row--temp-row .person-cell.shift-late {
+    background: #eff6ff;
+    box-shadow: inset 3px 0 0 #f59e0b;
+  }
+  .board.roll-call-mode .row.row--temp-row .rollcall-grid .rc-col .temp-row-name-input,
+  .board.roll-call-mode .row.row--temp-row .rollcall-grid .rc-col .temp-row-shift-input,
+  .board.roll-call-mode .row.row--temp-row .rollcall-grid .rc-col .temp-row-level-select,
+  .board.roll-call-mode .row.row--temp-row .rollcall-grid .rc-col .next-shift-input,
+  .board.roll-call-mode .row.row--temp-row .rollcall-grid .rc-col .adjusted-shift-input {
+    background: #fffbeb;
+  }
+  .board.roll-call-mode .row.row--temp-row .person-cell.shift-early .rollcall-grid .rc-col .temp-row-name-input,
+  .board.roll-call-mode .row.row--temp-row .person-cell.shift-early .rollcall-grid .rc-col .temp-row-shift-input,
+  .board.roll-call-mode .row.row--temp-row .person-cell.shift-early .rollcall-grid .rc-col .temp-row-level-select,
+  .board.roll-call-mode .row.row--temp-row .person-cell.shift-early .rollcall-grid .rc-col .next-shift-input,
+  .board.roll-call-mode .row.row--temp-row .person-cell.shift-early .rollcall-grid .rc-col .adjusted-shift-input {
+    background: #f0fdf4;
+  }
+  .board.roll-call-mode .row.row--temp-row .person-cell.shift-late .rollcall-grid .rc-col .temp-row-name-input,
+  .board.roll-call-mode .row.row--temp-row .person-cell.shift-late .rollcall-grid .rc-col .temp-row-shift-input,
+  .board.roll-call-mode .row.row--temp-row .person-cell.shift-late .rollcall-grid .rc-col .temp-row-level-select,
+  .board.roll-call-mode .row.row--temp-row .person-cell.shift-late .rollcall-grid .rc-col .next-shift-input,
+  .board.roll-call-mode .row.row--temp-row .person-cell.shift-late .rollcall-grid .rc-col .adjusted-shift-input {
+    background: #eff6ff;
   }
   .temp-row-name-input,
   .temp-row-shift-input {
@@ -1088,33 +1111,149 @@
     font-weight: 800;
     background: #fff;
   }
-  .temp-row-code {
-    display: block;
-    margin-top: 2px;
-    font-size: 10px;
-    font-weight: 700;
-    color: #94a3b8;
-    line-height: 1.1;
+  .temp-row-name-wrap {
+    position: relative;
+    width: 100%;
+    min-width: 0;
   }
-  .temp-row-delete-btn {
-    margin-left: 2px;
-    padding: 0 4px;
+  .person-cell:has(.temp-row-name-suggest),
+  .person-cell.name-suggest-open,
+  .row:has(.temp-row-name-suggest),
+  .row.name-suggest-open,
+  .rollcall-grid .rc-col.rc-name:has(.temp-row-name-suggest),
+  .rollcall-grid .rc-col.rc-name.name-suggest-open,
+  .normal-grid .rc-col.rc-name:has(.temp-row-name-suggest),
+  .normal-grid .rc-col.rc-name.name-suggest-open {
+    overflow: visible;
+    z-index: 200 !important;
+  }
+  .schedule-row-delete-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: 1px;
+    padding: 0;
     border: none;
     border-radius: 4px;
     background: transparent;
     color: #94a3b8;
-    font-size: 14px;
-    line-height: 1;
     cursor: pointer;
+    flex: 0 0 auto;
+    width: 16px;
+    height: 16px;
+    line-height: 0;
   }
-  .temp-row-delete-btn:hover {
+  .schedule-row-delete-btn svg {
+    width: 13px;
+    height: 13px;
+    display: block;
+  }
+  .schedule-row-delete-btn:hover {
     color: #dc2626;
     background: #fee2e2;
   }
-  .normal-grid .rc-col.rc-level .temp-row-badge,
-  .rollcall-grid .rc-col.rc-level .temp-row-badge {
+  .rollcall-grid .rc-col.rc-seq {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1px;
+    flex-wrap: nowrap;
+  }
+  .rollcall-grid .rc-col .temp-row-level-select,
+  .rollcall-grid .rc-col .temp-row-name-input,
+  .rollcall-grid .rc-col .temp-row-shift-input,
+  .rollcall-grid .rc-col .next-shift-input {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    height: 28px;
+    padding: 2px 6px;
+    box-sizing: border-box;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    font-size: 11px;
+    font-weight: 800;
+    background: #fff;
+    line-height: 1.2;
+  }
+  .rollcall-grid .rc-col .temp-row-level-select {
+    padding: 2px 0;
+    font-size: 10px;
+    width: 44px;
+    min-width: 44px;
+  }
+  .normal-grid .rc-col.rc-level .temp-row-level-select {
+    width: 100%;
+  }
+  .rollcall-grid .rc-col.rc-shift .shift-field-wrap {
+    width: auto;
+    max-width: 52px;
+    flex: 0 0 auto;
+  }
+  .rollcall-grid .rc-col.rc-shift .temp-row-shift-input {
+    width: 48px;
+    min-width: 36px;
+  }
+  .temp-row-shift-empty-wrap {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    min-width: 36px;
+    max-width: 100%;
+  }
+  .temp-row-shift-empty-wrap .temp-row-shift-empty-label {
+    flex: 0 0 auto;
+    pointer-events: none;
+  }
+  .temp-row-shift-empty-wrap .shift-field-wrap {
+    position: absolute;
+    inset: 0;
+    width: auto;
+    max-width: none;
+  }
+  .temp-row-shift-empty-wrap .temp-row-shift-input {
+    width: 100%;
+    min-width: 36px;
+    height: 100%;
+    opacity: 0;
+    padding: 2px 6px;
+    border: 1px solid transparent;
+    background: transparent;
+    cursor: text;
+  }
+  .temp-row-shift-empty-wrap:focus-within .temp-row-shift-input,
+  .temp-row-shift-empty-wrap.has-value .temp-row-shift-input {
+    opacity: 1;
+    border-color: #d1d5db;
+    background: #fff;
+  }
+  .temp-row-shift-empty-wrap:focus-within,
+  .temp-row-shift-empty-wrap.has-value {
+    min-width: 52px;
+  }
+  .temp-row-shift-empty-wrap:focus-within .shift-field-wrap,
+  .temp-row-shift-empty-wrap.has-value .shift-field-wrap {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+  }
+  .temp-row-shift-empty-wrap:focus-within .temp-row-shift-empty-label,
+  .temp-row-shift-empty-wrap.has-value .temp-row-shift-empty-label {
+    display: none;
+  }
+  .temp-row-shift-empty-wrap .adjusted-shift-input-hint {
+    display: none;
+    position: absolute;
+    top: calc(100% + 1px);
+    left: 0;
+    z-index: 3;
+    margin-top: 0;
+    white-space: nowrap;
+    pointer-events: none;
+  }
+  .temp-row-shift-empty-wrap.has-value .adjusted-shift-input-hint:not([hidden]),
+  .temp-row-shift-empty-wrap:focus-within .adjusted-shift-input-hint:not([hidden]) {
     display: block;
-    margin: 2px auto 0;
   }
   .board:not(.roll-call-mode) .normal-grid .normal-shift-tail {
     display: inline-flex;
@@ -1220,7 +1359,7 @@
   .rollcall-grid .rc-col .person-shift-label,
   .rollcall-grid .rc-col .adjusted-shift-select,
   .rollcall-grid .rc-col .adjusted-shift-input,
-  .rollcall-grid .rc-col .next-shift-select,
+  .rollcall-grid .rc-col .next-shift-input,
   .rollcall-grid .rc-col .person-radio-input,
   .rollcall-grid .rc-col .person-ircs-input {
     font-size:inherit;
@@ -1248,21 +1387,40 @@
   .rollcall-grid .rc-col .rest-cell { display:block; width:100%; min-height:1px; }
   .rollcall-grid .rc-col .adjusted-shift-select,
   .rollcall-grid .rc-col .adjusted-shift-input,
-  .rollcall-grid .rc-col .next-shift-select {
+  .rollcall-grid .rc-col .next-shift-input {
     width:100%; min-width:0; max-width:100%; height:28px; padding:2px 6px; box-sizing:border-box;
     border:1px solid #d1d5db; border-radius:8px; font-size:11px; background:#fff;
   }
-  .rollcall-grid .rc-col.rc-adj .adjusted-shift-input {
+  .rollcall-grid .rc-col.rc-adj .adjusted-shift-input,
+  .rollcall-grid .rc-col.rc-next .next-shift-input {
     width:100%; min-width:0; max-width:100%;
   }
   .adjusted-shift-input.is-invalid,
-  .rollcall-grid .rc-col .adjusted-shift-input.is-invalid {
+  .next-shift-input.is-invalid,
+  .rollcall-grid .rc-col .adjusted-shift-input.is-invalid,
+  .rollcall-grid .rc-col .next-shift-input.is-invalid {
     border-color:#f59e0b; background:#fffbeb;
   }
   .adjusted-shift-input-hint {
     display:block; font-size:9px; font-weight:700; color:#b45309; line-height:1.2; margin-top:1px;
   }
   .adjusted-shift-input-hint[hidden] { display:none; }
+  .rollcall-grid .rc-col.rc-shift .shift-field-wrap,
+  .rollcall-grid .rc-col.rc-adj .shift-field-wrap,
+  .rollcall-grid .rc-col.rc-next .shift-field-wrap {
+    position: relative;
+  }
+  .rollcall-grid .rc-col.rc-shift .adjusted-shift-input-hint,
+  .rollcall-grid .rc-col.rc-adj .adjusted-shift-input-hint,
+  .rollcall-grid .rc-col.rc-next .adjusted-shift-input-hint {
+    position: absolute;
+    top: calc(100% + 1px);
+    left: 0;
+    margin-top: 0;
+    z-index: 3;
+    white-space: nowrap;
+    pointer-events: none;
+  }
   .shift-field-wrap {
     position: relative;
     display: flex;
@@ -6972,6 +7130,7 @@ function appendShiftBandToTimeline(timeline, shiftKey) {
 function getAdjustedShiftInputStatus(adjustedShift) {
   const v = String(adjustedShift || '').trim();
   if (!v) return 'empty';
+  if (v === '休') return 'rest';
   if (SHIFT_LEAVE_REQUEST_CODES.includes(v)) return 'leave';
   const def = getShiftDef(v);
   if (def && def.kind === '休假') return 'rest';
@@ -6989,13 +7148,14 @@ function getBandShiftKey(person) {
 function syncAdjustedShiftInputUi(input, value) {
   if (!input) return;
   const invalid = getAdjustedShiftInputStatus(value) === 'invalid';
+  const fieldLabel = input.getAttribute('aria-label') || '調班班別';
   input.classList.toggle('is-invalid', invalid);
-  input.title = invalid ? '無效班別/假別' : '調班班別';
+  input.title = invalid ? '無效班別/假別' : fieldLabel;
   const hint = input.parentElement?.querySelector('.adjusted-shift-input-hint');
   if (hint) hint.hidden = !invalid;
 }
 function getAdjustedShiftSuggestPool() {
-  return [...new Set([...Object.keys(SHIFT_DEFS), ...SHIFT_LEAVE_REQUEST_CODES])];
+  return [...new Set([...Object.keys(SHIFT_DEFS), ...SHIFT_LEAVE_REQUEST_CODES, '休'])];
 }
 function matchAdjustedShiftSuggest(code, query) {
   const q = String(query || '').trim();
@@ -7016,7 +7176,7 @@ function setShiftSuggestOpen(wrap, open) {
   if (!wrap) return;
   const cell = wrap.closest('.person-cell');
   const row = wrap.closest('.row');
-  const col = wrap.closest('.rc-col.rc-adj');
+  const col = wrap.closest('.rc-col.rc-adj, .rc-col.rc-shift, .rc-col.rc-next');
   [cell, row, col, wrap].forEach(el => el?.classList.toggle('shift-suggest-open', !!open));
 }
 function hideAdjustedShiftSuggest(wrap) {
@@ -7330,9 +7490,32 @@ function reorderDisplayRows(fromOriginalIndex, toOriginalIndex) {
   renderRows();
   markUnsynced();
 }
-const TEMP_ROW_LEVEL_OPTIONS = ['M', 'm', '2A', '1A', '學生', '見習', 'DIC', '業督', '事務員'];
+const TEMP_ROW_LEVEL_OPTIONS = ['M', 'm', '2A', '2A*', '1A', '支援', '事務員', 'DIC', '業督'];
 function isTempControlRow(person) {
   return !!person?.isTempRow;
+}
+function tempRowIdentityKeys(person) {
+  if (!isTempControlRow(person)) return [];
+  const keys = [];
+  const code = normalizeText(person.code);
+  if (code) keys.push(code);
+  const name = String(person.name || '').trim();
+  if (name) keys.push(normalizeText(name));
+  return keys;
+}
+function getTempRowDisplayLabel(person) {
+  if (!isTempControlRow(person)) return '';
+  const name = String(person.name || '').trim();
+  const code = String(person.code || '').trim();
+  return name || code;
+}
+function tempRowDisplayLabelTaken(label, excludeIndex) {
+  const key = normalizeText(String(label || '').trim());
+  if (!key) return false;
+  return people.some((p, idx) => {
+    if (idx === excludeIndex || !isTempControlRow(p)) return false;
+    return tempRowIdentityKeys(p).includes(key);
+  });
 }
 function isDicSchedulePerson(person) {
   if (!person || isTempControlRow(person)) return false;
@@ -7341,25 +7524,188 @@ function isDicSchedulePerson(person) {
 }
 function nextTempControlRowCode() {
   let max = 0;
+  const usedCodes = new Set();
   people.forEach(p => {
     if (!isTempControlRow(p)) return;
-    const m = String(p.code || '').match(/^CTR(\d+)$/i);
+    const code = normalizeText(p.code);
+    if (code) usedCodes.add(code);
+    const m = String(p.code || p.name || '').match(/^CTR(\d+)$/i);
     if (m) max = Math.max(max, Number(m[1]) || 0);
   });
-  return `CTR${max + 1}`;
+  let n = max + 1;
+  let candidate = `CTR${n}`;
+  while (usedCodes.has(normalizeText(candidate)) || tempRowDisplayLabelTaken(candidate, -1)) {
+    n += 1;
+    candidate = `CTR${n}`;
+  }
+  return candidate;
+}
+function buildShiftSuggestFieldHtml(className, value, ariaLabel) {
+  const v = String(value || '');
+  const invalid = getAdjustedShiftInputStatus(v) === 'invalid';
+  const invCls = invalid ? ' is-invalid' : '';
+  const hintHidden = invalid ? '' : ' hidden';
+  const title = invalid ? '無效班別/假別' : ariaLabel;
+  return `<div class="shift-field-wrap"><input type="text" class="${className}${invCls}" title="${escapeHtml(title)}" aria-label="${escapeHtml(ariaLabel)}" autocomplete="off" value="${escapeHtml(v)}" /><span class="adjusted-shift-input-hint"${hintHidden}>無效班別/假別</span></div>`;
+}
+function bindShiftSuggestInput(input, wrap, onSync) {
+  if (!input || !wrap) return;
+  const sync = () => {
+    const value = input.value;
+    syncAdjustedShiftInputUi(input, value);
+    onSync(value);
+  };
+  sync();
+  input.addEventListener('input', () => {
+    sync();
+    showAdjustedShiftSuggest(input, wrap);
+  });
+  input.addEventListener('compositionend', () => {
+    sync();
+    showAdjustedShiftSuggest(input, wrap);
+  });
+  input.addEventListener('change', sync);
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Escape') hideAdjustedShiftSuggest(wrap);
+  });
+  input.addEventListener('blur', e => {
+    if (e.relatedTarget?.closest?.('.shift-adjust-suggest')) return;
+    hideAdjustedShiftSuggest(wrap);
+  });
+}
+function filterTempRowStaffNameSuggestions(query) {
+  const q = normalizeText(query);
+  if (!q) return [];
+  if (!staffDirectory.length) rebuildStaffDirectoryCache(getScheduleReferenceDate());
+  const seen = new Set();
+  const out = [];
+  for (const entry of staffDirectory) {
+    if (!entry) continue;
+    const code = normalizeText(entry.code);
+    const name = normalizeText(entry.fullName);
+    if (!((name && name.includes(q)) || (code && code.includes(q)))) continue;
+    const key = String(entry.personnelId || entry.code || '');
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    out.push(entry);
+    if (out.length >= 10) break;
+  }
+  return out;
+}
+function setTempRowNameSuggestOpen(wrap, open) {
+  if (!wrap) return;
+  const cell = wrap.closest('.person-cell');
+  const row = wrap.closest('.row');
+  const col = wrap.closest('.rc-col.rc-name');
+  [wrap, cell, row, col].forEach(el => el?.classList.toggle('name-suggest-open', !!open));
+}
+function hideTempRowNameSuggest(wrap) {
+  wrap?.querySelector('.temp-row-name-suggest')?.remove();
+  setTempRowNameSuggestOpen(wrap, false);
+}
+function tempRowStaffAlreadyOnRoster(entry, excludeIndex) {
+  const pid = String(entry.personnelId || '').trim();
+  const code = normalizeText(entry.code);
+  const fullName = normalizeText(entry.fullName);
+  return people.some((p, idx) => {
+    if (idx === excludeIndex) return false;
+    if (isTempControlRow(p)) {
+      if (pid && String(p.personnelId || '').trim() === pid) return true;
+      const tempName = normalizeText(p.name || p.code);
+      if (fullName && tempName === fullName) return true;
+      if (code && tempName === code) return true;
+      return false;
+    }
+    if (pid && resolvePersonnelId(p) === pid) return true;
+    if (code && normalizeText(p.code) === code) return true;
+    const rosterName = normalizeText(resolveFullName(p) || p.name);
+    if (fullName && rosterName === fullName) return true;
+    return false;
+  });
+}
+function applyStaffSuggestionToTempRow(personIndex, entry) {
+  if (!entry || !people[personIndex]) return;
+  if (tempRowStaffAlreadyOnRoster(entry, personIndex)) {
+    appAlert('此人已在今日管制表中，請勿重複加入。', '無法帶入');
+    return;
+  }
+  const person = people[personIndex];
+  const name = String(entry.fullName || entry.code || '').trim();
+  if (name && tempRowDisplayLabelTaken(name, personIndex)) {
+    appAlert('已有其他支援人員使用此名稱，請改用不同名稱。', '名稱重複');
+    return;
+  }
+  person.personnelId = String(entry.personnelId || '').trim();
+  person.name = name;
+  if (entry.level) person.level = String(entry.level).trim();
+  renderRows();
+  markUnsynced();
+}
+function showTempRowNameSuggest(input, wrap, personIndex) {
+  if (!input || !wrap) return;
+  hideTempRowNameSuggest(wrap);
+  const items = filterTempRowStaffNameSuggestions(input.value);
+  if (!items.length) return;
+  const menu = document.createElement('div');
+  menu.className = 'shift-adjust-suggest temp-row-name-suggest';
+  items.forEach(entry => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    const code = String(entry.code || '').trim();
+    const name = String(entry.fullName || code).trim();
+    btn.textContent = code && name !== code ? `${name}（${code}）` : name;
+    btn.addEventListener('mousedown', e => {
+      e.preventDefault();
+      applyStaffSuggestionToTempRow(personIndex, entry);
+      hideTempRowNameSuggest(wrap);
+    });
+    menu.appendChild(btn);
+  });
+  wrap.appendChild(menu);
+  setTempRowNameSuggestOpen(wrap, true);
+}
+function syncTempRowIdentity(personIndex, name) {
+  const person = people[personIndex];
+  if (!person?.isTempRow) return true;
+  const v = String(name ?? '').trim();
+  if (v && tempRowDisplayLabelTaken(v, personIndex)) {
+    appAlert('已有其他支援人員使用此名稱，請改用不同名稱。', '名稱重複');
+    return false;
+  }
+  person.name = v;
+  person.personnelId = '';
+  return true;
+}
+function syncTempRowShiftTypeClass(left, personIndex) {
+  if (!left) return;
+  [...left.classList].filter(cls => cls.startsWith('shift-')).forEach(cls => left.classList.remove(cls));
+  const shiftType = getPersonCellShiftType(people[personIndex]);
+  if (shiftType) left.classList.add(`shift-${shiftType}`);
 }
 function insertTempRowIntoDisplayOrder(personIndex) {
   ensurePeopleDisplayOrder();
+  const tempPerson = people[personIndex];
+  const tempBand = getPersonShiftBand(tempPerson);
   peopleDisplayOrder = peopleDisplayOrder.filter(idx => idx !== personIndex);
   let insertAt = peopleDisplayOrder.length;
   for (let i = 0; i < peopleDisplayOrder.length; i++) {
     const p = people[peopleDisplayOrder[i]];
-    if (p && isDicSchedulePerson(p)) {
-      insertAt = i;
-      break;
+    if (!p || !isDicSchedulePerson(p)) continue;
+    if (tempBand && getPersonShiftBand(p) !== tempBand) continue;
+    insertAt = i;
+    break;
+  }
+  if (insertAt === peopleDisplayOrder.length && tempBand) {
+    let lastInBand = -1;
+    for (let i = 0; i < peopleDisplayOrder.length; i++) {
+      const p = people[peopleDisplayOrder[i]];
+      if (p && getPersonShiftBand(p) === tempBand) lastInBand = i;
     }
+    if (lastInBand >= 0) insertAt = lastInBand + 1;
   }
   while (insertAt < peopleDisplayOrder.length && isTempControlRow(people[peopleDisplayOrder[insertAt]])) {
+    const otherBand = getPersonShiftBand(people[peopleDisplayOrder[insertAt]]);
+    if (tempBand && otherBand !== tempBand) break;
     insertAt += 1;
   }
   peopleDisplayOrder.splice(insertAt, 0, personIndex);
@@ -7373,100 +7719,346 @@ function tempRowHasScheduleDuties(personIndex) {
   return schedule.some(s => s.personIndex === personIndex);
 }
 function buildTempRowLevelOptions(selectedLevel) {
-  const selected = String(selectedLevel || '1A').trim();
+  const selected = String(selectedLevel || '支援').trim();
   return TEMP_ROW_LEVEL_OPTIONS.map(level => {
     const sel = level === selected ? ' selected' : '';
     return `<option value="${escapeHtml(level)}"${sel}>${escapeHtml(level)}</option>`;
   }).join('');
 }
-function buildTempRowCoreHtml(opts) {
+function buildScheduleRowDeleteBtnHtml(person) {
+  const token = getPersonDeleteToken(person);
+  if (!token) return '';
+  const payload = encodePersonDeleteToken(token);
+  return `<button type="button" class="schedule-row-delete-btn" data-delete-token="${payload}" title="刪除此人員" aria-label="刪除此人員"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M6 6l1.2 14h9.6L18 6"/></svg></button>`;
+}
+function buildScheduleRowSeqHtml(seqNo, person, showDelete) {
+  const deleteBtn = showDelete && person ? buildScheduleRowDeleteBtnHtml(person) : '';
+  return `<div class="rc-col rc-seq"><span class="person-seq">${seqNo}</span>${deleteBtn}</div>`;
+}
+function encodePersonDeleteToken(token) {
+  return encodeURIComponent(JSON.stringify(token));
+}
+function parsePersonDeleteToken(raw) {
+  if (!raw) return null;
+  try {
+    const token = JSON.parse(decodeURIComponent(raw));
+    if (!token || typeof token !== 'object') return null;
+    if (token.kind === 'temp') {
+      return { kind: 'temp', code: String(token.code || '').trim() };
+    }
+    if (token.kind === 'formal') {
+      const personnelId = String(token.personnelId || '').trim();
+      if (personnelId) return { kind: 'formal', personnelId };
+      return {
+        kind: 'formal',
+        code: String(token.code || '').trim(),
+        name: String(token.name || '').trim()
+      };
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+function getPersonDeleteToken(person) {
+  if (!person) return null;
+  if (isTempControlRow(person)) {
+    return { kind: 'temp', code: String(person.code || person.name || '').trim() };
+  }
+  const personnelId = String(person.personnelId || '').trim() || resolvePersonnelId(person);
+  if (personnelId) return { kind: 'formal', personnelId };
+  return {
+    kind: 'formal',
+    code: String(person.code || '').trim(),
+    name: String(resolveFullName(person) || person.name || person.code || '').trim()
+  };
+}
+function personMatchesDeleteToken(person, token) {
+  if (!person || !token) return false;
+  if (token.kind === 'temp') {
+    if (!isTempControlRow(person)) return false;
+    return normalizeText(person.code || person.name) === normalizeText(token.code);
+  }
+  if (token.kind !== 'formal' || isTempControlRow(person)) return false;
+  if (token.personnelId) {
+    const pid = String(resolvePersonnelId(person) || person.personnelId || '').trim();
+    return pid === token.personnelId;
+  }
+  if (!token.code || !token.name) return false;
+  const codeMatch = normalizeText(person.code) === normalizeText(token.code);
+  const nameMatch = normalizeText(resolveFullName(person) || person.name || person.code) === normalizeText(token.name);
+  return codeMatch && nameMatch;
+}
+function resolvePersonDeleteIndex(token) {
+  if (!token) return -1;
+  return people.findIndex(p => personMatchesDeleteToken(p, token));
+}
+function reindexScheduleAfterPersonRemoved(removedIndex) {
+  schedule = schedule.filter(s => s.personIndex !== removedIndex);
+  schedule.forEach(item => {
+    if (item.personIndex > removedIndex) item.personIndex -= 1;
+  });
+}
+function logSchedulePersonDeleteDebug(phase, extra = {}) {
+  console.log('[schedulePersonDelete]', phase, {
+    peopleLength: people.length,
+    tempRows: people.filter(p => p.isTempRow).map(p => ({ code: p.code, name: p.name })),
+    peopleDisplayOrder: Array.isArray(peopleDisplayOrder) ? peopleDisplayOrder.slice() : peopleDisplayOrder,
+    displaySorted: getDisplaySortedRows().map(r => ({
+      idx: r.originalIndex,
+      code: r.person.code,
+      isTemp: !!r.person.isTempRow
+    })),
+    displayRows: getDisplayRows().map(r => ({
+      idx: r.originalIndex,
+      code: r.person.code,
+      isTemp: !!r.person.isTempRow
+    })),
+    ...extra
+  });
+}
+function reindexPeopleDisplayOrderAfterPersonRemoved(removedIndex) {
+  if (!Array.isArray(peopleDisplayOrder) || !peopleDisplayOrder.length) {
+    peopleDisplayOrder = people.length ? computeAutoSortedPersonIndices() : [];
+    restoreTempRowsDisplayOrderBeforeDic();
+    return;
+  }
+  peopleDisplayOrder = peopleDisplayOrder
+    .filter(idx => idx !== removedIndex)
+    .map(idx => (idx > removedIndex ? idx - 1 : idx));
+  const seen = new Set(peopleDisplayOrder);
+  for (let idx = 0; idx < people.length; idx++) {
+    if (!seen.has(idx)) peopleDisplayOrder.push(idx);
+  }
+  if (!isValidPeopleDisplayOrder(peopleDisplayOrder)) {
+    peopleDisplayOrder = people.length ? computeAutoSortedPersonIndices() : [];
+  }
+  restoreTempRowsDisplayOrderBeforeDic();
+}
+function applySchedulePersonDelete(token) {
+  const personIndex = resolvePersonDeleteIndex(token);
+  if (personIndex < 0) return false;
+  const person = people[personIndex];
+  if (!person || !personMatchesDeleteToken(person, token)) return false;
+  const tempCountBefore = people.filter(p => p.isTempRow).length;
+  logSchedulePersonDeleteDebug('before', { token, deleteIndex: personIndex, deleteCode: person.code || person.name });
+  pushUndoSnapshot();
+  reindexScheduleAfterPersonRemoved(personIndex);
+  people.splice(personIndex, 1);
+  reindexPeopleDisplayOrderAfterPersonRemoved(personIndex);
+  rebuildTemplates();
+  renderPalette();
+  renderRows();
+  markUnsynced();
+  if (typeof syncAssignmentTableFromSchedule === 'function') syncAssignmentTableFromSchedule();
+  const tempCountAfter = people.filter(p => p.isTempRow).length;
+  if (token.kind === 'formal' && tempCountAfter < tempCountBefore) {
+    console.warn('[schedulePersonDelete] temp row count dropped after formal delete', {
+      tempCountBefore,
+      tempCountAfter,
+      token
+    });
+  }
+  logSchedulePersonDeleteDebug('after', {
+    token,
+    deletedIndex: personIndex,
+    deletedCode: person.code || person.name,
+    tempCountBefore,
+    tempCountAfter
+  });
+  return true;
+}
+let schedulePersonDeleteInFlight = false;
+let schedulePersonDeleteMutedUntil = 0;
+function initScheduleRowDeleteDelegation() {
+  if (initScheduleRowDeleteDelegation._done) return;
+  initScheduleRowDeleteDelegation._done = true;
+  const rows = document.getElementById('rows');
+  if (!rows) return;
+  rows.addEventListener('click', onScheduleRowDeleteClick, true);
+}
+function onScheduleRowDeleteClick(e) {
+  const btn = e.target.closest?.('.schedule-row-delete-btn');
+  if (!btn || !btn.closest('#rows')) return;
+  e.preventDefault();
+  e.stopPropagation();
+  e.stopImmediatePropagation();
+  if (schedulePersonDeleteInFlight || Date.now() < schedulePersonDeleteMutedUntil) return;
+  schedulePersonDeleteMutedUntil = Date.now() + 800;
+  const token = parsePersonDeleteToken(btn.getAttribute('data-delete-token'));
+  if (!token) return;
+  deleteSchedulePersonRow(token);
+}
+function buildPersonDisplaySeqMap() {
+  const map = new Map();
+  getDisplaySortedRows().forEach((row, idx) => map.set(row.originalIndex, idx + 1));
+  return map;
+}
+function buildTempRollCallShiftHtml(shift) {
+  return buildShiftSuggestFieldHtml('temp-row-shift-input', shift, '原班別');
+}
+function buildNextShiftFieldHtml(value) {
+  return buildShiftSuggestFieldHtml('next-shift-input', value, '隔日班別');
+}
+async function deleteSchedulePersonRow(token) {
+  if (!token || schedulePersonDeleteInFlight) return;
+  schedulePersonDeleteInFlight = true;
+  schedulePersonDeleteMutedUntil = Date.now() + 800;
+  try {
+    const preIndex = resolvePersonDeleteIndex(token);
+    if (preIndex < 0) return;
+    const prePerson = people[preIndex];
+    if (!prePerson || !personMatchesDeleteToken(prePerson, token)) return;
+    const label = isTempControlRow(prePerson)
+      ? String(prePerson.name || prePerson.code || '').trim()
+      : String(resolveFullName(prePerson) || prePerson.name || prePerson.code || '').trim();
+    const displayLabel = label || '此人員';
+    const dutyCount = schedule.filter(s => s.personIndex === preIndex).length;
+    const message = dutyCount
+      ? `此人員已有 ${dutyCount} 筆 duty，刪除後將一併移除。確定刪除此人員？（${displayLabel}）`
+      : `確定刪除此人員？（${displayLabel}）`;
+    const ok = await appConfirm(message, { title: '刪除人員', confirmText: '刪除' });
+    if (!ok) return;
+    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    schedulePersonDeleteMutedUntil = Date.now() + 800;
+    const postIndex = resolvePersonDeleteIndex(token);
+    if (postIndex < 0) return;
+    const postPerson = people[postIndex];
+    if (!postPerson || !personMatchesDeleteToken(postPerson, token)) return;
+    if (!applySchedulePersonDelete(token)) return;
+    schedulePersonDeleteMutedUntil = Date.now() + 800;
+  } finally {
+    schedulePersonDeleteInFlight = false;
+  }
+}
+function buildTempRollCallCoreHtml(opts) {
+  const restCell = buildRestStatusHtml({
+    clockedOut: !!opts.clockedOut,
+    hasRest: opts.hasRest,
+    useRestCell: true,
+    adjustedShift: opts.adjustedShift
+  });
   return [
-    `<div class="rc-col rc-seq"><span class="drag-icon">⋮⋮</span><span class="person-seq">${opts.seqNo}</span><button type="button" class="temp-row-delete-btn" title="刪除臨時列" aria-label="刪除臨時列">×</button></div>`,
-    `<div class="rc-col rc-level"><select class="temp-row-level-select" aria-label="戰力">${buildTempRowLevelOptions(opts.displayLevel)}</select><span class="temp-row-badge">臨時</span></div>`,
-    `<div class="rc-col rc-name"><input type="text" class="temp-row-name-input" placeholder="姓名" aria-label="姓名" autocomplete="off" value="${escapeHtml(opts.displayName || '')}" /><span class="temp-row-code">${escapeHtml(opts.code || '')}</span></div>`,
-    `<div class="rc-col rc-shift"><input type="text" class="temp-row-shift-input" placeholder="班別" aria-label="班別" autocomplete="off" value="${escapeHtml(opts.shift || '')}" /></div>`
+    buildScheduleRowSeqHtml(opts.seqNo, opts.person, !!opts.showRowDelete),
+    '<div class="rc-col rc-grip"><span class="drag-icon">⋮⋮</span></div>',
+    `<div class="rc-col rc-level"><select class="temp-row-level-select" aria-label="戰力">${buildTempRowLevelOptions(opts.displayLevel)}</select></div>`,
+    `<div class="rc-col rc-name"><div class="temp-row-name-wrap name-field-wrap"><input type="text" class="temp-row-name-input" placeholder="姓名" aria-label="姓名" autocomplete="off" value="${escapeHtml(opts.displayName || '')}" /></div></div>`,
+    `<div class="rc-col rc-shift">${buildTempRollCallShiftHtml(opts.shift)}</div>`,
+    `<div class="rc-col rc-rest"><div class="rest-stack">${restCell}</div></div>`
   ];
 }
-function buildTempNormalRowHtml(opts) {
-  return buildTempRowCoreHtml(opts).join('');
-}
 function buildTempRollCallRowHtml(opts) {
-  const blankOpt = '<option value=""></option>';
   const adjInvalid = getAdjustedShiftInputStatus(opts.adjustedShift) === 'invalid';
-  return buildTempRowCoreHtml(opts).concat([
+  return buildTempRollCallCoreHtml(opts).concat([
     `<div class="rc-col rc-adj"><div class="shift-field-wrap"><input type="text" class="adjusted-shift-input${adjInvalid ? ' is-invalid' : ''}" title="${adjInvalid ? '無效班別/假別' : '調班班別'}" aria-label="調班班別" autocomplete="off" value="${escapeHtml(opts.adjustedShift || '')}" /><span class="adjusted-shift-input-hint"${adjInvalid ? '' : ' hidden'}>無效班別/假別</span></div></div>`,
     `<div class="rc-col rc-radio"><input type="text" class="person-radio-input" title="對講機號碼" aria-label="對講機號碼" inputmode="numeric" autocomplete="off" value="${escapeHtml(opts.radioNo)}" /></div>`,
     `<div class="rc-col rc-ircs"><input type="text" class="person-ircs-input" title="IRCS號碼" aria-label="IRCS號碼" inputmode="numeric" autocomplete="off" value="${escapeHtml(opts.ircsNo)}" /></div>`,
-    `<div class="rc-col rc-next"><select class="next-shift-select" title="隔日班別" aria-label="隔日班別">${blankOpt}${opts.nextShiftOptions}</select></div>`,
+    `<div class="rc-col rc-next">${buildNextShiftFieldHtml(opts.nextDayShift)}</div>`,
     `<div class="rc-col rc-out"><label class="person-rollcall-check" title="下班"><input type="checkbox" class="clocked-out-check" ${opts.clockedOut ? 'checked' : ''} /></label></div>`
   ]).join('');
 }
 function bindTempRowEditorEvents(left, personIndex) {
   const person = people[personIndex];
   if (!person || !isTempControlRow(person)) return;
-  left.querySelector('.temp-row-name-input')?.addEventListener('input', e => {
-    people[personIndex].name = e.target.value;
-    markUnsynced();
-  });
+
+  const nameInput = left.querySelector('.temp-row-name-input');
+  const nameWrap = left.querySelector('.temp-row-name-wrap');
+  if (nameInput && nameWrap) {
+    const syncName = () => {
+      const prev = String(people[personIndex]?.name || '').trim();
+      const ok = syncTempRowIdentity(personIndex, nameInput.value);
+      if (!ok) {
+        nameInput.value = prev;
+        return;
+      }
+      markUnsynced();
+    };
+    nameInput.addEventListener('input', () => {
+      syncName();
+      const q = String(nameInput.value || '').trim();
+      if (q.length >= 1) showTempRowNameSuggest(nameInput, nameWrap, personIndex);
+      else hideTempRowNameSuggest(nameWrap);
+    });
+    nameInput.addEventListener('compositionend', () => {
+      syncName();
+      if (String(nameInput.value || '').trim().length >= 1) showTempRowNameSuggest(nameInput, nameWrap, personIndex);
+    });
+    nameInput.addEventListener('keydown', e => {
+      if (e.key === 'Escape') hideTempRowNameSuggest(nameWrap);
+    });
+    nameInput.addEventListener('blur', e => {
+      if (e.relatedTarget?.closest?.('.temp-row-name-suggest')) return;
+      hideTempRowNameSuggest(nameWrap);
+    });
+  }
+
   left.querySelector('.temp-row-level-select')?.addEventListener('change', e => {
     people[personIndex].level = e.target.value;
     renderRows();
     markUnsynced();
   });
-  left.querySelector('.temp-row-shift-input')?.addEventListener('input', e => {
-    people[personIndex].shift = e.target.value;
-    refreshShiftLabelEl(left, e.target.value, people[personIndex].adjustedShift);
-    refreshRollCallShiftBand(left, personIndex);
-    markUnsynced();
-  });
-  left.querySelector('.temp-row-delete-btn')?.addEventListener('click', e => {
-    e.stopPropagation();
-    e.preventDefault();
-    deleteTempControlRow(personIndex);
-  });
-}
-async function deleteTempControlRow(personIndex) {
-  const person = people[personIndex];
-  if (!person || !isTempControlRow(person)) return;
-  const dutyCount = schedule.filter(s => s.personIndex === personIndex).length;
-  if (dutyCount) {
-    const ok = await appConfirm(
-      `此臨時列已有 ${dutyCount} 筆 duty，刪除後將一併移除。確定要刪除 ${person.code || '臨時列'} 嗎？`,
-      { title: '刪除臨時列', confirmText: '刪除' }
-    );
-    if (!ok) return;
+
+  const shiftInput = left.querySelector('.temp-row-shift-input');
+  const shiftWrap = shiftInput?.closest('.shift-field-wrap');
+  if (shiftInput && shiftWrap) {
+    let shiftEditSnapshot = null;
+    bindShiftSuggestInput(shiftInput, shiftWrap, value => {
+      const nextShift = String(value || '');
+      people[personIndex].shift = value;
+      if (!nextShift.trim()) people[personIndex].tempRowView = activeShiftView;
+      syncTempRowShiftTypeClass(left, personIndex);
+      refreshRollCallShiftBand(left, personIndex);
+      refreshRestStatusDisplay(left, personIndex);
+      markUnsynced();
+    });
+    shiftInput.addEventListener('focus', () => {
+      const person = people[personIndex];
+      shiftEditSnapshot = {
+        band: getPersonShiftBand(person),
+        visible: personMatchesShiftView(person)
+      };
+    });
+    shiftInput.addEventListener('blur', e => {
+      if (e.relatedTarget?.closest?.('.shift-adjust-suggest')) return;
+      const person = people[personIndex];
+      if (!person?.isTempRow) return;
+      const band = getPersonShiftBand(person);
+      const visible = personMatchesShiftView(person);
+      const bandChanged = shiftEditSnapshot && shiftEditSnapshot.band !== band;
+      const visibilityChanged = shiftEditSnapshot && shiftEditSnapshot.visible !== visible;
+      if (String(person.shift || '').trim() && bandChanged) {
+        insertTempRowIntoDisplayOrder(personIndex);
+      }
+      if (bandChanged || visibilityChanged) {
+        renderRows();
+      }
+      shiftEditSnapshot = null;
+    });
   }
-  pushUndoSnapshot();
-  schedule = schedule.filter(s => s.personIndex !== personIndex);
-  people.splice(personIndex, 1);
-  schedule.forEach(item => {
-    if (item.personIndex > personIndex) item.personIndex -= 1;
-  });
-  ensurePeopleDisplayOrder();
-  peopleDisplayOrder = peopleDisplayOrder
-    .filter(idx => idx !== personIndex)
-    .map(idx => (idx > personIndex ? idx - 1 : idx));
-  rebuildTemplates();
-  renderPalette();
-  renderRows();
-  markUnsynced();
-  if (typeof syncAssignmentTableFromSchedule === 'function') syncAssignmentTableFromSchedule();
 }
 function addTempControlRow() {
   pushUndoSnapshot();
   const personIndex = people.length;
+  const label = nextTempControlRowCode();
   people.push(normalizePerson({
     isTempRow: true,
-    code: nextTempControlRowCode(),
-    name: '',
-    level: '1A',
+    code: label,
+    name: label,
+    level: '支援',
     shift: '',
     personnelId: '',
-    adjustedShift: ''
+    adjustedShift: '',
+    tempRowView: activeShiftView
   }));
   insertTempRowIntoDisplayOrder(personIndex);
   renderRows();
   markUnsynced();
+  if (rollCallMode) {
+    appSuccess('已新增臨時列', '臨時列');
+  } else {
+    appAlert('已新增臨時列。請開啟點名功能來編輯。', '臨時列');
+  }
+  requestAnimationFrame(() => focusPersonInSchedule(personIndex));
 }
 function mergePreservedTempRowsAfterRollCallImport(oldPeople, newPeople) {
   const tempEntries = [];
@@ -7518,7 +8110,7 @@ function buildPersonRowCoreHtml(opts) {
     adjustedShift: opts.adjustedShift
   });
   return [
-    `<div class="rc-col rc-seq"><span class="person-seq">${opts.seqNo}</span></div>`,
+    buildScheduleRowSeqHtml(opts.seqNo, opts.person, !!opts.showRowDelete),
     '<div class="rc-col rc-grip"><span class="drag-icon">⋮⋮</span></div>',
     `<div class="rc-col rc-level"><span class="badge">${escapeHtml(opts.displayLevel)}</span></div>`,
     `<div class="rc-col rc-name"><span class="person-name">${escapeHtml(opts.displayName)}</span></div>`,
@@ -7567,13 +8159,12 @@ function buildNormalRowHtml(opts) {
   ];
 }
 function buildRollCallRowHtml(opts) {
-  const blankOpt = '<option value=""></option>';
   const adjInvalid = getAdjustedShiftInputStatus(opts.adjustedShift) === 'invalid';
   return buildPersonRowCoreHtml(opts).concat([
     `<div class="rc-col rc-adj"><div class="shift-field-wrap"><input type="text" class="adjusted-shift-input${adjInvalid ? ' is-invalid' : ''}" title="${adjInvalid ? '無效班別/假別' : '調班班別'}" aria-label="調班班別" autocomplete="off" value="${escapeHtml(opts.adjustedShift || '')}" /><span class="adjusted-shift-input-hint"${adjInvalid ? '' : ' hidden'}>無效班別/假別</span></div></div>`,
     `<div class="rc-col rc-radio"><input type="text" class="person-radio-input" title="對講機號碼" aria-label="對講機號碼" inputmode="numeric" autocomplete="off" value="${escapeHtml(opts.radioNo)}" /></div>`,
     `<div class="rc-col rc-ircs"><input type="text" class="person-ircs-input" title="IRCS號碼" aria-label="IRCS號碼" inputmode="numeric" autocomplete="off" value="${escapeHtml(opts.ircsNo)}" /></div>`,
-    `<div class="rc-col rc-next"><select class="next-shift-select" title="隔日班別" aria-label="隔日班別">${blankOpt}${opts.nextShiftOptions}</select></div>`,
+    `<div class="rc-col rc-next">${buildNextShiftFieldHtml(opts.nextDayShift)}</div>`,
     `<div class="rc-col rc-out"><label class="person-rollcall-check" title="下班"><input type="checkbox" class="clocked-out-check" ${opts.clockedOut ? 'checked' : ''} /></label></div>`
   ]).join('');
 }
@@ -7914,7 +8505,9 @@ function getScheduleExportDateText() {
 }
 function getAssignmentPersonCode(item) {
   const p = people[item.personIndex];
-  return p ? String(p.code || p.name || '').trim() : '';
+  if (!p) return '';
+  if (isTempControlRow(p)) return String(p.name || p.code || '').trim();
+  return String(p.code || p.name || '').trim();
 }
 function bindAssignmentCodeClick(span, personIndex) {
   if (personIndex == null || personIndex < 0) return;
@@ -8165,10 +8758,13 @@ function buildControlScheduleSheetRows(orderedRows) {
   orderedRows.forEach((rowInfo, displayIdx) => {
     const person = rowInfo.person;
     const personIndex = rowInfo.originalIndex;
+    const tempLabel = isTempControlRow(person)
+      ? String(person.name || person.code || '').trim()
+      : '';
     const row = [
       displayIdx + 1,
-      excelCell(person.code),
-      excelCell(resolveFullName(person) || person.name),
+      excelCell(isTempControlRow(person) ? tempLabel : person.code),
+      excelCell(isTempControlRow(person) ? tempLabel : (resolveFullName(person) || person.name)),
       excelCell(person.level || resolveLevel(person)),
       excelCell(getShiftFilterKey(person) || person.shift),
       ...timeSlots.map(() => '')
@@ -8281,23 +8877,38 @@ function renderShiftLabel(shift, adjustedShift) {
     : (hasAdjustment ? `調班後 ${adjustedShift}（原 ${shift}）` : '班別');
   return `<span class="person-shift-label${highlight ? ' is-adjusted' : ''}" title="${title}">${escapeHtml(display)}</span>`;
 }
-function buildShiftSelectOptions(selected) {
-  return Object.keys(SHIFT_DEFS)
-    .filter(k => isShiftWorkKind(getShiftDef(k)?.kind))
-    .map(k => `<option value="${k}" ${selected === k ? 'selected' : ''}>${k}</option>`)
-    .join('');
+function getTempRowPinnedShiftView(person) {
+  if (!isTempControlRow(person)) return '';
+  return person.tempRowView === 'late' ? 'late' : 'early';
 }
-function buildRollCallNextShiftSelectOptions(selected) {
-  const sel = String(selected || '').trim();
-  let html = buildShiftSelectOptions(sel);
-  if (sel && !html.includes(`value="${sel}"`)) {
-    html = `<option value="${escapeHtml(sel)}" selected>${escapeHtml(sel)}</option>${html}`;
+function getPersonShiftBand(person) {
+  if (!person) return '';
+  if (isTempControlRow(person)) {
+    const shiftKey = String(getShiftFilterKey(person) || '').trim();
+    if (shiftKey) {
+      const shiftType = getShiftType(shiftKey);
+      if (shiftType) return shiftType;
+    }
+    return getTempRowPinnedShiftView(person);
   }
-  return html;
+  return getShiftType(getShiftFilterKey(person)) || '';
 }
 function personMatchesShiftView(person) {
-  if (isTempControlRow(person)) return true;
+  if (isTempControlRow(person)) {
+    const shiftKey = String(getShiftFilterKey(person) || '').trim();
+    if (shiftKey) {
+      const shiftType = getShiftType(shiftKey);
+      if (shiftType) return shiftType === activeShiftView;
+    }
+    return getTempRowPinnedShiftView(person) === activeShiftView;
+  }
   return getShiftType(getShiftFilterKey(person)) === activeShiftView;
+}
+function getPersonCellShiftType(person) {
+  const fromShift = getShiftType(getShiftFilterKey(person));
+  if (fromShift) return fromShift;
+  if (isTempControlRow(person)) return getTempRowPinnedShiftView(person);
+  return '';
 }
 function getViewStartMin() {
   return activeShiftView === 'late' ? 12 * 60 : START_MIN;
@@ -12481,7 +13092,6 @@ function applyCloudState(data) {
   if (typeof renderOvertimePanel === 'function') renderOvertimePanel();
 
   applyingRemote = false;
-  clearUndoHistory();
   } finally {
     console.timeEnd('applyCloudState');
   }
@@ -12536,14 +13146,16 @@ function saveCloudNow() {
     setCloudStatus('已同步', 'synced');
     return Promise.resolve(true);
   }
+  const payload = getCloudState();
+  const uploadedAtLocal = String(payload.updatedAtLocal || '');
   setCloudStatus('上傳中', 'saving');
   return scheduleDocRef.set({
-    ...getCloudState(),
+    ...payload,
     updatedAt: firebase.firestore.FieldValue.serverTimestamp()
   }, { merge: true })
     .then(() => {
       lastCloudJson = getLiveCloudFingerprint();
-      lastCloudUpdatedAtLocal = getSyncMeta().updatedAtLocal;
+      lastCloudUpdatedAtLocal = uploadedAtLocal;
       setCloudStatus('已同步', 'synced');
       return true;
     })
@@ -15631,6 +16243,7 @@ function buildStaffDirectoryFromRows(rows) {
   }).filter(x => x.code || x.fullName);
 }
 function normalizePerson(p) {
+  const isTempRow = !!p.isTempRow;
   return {
     ...p,
     code: p.code || p.name,
@@ -15641,7 +16254,8 @@ function normalizePerson(p) {
     ircsNo: p.ircsNo || '',
     nextDayShift: p.nextDayShift || '',
     clockedOut: !!p.clockedOut,
-    isTempRow: !!p.isTempRow
+    isTempRow,
+    ...(isTempRow ? { tempRowView: p.tempRowView === 'late' ? 'late' : 'early' } : {})
   };
 }
 function normalizeText(v) {
@@ -15782,8 +16396,16 @@ function initAppNoticeDialog() {
   initAppNoticeDialog._done = true;
   const dlg = document.getElementById('appNoticeDialog');
   if (!dlg) return;
-  document.getElementById('appNoticeConfirmBtn')?.addEventListener('click', () => closeAppNotice(true));
-  document.getElementById('appNoticeCancelBtn')?.addEventListener('click', () => closeAppNotice(false));
+  document.getElementById('appNoticeConfirmBtn')?.addEventListener('click', e => {
+    e.preventDefault();
+    e.stopPropagation();
+    closeAppNotice(true);
+  });
+  document.getElementById('appNoticeCancelBtn')?.addEventListener('click', e => {
+    e.preventDefault();
+    e.stopPropagation();
+    closeAppNotice(false);
+  });
   document.getElementById('appNoticeExportBtn')?.addEventListener('click', () => {
     if (typeof appNoticeExportHandler === 'function') appNoticeExportHandler();
   });
@@ -22243,6 +22865,7 @@ function renderRows() {
   if (!rows) return;
   rows.innerHTML = '';
   const displayRows = getDisplayRows();
+  const personSeqMap = buildPersonDisplaySeqMap();
   const searchActive = !!String(timelineFlightSearch || '').trim();
   const searchSnap = getUniversalSearchSnap();
   if (!displayRows.length && searchActive && searchSnap && !searchSnap.personIndices.size && activeShiftView === 'late') {
@@ -22259,7 +22882,7 @@ function renderRows() {
     row.className = 'row';
     if (rowInfo.matchedRow) row.classList.add('flight-match-top');
     else if (searchActive) row.classList.add('search-dim');
-    if (isTempControlRow(rowInfo.person)) row.classList.add('row--temp-row');
+    if (isTempControlRow(rowInfo.person) && rollCallMode) row.classList.add('row--temp-row');
 
     const left = document.createElement('div');
     left.className = 'person-cell';
@@ -22271,7 +22894,7 @@ function renderRows() {
     const ircsNo = rowInfo.person.ircsNo || '';
     const nextDayShift = rowInfo.person.nextDayShift || '';
     const clockedOut = !!rowInfo.person.clockedOut;
-    const seqNo = displayIdx + 1;
+    const seqNo = personSeqMap.get(rowInfo.originalIndex) ?? (displayIdx + 1);
     const isTempRow = isTempControlRow(rowInfo.person);
     const resolvedName = resolveFullName(rowInfo.person);
     const rawName = String(rowInfo.person.name || rowInfo.person.code || '').trim();
@@ -22280,31 +22903,33 @@ function renderRows() {
       : (resolvedName || rawName);
     if (!isTempRow && resolvedName && rawName && rawName.length > resolvedName.length) displayName = rawName;
     const displayLevel = isTempRow
-      ? String(rowInfo.person.level || '1A').trim()
+      ? String(rowInfo.person.level || '支援').trim()
       : String(rowInfo.person.level || resolveLevel(rowInfo.person) || '').trim();
-    const shiftType = getShiftType(getShiftFilterKey(rowInfo.person));
+    const shiftType = getPersonCellShiftType(rowInfo.person);
     if (shiftType) left.classList.add(`shift-${shiftType}`);
     if (rollCallMode && radioNo && !clockedOut) left.classList.add('on-duty-by-radio');
     if (clockedOut) row.classList.add('clocked-out');
-    const nextShiftOptions = buildRollCallNextShiftSelectOptions(nextDayShift);
     if (rollCallMode) {
       left.classList.add('rollcall-grid');
       left.innerHTML = isTempRow
         ? buildTempRollCallRowHtml({
           seqNo,
+          person: rowInfo.person,
+          showRowDelete: true,
           displayLevel,
           displayName,
-          code: rowInfo.person.code,
           shift,
           adjustedShift,
           hasRest: hasRestForPerson(rowInfo.originalIndex),
           radioNo,
           ircsNo,
-          nextShiftOptions,
+          nextDayShift,
           clockedOut
         })
         : buildRollCallRowHtml({
           seqNo,
+          person: rowInfo.person,
+          showRowDelete: true,
           displayLevel,
           displayName,
           shift,
@@ -22312,29 +22937,21 @@ function renderRows() {
           hasRest: hasRestForPerson(rowInfo.originalIndex),
           radioNo,
           ircsNo,
-          nextShiftOptions,
+          nextDayShift,
           clockedOut
         });
     } else {
       left.classList.add('normal-grid');
-      left.innerHTML = isTempRow
-        ? buildTempNormalRowHtml({
-          seqNo,
-          displayLevel,
-          displayName,
-          code: rowInfo.person.code,
-          shift
-        })
-        : buildNormalRowHtml({
-          seqNo,
-          displayLevel,
-          displayName,
-          shift,
-          adjustedShift,
-          hasRest: hasRestForPerson(rowInfo.originalIndex),
-          clockedOut,
-          staffStatusAlert: getStaffStatusAlert(rowInfo.person, getScheduleReferenceDate())
-        }).join('');
+      left.innerHTML = buildNormalRowHtml({
+        seqNo,
+        displayLevel,
+        displayName,
+        shift,
+        adjustedShift,
+        hasRest: hasRestForPerson(rowInfo.originalIndex),
+        clockedOut,
+        staffStatusAlert: isTempRow ? '' : getStaffStatusAlert(rowInfo.person, getScheduleReferenceDate())
+      }).join('');
     }
     left.addEventListener('dragstart', e => {
       e.dataTransfer.setData('text/person-row', rowInfo.originalIndex);
@@ -22392,11 +23009,14 @@ function renderRows() {
         people[rowInfo.originalIndex].ircsNo = e.target.value;
         markUnsynced();
       });
-      const nextShiftSelect = left.querySelector('.next-shift-select');
-      nextShiftSelect?.addEventListener('change', e => {
-        people[rowInfo.originalIndex].nextDayShift = e.target.value;
-        markUnsynced();
-      });
+      const nextShiftInput = left.querySelector('.next-shift-input');
+      const nextShiftWrap = nextShiftInput?.closest('.shift-field-wrap');
+      if (nextShiftInput && nextShiftWrap) {
+        bindShiftSuggestInput(nextShiftInput, nextShiftWrap, value => {
+          people[rowInfo.originalIndex].nextDayShift = value;
+          markUnsynced();
+        });
+      }
       const clockedOutCheck = left.querySelector('.clocked-out-check');
       clockedOutCheck?.addEventListener('change', e => {
         people[rowInfo.originalIndex].clockedOut = e.target.checked;
@@ -22408,7 +23028,7 @@ function renderRows() {
       el.addEventListener('mousedown', e => e.stopPropagation());
       el.addEventListener('click', e => e.stopPropagation());
     });
-    if (isTempRow) bindTempRowEditorEvents(left, rowInfo.originalIndex);
+    if (rollCallMode && isTempRow) bindTempRowEditorEvents(left, rowInfo.originalIndex);
     const timeline = document.createElement('div');
     timeline.className = 'timeline';
     timeline.dataset.originalIndex = rowInfo.originalIndex;
@@ -22829,6 +23449,7 @@ function bootLoadDayState() {
   rebuildTemplates();
 }
 function bootBindEvents() {
+initScheduleRowDeleteDelegation();
 document.getElementById('assignmentToggleBtn').addEventListener('click', () => toggleAssignmentPanel());
 initWorkspaceSplitter();
 bindStaffPersonnelEditor();
