@@ -7234,6 +7234,66 @@ function syncScheduleSideDockLayout() {
 function getScheduleScrollHost() {
   return document.querySelector('.schedule-board-scroll') || document.querySelector('.schedule-work-area');
 }
+const SCHEDULE_EDIT_FIELD_CLASSES = [
+  'temp-row-name-input',
+  'temp-row-shift-input',
+  'adjusted-shift-input',
+  'next-shift-input',
+  'person-radio-input',
+  'person-ircs-input'
+];
+function getScheduleEditFocusSnapshot() {
+  const active = document.activeElement;
+  if (!(active instanceof HTMLElement)) return null;
+  const rows = document.getElementById('rows');
+  const cell = active.closest('.person-cell[data-original-index]');
+  if (!rows?.contains(cell)) return null;
+  const fieldClass = SCHEDULE_EDIT_FIELD_CLASSES.find(cls => active.classList.contains(cls));
+  if (!fieldClass) return null;
+  const snap = {
+    personIndex: cell.dataset.originalIndex,
+    fieldClass
+  };
+  if (active instanceof HTMLInputElement) {
+    snap.selectionStart = active.selectionStart;
+    snap.selectionEnd = active.selectionEnd;
+  }
+  return snap;
+}
+function restoreScheduleEditFocusSnapshot(snap) {
+  if (!snap?.personIndex || !snap.fieldClass) return;
+  const input = document.querySelector(
+    `.person-cell[data-original-index="${snap.personIndex}"] .${snap.fieldClass}`
+  );
+  if (!(input instanceof HTMLElement)) return;
+  input.focus({ preventScroll: true });
+  if (input instanceof HTMLInputElement && Number.isFinite(snap.selectionStart) && Number.isFinite(snap.selectionEnd)) {
+    try { input.setSelectionRange(snap.selectionStart, snap.selectionEnd); } catch {}
+  }
+}
+function handleScheduleSuggestInputKeydown(e, wrap, hideSuggest) {
+  if (e.key === 'Escape') {
+    hideSuggest?.(wrap);
+    return;
+  }
+  if (e.key !== 'Enter' || e.isComposing) return;
+  e.preventDefault();
+  e.stopPropagation();
+  const btn = wrap?.querySelector('.shift-adjust-suggest button, .temp-row-name-suggest button');
+  if (btn) {
+    btn.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
+  } else {
+    hideSuggest?.(wrap);
+  }
+}
+function preventScheduleInputEnterScroll(input) {
+  input?.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !e.isComposing) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+  });
+}
 function formatToolbarTipHtml(label) {
   if (!label) return '';
   const text = String(label).trim();
@@ -7556,7 +7616,7 @@ function bindShiftSuggestInput(input, wrap, onSync) {
   });
   input.addEventListener('change', sync);
   input.addEventListener('keydown', e => {
-    if (e.key === 'Escape') hideAdjustedShiftSuggest(wrap);
+    handleScheduleSuggestInputKeydown(e, wrap, hideAdjustedShiftSuggest);
   });
   input.addEventListener('blur', e => {
     if (e.relatedTarget?.closest?.('.shift-adjust-suggest')) return;
@@ -7974,7 +8034,7 @@ function bindTempRowEditorEvents(left, personIndex) {
       if (String(nameInput.value || '').trim().length >= 1) showTempRowNameSuggest(nameInput, nameWrap, personIndex);
     });
     nameInput.addEventListener('keydown', e => {
-      if (e.key === 'Escape') hideTempRowNameSuggest(nameWrap);
+      handleScheduleSuggestInputKeydown(e, nameWrap, hideTempRowNameSuggest);
     });
     nameInput.addEventListener('blur', e => {
       if (e.relatedTarget?.closest?.('.temp-row-name-suggest')) return;
@@ -22849,6 +22909,9 @@ function bindTimelinePaletteDrop(timeline) {
 
 function renderRows() {
   console.time('renderRows');
+  const scrollHost = getScheduleScrollHost();
+  const savedScrollTop = scrollHost?.scrollTop ?? null;
+  const focusSnapshot = getScheduleEditFocusSnapshot();
   try {
   refreshHomelineConnectingStaleFlags();
   const rows = document.getElementById('rows');
@@ -22982,19 +23045,21 @@ function renderRows() {
       });
       adjustedShiftInput?.addEventListener('change', e => syncAdjustedShift(e.target.value));
       adjustedShiftInput?.addEventListener('keydown', e => {
-        if (e.key === 'Escape') hideAdjustedShiftSuggest(adjWrap);
+        handleScheduleSuggestInputKeydown(e, adjWrap, hideAdjustedShiftSuggest);
       });
       adjustedShiftInput?.addEventListener('blur', e => {
         if (e.relatedTarget?.closest?.('.shift-adjust-suggest')) return;
         hideAdjustedShiftSuggest(adjWrap);
       });
       const radioInput = left.querySelector('.person-radio-input');
+      preventScheduleInputEnterScroll(radioInput);
       radioInput?.addEventListener('input', e => {
         people[rowInfo.originalIndex].radioNo = e.target.value;
         syncRollCallRowVisual(left, people[rowInfo.originalIndex]);
         markUnsynced();
       });
       const ircsInput = left.querySelector('.person-ircs-input');
+      preventScheduleInputEnterScroll(ircsInput);
       ircsInput?.addEventListener('input', e => {
         people[rowInfo.originalIndex].ircsNo = e.target.value;
         markUnsynced();
@@ -23047,6 +23112,8 @@ function renderRows() {
   renderOvertimePanel();
   fitAllBlockLabels();
   } finally {
+    if (scrollHost != null && savedScrollTop != null) scrollHost.scrollTop = savedScrollTop;
+    restoreScheduleEditFocusSnapshot(focusSnapshot);
     console.timeEnd('renderRows');
   }
 }
