@@ -3155,7 +3155,32 @@
     z-index: 2;
     padding: 0;
   }
-  .group-title--tc { display: flex; align-items: center; gap: 6px; }
+  .group-title--tc { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .group-title--t { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .t-anchor-mode-btn {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 11px; font-weight: 700; padding: 3px 8px;
+    border-radius: 6px; border: 1px solid #2563eb;
+    background: #eff6ff; color: #1d4ed8; cursor: pointer;
+    line-height: 1.3; white-space: nowrap;
+  }
+  .t-anchor-mode-btn:hover { background: #dbeafe; }
+  .t-anchor-mode-btn__svg { width: 14px; height: 14px; flex-shrink: 0; }
+  .t-anchor-mode-btn__prefix { font-size: 10px; font-weight: 600; color: #475569; }
+  .t-anchor-mode-pop {
+    position: fixed; z-index: 14000;
+    min-width: 148px; padding: 6px;
+    background: #fff; border: 1px solid #cbd5e1;
+    border-radius: 8px; box-shadow: 0 8px 24px rgba(15,23,42,.18);
+  }
+  .t-anchor-mode-pop[hidden] { display: none !important; }
+  .t-anchor-mode-pop .t-anchor-mode-opt {
+    display: block; width: 100%; text-align: left;
+    padding: 7px 10px; border: 0; border-radius: 6px;
+    background: transparent; font-size: 12px; cursor: pointer; color: #334155;
+  }
+  .t-anchor-mode-pop .t-anchor-mode-opt:hover { background: #f1f5f9; }
+  .t-anchor-mode-pop .t-anchor-mode-opt.is-active { background: #dbeafe; color: #1d4ed8; font-weight: 700; }
   .block-edit-btn { position: absolute; left: 2px; top: 2px; z-index: 3; opacity: 0; pointer-events: none; }
   .block:hover .block-edit-btn, .block.selected .block-edit-btn { opacity: 1; pointer-events: auto; }
   .tc-editor-overlay {
@@ -3211,11 +3236,54 @@
     text-align: center;
   }
   .t-editor-flight-table th { font-weight: 700; background: #f8fafc; }
+  .t-editor-flight-table .t-editor-eta-late { color: #ef4444; font-weight: 700; }
   .t-editor-panel { width: min(520px, 100%); max-height: calc(100vh - 32px); overflow-y: auto; }
-  .t-editor-slot-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px; }
+  .t-editor-slot-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 0; flex: 1; min-width: 200px; }
+  .t-editor-slot-toolbar { display: flex; align-items: flex-end; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; }
   .t-editor-slot-row label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: #475569; }
   .t-editor-slot-row input { padding: 6px 8px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px; }
-  .group-title--t { display: flex; align-items: center; gap: 6px; }
+  .t-editor-boundary-preview {
+    margin: 0 0 10px; padding: 8px 10px; border-radius: 8px; background: #f8fafc;
+    border: 1px solid #e2e8f0; font-size: 12px; line-height: 1.45; color: #475569;
+  }
+  .t-editor-boundary-preview[hidden] { display: none !important; }
+  .t-editor-boundary-preview strong { color: #0f172a; }
+  .t-editor-boundary-preview .t-boundary-delta { margin-top: 4px; }
+  .t-editor-boundary-preview .t-boundary-enter { color: #047857; }
+  .t-editor-boundary-preview .t-boundary-leave { color: #b45309; }
+  .t-editor-anchor-row { margin-bottom: 8px; font-size: 12px; color: #475569; }
+  .t-editor-anchor-row select { margin-left: 6px; padding: 4px 8px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; }
+  .block.role-T.block--t-inconsistent {
+    box-shadow: inset 0 0 0 2px #f59e0b;
+  }
+  .block-t-inconsistent-badge {
+    position: absolute; right: 18px; top: 2px; z-index: 4;
+    font-size: 11px; color: #b45309; line-height: 1;
+    cursor: pointer;
+    border: 0;
+    background: transparent;
+    padding: 0;
+    pointer-events: auto;
+  }
+  .block-t-inconsistent-badge:hover { color: #92400e; }
+  #tBoundaryDiffModal.rollcall-import-dialog { z-index: 13000; }
+  #tBoundaryDiffModal .rollcall-import-panel { max-width: 560px; width: 100%; }
+  #tBoundaryDiffModal .t-diff-anchor-hint {
+    font-size: 12px; color: #64748b; margin: 0 0 10px; line-height: 1.45;
+  }
+  #tBoundaryDiffModal .t-diff-boundary-block { font-size: 12px; line-height: 1.5; margin: 8px 0; }
+  #tBoundaryDiffModal .t-diff-boundary-block code { font-size: 12px; background: #f1f5f9; padding: 1px 4px; border-radius: 4px; }
+  #tBoundaryDiffModal .t-diff-section { margin-top: 12px; }
+  #tBoundaryDiffModal .t-diff-section h4 { margin: 0 0 6px; font-size: 13px; }
+  #tBoundaryDiffModal .t-diff-flight-list { font-size: 12px; margin: 4px 0 8px; padding-left: 16px; }
+  #tBoundaryDiffModal .t-diff-flight-list li { margin: 2px 0; }
+  #tBoundaryDiffModal .t-diff-status-tag {
+    display: inline-block; font-size: 10px; padding: 1px 5px; border-radius: 4px;
+    margin-left: 4px; background: #e2e8f0; color: #475569;
+  }
+  #tBoundaryDiffModal .t-diff-options { margin-top: 12px; font-size: 13px; }
+  #tBoundaryDiffModal .t-diff-options label { display: flex; align-items: flex-start; gap: 8px; margin: 6px 0; }
+  #tBoundaryDiffModal .t-diff-options label.is-disabled { opacity: 0.55; }
   .duty-chip.role-L1 { background: #e0e7ff; }
   .duty-chip.role-BA { background: #cffafe; }
   .duty-chip.role-休:not(.rest-chip-30):not(.rest-chip-60) { background: #f3f4f6; }
@@ -6588,6 +6656,22 @@
   </div>
 </div>
 
+<div id="tBoundaryDiffModal" class="rollcall-import-dialog" hidden>
+  <div class="rollcall-import-backdrop" data-t-diff-dismiss="1"></div>
+  <div class="rollcall-import-panel" role="dialog" aria-modal="true" aria-labelledby="tBoundaryDiffTitle">
+    <button type="button" class="rollcall-import-close" id="tBoundaryDiffClose" aria-label="關閉">×</button>
+    <div class="foreign-preview-head">
+      <h3 class="rollcall-import-title" id="tBoundaryDiffTitle">辦T 分界變更預覽</h3>
+      <p class="foreign-preview-subtitle" id="tBoundaryDiffSubtitle"></p>
+    </div>
+    <div class="foreign-preview-body" id="tBoundaryDiffBody"></div>
+    <div class="foreign-preview-actions rollcall-import-actions">
+      <button type="button" class="rollcall-import-btn rollcall-import-btn--ghost" id="tBoundaryDiffCancel">取消</button>
+      <button type="button" class="rollcall-import-btn rollcall-import-btn--primary" id="tBoundaryDiffConfirm">確認套用</button>
+    </div>
+  </div>
+</div>
+
 <div id="foreignFlightPreviewModal" class="rollcall-import-dialog" hidden>
   <div class="rollcall-import-backdrop" data-foreign-preview-dismiss="1"></div>
   <div class="rollcall-import-panel" role="dialog" aria-modal="true" aria-labelledby="foreignFlightPreviewTitle">
@@ -8525,6 +8609,7 @@ function renderOvertimePanel() {
 const EDIT_GEAR_ICON = '⚙';
 const EDIT_GEAR_ICON_PATHS = '<path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/>';
 const EDIT_GEAR_ICON_HTML = `<svg class="edit-gear-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${EDIT_GEAR_ICON_PATHS}</svg>`;
+const T_ANCHOR_ICON_HTML = `<svg class="t-anchor-mode-btn__svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`;
 function excelCell(val) {
   if (val === null || val === undefined) return '-';
   if (typeof val === 'number') return Number.isNaN(val) ? '-' : val;
@@ -15394,7 +15479,9 @@ function isArrEtaLaterThanSta(f) {
   if (!f || f.type !== 'ARR' || f.status === 'CANX') return false;
   const etaMin = parseTimeToMinutes(f.eta ? normalizeImportedTime(f.eta) : '');
   if (etaMin == null) return false;
-  return etaMin > arrStaMinutes(f);
+  const staMin = arrStaMinutes(f);
+  if (staMin == null) return false;
+  return etaMin - staMin >= 15;
 }
 
 function syncAssignmentTimeFieldFromEdits(f, field) {
@@ -18958,6 +19045,246 @@ function getTGroupLabel(kind) {
   const n = getTGroupNumber(kind);
   return n > 0 ? `T-${n}` : 'T';
 }
+const T_ANCHOR_MODES = ['sta', 'eta', 'eta_fallback_sta'];
+function getDefaultTimeChain() {
+  return T_KIND_DEFS.map(d => d.slotStart);
+}
+function getEffectiveTimeChain() {
+  const defaults = getDefaultTimeChain();
+  const saved = tTemplateDefaults?._timeChain;
+  if (!Array.isArray(saved)) return defaults.slice();
+  return defaults.map((def, i) => {
+    const v = saved[i];
+    return Number.isFinite(v) ? snap5(v) : def;
+  });
+}
+function timeChainsEqual(a, b) {
+  if (!Array.isArray(a) || !Array.isArray(b) || a.length !== b.length) return false;
+  return a.every((v, i) => v === b[i]);
+}
+function validateTimeChain(chain) {
+  if (!Array.isArray(chain) || chain.length !== T_KIND_DEFS.length) return false;
+  for (let i = 0; i < chain.length - 1; i++) {
+    if (!Number.isFinite(chain[i]) || !Number.isFinite(chain[i + 1])) return false;
+    if (chain[i + 1] <= chain[i]) return false;
+  }
+  return Number.isFinite(chain[chain.length - 1]);
+}
+function persistTimeChain(chain) {
+  if (!tTemplateDefaults || typeof tTemplateDefaults !== 'object') tTemplateDefaults = {};
+  const defaults = getDefaultTimeChain();
+  const next = chain.map((v, i) => (Number.isFinite(v) ? snap5(v) : defaults[i]));
+  const allDefault = next.every((v, i) => v === defaults[i]);
+  if (allDefault) delete tTemplateDefaults._timeChain;
+  else tTemplateDefaults._timeChain = next;
+  T_KIND_DEFS.forEach(def => {
+    const slot = tTemplateDefaults[def.kind];
+    if (!slot || typeof slot !== 'object') return;
+    if ('slotStart' in slot) delete slot.slotStart;
+    if ('slotEnd' in slot) delete slot.slotEnd;
+  });
+  saveTTemplateDefaults();
+}
+function buildTimeChainFromSlotEdit(kind, { slotStart, slotEnd } = {}) {
+  const chain = getEffectiveTimeChain().slice();
+  const idx = T_KIND_DEFS.findIndex(d => d.kind === kind);
+  if (idx < 0) return chain;
+  if (Number.isFinite(slotStart)) chain[idx] = snap5(slotStart);
+  if (kind !== 't2220_last' && Number.isFinite(slotEnd)) chain[idx + 1] = snap5(slotEnd);
+  return chain;
+}
+function migrateTTimeChainFromLegacySlots() {
+  if (tTemplateDefaults?._timeChain) return;
+  const chain = getDefaultTimeChain().slice();
+  let changed = false;
+  T_KIND_DEFS.forEach((def, i) => {
+    const saved = tTemplateDefaults?.[def.kind];
+    if (Number.isFinite(saved?.slotStart) && saved.slotStart !== chain[i]) {
+      chain[i] = snap5(saved.slotStart);
+      changed = true;
+    }
+    if (i < T_KIND_DEFS.length - 1 && Number.isFinite(saved?.slotEnd)) {
+      const nextDefault = T_KIND_DEFS[i + 1].slotStart;
+      const nextSaved = tTemplateDefaults?.[T_KIND_DEFS[i + 1].kind]?.slotStart;
+      const impliedNext = Number.isFinite(nextSaved) ? nextSaved : nextDefault;
+      if (saved.slotEnd !== impliedNext) {
+        chain[i + 1] = snap5(saved.slotEnd);
+        changed = true;
+      }
+    }
+  });
+  if (changed) persistTimeChain(chain);
+}
+function getTAnchorMode() {
+  const mode = tTemplateDefaults?._anchorMode;
+  return T_ANCHOR_MODES.includes(mode) ? mode : 'eta_fallback_sta';
+}
+function setTAnchorMode(mode) {
+  if (!T_ANCHOR_MODES.includes(mode)) return;
+  if (!tTemplateDefaults || typeof tTemplateDefaults !== 'object') tTemplateDefaults = {};
+  if (mode === 'eta_fallback_sta') delete tTemplateDefaults._anchorMode;
+  else tTemplateDefaults._anchorMode = mode;
+  saveTTemplateDefaults();
+}
+function getTAnchorModeLabel(mode) {
+  if (mode === 'sta') return 'STA';
+  if (mode === 'eta') return 'ETA';
+  return 'ETA（無則 STA）';
+}
+function getTAnchorModeBadgeLabel(mode) {
+  if (mode === 'sta') return 'STA';
+  if (mode === 'eta') return 'ETA';
+  return 'E/S';
+}
+function refreshTAnchorModeButtons() {
+  const label = getTAnchorModeBadgeLabel(getTAnchorMode());
+  document.querySelectorAll('[data-t-anchor-mode-btn]').forEach(btn => {
+    const text = btn.querySelector('[data-t-anchor-mode-label]');
+    if (text) text.textContent = label;
+    btn.title = `航班分組依據：${getTAnchorModeLabel(getTAnchorMode())}（點擊切換）`;
+  });
+}
+function applyTAnchorModeDirect(nextAnchor) {
+  if (!T_ANCHOR_MODES.includes(nextAnchor) || nextAnchor === getTAnchorMode()) return false;
+  pushUndoSnapshot();
+  const oldAnchor = getTAnchorMode();
+  const chain = getEffectiveTimeChain();
+  const diff = computeGlobalTBoundaryDiff({
+    oldChain: chain,
+    newChain: chain,
+    oldAnchor,
+    newAnchor: nextAnchor
+  });
+  applyTimeChainBoundaryUpdate({
+    chain,
+    anchorMode: nextAnchor,
+    updateChain: false,
+    updateSuggestions: true,
+    updateSyncScheduled: true,
+    updateAdjustCovered: false,
+    diff,
+    focusKind: null
+  });
+  rebuildTemplates();
+  markUnsynced();
+  renderPalette();
+  renderRows();
+  syncAssignmentTableFromSchedule();
+  refreshTAnchorModeButtons();
+  return true;
+}
+function applyTBoundaryAndSyncDirect({ chain, focusKind }) {
+  const oldChain = getEffectiveTimeChain();
+  const anchor = getTAnchorMode();
+  const diff = computeGlobalTBoundaryDiff({
+    focusKind,
+    oldChain,
+    newChain: chain,
+    oldAnchor: anchor,
+    newAnchor: anchor
+  });
+  return applyTimeChainBoundaryUpdate({
+    chain,
+    anchorMode: anchor,
+    updateChain: true,
+    updateSuggestions: true,
+    updateSyncScheduled: true,
+    updateAdjustCovered: false,
+    diff,
+    focusKind
+  });
+}
+function closeTAnchorModePop() {
+  const pop = document.getElementById('tAnchorModePop');
+  if (pop) pop.hidden = true;
+}
+function openTAnchorModeMenu(anchorBtn) {
+  let pop = document.getElementById('tAnchorModePop');
+  if (!pop) {
+    pop = document.createElement('div');
+    pop.id = 'tAnchorModePop';
+    pop.className = 't-anchor-mode-pop';
+    pop.hidden = true;
+    document.body.appendChild(pop);
+    document.addEventListener('click', e => {
+      if (!e.target.closest('#tAnchorModePop') && !e.target.closest('[data-t-anchor-mode-btn]')) {
+        closeTAnchorModePop();
+      }
+    });
+  }
+  const current = getTAnchorMode();
+  pop.innerHTML = T_ANCHOR_MODES.map(mode =>
+    `<button type="button" class="t-anchor-mode-opt${mode === current ? ' is-active' : ''}" data-mode="${mode}">${escapeHtml(getTAnchorModeLabel(mode))}</button>`
+  ).join('');
+  const r = anchorBtn.getBoundingClientRect();
+  pop.style.left = `${Math.max(8, r.left)}px`;
+  pop.style.top = `${r.bottom + 4}px`;
+  pop.hidden = false;
+  pop.querySelectorAll('[data-mode]').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      closeTAnchorModePop();
+      applyTAnchorModeDirect(btn.dataset.mode);
+    });
+  });
+}
+function createTAnchorModeButton() {
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 't-anchor-mode-btn';
+  btn.dataset.tAnchorModeBtn = '1';
+  btn.title = `航班分組依據：${getTAnchorModeLabel(getTAnchorMode())}（點擊切換）`;
+  btn.innerHTML = `${T_ANCHOR_ICON_HTML}<span class="t-anchor-mode-btn__prefix">分組</span><span data-t-anchor-mode-label>${escapeHtml(getTAnchorModeBadgeLabel(getTAnchorMode()))}</span>`;
+  btn.addEventListener('click', e => {
+    e.stopPropagation();
+    e.preventDefault();
+    openTAnchorModeMenu(btn);
+  });
+  return btn;
+}
+function getFlightAnchorMinutes(fDef, mode) {
+  if (!fDef) return null;
+  const anchorMode = mode ?? getTAnchorMode();
+  const etaMin = parseTimeToMinutes(fDef.eta ? normalizeImportedTime(fDef.eta) : '');
+  const staMin = arrStaMinutes(fDef);
+  if (anchorMode === 'eta') return etaMin != null ? etaMin : staMin;
+  if (anchorMode === 'sta') return staMin;
+  return etaMin != null ? etaMin : staMin;
+}
+function anchorMinutesInTSlot(anchorMin, kind, { chain, anchorMode } = {}) {
+  const def = getTKindDef(kind);
+  if (!def || anchorMin == null) return false;
+  const effectiveChain = chain ?? getEffectiveTimeChain();
+  const idx = T_KIND_DEFS.findIndex(d => d.kind === kind);
+  if (idx < 0) return false;
+  const start = effectiveChain[idx];
+  if (kind === 't2220_last') return anchorMin >= start;
+  const end = effectiveChain[idx + 1];
+  const afterStart = idx === 0 ? anchorMin >= start : anchorMin > start;
+  return afterStart && anchorMin <= end;
+}
+function flightInTSlot(fDef, kind, opts = {}) {
+  return anchorMinutesInTSlot(getFlightAnchorMinutes(fDef, opts.anchorMode), kind, opts);
+}
+function getTKindForFlight(fDef, { chain, anchorMode } = {}) {
+  for (const def of T_KIND_DEFS) {
+    if (flightInTSlot(fDef, def.kind, { chain, anchorMode })) return def.kind;
+  }
+  return null;
+}
+function formatTSlotRangeFromChain(kind, chain) {
+  const idx = T_KIND_DEFS.findIndex(d => d.kind === kind);
+  if (idx < 0) return '';
+  const effectiveChain = chain ?? getEffectiveTimeChain();
+  const start = effectiveChain[idx];
+  let end;
+  if (kind === 't2220_last') {
+    end = getLastVisibleArrStaMinutes() ?? T_KIND_DEFS[idx].slotEnd ?? (24 * 60);
+  } else {
+    end = effectiveChain[idx + 1];
+  }
+  return `[${formatTSlotMinutes(start)}, ${formatTSlotMinutes(end)}]`;
+}
 function getTKindDef(kind) {
   return T_KIND_DEFS.find(d => d.kind === kind) || null;
 }
@@ -19432,12 +19759,15 @@ function getLastVisibleArrStaMinutes() {
 function getTKindSlotBounds(kind) {
   const def = getTKindDef(kind);
   if (!def) return { start: 0, end: 0 };
-  const saved = tTemplateDefaults?.[kind];
-  const start = Number.isFinite(saved?.slotStart) ? saved.slotStart : def.slotStart;
-  let end = def.slotEnd;
-  if (Number.isFinite(saved?.slotEnd)) end = saved.slotEnd;
+  const chain = getEffectiveTimeChain();
+  const idx = T_KIND_DEFS.findIndex(d => d.kind === kind);
+  if (idx < 0) return { start: 0, end: 0 };
+  const start = chain[idx];
+  let end;
   if (kind === 't2220_last') {
-    end = getLastVisibleArrStaMinutes() ?? end ?? (24 * 60);
+    end = getLastVisibleArrStaMinutes() ?? def.slotEnd ?? (24 * 60);
+  } else {
+    end = chain[idx + 1];
   }
   return { start, end };
 }
@@ -19498,15 +19828,8 @@ function getTTemplateTimelineBounds(tKind, { brB7Only = false } = {}) {
   const end = snap5(Math.min(slot.end ?? slot.start + 60, slot.start + 30));
   return { start, end: Math.max(end, start + 15) };
 }
-function staInTSlot(sta, kind) {
-  const def = getTKindDef(kind);
-  if (!def || sta == null) return false;
-  const bounds = getTKindSlotBounds(kind);
-  if (kind === 't2220_last') return sta >= bounds.start;
-  const idx = T_KIND_DEFS.findIndex(d => d.kind === kind);
-  const next = idx >= 0 ? T_KIND_DEFS[idx + 1] : null;
-  if (next) return sta >= bounds.start && sta < next.slotStart;
-  return sta >= bounds.start && sta <= bounds.end;
+function staInTSlot(sta, kind, opts = {}) {
+  return anchorMinutesInTSlot(sta, kind, opts);
 }
 function getTKindForStaMinutes(sta) {
   for (const def of T_KIND_DEFS) {
@@ -19514,16 +19837,21 @@ function getTKindForStaMinutes(sta) {
   }
   return null;
 }
-function getInboundArrFlightsForAssignment() {
-  return flightDefs
-    .filter(isInboundAssignmentArrFlight)
-    .filter(f => f.status !== 'CANX');
-}
-function getFlightsInTSlot(tKind, { brB7Only = false } = {}) {
+function getFlightsInTSlotWithParams(tKind, { chain, anchorMode, brB7Only } = {}) {
+  const effectiveChain = chain ?? getEffectiveTimeChain();
+  const effectiveAnchor = anchorMode ?? getTAnchorMode();
+  const brOnly = brB7Only ?? getTKindDef(tKind)?.tMode === 'staff';
   return getInboundArrFlightsForAssignment()
-    .filter(f => !brB7Only || isBrOrB7ArrFlightDef(f))
-    .filter(f => staInTSlot(arrStaMinutes(f), tKind))
-    .sort((a, b) => getArrSortMinutes(a) - getArrSortMinutes(b) || a.flight.localeCompare(b.flight));
+    .filter(f => !brOnly || isBrOrB7ArrFlightDef(f))
+    .filter(f => flightInTSlot(f, tKind, { chain: effectiveChain, anchorMode: effectiveAnchor }))
+    .sort((a, b) => {
+      const am = getFlightAnchorMinutes(a, effectiveAnchor);
+      const bm = getFlightAnchorMinutes(b, effectiveAnchor);
+      return (am ?? 0) - (bm ?? 0) || a.flight.localeCompare(b.flight);
+    });
+}
+function getFlightsInTSlot(tKind, { brB7Only = false, chain, anchorMode } = {}) {
+  return getFlightsInTSlotWithParams(tKind, { chain, anchorMode, brB7Only });
 }
 function getFlightArrivalMinutes(fDef) {
   if (!fDef) return null;
@@ -19534,11 +19862,13 @@ function getFlightArrivalMinutes(fDef) {
 function normalizeTFlightKey(flight) {
   return normalizeImportedFlightNo(flight);
 }
+function getInboundArrFlightsForAssignment() {
+  return flightDefs
+    .filter(isInboundAssignmentArrFlight)
+    .filter(f => f.status !== 'CANX');
+}
 function getTFlightAnchorMinutes(fDef) {
-  if (!fDef) return null;
-  const etaMin = parseTimeToMinutes(fDef.eta ? normalizeImportedTime(fDef.eta) : '');
-  if (etaMin != null) return etaMin;
-  return arrStaMinutes(fDef);
+  return getFlightAnchorMinutes(fDef, getTAnchorMode());
 }
 function computeTBlockBoundsFromFlights(flightNos, { useSta = false } = {}) {
   const keys = (flightNos || []).map(normalizeTFlightKey).filter(Boolean);
@@ -19991,6 +20321,654 @@ function renderAssignmentTransitCell(cell, flight) {
   cell.title = '';
   return true;
 }
+function hasTSchedulingStateForKind(tKind) {
+  if (getTAssignedCount(tKind) > 0) return true;
+  if (getTReleasedFlights(tKind).length > 0) return true;
+  if (getTOrphanPendingFlights(tKind).length > 0) return true;
+  if (hasActiveTOrphanPalette(tKind)) return true;
+  const def = getTKindDef(tKind);
+  if (def?.tMode === 'tc') {
+    const meta = getTcTSlotMeta(tKind);
+    if (meta.coveredFlights.length > 0 || meta.scheduled) return true;
+  }
+  return false;
+}
+function getKindsAffectedByBoundaryEdit(kind) {
+  const idx = T_KIND_DEFS.findIndex(d => d.kind === kind);
+  if (idx < 0) return [kind];
+  const kinds = [T_KIND_DEFS[idx].kind];
+  if (idx > 0) kinds.unshift(T_KIND_DEFS[idx - 1].kind);
+  if (idx < T_KIND_DEFS.length - 1) kinds.push(T_KIND_DEFS[idx + 1].kind);
+  return [...new Set(kinds)];
+}
+function hasTSchedulingStateForBoundaryEdit(kind) {
+  return getKindsAffectedByBoundaryEdit(kind).some(hasTSchedulingStateForKind);
+}
+function hasAnyTSchedulingState() {
+  return T_KIND_DEFS.some(def => hasTSchedulingStateForKind(def.kind));
+}
+function getTFlightSchedulingStatusTags(flightKey, tKind) {
+  const key = normalizeTFlightKey(flightKey);
+  const tags = [];
+  const onStaff = getTStaffScheduleBlocks(tKind).some(item =>
+    !isTOrphanAssignmentItem(item) && (item.coveredFlights || []).map(normalizeTFlightKey).includes(key)
+  );
+  const onOrphanStaff = getTStaffScheduleBlocks(tKind).some(item =>
+    isTOrphanAssignmentItem(item) && (item.coveredFlights || []).map(normalizeTFlightKey).includes(key)
+  );
+  if (onStaff) tags.push('已排');
+  if (onOrphanStaff) tags.push('待排已排');
+  if (getTReleasedFlights(tKind).includes(key)) tags.push('已釋出');
+  if (getTOrphanPendingFlights(tKind).includes(key) || getTOrphanPaletteFlights(tKind).includes(key)) tags.push('待排');
+  return tags;
+}
+function computeTSlotFlightDiff(tKind, newChain, newAnchor, oldChain, oldAnchor) {
+  oldChain = oldChain ?? getEffectiveTimeChain();
+  newChain = newChain ?? oldChain;
+  oldAnchor = oldAnchor ?? getTAnchorMode();
+  newAnchor = newAnchor ?? oldAnchor;
+  const def = getTKindDef(tKind);
+  const brB7Only = def?.tMode === 'staff';
+  const oldFlights = getFlightsInTSlotWithParams(tKind, { chain: oldChain, anchorMode: oldAnchor, brB7Only });
+  const newFlights = getFlightsInTSlotWithParams(tKind, { chain: newChain, anchorMode: newAnchor, brB7Only });
+  const oldKeys = new Set(oldFlights.map(f => normalizeTFlightKey(f.flight)));
+  const newKeys = new Set(newFlights.map(f => normalizeTFlightKey(f.flight)));
+  const entering = newFlights.filter(f => !oldKeys.has(normalizeTFlightKey(f.flight))).map(f => f.flight);
+  const leaving = oldFlights.filter(f => !newKeys.has(normalizeTFlightKey(f.flight))).map(f => f.flight);
+  const crossMoves = [];
+  const allKeys = new Set([...oldKeys, ...newKeys]);
+  allKeys.forEach(key => {
+    const fDef = flightDefs.find(f => normalizeTFlightKey(f.flight) === key && f.type === 'ARR');
+    if (!fDef) return;
+    const oldSlot = getTKindForFlight(fDef, { chain: oldChain, anchorMode: oldAnchor });
+    const newSlot = getTKindForFlight(fDef, { chain: newChain, anchorMode: newAnchor });
+    if (oldSlot === tKind && newSlot !== tKind && newSlot) {
+      crossMoves.push({ flight: fDef.flight, direction: 'out', to: newSlot });
+    } else if (oldSlot !== tKind && newSlot === tKind && oldSlot) {
+      crossMoves.push({ flight: fDef.flight, direction: 'in', from: oldSlot });
+    }
+  });
+  return { entering, leaving, crossMoves };
+}
+function computeGlobalTBoundaryDiff({ oldChain, newChain, oldAnchor, newAnchor, focusKind }) {
+  oldChain = oldChain ?? getEffectiveTimeChain();
+  newChain = newChain ?? oldChain;
+  oldAnchor = oldAnchor ?? getTAnchorMode();
+  newAnchor = newAnchor ?? oldAnchor;
+  const chainChanged = !timeChainsEqual(oldChain, newChain);
+  const anchorChanged = oldAnchor !== newAnchor;
+  const kinds = focusKind ? getKindsAffectedByBoundaryEdit(focusKind) : T_KIND_DEFS.map(d => d.kind);
+  const boundaryRows = [];
+  if (chainChanged) {
+    kinds.forEach(kind => {
+      const oldRange = formatTSlotRangeFromChain(kind, oldChain);
+      const newRange = formatTSlotRangeFromChain(kind, newChain);
+      if (oldRange !== newRange) {
+        boundaryRows.push({ kind, label: getTGroupLabel(kind), oldRange, newRange });
+      }
+    });
+  }
+  const slotDiffs = [];
+  const seenKinds = new Set();
+  kinds.forEach(kind => {
+    if (seenKinds.has(kind)) return;
+    seenKinds.add(kind);
+    const diff = computeTSlotFlightDiff(kind, newChain, newAnchor, oldChain, oldAnchor);
+    if (diff.entering.length || diff.leaving.length || diff.crossMoves.length) {
+      slotDiffs.push({ kind, label: getTGroupLabel(kind), ...diff });
+    }
+  });
+  if (anchorChanged && !chainChanged && !slotDiffs.length) {
+    T_KIND_DEFS.forEach(def => {
+      const diff = computeTSlotFlightDiff(def.kind, newChain, newAnchor, oldChain, oldAnchor);
+      if (diff.entering.length || diff.leaving.length || diff.crossMoves.length) {
+        slotDiffs.push({ kind: def.kind, label: getTGroupLabel(def.kind), ...diff });
+      }
+    });
+  }
+  return { chainChanged, anchorChanged, boundaryRows, slotDiffs, oldChain, newChain, oldAnchor, newAnchor };
+}
+function renderTBoundaryLivePreviewHtml(kind, draftChain, draftAnchor) {
+  const diff = computeTSlotFlightDiff(kind, draftChain, draftAnchor);
+  if (!diff.entering.length && !diff.leaving.length && !diff.crossMoves.length) {
+    return { hidden: true, html: '' };
+  }
+  const enterText = diff.entering.length
+    ? `<div class="t-boundary-delta t-boundary-enter"><strong>新增進入（+${diff.entering.length}）</strong>：${escapeHtml(diff.entering.join('、'))}</div>`
+    : '';
+  const leaveText = diff.leaving.length
+    ? `<div class="t-boundary-delta t-boundary-leave"><strong>移出範圍（-${diff.leaving.length}）</strong>：${escapeHtml(diff.leaving.join('、'))}</div>`
+    : '';
+  const moveText = diff.crossMoves.length
+    ? `<div class="t-boundary-delta"><strong>跨時段移動</strong>：${escapeHtml(diff.crossMoves.map(m =>
+        m.direction === 'in' ? `${m.flight} ← ${getTGroupLabel(m.from)}` : `${m.flight} → ${getTGroupLabel(m.to)}`
+      ).join('、'))}</div>`
+    : '';
+  return {
+    hidden: false,
+    html: `<div class="t-editor-boundary-preview" data-t-boundary-preview>
+      <div><strong>分界預覽</strong>（尚未寫入）</div>
+      ${enterText}${leaveText}${moveText}
+    </div>`
+  };
+}
+function applyTimeChainBoundaryUpdate({ chain, anchorMode, updateChain, updateSuggestions, updateSyncScheduled, updateAdjustCovered, diff, focusKind }) {
+  if (updateChain) {
+    if (!validateTimeChain(chain)) {
+      appAlert('時間鏈分界無效：相鄰分界點必須遞增。', '無法套用');
+      return false;
+    }
+    persistTimeChain(chain);
+  }
+  if (anchorMode && anchorMode !== getTAnchorMode() && (updateChain || updateSuggestions)) {
+    setTAnchorMode(anchorMode);
+  }
+  if (updateSuggestions) {
+    T_KIND_DEFS.forEach(def => {
+      const prev = tTemplateDefaults?.[def.kind];
+      if (!prev || typeof prev !== 'object') return;
+      if (Array.isArray(prev.defaultCoveredFlights)) delete tTemplateDefaults[def.kind].defaultCoveredFlights;
+    });
+    saveTTemplateDefaults();
+  }
+  if (updateSyncScheduled || updateAdjustCovered) {
+    if (!updateChain && chain && !timeChainsEqual(chain, getEffectiveTimeChain())) {
+      if (!validateTimeChain(chain)) {
+        appAlert('時間鏈分界無效：相鄰分界點必須遞增。', '無法套用');
+        return false;
+      }
+      persistTimeChain(chain);
+    }
+    if (anchorMode && anchorMode !== getTAnchorMode() && !updateChain && !updateSuggestions) {
+      setTAnchorMode(anchorMode);
+    }
+    syncTSchedulingForBoundaryChange({
+      diff,
+      focusKind,
+      updateSyncScheduled: updateSyncScheduled === true,
+      updateAdjustCovered: updateAdjustCovered === true
+    });
+  }
+  return true;
+}
+function tFlightKeyArraysEqual(a, b) {
+  const aa = (a || []).map(normalizeTFlightKey).filter(Boolean);
+  const bb = (b || []).map(normalizeTFlightKey).filter(Boolean);
+  return aa.length === bb.length && aa.every((k, i) => k === bb[i]);
+}
+function sortTFlightKeysByAnchor(flightKeys, anchorMode) {
+  const mode = anchorMode ?? getTAnchorMode();
+  return (flightKeys || []).map(normalizeTFlightKey).filter(Boolean).sort((a, b) => {
+    const fa = flightDefs.find(f => normalizeTFlightKey(f.flight) === a && f.type === 'ARR');
+    const fb = flightDefs.find(f => normalizeTFlightKey(f.flight) === b && f.type === 'ARR');
+    const am = fa ? getFlightAnchorMinutes(fa, mode) : null;
+    const bm = fb ? getFlightAnchorMinutes(fb, mode) : null;
+    return (am ?? 0) - (bm ?? 0) || a.localeCompare(b);
+  });
+}
+function distributeTFlightsAcrossBlocks(flightKeys, blockCount, anchorMode) {
+  const sorted = sortTFlightKeysByAnchor(flightKeys, anchorMode);
+  const n = Math.max(1, blockCount);
+  const chunks = Array.from({ length: n }, () => []);
+  sorted.forEach((k, i) => chunks[i % n].push(k));
+  return chunks;
+}
+function getTSlotTargetFlightsForSync(tKind, { brB7Only = true } = {}) {
+  const def = getTKindDef(tKind);
+  const brOnly = brB7Only ?? def?.tMode === 'staff';
+  const excluded = getTStaffPoolExcludedFlightKeys(tKind);
+  return getFlightsInTSlot(tKind, { brB7Only: brOnly })
+    .map(f => normalizeTFlightKey(f.flight))
+    .filter(k => k && !excluded.has(k));
+}
+function collectTKindsWithInconsistentStaffBlocks() {
+  const kinds = new Set();
+  T_KIND_DEFS.forEach(def => {
+    if (def.tMode !== 'staff') return;
+    getTStaffScheduleBlocks(def.kind).forEach(block => {
+      if (!isTOrphanAssignmentItem(block) && isTScheduleItemInconsistent(block)) kinds.add(def.kind);
+    });
+  });
+  return kinds;
+}
+function collectTKindsWithCrossSlotStaffMismatch() {
+  const kinds = new Set();
+  const chain = getEffectiveTimeChain();
+  const mode = getTAnchorMode();
+  T_KIND_DEFS.forEach(def => {
+    if (def.tMode !== 'staff') return;
+    getTStaffScheduleBlocks(def.kind).forEach(block => {
+      if (isTOrphanAssignmentItem(block)) return;
+      (block.coveredFlights || []).forEach(f => {
+        const key = normalizeTFlightKey(f);
+        if (!key) return;
+        const fDef = flightDefs.find(fd => normalizeTFlightKey(fd.flight) === key && fd.type === 'ARR');
+        if (!fDef) {
+          kinds.add(def.kind);
+          return;
+        }
+        const correctKind = getTKindForFlight(fDef, { chain, anchorMode: mode });
+        if (correctKind !== def.kind) {
+          kinds.add(def.kind);
+          if (correctKind) kinds.add(correctKind);
+        }
+      });
+    });
+  });
+  return kinds;
+}
+function resolveTKindsForStaffSync({ diff, focusKind } = {}) {
+  const kinds = new Set(getAffectedTKindsFromBoundaryDiff(diff, focusKind));
+  collectTKindsWithInconsistentStaffBlocks().forEach(k => kinds.add(k));
+  collectTKindsWithCrossSlotStaffMismatch().forEach(k => kinds.add(k));
+  return [...kinds];
+}
+function stripCrossSlotTFlightsFromStaffBlocks(kinds) {
+  const chain = getEffectiveTimeChain();
+  const mode = getTAnchorMode();
+  const kindSet = Array.isArray(kinds) && kinds.length ? new Set(kinds) : null;
+  let updated = 0;
+  T_KIND_DEFS.forEach(def => {
+    if (def.tMode !== 'staff') return;
+    if (kindSet && !kindSet.has(def.kind)) return;
+    getTStaffScheduleBlocks(def.kind).filter(b => !isTOrphanAssignmentItem(b)).forEach(block => {
+      const prev = (block.coveredFlights || []).map(normalizeTFlightKey).filter(Boolean);
+      const next = prev.filter(key => {
+        const fDef = flightDefs.find(f => normalizeTFlightKey(f.flight) === key && f.type === 'ARR');
+        if (!fDef) return false;
+        return getTKindForFlight(fDef, { chain, anchorMode: mode }) === def.kind;
+      });
+      if (!tFlightKeyArraysEqual(prev, next)) {
+        block.coveredFlights = next;
+        syncTScheduleItemBounds(block);
+        updated++;
+      }
+    });
+  });
+  return updated;
+}
+function getAffectedTKindsFromBoundaryDiff(diff, focusKind) {
+  const kinds = new Set();
+  if (focusKind) getKindsAffectedByBoundaryEdit(focusKind).forEach(k => kinds.add(k));
+  (diff?.slotDiffs || []).forEach(slot => {
+    kinds.add(slot.kind);
+    (slot.crossMoves || []).forEach(m => {
+      if (m.from) kinds.add(m.from);
+      if (m.to) kinds.add(m.to);
+    });
+  });
+  return kinds.size ? [...kinds] : T_KIND_DEFS.map(d => d.kind);
+}
+function computeTStaffBlockSyncPlan(tKind, { fullSync = false } = {}) {
+  const blocks = getTStaffScheduleBlocks(tKind).filter(b => !isTOrphanAssignmentItem(b));
+  const target = getTSlotTargetFlightsForSync(tKind, { brB7Only: true });
+  const targetSet = new Set(target);
+  if (!blocks.length) return [];
+  if (!fullSync) {
+    return blocks.map(block => {
+      const prev = (block.coveredFlights || []).map(normalizeTFlightKey).filter(Boolean);
+      const next = prev.filter(k => targetSet.has(k));
+      return { uid: block.uid, personIndex: block.personIndex, prev, next };
+    }).filter(p => !tFlightKeyArraysEqual(p.prev, p.next));
+  }
+  const ordered = blocks.slice().sort((a, b) => a.uid - b.uid);
+  const chunks = distributeTFlightsAcrossBlocks(target, ordered.length);
+  return ordered.map((block, i) => ({
+    uid: block.uid,
+    personIndex: block.personIndex,
+    prev: (block.coveredFlights || []).map(normalizeTFlightKey).filter(Boolean),
+    next: chunks[i] || []
+  }));
+}
+function syncTStaffBlocksForKind(tKind, { fullSync = false } = {}) {
+  const def = getTKindDef(tKind);
+  if (!def || def.tMode !== 'staff') return { updatedBlocks: 0 };
+  const plans = computeTStaffBlockSyncPlan(tKind, { fullSync });
+  let updatedBlocks = 0;
+  plans.forEach(plan => {
+    const block = schedule.find(x => x.uid === plan.uid);
+    if (!block) return;
+    const prev = (block.coveredFlights || []).map(normalizeTFlightKey).filter(Boolean);
+    block.coveredFlights = plan.next.slice();
+    syncTScheduleItemBounds(block);
+    if (!tFlightKeyArraysEqual(prev, plan.next)) updatedBlocks++;
+  });
+  return { updatedBlocks };
+}
+function syncTcSlotSchedulingForKind(tKind, { fullSync = false } = {}) {
+  const def = getTKindDef(tKind);
+  if (!def || def.tMode !== 'tc') return { updated: false };
+  const meta = getTcTSlotMeta(tKind);
+  const staffBlocks = getTcSlotStaffBlocks(tKind);
+  const hasAssignment = meta.coveredFlights.length > 0 || meta.scheduled || staffBlocks.length > 0;
+  if (!hasAssignment) return { updated: false };
+  const target = getTSlotTargetFlightsForSync(tKind, { brB7Only: false });
+  const targetSet = new Set(target);
+  let updated = false;
+  if (!fullSync) {
+    if (meta.coveredFlights.length) {
+      const next = meta.coveredFlights.map(normalizeTFlightKey).filter(k => targetSet.has(k));
+      if (!tFlightKeyArraysEqual(meta.coveredFlights, next)) {
+        setTcTSlotMeta(tKind, { coveredFlights: next, scheduled: next.length > 0 });
+        updated = true;
+      }
+    }
+    staffBlocks.forEach(block => {
+      const prev = (block.coveredFlights || []).map(normalizeTFlightKey).filter(Boolean);
+      const next = prev.filter(k => targetSet.has(k));
+      if (!tFlightKeyArraysEqual(prev, next)) {
+        block.coveredFlights = next;
+        syncTScheduleItemBounds(block);
+        updated = true;
+      }
+    });
+    return { updated };
+  }
+  if (!tFlightKeyArraysEqual(meta.coveredFlights, target)) {
+    setTcTSlotMeta(tKind, { coveredFlights: target, scheduled: target.length > 0 });
+    updated = true;
+  }
+  staffBlocks.forEach(block => {
+    if (!tFlightKeyArraysEqual(block.coveredFlights, target)) {
+      block.coveredFlights = target.slice();
+      syncTScheduleItemBounds(block);
+      updated = true;
+    }
+  });
+  return { updated };
+}
+function syncTSchedulingForBoundaryChange({ diff, focusKind, updateSyncScheduled, updateAdjustCovered }) {
+  if (!updateSyncScheduled && !updateAdjustCovered) return { staffBlocks: 0, tcSlots: 0 };
+  const fullSync = updateSyncScheduled === true;
+  const kinds = resolveTKindsForStaffSync({ diff, focusKind });
+  stripCrossSlotTFlightsFromStaffBlocks(kinds);
+  let staffBlocks = 0;
+  let tcSlots = 0;
+  kinds.forEach(tKind => {
+    staffBlocks += syncTStaffBlocksForKind(tKind, { fullSync }).updatedBlocks;
+    if (syncTcSlotSchedulingForKind(tKind, { fullSync }).updated) tcSlots++;
+  });
+  reconcileReleasedFlightsAfterBoundarySync(kinds);
+  return { staffBlocks, tcSlots };
+}
+function removeTFlightFromStaffBlocksForKind(tKind, flightKey) {
+  const key = normalizeTFlightKey(flightKey);
+  if (!key) return;
+  getTStaffScheduleBlocks(tKind).forEach(block => {
+    if (isTOrphanAssignmentItem(block)) return;
+    const prev = (block.coveredFlights || []).map(normalizeTFlightKey).filter(Boolean);
+    const next = prev.filter(k => k !== key);
+    if (!tFlightKeyArraysEqual(prev, next)) {
+      block.coveredFlights = next;
+      syncTScheduleItemBounds(block);
+    }
+  });
+}
+function applyManualTFlightReleasesForSlot(tKind, { initialCoveredKeys, selectedKeys, originPersonIndex } = {}) {
+  const slotKeys = new Set(getTSlotFlightKeys(tKind));
+  const selectedSet = new Set((selectedKeys || []).map(normalizeTFlightKey).filter(Boolean));
+  const manuallyReleased = (initialCoveredKeys || [])
+    .map(normalizeTFlightKey)
+    .filter(k => k && !selectedSet.has(k) && slotKeys.has(k));
+  if (!manuallyReleased.length) return;
+  const released = new Set(getTReleasedFlights(tKind));
+  const origins = { ...(tTemplateDefaults?.[tKind]?.releasedFlightOrigins || {}) };
+  manuallyReleased.forEach(k => {
+    removeTFlightFromStaffBlocksForKind(tKind, k);
+    released.add(k);
+    if (Number.isFinite(originPersonIndex) && originPersonIndex >= 0) origins[k] = originPersonIndex;
+  });
+  if (!tTemplateDefaults || typeof tTemplateDefaults !== 'object') tTemplateDefaults = {};
+  tTemplateDefaults[tKind] = {
+    ...(tTemplateDefaults[tKind] || {}),
+    releasedFlights: [...released],
+    releasedFlightOrigins: origins
+  };
+  saveTTemplateDefaults();
+}
+function reconcileReleasedFlightsAfterBoundarySync(kinds) {
+  const chain = getEffectiveTimeChain();
+  const mode = getTAnchorMode();
+  const kindList = Array.isArray(kinds) && kinds.length ? kinds : T_KIND_DEFS.map(d => d.kind);
+  const allKinds = new Set([...kindList, ...T_KIND_DEFS.map(d => d.kind)]);
+  allKinds.forEach(tKind => {
+    const released = getTReleasedFlights(tKind);
+    if (!released.length) return;
+    const staffCovered = getTStaffCoveredFlightSet(tKind, { excludeOrphan: true });
+    const keep = [];
+    const stale = [];
+    released.forEach(k => {
+      if (staffCovered.has(k)) {
+        stale.push(k);
+        return;
+      }
+      const fDef = flightDefs.find(f => normalizeTFlightKey(f.flight) === k && f.type === 'ARR');
+      if (!fDef) {
+        keep.push(k);
+        return;
+      }
+      const correctKind = getTKindForFlight(fDef, { chain, anchorMode: mode });
+      if (correctKind && correctKind !== tKind) {
+        stale.push(k);
+        return;
+      }
+      keep.push(k);
+    });
+    if (stale.length) {
+      setTReleasedFlights(tKind, keep);
+      removeTReleasedFlightOrigins(tKind, stale);
+    }
+  });
+}
+function hasInconsistentTSchedulingForKind(tKind) {
+  const staffInconsistent = getTStaffScheduleBlocks(tKind).some(item =>
+    !isTOrphanAssignmentItem(item) && isTScheduleItemInconsistent(item)
+  );
+  if (staffInconsistent) return true;
+  const def = getTKindDef(tKind);
+  if (def?.tMode !== 'tc') return false;
+  const targetSet = new Set(getTSlotTargetFlightsForSync(tKind, { brB7Only: false }));
+  const meta = getTcTSlotMeta(tKind);
+  if (meta.coveredFlights.some(k => !targetSet.has(normalizeTFlightKey(k)))) return true;
+  return getTcSlotStaffBlocks(tKind).some(item => isTScheduleItemInconsistent(item));
+}
+function isTScheduleItemInconsistent(item) {
+  if (!item || item.role !== 'T' || isTOrphanAssignmentItem(item)) return false;
+  const kind = item.tKind;
+  const covered = (item.coveredFlights || []).map(normalizeTFlightKey).filter(Boolean);
+  if (!covered.length) return false;
+  const chain = getEffectiveTimeChain();
+  const mode = getTAnchorMode();
+  const targetSet = new Set(getTSlotTargetFlightsForSync(kind));
+  return covered.some(key => {
+    const fDef = flightDefs.find(f => normalizeTFlightKey(f.flight) === key && f.type === 'ARR');
+    if (!fDef) return true;
+    const correctKind = getTKindForFlight(fDef, { chain, anchorMode: mode });
+    if (correctKind !== kind) return true;
+    if (!targetSet.has(key)) return true;
+    return !flightInTSlot(fDef, kind, { chain, anchorMode: mode });
+  });
+}
+let pendingTBoundaryDiff = null;
+function closeTBoundaryDiffModal() {
+  const modal = document.getElementById('tBoundaryDiffModal');
+  if (modal) modal.hidden = true;
+  pendingTBoundaryDiff = null;
+}
+function renderTSlotSyncPreviewHtml(tKind, { fullSync = false } = {}) {
+  const plans = computeTStaffBlockSyncPlan(tKind, { fullSync })
+    .filter(p => !tFlightKeyArraysEqual(p.prev, p.next));
+  if (!plans.length) return '';
+  const personLabel = idx => {
+    const p = people[idx];
+    return p ? escapeHtml(p.code || p.name || `人員 ${idx + 1}`) : `人員 ${idx + 1}`;
+  };
+  return `<div class="t-diff-section"><h4>${escapeHtml(getTGroupLabel(tKind))} 已排變更</h4>
+    <ul class="t-diff-flight-list">${plans.map(plan => `
+      <li><strong>${personLabel(plan.personIndex)}</strong>：
+        ${escapeHtml(plan.prev.join('、') || '（空）')} → ${escapeHtml(plan.next.join('、') || '（空）')}
+      </li>`).join('')}
+    </ul></div>`;
+}
+function openTBoundaryDiffModal(ctx) {
+  const modal = document.getElementById('tBoundaryDiffModal');
+  const title = document.getElementById('tBoundaryDiffTitle');
+  const subtitle = document.getElementById('tBoundaryDiffSubtitle');
+  const body = document.getElementById('tBoundaryDiffBody');
+  if (!modal || !body) return;
+  const syncOnly = ctx?.mode === 'sync-only';
+  const diff = computeGlobalTBoundaryDiff(ctx);
+  pendingTBoundaryDiff = { ...ctx, diff };
+  if (title) {
+    title.textContent = syncOnly
+      ? '同步已排辦T'
+      : (diff.anchorChanged && !diff.chainChanged ? '辦T 分組依據變更預覽' : '辦T 分界變更預覽');
+  }
+  if (subtitle) {
+    if (syncOnly) {
+      subtitle.textContent = '勾選後，依目前時段規則更新人員列上的辦T航班。';
+    } else if (diff.anchorChanged && !diff.chainChanged) {
+      subtitle.textContent = '確認後會更新建議航班；已排人員列預設不變，可選擇同步。';
+    } else {
+      subtitle.textContent = '確認後會更新時段分界與建議航班；已排人員列預設不變，可選擇同步。';
+    }
+  }
+  const anchorHint = syncOnly ? '' : `<div class="t-diff-anchor-hint">目前分組依據：<strong>${escapeHtml(getTAnchorModeLabel(getTAnchorMode()))}</strong>（切換 STA/ETA 請至左側 Palette → 辦T ⚙ → 調整辦T時段）</div>`;
+  const boundaryHtml = syncOnly ? '' : (diff.boundaryRows.length
+    ? `<div class="t-diff-section"><h4>分界變更</h4>${diff.boundaryRows.map(row => `
+        <div class="t-diff-boundary-block">
+          <div><strong>${escapeHtml(row.label)}</strong></div>
+          <div>舊：<code>${escapeHtml(row.oldRange)}</code></div>
+          <div>新：<code>${escapeHtml(row.newRange)}</code></div>
+        </div>`).join('')}</div>`
+    : (diff.anchorChanged ? `<div class="t-diff-section"><h4>分組依據變更</h4>
+        <div class="t-diff-boundary-block">${escapeHtml(getTAnchorModeLabel(diff.oldAnchor))} → ${escapeHtml(getTAnchorModeLabel(diff.newAnchor))}</div></div>` : ''));
+  const flightHtml = syncOnly ? '' : (diff.slotDiffs.length
+    ? `<div class="t-diff-section"><h4>建議航班異動</h4>${diff.slotDiffs.map(slot => {
+        const renderList = (label, flights, tKind) => flights.length
+          ? `<div><strong>${escapeHtml(label)}</strong><ul class="t-diff-flight-list">${flights.map(f => {
+              const tags = getTFlightSchedulingStatusTags(f, tKind).map(t => `<span class="t-diff-status-tag">${escapeHtml(t)}</span>`).join('');
+              return `<li>${escapeHtml(f)}${tags}</li>`;
+            }).join('')}</ul></div>`
+          : '';
+        const cross = slot.crossMoves.length
+          ? `<div><strong>跨時段移動</strong><ul class="t-diff-flight-list">${slot.crossMoves.map(m => {
+              const tags = getTFlightSchedulingStatusTags(m.flight, slot.kind).map(t => `<span class="t-diff-status-tag">${escapeHtml(t)}</span>`).join('');
+              const text = m.direction === 'in'
+                ? `${m.flight} ← ${getTGroupLabel(m.from)}`
+                : `${m.flight} → ${getTGroupLabel(m.to)}`;
+              return `<li>${escapeHtml(text)}${tags}</li>`;
+            }).join('')}</ul></div>`
+          : '';
+        return `<div style="margin-bottom:10px;"><strong>${escapeHtml(slot.label)}</strong>
+          ${renderList('新增進入', slot.entering, slot.kind)}
+          ${renderList('移出範圍', slot.leaving, slot.kind)}
+          ${cross}
+        </div>`;
+      }).join('')}</div>`
+    : '');
+  const syncKinds = resolveTKindsForStaffSync({ diff, focusKind: ctx.focusKind })
+    .filter(k => hasTSchedulingStateForKind(k));
+  body.innerHTML = `${anchorHint}${boundaryHtml}${flightHtml}
+    <div data-t-sync-preview hidden></div>
+    <div class="t-diff-options">
+      <label><input type="checkbox" data-t-diff-sync-scheduled> 同步已排辦T（更新人員列上的航班）</label>
+    </div>`;
+  const syncCb = body.querySelector('[data-t-diff-sync-scheduled]');
+  const syncPreviewHost = body.querySelector('[data-t-sync-preview]');
+  const refreshSyncPreview = () => {
+    if (!syncPreviewHost || !syncCb) return;
+    if (!syncCb.checked) {
+      syncPreviewHost.hidden = true;
+      syncPreviewHost.innerHTML = '';
+      return;
+    }
+    const html = syncKinds.map(k => renderTSlotSyncPreviewHtml(k, { fullSync: true })).join('');
+    if (!html) {
+      syncPreviewHost.hidden = true;
+      syncPreviewHost.innerHTML = '';
+      return;
+    }
+    syncPreviewHost.hidden = false;
+    syncPreviewHost.innerHTML = html;
+  };
+  syncCb?.addEventListener('change', refreshSyncPreview);
+  if (syncOnly) refreshSyncPreview();
+  modal.hidden = false;
+}
+function openTSlotSyncModal(tKind, { force = false } = {}) {
+  if (!tKind) return;
+  if (!force && !hasInconsistentTSchedulingForKind(tKind)) {
+    appAlert('此時段已排辦T與目前規則一致，無需同步。', '無需同步', 'info');
+    return;
+  }
+  pushUndoSnapshot();
+  const chain = getEffectiveTimeChain();
+  const anchor = getTAnchorMode();
+  const diff = computeGlobalTBoundaryDiff({
+    focusKind: tKind,
+    oldChain: chain,
+    newChain: chain,
+    oldAnchor: anchor,
+    newAnchor: anchor
+  });
+  syncTSchedulingForBoundaryChange({
+    diff,
+    focusKind: tKind,
+    updateSyncScheduled: true,
+    updateAdjustCovered: false
+  });
+  rebuildTemplates();
+  markUnsynced();
+  renderPalette();
+  renderRows();
+  syncAssignmentTableFromSchedule();
+}
+function bindTBoundaryDiffModalOnce() {
+  const modal = document.getElementById('tBoundaryDiffModal');
+  if (!modal || modal.dataset.bound) return;
+  modal.dataset.bound = '1';
+  const close = () => {
+    const revert = pendingTBoundaryDiff?.onCancel;
+    closeTBoundaryDiffModal();
+    if (typeof revert === 'function') revert();
+  };
+  modal.querySelector('#tBoundaryDiffClose')?.addEventListener('click', close);
+  modal.querySelector('#tBoundaryDiffCancel')?.addEventListener('click', close);
+  modal.querySelector('[data-t-diff-dismiss]')?.addEventListener('click', close);
+  modal.querySelector('#tBoundaryDiffConfirm')?.addEventListener('click', () => {
+    const ctx = pendingTBoundaryDiff;
+    if (!ctx) return;
+    const body = document.getElementById('tBoundaryDiffBody');
+    const syncOnly = ctx.mode === 'sync-only';
+    const diff = ctx.diff || {};
+    const updateSyncScheduled = body?.querySelector('[data-t-diff-sync-scheduled]')?.checked === true;
+    const updateChain = !syncOnly && !!diff.chainChanged;
+    const updateSuggestions = !syncOnly && (!!diff.chainChanged || !!diff.anchorChanged);
+    if (syncOnly && !updateSyncScheduled) {
+      closeTBoundaryDiffModal();
+      if (typeof ctx.onConfirm === 'function') {
+        ctx.onConfirm({ updateChain: false, updateSuggestions: false, updateSyncScheduled: false });
+      }
+      return;
+    }
+    if (!syncOnly && !updateChain && !updateSuggestions && !updateSyncScheduled) {
+      closeTBoundaryDiffModal();
+      if (typeof ctx.onConfirm === 'function') {
+        ctx.onConfirm({ updateChain: false, updateSuggestions: false, updateSyncScheduled: false });
+      }
+      return;
+    }
+    closeTBoundaryDiffModal();
+    if (typeof ctx.onConfirm === 'function') {
+      ctx.onConfirm({
+        updateChain,
+        updateSuggestions,
+        updateSyncScheduled
+      });
+    }
+  });
+}
 function openTEditor(ctx) {
   const kind = ctx?.tKind;
   const def = getTKindDef(kind);
@@ -20072,6 +21050,7 @@ function openTEditor(ctx) {
   const flightRows = slotFlights.map(f => {
     const sta = getAssignmentArrStaDisplayValue(f);
     const eta = f.eta ? normalizeImportedTime(f.eta) : '—';
+    const etaLateClass = isArrEtaLaterThanSta(f) ? ' class="t-editor-eta-late"' : '';
     const key = normalizeTFlightKey(f.flight);
     const checked = currentCovered.has(key) ? 'checked' : '';
     if (isOrphan) {
@@ -20079,7 +21058,7 @@ function openTEditor(ctx) {
         <td><input type="checkbox" data-t-flight-check value="${escapeHtml(key)}" ${checked}></td>
         <td>${escapeHtml(f.flight)}</td>
         <td>${escapeHtml(sta)}</td>
-        <td>${escapeHtml(eta)}</td>
+        <td${etaLateClass}>${escapeHtml(eta)}</td>
         <td><label style="display:flex;align-items:center;gap:4px;white-space:nowrap;font-size:11px;"><input type="checkbox" data-t-restore-default value="${escapeHtml(key)}"> 恢復預設</label></td>
       </tr>`;
     }
@@ -20091,7 +21070,7 @@ function openTEditor(ctx) {
         <td><input type="checkbox" data-t-flight-check value="${escapeHtml(key)}" ${isChecked ? 'checked' : ''}></td>
         <td>${escapeHtml(f.flight)}</td>
         <td>${escapeHtml(sta)}</td>
-        <td>${escapeHtml(eta)}</td>
+        <td${etaLateClass}>${escapeHtml(eta)}</td>
         <td><label style="display:flex;align-items:center;gap:4px;white-space:nowrap;font-size:11px;"><input type="checkbox" data-t-assign-tc value="${escapeHtml(key)}" ${assignChecked ? 'checked' : ''}> 指派TC</label></td>
         <td><label style="display:flex;align-items:center;gap:4px;white-space:nowrap;font-size:11px;"><input type="checkbox" data-t-reassign-agt value="${escapeHtml(key)}"> 改派其他AGT</label></td>
       </tr>`;
@@ -20100,7 +21079,7 @@ function openTEditor(ctx) {
       <td><input type="checkbox" data-t-flight-check value="${escapeHtml(key)}" ${checked}></td>
       <td>${escapeHtml(f.flight)}</td>
       <td>${escapeHtml(sta)}</td>
-      <td>${escapeHtml(eta)}</td>
+      <td${etaLateClass}>${escapeHtml(eta)}</td>
     </tr>`;
   }).join('');
   const orphanFlights = isSchedule && item && !isOrphanSchedule
@@ -20131,10 +21110,14 @@ function openTEditor(ctx) {
               </div>`
             : ''))));
   const endValue = kind === 't2220_last' ? formatTSlotMinutes(bounds.end) : formatTSlotMinutes(bounds.end);
-  const slotRow = (isOrphan || isSchedule || isTemplateStaffEdit || isTcSlot) ? `<div class="t-editor-slot-row">
+  const slotRow = (isOrphan || isSchedule || isTemplateStaffEdit || isTcSlot) ? `<div class="t-editor-slot-toolbar">
+        <div class="t-editor-slot-row">
         <label>時段起時<input type="text" data-t-slot-start value="${escapeHtml(formatTSlotMinutes(bounds.start))}" placeholder="03:00"></label>
         <label>時段訖時<input type="text" data-t-slot-end value="${escapeHtml(endValue)}" placeholder="05:20" ${kind === 't2220_last' ? 'readonly' : ''}></label>
-      </div>` : '';
+        </div>
+        <span data-t-slot-anchor-host></span>
+      </div>
+      <div data-t-boundary-preview-host hidden></div>` : '';
   const flightColSpan = isOrphan ? 5 : isTcSlot ? 6 : 4;
   const flightTableHead = isOrphan
     ? `<thead><tr>
@@ -20181,6 +21164,7 @@ function openTEditor(ctx) {
     </div>
   `;
   overlay.classList.remove('hidden');
+  overlay.querySelector('[data-t-slot-anchor-host]')?.appendChild(createTAnchorModeButton());
   const close = () => overlay.classList.add('hidden');
   const checks = [...overlay.querySelectorAll('[data-t-flight-check]')];
   const checkAll = overlay.querySelector('[data-t-check-all]');
@@ -20280,6 +21264,164 @@ function openTEditor(ctx) {
   };
   orphanStaffCountInput?.addEventListener('input', syncOrphanStaffStatus);
   syncOrphanStaffStatus();
+  const boundaryPreviewHost = overlay.querySelector('[data-t-boundary-preview-host]');
+  const slotStartInput = overlay.querySelector('[data-t-slot-start]');
+  const slotEndInput = overlay.querySelector('[data-t-slot-end]');
+  const syncBoundaryPreview = () => {
+    if (!boundaryPreviewHost) return;
+    const slotStart = parseTcMinutesInput(slotStartInput?.value);
+    const slotEnd = kind === 't2220_last'
+      ? getLastVisibleArrStaMinutes()
+      : parseTcMinutesInput(slotEndInput?.value);
+    if (slotStart == null || (kind !== 't2220_last' && slotEnd == null)) {
+      boundaryPreviewHost.hidden = true;
+      boundaryPreviewHost.innerHTML = '';
+      return;
+    }
+    const draftChain = buildTimeChainFromSlotEdit(kind, { slotStart, slotEnd });
+    if (timeChainsEqual(draftChain, getEffectiveTimeChain())) {
+      boundaryPreviewHost.hidden = true;
+      boundaryPreviewHost.innerHTML = '';
+      return;
+    }
+    const preview = renderTBoundaryLivePreviewHtml(kind, draftChain, getTAnchorMode());
+    boundaryPreviewHost.hidden = preview.hidden;
+    boundaryPreviewHost.innerHTML = preview.html;
+  };
+  slotStartInput?.addEventListener('input', syncBoundaryPreview);
+  slotEndInput?.addEventListener('input', syncBoundaryPreview);
+  syncBoundaryPreview();
+  const finishTEditorSave = ({ boundaryAlreadyApplied = false, syncApplied = false } = {}) => {
+    if (!tTemplateDefaults || typeof tTemplateDefaults !== 'object') tTemplateDefaults = {};
+    const prevDefaults = tTemplateDefaults[kind] && typeof tTemplateDefaults[kind] === 'object' ? tTemplateDefaults[kind] : {};
+    let nextStaffCount = prevDefaults.staffCount;
+    if (isTemplateStaffEdit && staffCountInput) {
+      nextStaffCount = parseInt(staffCountInput.value, 10);
+      if (!Number.isFinite(nextStaffCount) || nextStaffCount < 1 || nextStaffCount > 12) {
+        appAlert('請輸入有效人數（1–12）。', '無法儲存');
+        return false;
+      }
+    }
+    tTemplateDefaults[kind] = { ...prevDefaults };
+    if (Number.isFinite(nextStaffCount) && nextStaffCount > 0) {
+      tTemplateDefaults[kind].staffCount = nextStaffCount;
+    }
+    const selected = checks.filter(c => c.checked).map(c => normalizeTFlightKey(c.value)).filter(Boolean);
+    const flightSelectionChanged = isTemplateStaffEdit && (
+      selected.length !== initialCoveredSet.size || selected.some(k => !initialCoveredSet.has(k))
+    );
+    if (isTemplateStaffEdit) {
+      if (syncApplied) {
+        applyManualTFlightReleasesForSlot(kind, {
+          initialCoveredKeys: [...initialCoveredSet],
+          selectedKeys: selected,
+          originPersonIndex: null
+        });
+      } else {
+        const slotKeys = getTSlotFlightKeys(kind);
+        const selectedSet = new Set(selected);
+        const released = new Set(getTReleasedFlights(kind));
+        slotKeys.forEach(k => {
+          if (!selectedSet.has(k)) released.add(k);
+          else released.delete(k);
+        });
+        tTemplateDefaults[kind].defaultCoveredFlights = selected.slice();
+        if (slotKeys.length && slotKeys.every(k => selectedSet.has(k))) {
+          tTemplateDefaults[kind].releasedFlights = [];
+          tTemplateDefaults[kind].releasedFlightOrigins = {};
+          delete tTemplateDefaults[kind].defaultCoveredFlights;
+        } else {
+          tTemplateDefaults[kind].releasedFlights = [...released];
+        }
+      }
+    }
+    saveTTemplateDefaults();
+    let syncSummary = null;
+    if (isTemplateStaffEdit && Number.isFinite(nextStaffCount)) {
+      syncSummary = trimTStaffBlocksToCount(kind, nextStaffCount);
+    }
+    if (isSchedule && item) {
+      if (syncApplied) {
+        applyManualTFlightReleasesForSlot(kind, {
+          initialCoveredKeys: [...initialCoveredSet],
+          selectedKeys: selected,
+          originPersonIndex: item.personIndex
+        });
+        syncTScheduleItemBounds(item);
+      } else {
+        const prevCovered = (item.coveredFlights || []).map(normalizeTFlightKey).filter(Boolean);
+        const merged = new Set(selected.map(normalizeTFlightKey).filter(Boolean));
+        item.coveredFlights = [...merged];
+        const released = new Set(getTReleasedFlights(kind));
+        const origins = { ...(tTemplateDefaults?.[kind]?.releasedFlightOrigins || {}) };
+        prevCovered.forEach(k => {
+          if (!merged.has(k)) {
+            released.add(k);
+            if (Number.isFinite(item.personIndex) && item.personIndex >= 0) origins[k] = item.personIndex;
+          }
+        });
+        [...merged].forEach(k => released.delete(k));
+        tTemplateDefaults[kind] = {
+          ...(tTemplateDefaults[kind] || {}),
+          releasedFlights: [...released],
+          releasedFlightOrigins: origins
+        };
+        saveTTemplateDefaults();
+        syncTScheduleItemBounds(item);
+      }
+    } else if (isTcSlot) {
+      const assignTc = [];
+      const reassignAgt = [];
+      const unchecked = [];
+      checks.forEach(c => {
+        const key = normalizeTFlightKey(c.value);
+        if (!key) return;
+        const row = c.closest('tr');
+        const reassign = row?.querySelector('[data-t-reassign-agt]')?.checked;
+        const assignTcChecked = row?.querySelector('[data-t-assign-tc]')?.checked;
+        if (!c.checked) {
+          unchecked.push(key);
+          return;
+        }
+        if (reassign) reassignAgt.push(key);
+        else if (assignTcChecked) assignTc.push(key);
+      });
+      applyTcSlotEditorSave(kind, { coveredFlights: assignTc });
+      const released = new Set(getTReleasedFlights(kind));
+      unchecked.forEach(k => released.add(k));
+      reassignAgt.forEach(k => released.add(k));
+      assignTc.forEach(k => released.delete(k));
+      if (reassignAgt.length && getTOrphanStaffNeeded(kind) <= 0) {
+        setTOrphanStaffNeeded(kind, 1);
+      }
+      const tcPatch = {
+        ...(tTemplateDefaults[kind] || {}),
+        releasedFlights: [...released],
+        tcReleaseTouched: reassignAgt.length > 0 || released.size > 0
+      };
+      if (!assignTc.length && !reassignAgt.length && !released.size) {
+        delete tcPatch.tcReleaseTouched;
+      }
+      tTemplateDefaults[kind] = tcPatch;
+      saveTTemplateDefaults();
+      pruneTReleasedFlights(kind);
+    }
+    const skipStaffPoolMutation = (boundaryAlreadyApplied && !flightSelectionChanged && !isSchedule) || syncApplied;
+    if (!isOrphan && def.tMode === 'staff' && !skipStaffPoolMutation) {
+      removeReleasedFlightsFromTStaffBlocks(kind);
+      pruneTReleasedFlights(kind);
+      clearTSlotReleasedStateIfFullyCovered(kind);
+    }
+    rebuildTemplates();
+    markUnsynced();
+    renderPalette();
+    renderRows();
+    syncAssignmentTableFromSchedule();
+    if (syncSummary?.removedAssigned) {
+      appAlert(`人數已更新，已移除 ${syncSummary.removedAssigned} 個已指派區塊。`, '人數已更新', 'info');
+    }
+    return true;
+  };
   overlay.querySelector('[data-t-editor-cancel]')?.addEventListener('click', close);
   overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
   overlay.querySelector('[data-t-editor-save]')?.addEventListener('click', () => {
@@ -20345,118 +21487,24 @@ function openTEditor(ctx) {
       appAlert('請輸入有效的時段起訖時間。', '無法儲存');
       return;
     }
-    pushUndoSnapshot();
-    if (!tTemplateDefaults || typeof tTemplateDefaults !== 'object') tTemplateDefaults = {};
-    const prevDefaults = tTemplateDefaults[kind] && typeof tTemplateDefaults[kind] === 'object' ? tTemplateDefaults[kind] : {};
-    let nextStaffCount = prevDefaults.staffCount;
-    if (isTemplateStaffEdit && staffCountInput) {
-      nextStaffCount = parseInt(staffCountInput.value, 10);
-      if (!Number.isFinite(nextStaffCount) || nextStaffCount < 1 || nextStaffCount > 12) {
-        appAlert('請輸入有效人數（1–12）。', '無法儲存');
-        return;
-      }
+    const draftChain = buildTimeChainFromSlotEdit(kind, { slotStart, slotEnd });
+    const chainChanged = !timeChainsEqual(draftChain, getEffectiveTimeChain());
+    if (chainChanged && !validateTimeChain(draftChain)) {
+      appAlert('時間鏈分界無效：相鄰分界點必須遞增。', '無法儲存');
+      return;
     }
-    tTemplateDefaults[kind] = {
-      ...prevDefaults,
-      slotStart: snap5(slotStart),
-      slotEnd: slotEnd == null ? null : snap5(slotEnd)
+    const continueSave = (boundaryAlreadyApplied, syncApplied = false) => {
+      if (!finishTEditorSave({ boundaryAlreadyApplied, syncApplied })) return;
+      close();
     };
-    if (Number.isFinite(nextStaffCount) && nextStaffCount > 0) {
-      tTemplateDefaults[kind].staffCount = nextStaffCount;
+    if (chainChanged) {
+      pushUndoSnapshot();
+      if (!applyTBoundaryAndSyncDirect({ chain: draftChain, focusKind: kind })) return;
+      continueSave(true, true);
+      return;
     }
-    if (isTemplateStaffEdit) {
-      const slotKeys = getTSlotFlightKeys(kind);
-      const selectedSet = new Set(selected);
-      const released = new Set(getTReleasedFlights(kind));
-      slotKeys.forEach(k => {
-        if (!selectedSet.has(k)) released.add(k);
-        else released.delete(k);
-      });
-      tTemplateDefaults[kind].defaultCoveredFlights = selected.slice();
-      if (slotKeys.length && slotKeys.every(k => selectedSet.has(k))) {
-        tTemplateDefaults[kind].releasedFlights = [];
-        tTemplateDefaults[kind].releasedFlightOrigins = {};
-        delete tTemplateDefaults[kind].defaultCoveredFlights;
-      } else {
-        tTemplateDefaults[kind].releasedFlights = [...released];
-      }
-    }
-    saveTTemplateDefaults();
-    let syncSummary = null;
-    if (isTemplateStaffEdit && Number.isFinite(nextStaffCount)) {
-      syncSummary = trimTStaffBlocksToCount(kind, nextStaffCount);
-    }
-    if (isSchedule && item) {
-      const prevCovered = (item.coveredFlights || []).map(normalizeTFlightKey).filter(Boolean);
-      const merged = new Set(selected.map(normalizeTFlightKey).filter(Boolean));
-      item.coveredFlights = [...merged];
-      const released = new Set(getTReleasedFlights(kind));
-      const origins = { ...(tTemplateDefaults?.[kind]?.releasedFlightOrigins || {}) };
-      prevCovered.forEach(k => {
-        if (!merged.has(k)) {
-          released.add(k);
-          if (Number.isFinite(item.personIndex) && item.personIndex >= 0) origins[k] = item.personIndex;
-        }
-      });
-      [...merged].forEach(k => released.delete(k));
-      tTemplateDefaults[kind] = {
-        ...(tTemplateDefaults[kind] || {}),
-        releasedFlights: [...released],
-        releasedFlightOrigins: origins
-      };
-      saveTTemplateDefaults();
-      syncTScheduleItemBounds(item);
-    } else if (isTcSlot) {
-      const assignTc = [];
-      const reassignAgt = [];
-      const unchecked = [];
-      checks.forEach(c => {
-        const key = normalizeTFlightKey(c.value);
-        if (!key) return;
-        const row = c.closest('tr');
-        const reassign = row?.querySelector('[data-t-reassign-agt]')?.checked;
-        const assignTcChecked = row?.querySelector('[data-t-assign-tc]')?.checked;
-        if (!c.checked) {
-          unchecked.push(key);
-          return;
-        }
-        if (reassign) reassignAgt.push(key);
-        else if (assignTcChecked) assignTc.push(key);
-      });
-      applyTcSlotEditorSave(kind, { coveredFlights: assignTc });
-      const released = new Set(getTReleasedFlights(kind));
-      unchecked.forEach(k => released.add(k));
-      reassignAgt.forEach(k => released.add(k));
-      assignTc.forEach(k => released.delete(k));
-      if (reassignAgt.length && getTOrphanStaffNeeded(kind) <= 0) {
-        setTOrphanStaffNeeded(kind, 1);
-      }
-      const tcPatch = {
-        ...(tTemplateDefaults[kind] || {}),
-        releasedFlights: [...released],
-        tcReleaseTouched: reassignAgt.length > 0 || released.size > 0
-      };
-      if (!assignTc.length && !reassignAgt.length && !released.size) {
-        delete tcPatch.tcReleaseTouched;
-      }
-      tTemplateDefaults[kind] = tcPatch;
-      saveTTemplateDefaults();
-      pruneTReleasedFlights(kind);
-    }
-    if (!isOrphan && def.tMode === 'staff') {
-      removeReleasedFlightsFromTStaffBlocks(kind);
-      pruneTReleasedFlights(kind);
-      clearTSlotReleasedStateIfFullyCovered(kind);
-    }
-    rebuildTemplates();
-    markUnsynced();
-    renderPalette();
-    renderRows();
-    syncAssignmentTableFromSchedule();
-    close();
-    if (syncSummary?.removedAssigned) {
-      appAlert(`人數已更新，已移除 ${syncSummary.removedAssigned} 個已指派區塊。`, '人數已更新', 'info');
-    }
+    pushUndoSnapshot();
+    continueSave(false);
   });
 }
 function openTDefaultsPicker() {
@@ -20763,6 +21811,7 @@ function loadDayDataFromLocalStorage(dateStr) {
   if (!Array.isArray(deletedCustomTemplates)) deletedCustomTemplates = [];
   if (!tcTemplateDefaults || typeof tcTemplateDefaults !== 'object') tcTemplateDefaults = {};
   if (!tTemplateDefaults || typeof tTemplateDefaults !== 'object') tTemplateDefaults = {};
+  migrateTTimeChainFromLegacySlots();
   if (!tTcSlotAssignments || typeof tTcSlotAssignments !== 'object') tTcSlotAssignments = {};
   if (!abgSlotOverrides || typeof abgSlotOverrides !== 'object') abgSlotOverrides = {};
   if (!homelineConnectingDutyModes || typeof homelineConnectingDutyModes !== 'object') homelineConnectingDutyModes = {};
@@ -22026,6 +23075,7 @@ function renderPaletteRoleGroups(palette, grouped) {
       title.appendChild(editBtn);
     } else if (roleName === 'T') {
       title.appendChild(document.createTextNode('辦T '));
+      title.appendChild(createTAnchorModeButton());
       const editBtn = document.createElement('button');
       editBtn.type = 'button';
       editBtn.className = 'tc-defaults-edit-btn';
@@ -22601,6 +23651,7 @@ function buildBlockElForSlice(item, slice, normalizedSearch, options = {}) {
   block.className = 'block';
   applyRoleClass(block, item.role);
   if (item.role === 'T' && isTOrphanAssignmentItem(item)) block.classList.add('block--t-orphan');
+  if (item.role === 'T' && isTScheduleItemInconsistent(item)) block.classList.add('block--t-inconsistent');
   if (normalizedSearch) {
     const snap = getUniversalSearchSnap();
     if (snap?.blockUids.has(item.uid)) block.classList.add('block-search-match');
@@ -22618,6 +23669,9 @@ function buildBlockElForSlice(item, slice, normalizedSearch, options = {}) {
   const staleBadge = item.connectingFlightStale
     ? '<span class="block-connecting-stale-badge" title="接飛已變更，請點 ⚙ 拆開此合併區塊">!</span>'
     : '';
+  const inconsistentBadge = item.role === 'T' && isTScheduleItemInconsistent(item)
+    ? '<button type="button" class="block-t-inconsistent-badge" title="與目前時段規則不一致，點擊同步">⚠</button>'
+    : '';
   const showConnSplit = canSplitHomelineConnectingScheduleBlock(item);
   const editBtn = options.showEdit && (item.role === 'TC' || item.role === 'T' || showConnSplit)
     ? `<button class="block-edit-btn" type="button" title="${showConnSplit ? '拆開接飛 duty' : '調整時段'}">${EDIT_GEAR_ICON_HTML}</button>`
@@ -22634,9 +23688,19 @@ function buildBlockElForSlice(item, slice, normalizedSearch, options = {}) {
     ${editBtn}
     ${labelHtml}
     ${staleBadge}
+    ${inconsistentBadge}
     ${otBadge}
     <button class="block-delete-btn" type="button" title="刪除此 duty">×</button>
   `;
+  block.querySelector('.block-t-inconsistent-badge')?.addEventListener('click', e => {
+    e.stopPropagation();
+    e.preventDefault();
+    if (item.role === 'T' && item.tKind) openTSlotSyncModal(item.tKind, { force: true });
+  });
+  block.querySelector('.block-t-inconsistent-badge')?.addEventListener('mousedown', e => {
+    e.stopPropagation();
+    e.preventDefault();
+  });
   block.querySelector('.block-edit-btn')?.addEventListener('click', e => {
     e.stopPropagation();
     e.preventDefault();
@@ -22662,12 +23726,12 @@ function buildBlockElForSlice(item, slice, normalizedSearch, options = {}) {
     if (typeof syncAssignmentTableFromSchedule === 'function') syncAssignmentTableFromSchedule();
   });
   block.addEventListener('click', e => {
-    if (e.target.closest('.block-edit-btn') || e.target.closest('.block-delete-btn')) return;
+    if (e.target.closest('.block-edit-btn') || e.target.closest('.block-delete-btn') || e.target.closest('.block-t-inconsistent-badge')) return;
     e.stopPropagation();
     selectBlock(item.uid);
   });
   block.addEventListener('mousedown', e => {
-    if (e.target.closest('.block-delete-btn') || e.target.closest('.block-edit-btn')) return;
+    if (e.target.closest('.block-delete-btn') || e.target.closest('.block-edit-btn') || e.target.closest('.block-t-inconsistent-badge')) return;
     startMoveBlock(e, item);
   });
   const fullLabel = getDutyDisplayLabel(item);
@@ -23490,6 +24554,7 @@ function bootLoadGlobalStorage() {
   abgSlotOverrides = readJsonLS(dayK.abgSlotOverrides, {});
   homelineConnectingDutyModes = readJsonLS(dayK.homelineConnectingDutyModes, {});
   if (!tTemplateDefaults || typeof tTemplateDefaults !== 'object') tTemplateDefaults = {};
+  migrateTTimeChainFromLegacySlots();
   if (!tTcSlotAssignments || typeof tTcSlotAssignments !== 'object') tTcSlotAssignments = {};
   if (!abgSlotOverrides || typeof abgSlotOverrides !== 'object') abgSlotOverrides = {};
   if (!homelineConnectingDutyModes || typeof homelineConnectingDutyModes !== 'object') homelineConnectingDutyModes = {};
@@ -23530,6 +24595,7 @@ function bootLoadDayState() {
   rebuildTemplates();
 }
 function bootBindEvents() {
+bindTBoundaryDiffModalOnce();
 initScheduleRowDeleteDelegation();
 document.getElementById('assignmentToggleBtn').addEventListener('click', () => toggleAssignmentPanel());
 initWorkspaceSplitter();
