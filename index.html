@@ -3182,7 +3182,18 @@
   .t-anchor-mode-pop .t-anchor-mode-opt:hover { background: #f1f5f9; }
   .t-anchor-mode-pop .t-anchor-mode-opt.is-active { background: #dbeafe; color: #1d4ed8; font-weight: 700; }
   .block-edit-btn { position: absolute; left: 2px; top: 2px; z-index: 3; opacity: 0; pointer-events: none; }
-  .block:hover .block-edit-btn, .block.selected .block-edit-btn { opacity: 1; pointer-events: auto; }
+  .block-t-import-btn {
+    position: absolute; left: 16px; top: 2px; z-index: 3;
+    opacity: 0; pointer-events: none;
+    font-size: 11px; font-weight: 800; line-height: 1;
+    width: 14px; height: 14px; padding: 0;
+    border: 0; border-radius: 3px;
+    background: rgba(255,255,255,.85); color: #1d4ed8;
+    cursor: pointer;
+  }
+  .block:hover .block-edit-btn, .block.selected .block-edit-btn,
+  .block:hover .block-t-import-btn, .block.selected .block-t-import-btn { opacity: 1; pointer-events: auto; }
+  .block-t-import-btn:hover { background: #dbeafe; color: #1e3a8a; }
   .tc-editor-overlay {
     position: fixed; inset: 0; z-index: 12000; background: rgba(15,23,42,.45);
     display: flex; align-items: center; justify-content: center; padding: 16px;
@@ -3237,6 +3248,8 @@
   }
   .t-editor-flight-table th { font-weight: 700; background: #f8fafc; }
   .t-editor-flight-table .t-editor-eta-late { color: #ef4444; font-weight: 700; }
+  .t-editor-import-section { margin-top: 12px; padding-top: 10px; border-top: 1px solid #e2e8f0; }
+  .t-editor-import-hint { font-size: 12px; color: #64748b; margin: 0 0 8px; line-height: 1.45; }
   .t-editor-panel { width: min(520px, 100%); max-height: calc(100vh - 32px); overflow-y: auto; }
   .t-editor-slot-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 0; flex: 1; min-width: 200px; }
   .t-editor-slot-toolbar { display: flex; align-items: flex-end; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; }
@@ -19037,13 +19050,17 @@ const T_KIND_DEFS = [
   { kind: 't2100_2220', label: 'T 21:00-22:20', slotStart: 1260, slotEnd: 1340, staffCount: 4, tMode: 'staff' },
   { kind: 't2220_last', label: 'T 22:20-最後', slotStart: 1340, slotEnd: null, staffCount: 0, tMode: 'tc' }
 ];
+const T_GROUP_DISPLAY_LABELS = [
+  'T-1', 'T-2', 'T-3', 'TC T-1', 'T-4', 'T-5', 'T-6', 'TC T-2', 'T-7', 'T-8', 'TC T-3'
+];
 function getTGroupNumber(kind) {
   const idx = T_KIND_DEFS.findIndex(d => d.kind === kind);
   return idx >= 0 ? idx + 1 : 0;
 }
 function getTGroupLabel(kind) {
-  const n = getTGroupNumber(kind);
-  return n > 0 ? `T-${n}` : 'T';
+  const idx = T_KIND_DEFS.findIndex(d => d.kind === kind);
+  if (idx < 0) return 'T';
+  return T_GROUP_DISPLAY_LABELS[idx] || `T-${idx + 1}`;
 }
 const T_ANCHOR_MODES = ['sta', 'eta', 'eta_fallback_sta'];
 function getDefaultTimeChain() {
@@ -19931,6 +19948,55 @@ function syncTScheduleItemBounds(item) {
   item.start = bounds.start;
   item.end = bounds.end;
 }
+function getTCrossImportedMap(item) {
+  if (!item?.tCrossImported || typeof item.tCrossImported !== 'object') return {};
+  const out = {};
+  Object.keys(item.tCrossImported).forEach(k => {
+    const key = normalizeTFlightKey(k);
+    const fromKind = item.tCrossImported[k];
+    if (key && fromKind) out[key] = fromKind;
+  });
+  return out;
+}
+function getTCrossImportedKeys(item) {
+  return Object.keys(getTCrossImportedMap(item));
+}
+function isTCrossImportedFlight(item, flightKey) {
+  const k = normalizeTFlightKey(flightKey);
+  return !!(k && getTCrossImportedMap(item)[k]);
+}
+function getTImportSourceKind(item, flightKey) {
+  return getTCrossImportedMap(item)[normalizeTFlightKey(flightKey)] || null;
+}
+function getTNativeCoveredFlights(item) {
+  const imported = new Set(getTCrossImportedKeys(item));
+  return (item?.coveredFlights || []).map(normalizeTFlightKey).filter(k => k && !imported.has(k));
+}
+function setTCrossImportsFromKind(item, fromKind, flightKeys) {
+  if (!item) return;
+  if (!item.tCrossImported || typeof item.tCrossImported !== 'object') item.tCrossImported = {};
+  const prevMap = getTCrossImportedMap(item);
+  const native = (item.coveredFlights || []).map(normalizeTFlightKey).filter(k => k && !prevMap[k]);
+  Object.keys(item.tCrossImported).forEach(k => {
+    if (item.tCrossImported[k] === fromKind) delete item.tCrossImported[k];
+  });
+  (flightKeys || []).map(normalizeTFlightKey).filter(Boolean).forEach(k => {
+    item.tCrossImported[k] = fromKind;
+  });
+  item.coveredFlights = [...new Set([...native, ...getTCrossImportedKeys(item)])];
+  syncTScheduleItemBounds(item);
+}
+function removeTCrossImportedFlight(item, flightKey) {
+  const k = normalizeTFlightKey(flightKey);
+  if (!k || !item?.tCrossImported?.[k]) return;
+  delete item.tCrossImported[k];
+  item.coveredFlights = (item.coveredFlights || []).map(normalizeTFlightKey).filter(x => x && x !== k);
+  if (!Object.keys(item.tCrossImported).length) delete item.tCrossImported;
+  syncTScheduleItemBounds(item);
+}
+function getImportableTStaffKinds(excludeKind) {
+  return T_KIND_DEFS.filter(def => def.tMode === 'staff' && def.kind !== excludeKind);
+}
 function removeReleasedFlightsFromTStaffBlocks(tKind) {
   const released = getTStaffPoolExcludedFlightKeys(tKind);
   if (!released.size) return;
@@ -20488,6 +20554,7 @@ function applyTimeChainBoundaryUpdate({ chain, anchorMode, updateChain, updateSu
       updateSyncScheduled: updateSyncScheduled === true,
       updateAdjustCovered: updateAdjustCovered === true
     });
+    if (updateSyncScheduled) syncTStaffSchedulingUntilConsistent(focusKind);
   }
   return true;
 }
@@ -20542,6 +20609,7 @@ function collectTKindsWithCrossSlotStaffMismatch() {
       (block.coveredFlights || []).forEach(f => {
         const key = normalizeTFlightKey(f);
         if (!key) return;
+        if (isTCrossImportedFlight(block, key)) return;
         const fDef = flightDefs.find(fd => normalizeTFlightKey(fd.flight) === key && fd.type === 'ARR');
         if (!fDef) {
           kinds.add(def.kind);
@@ -20574,6 +20642,7 @@ function stripCrossSlotTFlightsFromStaffBlocks(kinds) {
     getTStaffScheduleBlocks(def.kind).filter(b => !isTOrphanAssignmentItem(b)).forEach(block => {
       const prev = (block.coveredFlights || []).map(normalizeTFlightKey).filter(Boolean);
       const next = prev.filter(key => {
+        if (isTCrossImportedFlight(block, key)) return true;
         const fDef = flightDefs.find(f => normalizeTFlightKey(f.flight) === key && f.type === 'ARR');
         if (!fDef) return false;
         return getTKindForFlight(fDef, { chain, anchorMode: mode }) === def.kind;
@@ -20607,7 +20676,7 @@ function computeTStaffBlockSyncPlan(tKind, { fullSync = false } = {}) {
   if (!fullSync) {
     return blocks.map(block => {
       const prev = (block.coveredFlights || []).map(normalizeTFlightKey).filter(Boolean);
-      const next = prev.filter(k => targetSet.has(k));
+      const next = prev.filter(k => targetSet.has(k) || isTCrossImportedFlight(block, k));
       return { uid: block.uid, personIndex: block.personIndex, prev, next };
     }).filter(p => !tFlightKeyArraysEqual(p.prev, p.next));
   }
@@ -20617,7 +20686,7 @@ function computeTStaffBlockSyncPlan(tKind, { fullSync = false } = {}) {
     uid: block.uid,
     personIndex: block.personIndex,
     prev: (block.coveredFlights || []).map(normalizeTFlightKey).filter(Boolean),
-    next: chunks[i] || []
+    next: [...(chunks[i] || []), ...getTCrossImportedKeys(block)]
   }));
 }
 function syncTStaffBlocksForKind(tKind, { fullSync = false } = {}) {
@@ -20629,7 +20698,7 @@ function syncTStaffBlocksForKind(tKind, { fullSync = false } = {}) {
     const block = schedule.find(x => x.uid === plan.uid);
     if (!block) return;
     const prev = (block.coveredFlights || []).map(normalizeTFlightKey).filter(Boolean);
-    block.coveredFlights = plan.next.slice();
+    block.coveredFlights = [...new Set(plan.next.map(normalizeTFlightKey).filter(Boolean))];
     syncTScheduleItemBounds(block);
     if (!tFlightKeyArraysEqual(prev, plan.next)) updatedBlocks++;
   });
@@ -20690,6 +20759,30 @@ function syncTSchedulingForBoundaryChange({ diff, focusKind, updateSyncScheduled
   });
   reconcileReleasedFlightsAfterBoundarySync(kinds);
   return { staffBlocks, tcSlots };
+}
+function syncTStaffSchedulingUntilConsistent(focusKind, { maxPasses = 4 } = {}) {
+  const seedKinds = focusKind ? getKindsAffectedByBoundaryEdit(focusKind) : [];
+  for (let pass = 0; pass < maxPasses; pass++) {
+    const kinds = new Set(seedKinds);
+    collectTKindsWithInconsistentStaffBlocks().forEach(k => kinds.add(k));
+    collectTKindsWithCrossSlotStaffMismatch().forEach(k => kinds.add(k));
+    if (!kinds.size) return;
+    stripCrossSlotTFlightsFromStaffBlocks([...kinds]);
+    [...kinds].forEach(tKind => {
+      if (getTKindDef(tKind)?.tMode === 'staff') {
+        syncTStaffBlocksForKind(tKind, { fullSync: true });
+      } else if (getTKindDef(tKind)?.tMode === 'tc') {
+        syncTcSlotSchedulingForKind(tKind, { fullSync: true });
+      }
+    });
+    reconcileReleasedFlightsAfterBoundarySync([...kinds]);
+    const stillBad = [...kinds].some(tKind =>
+      getTStaffScheduleBlocks(tKind).some(item =>
+        !isTOrphanAssignmentItem(item) && isTScheduleItemInconsistent(item)
+      )
+    );
+    if (!stillBad) return;
+  }
 }
 function removeTFlightFromStaffBlocksForKind(tKind, flightKey) {
   const key = normalizeTFlightKey(flightKey);
@@ -20781,6 +20874,7 @@ function isTScheduleItemInconsistent(item) {
   const mode = getTAnchorMode();
   const targetSet = new Set(getTSlotTargetFlightsForSync(kind));
   return covered.some(key => {
+    if (isTCrossImportedFlight(item, key)) return false;
     const fDef = flightDefs.find(f => normalizeTFlightKey(f.flight) === key && f.type === 'ARR');
     if (!fDef) return true;
     const correctKind = getTKindForFlight(fDef, { chain, anchorMode: mode });
@@ -20918,11 +21012,98 @@ function openTSlotSyncModal(tKind, { force = false } = {}) {
     updateSyncScheduled: true,
     updateAdjustCovered: false
   });
+  syncTStaffSchedulingUntilConsistent(tKind);
   rebuildTemplates();
   markUnsynced();
   renderPalette();
   renderRows();
   syncAssignmentTableFromSchedule();
+}
+function openTCrossSlotImportModal(uid) {
+  const item = schedule.find(x => x.uid === uid);
+  if (!item || item.role !== 'T' || item.tMode !== 'staff' || isTOrphanAssignmentItem(item)) return;
+  const hostKind = item.tKind;
+  const sources = getImportableTStaffKinds(hostKind);
+  if (!sources.length) {
+    appAlert('沒有其他辦T時段可匯入。', '無法匯入', 'info');
+    return;
+  }
+  let overlay = document.getElementById('tDutyEditorOverlay');
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.id = 'tDutyEditorOverlay';
+    overlay.className = 'tc-editor-overlay hidden';
+    document.body.appendChild(overlay);
+  }
+  let fromKind = sources[0].kind;
+  const renderFlightTable = () => {
+    const flights = getFlightsInTSlot(fromKind, { brB7Only: true });
+    const importedOnItem = new Set(
+      getTCrossImportedKeys(item).filter(k => getTImportSourceKind(item, k) === fromKind)
+    );
+    return flights.map(f => {
+      const key = normalizeTFlightKey(f.flight);
+      const sta = getAssignmentArrStaDisplayValue(f);
+      const eta = f.eta ? normalizeImportedTime(f.eta) : '—';
+      const etaLateClass = isArrEtaLaterThanSta(f) ? ' class="t-editor-eta-late"' : '';
+      const checked = importedOnItem.has(key) ? 'checked' : '';
+      return `<tr data-t-import-flight="${escapeHtml(key)}">
+        <td><input type="checkbox" data-t-import-flight-check value="${escapeHtml(key)}" ${checked}></td>
+        <td>${escapeHtml(f.flight)}</td>
+        <td>${escapeHtml(sta)}</td>
+        <td${etaLateClass}>${escapeHtml(eta)}</td>
+      </tr>`;
+    }).join('');
+  };
+  const kindOptions = sources.map(def =>
+    `<option value="${def.kind}" ${def.kind === fromKind ? 'selected' : ''}>${escapeHtml(getTGroupLabel(def.kind))}</option>`
+  ).join('');
+  const person = people[item.personIndex];
+  const personLabel = person ? (person.code || person.name || '') : '';
+  const hostLabel = getTGroupLabel(hostKind);
+  overlay.innerHTML = `
+    <div class="tc-editor-panel t-editor-panel" role="dialog" aria-modal="true" style="max-width:480px;width:100%;">
+      <h3>匯入其他時段航班</h3>
+      <p style="font-size:12px;color:#64748b;margin:0 0 10px;">${escapeHtml(personLabel || '人員')} · ${escapeHtml(hostLabel)}</p>
+      <label style="display:flex;flex-direction:column;gap:4px;font-size:12px;color:#475569;margin-bottom:8px;">
+        來源時段
+        <select data-t-import-from-kind style="padding:6px 8px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;">${kindOptions}</select>
+      </label>
+      <table class="t-editor-flight-table" data-t-import-flight-table>
+        <thead><tr><th style="width:36px;">辦</th><th>航班</th><th>STA</th><th>ETA</th></tr></thead>
+        <tbody>${renderFlightTable() || '<tr><td colspan="4">此時段無入境航班</td></tr>'}</tbody>
+      </table>
+      <div class="t-editor-import-hint" style="margin-top:8px;">勾選要由此人一併辦理的航班；取消勾選僅從此格移除，不會進入待排。</div>
+      <div class="tc-editor-actions">
+        <button type="button" class="btn-secondary" data-t-import-cancel>取消</button>
+        <button type="button" class="btn-primary" data-t-import-save>確認</button>
+      </div>
+    </div>
+  `;
+  overlay.classList.remove('hidden');
+  const close = () => overlay.classList.add('hidden');
+  const tbody = overlay.querySelector('[data-t-import-flight-table] tbody');
+  const kindSelect = overlay.querySelector('[data-t-import-from-kind]');
+  kindSelect?.addEventListener('change', () => {
+    fromKind = kindSelect.value;
+    if (tbody) tbody.innerHTML = renderFlightTable() || '<tr><td colspan="4">此時段無入境航班</td></tr>';
+  });
+  overlay.querySelector('[data-t-import-cancel]')?.addEventListener('click', close);
+  overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
+  overlay.querySelector('[data-t-import-save]')?.addEventListener('click', () => {
+    const pickedKind = kindSelect?.value || fromKind;
+    const selected = [...overlay.querySelectorAll('[data-t-import-flight-check]')]
+      .filter(c => c.checked)
+      .map(c => normalizeTFlightKey(c.value))
+      .filter(Boolean);
+    pushUndoSnapshot();
+    setTCrossImportsFromKind(item, pickedKind, selected);
+    markUnsynced();
+    renderPalette();
+    renderRows();
+    syncAssignmentTableFromSchedule();
+    close();
+  });
 }
 function bindTBoundaryDiffModalOnce() {
   const modal = document.getElementById('tBoundaryDiffModal');
@@ -20994,13 +21175,16 @@ function openTEditor(ctx) {
   const initialCoveredList = isOrphan || isOrphanSchedule
     ? orphanKeys
     : isSchedule && item
-      ? item.coveredFlights
+      ? getTNativeCoveredFlights(item)
       : isTcSlot
         ? getTcEditorCoveredFlights(kind)
         : getDefaultCoveredFlightsForTSlot(kind, { brB7Only: !isTcSlot });
   const initialCoveredSet = new Set(
     (initialCoveredList || []).map(normalizeTFlightKey).filter(Boolean)
   );
+  const initialNativeCoveredSet = isSchedule && item && !isOrphanSchedule
+    ? new Set(getTNativeCoveredFlights(item))
+    : initialCoveredSet;
   const currentCovered = initialCoveredSet;
   let overlay = document.getElementById('tDutyEditorOverlay');
   if (!overlay) {
@@ -21082,6 +21266,37 @@ function openTEditor(ctx) {
       <td${etaLateClass}>${escapeHtml(eta)}</td>
     </tr>`;
   }).join('');
+  const importedFlights = isSchedule && item && !isOrphanSchedule
+    ? getTCrossImportedKeys(item)
+      .map(key => flightDefs.find(f => normalizeTFlightKey(f.flight) === key && f.type === 'ARR'))
+      .filter(Boolean)
+    : [];
+  const importedRows = importedFlights.map(f => {
+    const key = normalizeTFlightKey(f.flight);
+    const sta = getAssignmentArrStaDisplayValue(f);
+    const eta = f.eta ? normalizeImportedTime(f.eta) : '—';
+    const etaLateClass = isArrEtaLaterThanSta(f) ? ' class="t-editor-eta-late"' : '';
+    const fromLabel = escapeHtml(getTGroupLabel(getTImportSourceKind(item, key) || ''));
+    return `<tr data-t-import-flight="${escapeHtml(key)}">
+      <td><input type="checkbox" data-t-edit-import-check value="${escapeHtml(key)}" checked></td>
+      <td>${escapeHtml(f.flight)}</td>
+      <td>${fromLabel}</td>
+      <td>${escapeHtml(sta)}</td>
+      <td${etaLateClass}>${escapeHtml(eta)}</td>
+    </tr>`;
+  }).join('');
+  const importedSection = isSchedule && item && !isOrphanSchedule
+    ? (importedFlights.length
+      ? `<div class="t-editor-import-section">
+          <strong style="font-size:13px;">已匯入其他時段（${importedFlights.length}）</strong>
+          <div class="t-editor-import-hint">取消勾選僅從此格移除，不會進入待排；要新增請點區塊上的 ＋。</div>
+          <table class="t-editor-flight-table">
+            <thead><tr><th style="width:36px;">辦</th><th>航班</th><th>來源</th><th>STA</th><th>ETA</th></tr></thead>
+            <tbody>${importedRows}</tbody>
+          </table>
+        </div>`
+      : `<div class="t-editor-import-section"><div class="t-editor-import-hint">可點區塊上的 ＋ 匯入其他時段航班。</div></div>`)
+    : '';
   const orphanFlights = isSchedule && item && !isOrphanSchedule
     ? getOrphanFlightsForTSlot(kind).filter(key => !currentCovered.has(key))
     : [];
@@ -21115,7 +21330,6 @@ function openTEditor(ctx) {
         <label>時段起時<input type="text" data-t-slot-start value="${escapeHtml(formatTSlotMinutes(bounds.start))}" placeholder="03:00"></label>
         <label>時段訖時<input type="text" data-t-slot-end value="${escapeHtml(endValue)}" placeholder="05:20" ${kind === 't2220_last' ? 'readonly' : ''}></label>
         </div>
-        <span data-t-slot-anchor-host></span>
       </div>
       <div data-t-boundary-preview-host hidden></div>` : '';
   const flightColSpan = isOrphan ? 5 : isTcSlot ? 6 : 4;
@@ -21156,6 +21370,7 @@ function openTEditor(ctx) {
         ${flightTableHead}
         <tbody>${flightRows || `<tr><td colspan="${flightColSpan}">此時段無入境航班</td></tr>`}</tbody>
       </table>
+      ${importedSection}
       ${orphanSection}
       <div class="tc-editor-actions">
         <button type="button" class="btn-secondary" data-t-editor-cancel>取消</button>
@@ -21164,7 +21379,6 @@ function openTEditor(ctx) {
     </div>
   `;
   overlay.classList.remove('hidden');
-  overlay.querySelector('[data-t-slot-anchor-host]')?.appendChild(createTAnchorModeButton());
   const close = () => overlay.classList.add('hidden');
   const checks = [...overlay.querySelectorAll('[data-t-flight-check]')];
   const checkAll = overlay.querySelector('[data-t-check-all]');
@@ -21314,7 +21528,7 @@ function openTEditor(ctx) {
       if (syncApplied) {
         applyManualTFlightReleasesForSlot(kind, {
           initialCoveredKeys: [...initialCoveredSet],
-          selectedKeys: selected,
+          selectedKeys: selected.filter(k => getTSlotFlightKeys(kind).includes(k)),
           originPersonIndex: null
         });
       } else {
@@ -21341,26 +21555,41 @@ function openTEditor(ctx) {
       syncSummary = trimTStaffBlocksToCount(kind, nextStaffCount);
     }
     if (isSchedule && item) {
+      const applyImportEdits = () => {
+        const importKeep = new Set(
+          [...overlay.querySelectorAll('[data-t-edit-import-check]')]
+            .filter(c => c.checked)
+            .map(c => normalizeTFlightKey(c.value))
+            .filter(Boolean)
+        );
+        [...getTCrossImportedKeys(item)].forEach(k => {
+          if (!importKeep.has(k)) removeTCrossImportedFlight(item, k);
+        });
+      };
       if (syncApplied) {
         applyManualTFlightReleasesForSlot(kind, {
-          initialCoveredKeys: [...initialCoveredSet],
-          selectedKeys: selected,
+          initialCoveredKeys: [...initialNativeCoveredSet],
+          selectedKeys: selected.filter(k => getTSlotFlightKeys(kind).includes(k)),
           originPersonIndex: item.personIndex
         });
+        applyImportEdits();
+        const nativeSelected = selected.map(normalizeTFlightKey).filter(Boolean);
+        item.coveredFlights = [...new Set([...nativeSelected, ...getTCrossImportedKeys(item)])];
         syncTScheduleItemBounds(item);
       } else {
-        const prevCovered = (item.coveredFlights || []).map(normalizeTFlightKey).filter(Boolean);
-        const merged = new Set(selected.map(normalizeTFlightKey).filter(Boolean));
-        item.coveredFlights = [...merged];
+        applyImportEdits();
+        const nativeSelected = selected.map(normalizeTFlightKey).filter(Boolean);
+        const prevNative = [...initialNativeCoveredSet];
+        item.coveredFlights = [...new Set([...nativeSelected, ...getTCrossImportedKeys(item)])];
         const released = new Set(getTReleasedFlights(kind));
         const origins = { ...(tTemplateDefaults?.[kind]?.releasedFlightOrigins || {}) };
-        prevCovered.forEach(k => {
-          if (!merged.has(k)) {
+        prevNative.forEach(k => {
+          if (!nativeSelected.includes(k)) {
             released.add(k);
             if (Number.isFinite(item.personIndex) && item.personIndex >= 0) origins[k] = item.personIndex;
           }
         });
-        [...merged].forEach(k => released.delete(k));
+        nativeSelected.forEach(k => released.delete(k));
         tTemplateDefaults[kind] = {
           ...(tTemplateDefaults[kind] || {}),
           releasedFlights: [...released],
@@ -23075,7 +23304,6 @@ function renderPaletteRoleGroups(palette, grouped) {
       title.appendChild(editBtn);
     } else if (roleName === 'T') {
       title.appendChild(document.createTextNode('辦T '));
-      title.appendChild(createTAnchorModeButton());
       const editBtn = document.createElement('button');
       editBtn.type = 'button';
       editBtn.className = 'tc-defaults-edit-btn';
@@ -23673,6 +23901,10 @@ function buildBlockElForSlice(item, slice, normalizedSearch, options = {}) {
     ? '<button type="button" class="block-t-inconsistent-badge" title="與目前時段規則不一致，點擊同步">⚠</button>'
     : '';
   const showConnSplit = canSplitHomelineConnectingScheduleBlock(item);
+  const showTImport = item.role === 'T' && item.tMode === 'staff' && !isTOrphanAssignmentItem(item) && options.showEdit;
+  const importBtn = showTImport
+    ? '<button type="button" class="block-t-import-btn" title="匯入其他時段航班">+</button>'
+    : '';
   const editBtn = options.showEdit && (item.role === 'TC' || item.role === 'T' || showConnSplit)
     ? `<button class="block-edit-btn" type="button" title="${showConnSplit ? '拆開接飛 duty' : '調整時段'}">${EDIT_GEAR_ICON_HTML}</button>`
     : '';
@@ -23686,6 +23918,7 @@ function buildBlockElForSlice(item, slice, normalizedSearch, options = {}) {
     : `<div class="label">${escapeHtml(getDutyDisplayLabel(item))}</div>`;
   block.innerHTML = `
     ${editBtn}
+    ${importBtn}
     ${labelHtml}
     ${staleBadge}
     ${inconsistentBadge}
@@ -23698,6 +23931,15 @@ function buildBlockElForSlice(item, slice, normalizedSearch, options = {}) {
     if (item.role === 'T' && item.tKind) openTSlotSyncModal(item.tKind, { force: true });
   });
   block.querySelector('.block-t-inconsistent-badge')?.addEventListener('mousedown', e => {
+    e.stopPropagation();
+    e.preventDefault();
+  });
+  block.querySelector('.block-t-import-btn')?.addEventListener('click', e => {
+    e.stopPropagation();
+    e.preventDefault();
+    openTCrossSlotImportModal(item.uid);
+  });
+  block.querySelector('.block-t-import-btn')?.addEventListener('mousedown', e => {
     e.stopPropagation();
     e.preventDefault();
   });
@@ -23726,12 +23968,12 @@ function buildBlockElForSlice(item, slice, normalizedSearch, options = {}) {
     if (typeof syncAssignmentTableFromSchedule === 'function') syncAssignmentTableFromSchedule();
   });
   block.addEventListener('click', e => {
-    if (e.target.closest('.block-edit-btn') || e.target.closest('.block-delete-btn') || e.target.closest('.block-t-inconsistent-badge')) return;
+    if (e.target.closest('.block-edit-btn') || e.target.closest('.block-delete-btn') || e.target.closest('.block-t-inconsistent-badge') || e.target.closest('.block-t-import-btn')) return;
     e.stopPropagation();
     selectBlock(item.uid);
   });
   block.addEventListener('mousedown', e => {
-    if (e.target.closest('.block-delete-btn') || e.target.closest('.block-edit-btn') || e.target.closest('.block-t-inconsistent-badge')) return;
+    if (e.target.closest('.block-delete-btn') || e.target.closest('.block-edit-btn') || e.target.closest('.block-t-inconsistent-badge') || e.target.closest('.block-t-import-btn')) return;
     startMoveBlock(e, item);
   });
   const fullLabel = getDutyDisplayLabel(item);
