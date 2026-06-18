@@ -7248,17 +7248,32 @@ function getScheduleEditFocusSnapshot() {
   const rows = document.getElementById('rows');
   const cell = active.closest('.person-cell[data-original-index]');
   if (!rows?.contains(cell)) return null;
-  const fieldClass = SCHEDULE_EDIT_FIELD_CLASSES.find(cls => active.classList.contains(cls));
+  let fieldClass = SCHEDULE_EDIT_FIELD_CLASSES.find(cls => active.classList.contains(cls));
+  if (!fieldClass && active.closest('.temp-row-name-suggest, .shift-adjust-suggest')) {
+    if (cell.querySelector('.temp-row-name-input')) fieldClass = 'temp-row-name-input';
+    else if (cell.querySelector('.temp-row-shift-input')) fieldClass = 'temp-row-shift-input';
+    else if (cell.querySelector('.adjusted-shift-input')) fieldClass = 'adjusted-shift-input';
+    else if (cell.querySelector('.next-shift-input')) fieldClass = 'next-shift-input';
+  }
   if (!fieldClass) return null;
   const snap = {
     personIndex: cell.dataset.originalIndex,
     fieldClass
   };
-  if (active instanceof HTMLInputElement) {
-    snap.selectionStart = active.selectionStart;
-    snap.selectionEnd = active.selectionEnd;
+  const input = cell.querySelector(`.${fieldClass}`);
+  if (input instanceof HTMLInputElement) {
+    snap.selectionStart = input.selectionStart;
+    snap.selectionEnd = input.selectionEnd;
   }
   return snap;
+}
+function restoreScheduleScrollTop(scrollHost, scrollTop) {
+  if (!scrollHost || scrollTop == null) return;
+  scrollHost.scrollTop = scrollTop;
+  requestAnimationFrame(() => {
+    scrollHost.scrollTop = scrollTop;
+    requestAnimationFrame(() => { scrollHost.scrollTop = scrollTop; });
+  });
 }
 function restoreScheduleEditFocusSnapshot(snap) {
   if (!snap?.personIndex || !snap.fieldClass) return;
@@ -7673,7 +7688,7 @@ function tempRowStaffAlreadyOnRoster(entry, excludeIndex) {
     return false;
   });
 }
-function applyStaffSuggestionToTempRow(personIndex, entry) {
+function applyStaffSuggestionToTempRow(personIndex, entry, personCell) {
   if (!entry || !people[personIndex]) return;
   if (tempRowStaffAlreadyOnRoster(entry, personIndex)) {
     appAlert('此人已在今日管制表中，請勿重複加入。', '無法帶入');
@@ -7688,7 +7703,16 @@ function applyStaffSuggestionToTempRow(personIndex, entry) {
   person.personnelId = String(entry.personnelId || '').trim();
   person.name = name;
   if (entry.level) person.level = String(entry.level).trim();
-  renderRows();
+  const cell = personCell || document.querySelector(`.person-cell[data-original-index="${personIndex}"]`);
+  if (cell && rollCallMode) {
+    const nameInput = cell.querySelector('.temp-row-name-input');
+    if (nameInput) nameInput.value = name;
+    const levelSelect = cell.querySelector('.temp-row-level-select');
+    if (levelSelect && entry.level) levelSelect.value = String(entry.level).trim();
+    nameInput?.focus({ preventScroll: true });
+  } else {
+    renderRows();
+  }
   markUnsynced();
 }
 function showTempRowNameSuggest(input, wrap, personIndex) {
@@ -7706,7 +7730,7 @@ function showTempRowNameSuggest(input, wrap, personIndex) {
     btn.textContent = code && name !== code ? `${name}（${code}）` : name;
     btn.addEventListener('mousedown', e => {
       e.preventDefault();
-      applyStaffSuggestionToTempRow(personIndex, entry);
+      applyStaffSuggestionToTempRow(personIndex, entry, wrap.closest('.person-cell'));
       hideTempRowNameSuggest(wrap);
     });
     menu.appendChild(btn);
@@ -23112,7 +23136,7 @@ function renderRows() {
   renderOvertimePanel();
   fitAllBlockLabels();
   } finally {
-    if (scrollHost != null && savedScrollTop != null) scrollHost.scrollTop = savedScrollTop;
+    if (scrollHost != null && savedScrollTop != null) restoreScheduleScrollTop(scrollHost, savedScrollTop);
     restoreScheduleEditFocusSnapshot(focusSnapshot);
     console.timeEnd('renderRows');
   }
