@@ -12,6 +12,8 @@
 <script src="foreign-schedule-registry.js?v=20260618-v4"></script>
 <script src="flight-assignment-utils.js"></script>
 <script src="foreign-duty-rules.js?v=20260613-oz-abg-label"></script>
+<script src="homeline-pax-parser.js?v=20260620-v4"></script>
+<script src="homeline-pax-registry.js?v=20260620-v5"></script>
 <title>今天的完整拖拉管制表 v2</title>
 <style>
   :root {
@@ -3936,7 +3938,7 @@
   }
 
   /* ── ERP 外層（不影響排班核心 .app 內部結構）── */
-  :root { --erp-nav-width: 76px; }
+  :root { --erp-nav-width: 176px; }
   body { background: #f1f5f9; }
   .erp-shell {
     --erp-nav-open-btn-slot: 26px;
@@ -3974,9 +3976,9 @@
   }
   .erp-nav-toolbar {
     flex: 0 0 auto;
-    padding: var(--erp-nav-toolbar-pad-top, 8px) 4px 4px;
+    padding: var(--erp-nav-toolbar-pad-top, 8px) 8px 4px 4px;
     display: flex;
-    justify-content: center;
+    justify-content: flex-end;
   }
   .erp-nav-close-btn {
     width: 40px;
@@ -4045,17 +4047,17 @@
     border: 0;
     background: transparent;
     color: #cbd5e1;
-    padding: 6px 4px 8px;
+    padding: 7px 8px;
     border-radius: 10px;
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 600;
     cursor: pointer;
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
     align-items: center;
-    justify-content: center;
-    gap: 4px;
-    min-height: 0;
+    justify-content: flex-start;
+    gap: 10px;
+    min-height: 40px;
   }
   .erp-nav-icon {
     flex: 0 0 auto;
@@ -4070,13 +4072,41 @@
   .erp-nav-icon svg { width: 20px; height: 20px; display: block; }
   .erp-nav-label {
     display: block;
-    max-width: 100%;
+    flex: 1;
+    min-width: 0;
     line-height: 1.25;
-    text-align: center;
+    text-align: left;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
     color: inherit;
+  }
+  .erp-nav-chevron {
+    flex: 0 0 auto;
+    width: 16px;
+    height: 16px;
+    color: #94a3b8;
+    transition: transform 0.2s ease;
+  }
+  .erp-nav-chevron svg { width: 16px; height: 16px; display: block; }
+  .erp-nav-group--expanded .erp-nav-chevron { transform: rotate(180deg); }
+  .erp-nav-sublist {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 0 0 4px 8px;
+  }
+  .erp-nav-sublist[hidden] { display: none !important; }
+  .erp-nav-sub-item {
+    padding: 6px 8px 6px 28px;
+    min-height: 32px;
+    font-size: 11px;
+    font-weight: 600;
+    border-radius: 8px;
+  }
+  .erp-nav-sub-item.active {
+    background: #2563eb;
+    color: #fff;
   }
   .erp-nav-btn:hover { background: #1e293b; color: #fff; }
   .erp-nav-btn:hover .erp-nav-icon { background: rgba(255, 255, 255, 0.06); }
@@ -4089,12 +4119,12 @@
   }
   .erp-nav-foot-status {
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
     align-items: center;
     justify-content: flex-start;
-    gap: 4px;
-    min-height: 52px;
-    padding: 4px 2px 2px;
+    gap: 8px;
+    min-height: 40px;
+    padding: 8px 10px;
     font-size: 10px;
     color: #94a3b8;
     cursor: default;
@@ -4154,6 +4184,142 @@
   }
   .erp-module-head { margin-bottom: 12px; }
   .erp-module-sub { margin-top: 4px; color: #64748b; font-size: 12px; }
+  .flight-manager-hub .fs-page-head {
+    flex-direction: column; align-items: stretch; gap: 10px;
+  }
+  .flight-manager-hub .fs-page-head-top {
+    display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px;
+  }
+  .flight-manager-hub .fs-page-head-top h2 { margin: 0; }
+  .fm-hub-panel { display: flex; flex: 1; min-height: 0; flex-direction: column; width: 100%; }
+  .fm-hub-panel.hidden { display: none !important; }
+  .fm-hub-placeholder {
+    flex: 1; display: flex; align-items: center; justify-content: center;
+    padding: 48px 24px; color: #64748b; font-size: 14px; text-align: center;
+    background: #fff; border: 1px solid #e2e8f0; border-radius: 10px 10px 0 0;
+  }
+  .hp-import-btn { cursor: pointer; flex: 0 0 auto; }
+  .hp-import-btn input { display: none; }
+  #flightManagerPanelHomelinePax .hp-list-toolbar .hp-import-btn {
+    min-height: 36px; box-sizing: border-box; display: inline-flex; align-items: center;
+    margin-left: auto;
+  }
+  #flightManagerPanelHomelinePax .hp-meta {
+    flex: 1 1 auto; min-width: 120px; font-size: 12px; color: #475569; line-height: 1.4;
+  }
+  #flightManagerPanelHomelinePax .hp-meta[hidden] { display: none !important; }
+  #flightManagerPanelHomelinePax .fs-page { max-width: 1120px; }
+  #homelinePaxTable.homeline-pax-table { font-size: 13px; table-layout: fixed; width: 100%; }
+  #homelinePaxTable.homeline-pax-table th,
+  #homelinePaxTable.homeline-pax-table td { padding: 10px 8px; vertical-align: middle; }
+  #homelinePaxTable.homeline-pax-table th:first-child,
+  #homelinePaxTable.homeline-pax-table td:first-child { padding-left: 22px; }
+  #homelinePaxTable.homeline-pax-table th:last-child,
+  #homelinePaxTable.homeline-pax-table td:last-child { padding-right: 22px; }
+  #homelinePaxTable.homeline-pax-table th.hp-col-mix-head,
+  #homelinePaxTable.homeline-pax-table td.hp-col-mix { padding-right: 34px; }
+  #homelinePaxTable.homeline-pax-table th {
+    background: #f8fafc; color: #64748b; font-size: 12px; font-weight: 700;
+  }
+  #homelinePaxTable.homeline-pax-table col.hp-col-date { width: 11%; }
+  #homelinePaxTable.homeline-pax-table col.hp-col-std { width: 7%; }
+  #homelinePaxTable.homeline-pax-table col.hp-col-flt { width: 8%; }
+  #homelinePaxTable.homeline-pax-table col.hp-col-ap { width: 7%; }
+  #homelinePaxTable.homeline-pax-table col.hp-col-num { width: 6%; }
+  #homelinePaxTable.homeline-pax-table col.hp-col-pax { width: 7%; }
+  #homelinePaxTable.homeline-pax-table col.hp-col-wchr { width: 6%; }
+  #homelinePaxTable.homeline-pax-table col.hp-col-load { width: 14%; }
+  #homelinePaxTable.homeline-pax-table col.hp-col-mix { width: 20%; }
+  #homelinePaxTable.homeline-pax-table .hp-th-sub {
+    margin-top: 2px; font-size: 10px; font-weight: 600; color: #94a3b8; line-height: 1.2;
+  }
+  #homelinePaxTable.homeline-pax-table td.hp-num,
+  #homelinePaxTable.homeline-pax-table th.hp-num { text-align: right; font-variant-numeric: tabular-nums; }
+  #homelinePaxTable.homeline-pax-table td.hp-date,
+  #homelinePaxTable.homeline-pax-table th.hp-date { text-align: left; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  #homelinePaxTable.homeline-pax-table td.hp-date { color: #475569; }
+  #homelinePaxTable.homeline-pax-table td.hp-std,
+  #homelinePaxTable.homeline-pax-table th.hp-std { text-align: left; font-variant-numeric: tabular-nums; }
+  #homelinePaxTable.homeline-pax-table td.hp-std { color: #334155; }
+  #homelinePaxTable.homeline-pax-table th.hp-col-pax,
+  #homelinePaxTable.homeline-pax-table td.hp-col-pax { padding-right: 10px; }
+  #homelinePaxTable.homeline-pax-table td.hp-col-pax { font-weight: 700; color: #0f172a; }
+  #homelinePaxTable.homeline-pax-table th.hp-col-wchr-head,
+  #homelinePaxTable.homeline-pax-table td.hp-wchr-cell { padding-left: 4px; padding-right: 10px; }
+  #homelinePaxTable.homeline-pax-table th.hp-col-load-head,
+  #homelinePaxTable.homeline-pax-table td.hp-col-load { padding-left: 12px; }
+  #homelinePaxTable.homeline-pax-table td.hp-flt { font-weight: 700; color: #0f172a; text-align: left; }
+  #homelinePaxTable.homeline-pax-table td.hp-ap { color: #475569; text-align: center; }
+  .hp-viz-cell {
+    display: flex; flex-direction: column; justify-content: flex-end;
+    gap: 6px; min-height: 34px;
+  }
+  .hp-viz-top {
+    min-height: 16px; line-height: 16px; white-space: nowrap;
+  }
+  .hp-viz-bar-row {
+    height: 8px; flex: 0 0 8px; display: flex; align-items: center;
+  }
+  .hp-viz-bar-row--load,
+  .hp-viz-bar-row--mix { width: 100%; max-width: none; }
+  .hp-load-top { text-align: left; }
+  .hp-load-track {
+    flex: 1 1 auto; width: 100%; max-width: none; height: 8px; border-radius: 999px;
+    background: #e2e8f0; overflow: hidden;
+  }
+  .hp-load-fill {
+    display: block; height: 100%; border-radius: inherit; min-width: 0;
+    transition: width 0.15s ease;
+  }
+  .hp-load-fill--ok { background: linear-gradient(90deg, #22c55e, #4ade80); }
+  .hp-load-fill--mid { background: linear-gradient(90deg, #eab308, #facc15); }
+  .hp-load-fill--high { background: linear-gradient(90deg, #f97316, #fb923c); }
+  .hp-load-fill--full { background: linear-gradient(90deg, #ef4444, #f87171); }
+  .hp-load-fill--none { background: #cbd5e1; }
+  .hp-load-pct-text {
+    flex: 0 0 auto; font-size: 12px; font-weight: 700; color: #334155; font-variant-numeric: tabular-nums;
+  }
+  .hp-load-empty { color: #94a3b8; }
+  .hp-mix-top { text-align: left; }
+  .hp-mix-text {
+    font-size: 12px; font-weight: 600; color: #334155; font-variant-numeric: tabular-nums;
+  }
+  .hp-mix-bar {
+    display: flex; width: 100%; max-width: none; height: 8px; border-radius: 999px; overflow: hidden; background: #e2e8f0;
+  }
+  .hp-mix-seg { display: block; height: 100%; min-width: 0; }
+  .hp-mix-seg--transit { background: #3b82f6; }
+  .hp-mix-seg--group { background: #cbd5e1; }
+  .hp-mix-seg--direct { background: #22c55e; }
+  .hp-wchr-cell { text-align: center; font-weight: 400; font-variant-numeric: tabular-nums; color: #334155; }
+  .hp-wchr-cell.is-alert { color: #b45309; }
+  #flightManagerPanelHomelinePax .hp-list-toolbar {
+    align-items: center; gap: 10px 12px; flex-wrap: nowrap;
+  }
+  #flightManagerPanelHomelinePax .hp-list-toolbar .fs-filter-field { margin: 0; flex: 0 0 auto; }
+  #flightManagerPanelHomelinePax .hp-list-toolbar .fs-flight-date-trigger,
+  #flightManagerPanelHomelinePax .hp-list-toolbar .fs-search-wrap {
+    min-height: 36px; box-sizing: border-box;
+  }
+  #flightManagerPanelHomelinePax .hp-list-toolbar .fs-search-wrap {
+    flex: 0 1 220px; max-width: 280px; align-items: center;
+  }
+  #flightManagerPanelHomelinePax .hp-date-range-field {
+    flex-direction: row; align-items: center; gap: 8px;
+    flex-wrap: nowrap; white-space: nowrap;
+  }
+  #flightManagerPanelHomelinePax .hp-date-range-inputs {
+    display: flex; align-items: center; gap: 6px; flex-wrap: nowrap;
+  }
+  #flightManagerPanelHomelinePax .hp-date-range-sep {
+    color: #94a3b8; font-size: 13px; font-weight: 600; line-height: 1;
+  }
+  #flightManagerPanelHomelinePax .hp-date-range-inputs .fs-flight-date-picker {
+    width: auto; flex: 0 0 auto;
+  }
+  #flightManagerPanelHomelinePax .hp-date-range-inputs .fs-flight-date-trigger {
+    width: auto; min-width: 118px;
+  }
   .foreign-schedule-manager {
     gap: 0; padding: 0; overflow: hidden; display: flex; flex-direction: column; align-items: center;
   }
@@ -4249,6 +4415,10 @@
   }
   #erpPageFlights.active .fs-page {
     overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
   }
   .fs-filter-panel-grid {
     display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px 12px;
@@ -5449,6 +5619,7 @@
     overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
   }
   .erp-nav-btn.erp-nav-hidden { display: none !important; }
+  .erp-nav-group.erp-nav-hidden { display: none !important; }
   .erp-nav-group { display: flex; flex-direction: column; gap: 2px; }
   .erp-nav-group-label { display: none; }
   .workbench-page {
@@ -5935,10 +6106,19 @@
           <span class="erp-nav-label">排班作業</span>
         </button>
       </div>
-      <button type="button" class="erp-nav-btn erp-nav-hidden" data-erp-module="flights" data-erp-nav-roles="scheduler,supervisor,admin">
-        <span class="erp-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16v-2l-8-5V3.5a1.5 1.5 0 0 0-3 0V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/></svg></span>
-        <span class="erp-nav-label">航班管理</span>
-      </button>
+      <div class="erp-nav-group erp-nav-group--flights erp-nav-hidden" data-erp-nav-roles="scheduler,supervisor,admin" id="erpNavFlightsGroup">
+        <button type="button" class="erp-nav-btn erp-nav-group-toggle" data-erp-module="flights" aria-expanded="false" aria-controls="erpNavFlightsSublist">
+          <span class="erp-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16v-2l-8-5V3.5a1.5 1.5 0 0 0-3 0V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/></svg></span>
+          <span class="erp-nav-label">航班管理</span>
+          <span class="erp-nav-chevron" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg></span>
+        </button>
+        <div class="erp-nav-sublist" id="erpNavFlightsSublist" hidden>
+          <button type="button" class="erp-nav-btn erp-nav-sub-item active" data-erp-module="flights" data-flight-section="foreign">外家時刻表</button>
+          <button type="button" class="erp-nav-btn erp-nav-sub-item" data-erp-module="flights" data-flight-section="homeline-pax">匯入訂位資料</button>
+          <button type="button" class="erp-nav-btn erp-nav-sub-item" data-erp-module="flights" data-flight-section="dest-class">航點分類</button>
+          <button type="button" class="erp-nav-btn erp-nav-sub-item" data-erp-module="flights" data-flight-section="handover">航班交接</button>
+        </div>
+      </div>
       <button type="button" class="erp-nav-btn erp-nav-hidden" data-erp-module="staff" data-erp-nav-roles="scheduler,admin">
         <span class="erp-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3"/><circle cx="17" cy="9" r="2.5"/><path d="M2 20c0-3.3 3.1-5 7-5s7 1.7 7 5M14 20c0-2.5 2.2-4 5-4"/></svg></span>
         <span class="erp-nav-label">人員管理</span>
@@ -6797,12 +6977,15 @@
         </div>
       </section>
 
-      <section id="erpPageFlights" class="erp-page" data-erp-title="外家時刻表管理">
-        <div class="erp-module-card foreign-schedule-manager">
+      <section id="erpPageFlights" class="erp-page" data-erp-title="航班管理">
+        <div class="erp-module-card foreign-schedule-manager flight-manager-hub">
           <div class="fs-page">
             <header class="fs-page-head erp-page-nav-head">
-              <h2>外家時刻表管理</h2>
+              <div class="fs-page-head-top">
+                <h2 id="flightManagerSectionTitle">外家時刻表</h2>
+              </div>
             </header>
+            <div id="flightManagerPanelForeign" class="fm-hub-panel" role="region" aria-labelledby="flightManagerSectionTitle">
             <div class="fs-page-body">
               <div class="fs-main">
                 <div class="fs-list-toolbar">
@@ -6906,7 +7089,6 @@
                 </div>
               </div>
             </div>
-          </div>
           <div class="fs-modal-overlay hidden" id="foreignScheduleEditModal">
             <div class="fs-modal">
               <h3 id="foreignScheduleEditModalTitle">新增航班</h3>
@@ -7022,6 +7204,98 @@
               </div>
             </div>
           </div>
+            </div>
+            <div id="flightManagerPanelHomelinePax" class="fm-hub-panel hidden" role="region" aria-labelledby="flightManagerSectionTitle">
+              <div class="fs-page-body">
+                <div class="fs-main">
+                  <div class="fs-list-toolbar hp-list-toolbar">
+                    <div class="hp-meta" id="homelinePaxMetaSummary" hidden></div>
+                    <label class="fs-search-wrap">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+                      <input type="search" id="homelinePaxSearchInput" placeholder="搜尋航班、目的地…" autocomplete="off" />
+                    </label>
+                    <label class="fs-filter-field hp-date-range-field">搜尋日期區間
+                      <div class="hp-date-range-inputs">
+                        <div class="fs-flight-date-picker erp-staff-ref-date-picker" id="homelinePaxBrowseDateStartPicker">
+                          <button type="button" class="fs-flight-date-trigger app-date-field-trigger" id="homelinePaxBrowseDateStartTrigger" aria-haspopup="dialog" aria-expanded="false" aria-controls="homelinePaxBrowseDateStartDropPanel">
+                            <span id="homelinePaxBrowseDateStartDisplay">—</span>
+                            <span class="app-date-field-trigger-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></span>
+                          </button>
+                          <input type="hidden" id="homelinePaxBrowseDateStart" value="" />
+                          <div class="app-date-drop-panel hidden" id="homelinePaxBrowseDateStartDropPanel" role="dialog" aria-label="選擇開始日期"></div>
+                        </div>
+                        <span class="hp-date-range-sep" aria-hidden="true">～</span>
+                        <div class="fs-flight-date-picker erp-staff-ref-date-picker" id="homelinePaxBrowseDateEndPicker">
+                          <button type="button" class="fs-flight-date-trigger app-date-field-trigger" id="homelinePaxBrowseDateEndTrigger" aria-haspopup="dialog" aria-expanded="false" aria-controls="homelinePaxBrowseDateEndDropPanel">
+                            <span id="homelinePaxBrowseDateEndDisplay">—</span>
+                            <span class="app-date-field-trigger-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></span>
+                          </button>
+                          <input type="hidden" id="homelinePaxBrowseDateEnd" value="" />
+                          <div class="app-date-drop-panel hidden" id="homelinePaxBrowseDateEndDropPanel" role="dialog" aria-label="選擇結束日期"></div>
+                        </div>
+                      </div>
+                    </label>
+                    <label class="fs-filter-btn hp-import-btn">
+                      匯入 EDW 報表
+                      <input type="file" id="homelinePaxImportInput" accept=".xls,.xlsx,.tsv,.txt,.csv" />
+                    </label>
+                  </div>
+                  <div class="fs-table-meta" id="homelinePaxTableMeta">請設定搜尋日期區間</div>
+                  <div class="fs-table-wrap">
+                    <table class="foreign-schedule-table homeline-pax-table" id="homelinePaxTable">
+                      <colgroup>
+                        <col class="hp-col-date" />
+                        <col class="hp-col-std" />
+                        <col class="hp-col-flt" />
+                        <col class="hp-col-ap" />
+                        <col class="hp-col-num" />
+                        <col class="hp-col-pax" />
+                        <col class="hp-col-wchr" />
+                        <col class="hp-col-load" />
+                        <col class="hp-col-mix" />
+                      </colgroup>
+                      <thead>
+                        <tr>
+                          <th class="hp-date">日期</th>
+                          <th class="hp-std">STD</th>
+                          <th>FLT</th>
+                          <th>目的地</th>
+                          <th class="hp-num">艙容</th>
+                          <th class="hp-num hp-col-pax">訂位</th>
+                          <th class="hp-num hp-col-wchr-head" title="≥15 以橘色標示">輪椅</th>
+                          <th class="hp-col-viz hp-col-load-head">載客率</th>
+                          <th class="hp-col-viz hp-col-mix-head">旅客組成<div class="hp-th-sub">轉機／團體／直客</div></th>
+                        </tr>
+                      </thead>
+                      <tbody id="homelinePaxTableBody">
+                        <tr><td colspan="9" class="foreign-schedule-empty">尚未匯入訂位資料。</td></tr>
+                      </tbody>
+                    </table>
+                  </div>
+                  <div class="fs-pagination">
+                    <label>每頁
+                      <select id="homelinePaxPageSize">
+                        <option value="25">25</option>
+                        <option value="50" selected>50</option>
+                        <option value="100">100</option>
+                      </select>
+                    </label>
+                    <div class="fs-pagination-controls">
+                      <button type="button" id="homelinePaxPagePrev" disabled>‹</button>
+                      <span id="homelinePaxPageLabel">1 / 1</span>
+                      <button type="button" id="homelinePaxPageNext" disabled>›</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div id="flightManagerPanelDestClass" class="fm-hub-panel hidden" role="region" aria-labelledby="flightManagerSectionTitle">
+              <div class="fm-hub-placeholder">航點分類(本家)功能開發中。</div>
+            </div>
+            <div id="flightManagerPanelHandover" class="fm-hub-panel hidden" role="region" aria-labelledby="flightManagerSectionTitle">
+              <div class="fm-hub-placeholder">航班交接功能開發中。</div>
+            </div>
+        </div>
         </div>
       </section>
 
@@ -13350,14 +13624,14 @@ const ERP_MODULE_PAGES = {
 const WORKBENCH_ENTRIES = {
   admin: [
     { title: '人員管理', desc: '在職／停用人員、調入與狀態變更；可刪除測試人員。', module: 'staff', tag: '人員' },
-    { title: '航班管理', desc: '維護 HX/OZ/BX/NZ 外家時刻表季節區間。', module: 'flights', tag: '航班' },
+    { title: '航班管理', desc: '外家時刻表、本家 EDW 訂位資料。', module: 'flights', tag: '航班' },
     { title: '匯入人員', desc: '更新代號／戰力主檔（Excel）。', module: 'staff', tag: '匯入' },
     { title: '匯入航班', desc: '於排班作業工具列匯入當日航班。', module: 'schedule-ops', tag: '航班' },
     { title: '排班作業', desc: '進入完整排班畫面。', module: 'schedule-ops', tag: '排班' }
   ],
   scheduler: [
     { title: '匯入航班', desc: '於排班作業工具列匯入當日航班。', module: 'schedule-ops', tag: '航班' },
-    { title: '航班管理', desc: '維護 HX/OZ/BX/NZ 外家時刻表季節區間。', module: 'flights', tag: '外家' },
+    { title: '航班管理', desc: '外家時刻表、本家 EDW 訂位資料。', module: 'flights', tag: '外家' },
     { title: '匯入人員', desc: '於排班作業工具列匯入上班人員名單。', module: 'schedule-ops', tag: '人員' },
     { title: '修改戰力', desc: '維護代號／戰力資料庫。', module: 'staff', tag: '戰力' },
     { title: '修改 duty', desc: '自訂 duty 區塊與規則。', module: 'rules', tag: '規則' },
@@ -13378,6 +13652,7 @@ const erpHomeSlots = new Map();
 function updateErpNavForRole() {
   const role = getWorkbenchRole();
   document.querySelectorAll('.erp-nav-btn[data-erp-module]').forEach(btn => {
+    if (btn.dataset.flightSection) return;
     const mod = btn.dataset.erpModule;
     const rolesAttr = btn.dataset.erpNavRoles || '';
     const allowedByAttr = !rolesAttr || (role && rolesAttr.split(',').includes(role));
@@ -13388,7 +13663,7 @@ function updateErpNavForRole() {
   document.querySelectorAll('.erp-nav-group[data-erp-nav-roles]').forEach(group => {
     const rolesAttr = group.dataset.erpNavRoles || '';
     const show = role && rolesAttr.split(',').includes(role);
-    group.style.display = show ? '' : 'none';
+    group.classList.toggle('erp-nav-hidden', !show);
   });
 }
 function renderWorkbenchDashboard() {
@@ -13787,8 +14062,14 @@ function switchErpModule(moduleKey, options = {}) {
   activeErpModule = moduleKey;
   localStorage.setItem('cursor_v1_erp_module', moduleKey);
   document.querySelectorAll('.erp-nav-btn[data-erp-module]').forEach(btn => {
+    if (btn.dataset.flightSection) return;
     btn.classList.toggle('active', btn.dataset.erpModule === moduleKey);
   });
+  if (moduleKey === 'flights') syncFlightsNavUi();
+  else {
+    document.querySelectorAll('.erp-nav-sub-item[data-flight-section]').forEach(btn => btn.classList.remove('active'));
+    setFlightsNavExpanded(false);
+  }
   Object.entries(ERP_MODULE_PAGES).forEach(([key, pageId]) => {
     document.getElementById(pageId)?.classList.toggle('active', key === moduleKey);
   });
@@ -13827,8 +14108,15 @@ function switchErpModule(moduleKey, options = {}) {
     updateRollCallButtonLabel();
   }
   if (moduleKey === 'flights') {
-    bindForeignScheduleManager();
-    renderForeignScheduleManager();
+    if (options.flightSection) setFlightManagerSection(options.flightSection, { render: false });
+    try {
+      bindFlightManagerHub();
+      bindForeignScheduleManager();
+      bindHomelinePaxManager();
+      renderFlightManagerHub();
+    } catch (err) {
+      console.error('[flights-module]', err);
+    }
   }
   if (moduleKey === 'schedule-ops') {
     requestAnimationFrame(() => {
@@ -13868,7 +14156,25 @@ function initErpNavigation() {
   initErpNavToggle();
   erpInitSlots();
   document.querySelectorAll('.erp-nav-btn[data-erp-module]').forEach(btn => {
-    btn.addEventListener('click', () => switchErpModule(btn.dataset.erpModule));
+    btn.addEventListener('click', () => {
+      const section = btn.dataset.flightSection;
+      if (section) {
+        switchErpModule('flights', { flightSection: section });
+        return;
+      }
+      if (btn.classList.contains('erp-nav-group-toggle') && btn.dataset.erpModule === 'flights') {
+        if (!canAccessErpModule('flights')) {
+          appAlert('請先於工作台首頁選擇角色。', '尚未選擇角色', 'info');
+          switchErpModule('home');
+          return;
+        }
+        const group = document.getElementById('erpNavFlightsGroup');
+        const expanded = group?.classList.contains('erp-nav-group--expanded');
+        setFlightsNavExpanded(!expanded);
+        return;
+      }
+      switchErpModule(btn.dataset.erpModule);
+    });
   });
   document.querySelectorAll('.js-erp-proxy-shift').forEach(btn => {
     btn.addEventListener('click', () => document.getElementById('toggleShiftViewBtn')?.click());
@@ -15184,6 +15490,18 @@ function syncForeignAcTypeOptionsFromRows(rows) {
 
 let foreignSchedulePendingBundles = null;
 let foreignScheduleManagerBound = false;
+const FLIGHT_MANAGER_SECTIONS = {
+  foreign: { panelId: 'flightManagerPanelForeign', label: '外家時刻表' },
+  'homeline-pax': { panelId: 'flightManagerPanelHomelinePax', label: '匯入訂位資料(本家)' },
+  'dest-class': { panelId: 'flightManagerPanelDestClass', label: '航點分類(本家)' },
+  handover: { panelId: 'flightManagerPanelHandover', label: '航班交接' }
+};
+const savedFlightSectionRaw = localStorage.getItem('cursor_v1_flight_manager_section') || 'foreign';
+const savedFlightSection = ['overview', 'duty-rules'].includes(savedFlightSectionRaw) ? 'foreign' : savedFlightSectionRaw;
+let flightManagerActiveSection = FLIGHT_MANAGER_SECTIONS[savedFlightSection] ? savedFlightSection : 'foreign';
+let flightManagerHubBound = false;
+let homelinePaxManagerBound = false;
+let homelinePaxPage = 1;
 let foreignScheduleFlatCache = null;
 let foreignSchedulePage = 1;
 let foreignScheduleEditContext = null;
@@ -16411,6 +16729,424 @@ function clearForeignScheduleFilters() {
   }
   setForeignScheduleFilterPanelOpen(false);
   renderForeignScheduleFlightTable();
+}
+
+function setFlightsNavExpanded(expanded) {
+  const group = document.getElementById('erpNavFlightsGroup');
+  const sublist = document.getElementById('erpNavFlightsSublist');
+  const toggle = group?.querySelector('.erp-nav-group-toggle');
+  if (!group || !sublist) return;
+  group.classList.toggle('erp-nav-group--expanded', !!expanded);
+  sublist.hidden = !expanded;
+  if (toggle) toggle.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+}
+
+function syncFlightsNavUi() {
+  const section = FLIGHT_MANAGER_SECTIONS[flightManagerActiveSection]
+    ? flightManagerActiveSection
+    : 'foreign';
+  flightManagerActiveSection = section;
+  setFlightsNavExpanded(true);
+  document.querySelectorAll('.erp-nav-sub-item[data-flight-section]').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.flightSection === section);
+  });
+  const groupToggle = document.querySelector('#erpNavFlightsGroup .erp-nav-group-toggle');
+  groupToggle?.classList.toggle('active', activeErpModule === 'flights');
+}
+
+function setFlightManagerSection(section, options = {}) {
+  const next = FLIGHT_MANAGER_SECTIONS[section] ? section : 'foreign';
+  const changed = next !== flightManagerActiveSection;
+  flightManagerActiveSection = next;
+  localStorage.setItem('cursor_v1_flight_manager_section', flightManagerActiveSection);
+  Object.entries(FLIGHT_MANAGER_SECTIONS).forEach(([key, cfg]) => {
+    document.getElementById(cfg.panelId)?.classList.toggle('hidden', key !== flightManagerActiveSection);
+  });
+  const titleEl = document.getElementById('flightManagerSectionTitle');
+  if (titleEl) titleEl.textContent = FLIGHT_MANAGER_SECTIONS[flightManagerActiveSection].label;
+  if (activeErpModule === 'flights') {
+    const pageTitle = `航班管理 · ${FLIGHT_MANAGER_SECTIONS[flightManagerActiveSection].label}`;
+    const topTitle = document.getElementById('erpPageTitle');
+    if (topTitle) topTitle.textContent = pageTitle;
+    document.title = `${pageTitle} · Duty 工作台`;
+    syncFlightsNavUi();
+  }
+  if (options.render === false) return;
+  if (changed || options.forceRender) renderActiveFlightManagerPanel();
+}
+
+function renderActiveFlightManagerPanel() {
+  try {
+    if (flightManagerActiveSection === 'homeline-pax') renderHomelinePaxManager();
+    else if (flightManagerActiveSection === 'foreign') renderForeignScheduleManager();
+  } catch (err) {
+    console.error('[flight-manager] render failed', err);
+  }
+}
+
+function bindFlightManagerHub() {
+  if (flightManagerHubBound) return;
+  flightManagerHubBound = true;
+}
+
+function renderFlightManagerHub() {
+  bindFlightManagerHub();
+  setFlightManagerSection(flightManagerActiveSection, { forceRender: true });
+}
+
+function formatHomelinePaxFlightLabel(flight) {
+  const s = String(flight || '').trim().toUpperCase();
+  const m = s.match(/^([A-Z0-9]{2,3})0*(\d+)$/);
+  if (!m) return s;
+  return `${m[1]}${m[2]}`;
+}
+
+function formatHomelinePaxLoadPct(row) {
+  const n = getHomelineLoadPctNum(row);
+  return Number.isFinite(n) ? `${n}%` : '—';
+}
+
+function getHomelineLoadPctNum(row) {
+  if (Number.isFinite(row?.loadFactor)) return Math.round(row.loadFactor * 1000) / 10;
+  if (Number.isFinite(row?.pax) && Number.isFinite(row?.capacity) && row.capacity > 0) {
+    return Math.round((row.pax / row.capacity) * 1000) / 10;
+  }
+  return null;
+}
+
+function getHomelineLoadBarTone(pct) {
+  if (!Number.isFinite(pct)) return 'none';
+  if (pct >= 97) return 'full';
+  if (pct >= 90) return 'high';
+  if (pct >= 75) return 'mid';
+  return 'ok';
+}
+
+function buildHomelineLoadCell(row) {
+  const pctNum = getHomelineLoadPctNum(row);
+  if (!Number.isFinite(pctNum)) return '<span class="hp-load-empty">—</span>';
+  const tone = getHomelineLoadBarTone(pctNum);
+  const width = Math.min(100, Math.max(0, pctNum));
+  return `<div class="hp-viz-cell hp-load-cell">` +
+    `<div class="hp-viz-top hp-load-top"><span class="hp-load-pct-text">${pctNum}%</span></div>` +
+    `<div class="hp-viz-bar-row hp-viz-bar-row--load"><div class="hp-load-track">` +
+    `<span class="hp-load-fill hp-load-fill--${tone}" style="width:${width}%"></span></div></div></div>`;
+}
+
+function buildHomelinePaxMixCell(transit, group, direct, pax) {
+  const t = Number.isFinite(transit) ? transit : null;
+  const g = Number.isFinite(group) ? group : null;
+  const d = Number.isFinite(direct) ? direct : null;
+  const text = `${formatHomelinePaxCount(t)} / ${formatHomelinePaxCount(g)} / ${formatHomelinePaxCount(d)}`;
+  const total = Number.isFinite(pax) && pax > 0
+    ? pax
+    : [t, g, d].filter(Number.isFinite).reduce((sum, n) => sum + n, 0);
+  if (!total) {
+    return `<div class="hp-viz-cell hp-mix-cell"><div class="hp-viz-top hp-mix-top"><div class="hp-mix-text">${text}</div></div></div>`;
+  }
+  const tVal = Number.isFinite(t) ? t : 0;
+  const gVal = Number.isFinite(g) ? g : 0;
+  const dVal = Number.isFinite(d) ? d : Math.max(0, total - tVal - gVal);
+  const tp = Math.round((tVal / total) * 1000) / 10;
+  const gp = Math.round((gVal / total) * 1000) / 10;
+  const dp = Math.max(0, Math.round((100 - tp - gp) * 10) / 10);
+  return `<div class="hp-viz-cell hp-mix-cell">` +
+    `<div class="hp-viz-top hp-mix-top"><div class="hp-mix-text">${text}</div></div>` +
+    `<div class="hp-viz-bar-row hp-viz-bar-row--mix"><div class="hp-mix-bar" aria-hidden="true">` +
+    `<span class="hp-mix-seg hp-mix-seg--transit" style="width:${tp}%"></span>` +
+    `<span class="hp-mix-seg hp-mix-seg--group" style="width:${gp}%"></span>` +
+    `<span class="hp-mix-seg hp-mix-seg--direct" style="width:${dp}%"></span>` +
+    `</div></div></div>`;
+}
+
+function enrichHomelinePaxRow(row) {
+  if (typeof HomelinePaxRegistry !== 'undefined' && HomelinePaxRegistry.enrichDayRow) {
+    return HomelinePaxRegistry.enrichDayRow(row);
+  }
+  return row;
+}
+
+function formatHomelinePaxCount(value) {
+  return Number.isFinite(value) ? String(value) : '—';
+}
+
+function resolveHomelineDirectPax(row) {
+  return enrichHomelinePaxRow(row).directPax;
+}
+
+function resolveHomelineWheelchair(row) {
+  return enrichHomelinePaxRow(row).wheelchair;
+}
+
+function getHomelinePaxBrowseDateRange() {
+  const start = document.getElementById('homelinePaxBrowseDateStart')?.value || '';
+  const endRaw = document.getElementById('homelinePaxBrowseDateEnd')?.value || '';
+  if (!start) return { start: '', end: '' };
+  const end = endRaw || start;
+  if (compareIsoDate(end, start) < 0) return { start: end, end: start };
+  return { start, end };
+}
+
+function formatHomelinePaxDateRangeLabel(range) {
+  if (!range?.start) return '';
+  if (range.end && range.end !== range.start) {
+    return `${range.start}～${range.end}`;
+  }
+  return range.start;
+}
+
+function syncHomelinePaxBrowseDateStart(iso) {
+  syncForeignScheduleHiddenDate('homelinePaxBrowseDateStart', iso);
+  const endEl = document.getElementById('homelinePaxBrowseDateEnd');
+  if (endEl && (!endEl.value || compareIsoDate(endEl.value, iso) < 0)) {
+    syncForeignScheduleHiddenDate('homelinePaxBrowseDateEnd', iso);
+  }
+}
+
+function syncHomelinePaxBrowseDateEnd(iso) {
+  syncForeignScheduleHiddenDate('homelinePaxBrowseDateEnd', iso);
+  const startEl = document.getElementById('homelinePaxBrowseDateStart');
+  if (startEl?.value && iso && compareIsoDate(iso, startEl.value) < 0) {
+    syncForeignScheduleHiddenDate('homelinePaxBrowseDateStart', iso);
+  }
+}
+
+function getHomelinePaxDefaultDateRange() {
+  const today = getLocalDateISO();
+  const coverage = HomelinePaxRegistry?.getCoverage?.();
+  if (!coverage?.dateMax) {
+    return { start: today, end: today };
+  }
+  const end = coverage.dateMax;
+  let start = today;
+  if (compareIsoDate(start, end) > 0) start = end;
+  return { start, end };
+}
+
+function ensureHomelinePaxBrowseDateRange() {
+  const browseStart = document.getElementById('homelinePaxBrowseDateStart');
+  if (!browseStart || browseStart.value) return;
+  const { start, end } = getHomelinePaxDefaultDateRange();
+  if (start) syncHomelinePaxBrowseDateRange(start, end);
+}
+
+function syncHomelinePaxBrowseDateRange(startIso, endIso) {
+  let start = String(startIso || '').trim();
+  let end = String(endIso || start || '').trim();
+  if (start && end && compareIsoDate(end, start) < 0) {
+    [start, end] = [end, start];
+  }
+  syncForeignScheduleHiddenDate('homelinePaxBrowseDateStart', start);
+  syncForeignScheduleHiddenDate('homelinePaxBrowseDateEnd', end);
+}
+
+function initHomelinePaxDatePicker() {
+  if (initHomelinePaxDatePicker._done) return;
+  initHomelinePaxDatePicker._done = true;
+  initAppDateFields();
+  const pickers = [
+    {
+      prefix: 'homelinePaxBrowseDateStart',
+      pickerId: 'homelinePaxBrowseDateStartPicker',
+      ariaLabel: '選擇開始日期',
+      onConfirm: iso => {
+        syncHomelinePaxBrowseDateStart(iso);
+        homelinePaxPage = 1;
+        renderHomelinePaxTable();
+      }
+    },
+    {
+      prefix: 'homelinePaxBrowseDateEnd',
+      pickerId: 'homelinePaxBrowseDateEndPicker',
+      ariaLabel: '選擇結束日期',
+      onConfirm: iso => {
+        syncHomelinePaxBrowseDateEnd(iso);
+        homelinePaxPage = 1;
+        renderHomelinePaxTable();
+      }
+    }
+  ];
+  pickers.forEach(cfg => {
+    foreignScheduleEnsureDateDropPanel(cfg.prefix, cfg.ariaLabel);
+    initInlineAppDateDrop({
+      pickerId: cfg.pickerId,
+      panelId: `${cfg.prefix}DropPanel`,
+      triggerId: `${cfg.prefix}Trigger`,
+      dayWrapId: `${cfg.prefix}InlineDay`,
+      monthWrapId: `${cfg.prefix}InlineMonth`,
+      gridId: `${cfg.prefix}InlineGrid`,
+      monthLabelId: `${cfg.prefix}InlineMonthLabel`,
+      yearListId: `${cfg.prefix}InlineYearList`,
+      todayBtnId: `${cfg.prefix}InlineTodayBtn`,
+      cancelBtnId: `${cfg.prefix}InlineCancelBtn`,
+      confirmBtnId: `${cfg.prefix}InlineConfirmBtn`,
+      prevMonthId: `${cfg.prefix}InlinePrevMonth`,
+      nextMonthId: `${cfg.prefix}InlineNextMonth`,
+      monthTriggerId: `${cfg.prefix}InlineMonthTrigger`,
+      fixed: true,
+      maxPanelWidth: 320,
+      getValue: () => document.getElementById(cfg.prefix)?.value || '',
+      getSelectedIso: () => document.getElementById(cfg.prefix)?.value || '',
+      onConfirm: cfg.onConfirm
+    });
+  });
+}
+
+function renderHomelinePaxMetaSummary() {
+  const el = document.getElementById('homelinePaxMetaSummary');
+  if (!el || typeof HomelinePaxRegistry === 'undefined') return;
+  const coverage = HomelinePaxRegistry.getCoverage();
+  const last = coverage.lastImport;
+  const needsReimport = coverage.dateCount
+    && (!last?.parserVersion || last.parserVersion !== HomelinePaxParser?.PARSER_VERSION);
+  if (needsReimport) {
+    el.hidden = false;
+    el.innerHTML = '<span style="color:#b45309;font-weight:700;">訂位欄位已更新，請重新匯入 EDW 報表。</span>';
+    return;
+  }
+  el.hidden = true;
+  el.innerHTML = '';
+}
+
+function renderHomelinePaxTable() {
+  const tbody = document.getElementById('homelinePaxTableBody');
+  const metaEl = document.getElementById('homelinePaxTableMeta');
+  const pageLabel = document.getElementById('homelinePaxPageLabel');
+  const prevBtn = document.getElementById('homelinePaxPagePrev');
+  const nextBtn = document.getElementById('homelinePaxPageNext');
+  if (!tbody || typeof HomelinePaxRegistry === 'undefined') return;
+
+  const range = getHomelinePaxBrowseDateRange();
+  const search = document.getElementById('homelinePaxSearchInput')?.value || '';
+  const pageSize = Math.max(1, parseInt(document.getElementById('homelinePaxPageSize')?.value, 10) || 50);
+
+  if (!HomelinePaxRegistry.getCoverage().dateCount) {
+    tbody.innerHTML = '<tr><td colspan="9" class="foreign-schedule-empty">尚未匯入訂位資料。</td></tr>';
+    if (metaEl) metaEl.textContent = '請先匯入 EDW 報表';
+    if (pageLabel) pageLabel.textContent = '1 / 1';
+    if (prevBtn) prevBtn.disabled = true;
+    if (nextBtn) nextBtn.disabled = true;
+    return;
+  }
+  if (!range.start) {
+    tbody.innerHTML = '<tr><td colspan="9" class="foreign-schedule-empty">請設定搜尋日期區間。</td></tr>';
+    if (metaEl) metaEl.textContent = '請設定搜尋日期區間';
+    if (pageLabel) pageLabel.textContent = '1 / 1';
+    if (prevBtn) prevBtn.disabled = true;
+    if (nextBtn) nextBtn.disabled = true;
+    return;
+  }
+
+  const rows = HomelinePaxRegistry.listForDateRange(range.start, range.end, { search });
+  const totalPages = Math.max(1, Math.ceil(rows.length / pageSize));
+  if (homelinePaxPage > totalPages) homelinePaxPage = totalPages;
+  if (homelinePaxPage < 1) homelinePaxPage = 1;
+  const start = (homelinePaxPage - 1) * pageSize;
+  const pageRows = rows.slice(start, start + pageSize);
+
+  if (!rows.length) {
+    tbody.innerHTML = '<tr><td colspan="9" class="foreign-schedule-empty">此區間無訂位資料。</td></tr>';
+  } else {
+    tbody.innerHTML = pageRows.map(row => {
+      const enriched = enrichHomelinePaxRow(row);
+      const wheelchair = enriched.wheelchair;
+      const wchrClass = Number.isFinite(wheelchair) && wheelchair >= 15 ? ' is-alert' : '';
+      return `<tr>` +
+        `<td class="hp-date">${escapeHtml(formatForeignScheduleDateDisplay(enriched.dateIso))}</td>` +
+        `<td class="hp-std">${escapeHtml(enriched.std || '—')}</td>` +
+        `<td class="hp-flt">${escapeHtml(formatHomelinePaxFlightLabel(enriched.flight))}</td>` +
+        `<td class="hp-ap">${escapeHtml(enriched.dest || '—')}</td>` +
+        `<td class="hp-num">${escapeHtml(formatHomelinePaxCount(enriched.capacity))}</td>` +
+        `<td class="hp-num hp-col-pax">${escapeHtml(formatHomelinePaxCount(enriched.pax))}</td>` +
+        `<td class="hp-wchr-cell hp-num${wchrClass}">${escapeHtml(formatHomelinePaxCount(wheelchair))}</td>` +
+        `<td class="hp-col-viz hp-col-load">${buildHomelineLoadCell(enriched)}</td>` +
+        `<td class="hp-col-viz hp-col-mix">${buildHomelinePaxMixCell(enriched.transit, enriched.group, enriched.directPax, enriched.pax)}</td>` +
+        `</tr>`;
+    }).join('');
+  }
+
+  const rangeLabel = formatHomelinePaxDateRangeLabel(range);
+  if (metaEl) {
+    metaEl.textContent = search
+      ? `${rangeLabel}：${rows.length} 筆（已篩選）`
+      : `${rangeLabel}：${rows.length} 筆`;
+  }
+  if (pageLabel) pageLabel.textContent = `${homelinePaxPage} / ${totalPages}`;
+  if (prevBtn) prevBtn.disabled = homelinePaxPage <= 1;
+  if (nextBtn) nextBtn.disabled = homelinePaxPage >= totalPages;
+}
+
+async function handleHomelinePaxImport(file) {
+  if (!file || typeof HomelinePaxParser === 'undefined' || typeof HomelinePaxRegistry === 'undefined') return;
+  try {
+    const buffer = await file.arrayBuffer();
+    const parsed = HomelinePaxParser.parseArrayBuffer(buffer);
+    if (!parsed.ok) {
+      appAlert(parsed.error || '無法解析 EDW 報表。', '匯入失敗');
+      return;
+    }
+    const warnText = parsed.warnings?.length
+      ? `\n\n警告 ${parsed.warnings.length} 則（前 3 則）：\n${parsed.warnings.slice(0, 3).join('\n')}`
+      : '';
+    const ok = await appConfirm(
+      `將匯入 ${parsed.stats.rows} 筆訂位資料，涵蓋 ${parsed.stats.dates} 個日期（${parsed.stats.dateMin}～${parsed.stats.dateMax}）。\n` +
+      `檔案中出現的日期會覆蓋現有訂位資料。${warnText}`,
+      { title: '確認匯入 EDW 訂位', confirmText: '匯入' }
+    );
+    if (!ok) return;
+    const res = HomelinePaxRegistry.importRows(parsed.rows, { fileName: file.name });
+    if (!res.ok) {
+      appAlert(res.error || '匯入失敗。', '匯入失敗');
+      return;
+    }
+    homelinePaxPage = 1;
+    const { start, end } = getHomelinePaxDefaultDateRange();
+    if (start) syncHomelinePaxBrowseDateRange(start, end);
+    renderHomelinePaxManager();
+    appAlert(
+      `已匯入 ${res.record.rowCount} 筆，更新 ${res.record.dateCount} 個日期。`,
+      '匯入完成',
+      'success'
+    );
+  } catch (err) {
+    appAlert(`匯入失敗：${err.message || err}`, '匯入失敗');
+  }
+}
+
+function renderHomelinePaxManager() {
+  initHomelinePaxDatePicker();
+  ensureHomelinePaxBrowseDateRange();
+  renderHomelinePaxMetaSummary();
+  renderHomelinePaxTable();
+}
+
+function bindHomelinePaxManager() {
+  if (homelinePaxManagerBound) return;
+  homelinePaxManagerBound = true;
+  initHomelinePaxDatePicker();
+  document.getElementById('homelinePaxImportInput')?.addEventListener('change', e => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (file) handleHomelinePaxImport(file);
+  });
+  document.getElementById('homelinePaxSearchInput')?.addEventListener('input', () => {
+    homelinePaxPage = 1;
+    renderHomelinePaxTable();
+  });
+  document.getElementById('homelinePaxPageSize')?.addEventListener('change', () => {
+    homelinePaxPage = 1;
+    renderHomelinePaxTable();
+  });
+  document.getElementById('homelinePaxPagePrev')?.addEventListener('click', () => {
+    if (homelinePaxPage > 1) {
+      homelinePaxPage -= 1;
+      renderHomelinePaxTable();
+    }
+  });
+  document.getElementById('homelinePaxPageNext')?.addEventListener('click', () => {
+    homelinePaxPage += 1;
+    renderHomelinePaxTable();
+  });
 }
 
 function renderForeignScheduleManager() {
