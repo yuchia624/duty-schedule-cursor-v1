@@ -1,4 +1,29 @@
 {
+  "hosting": {
+    "public": ".",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**",
+      "docs/**",
+      "scripts/**",
+      "匯入當日航班/**",
+      "*.md",
+      ".tmp_*",
+      "0613-fis-test.xlsx",
+      "index.backup.html",
+      "index-complete-v2.html",
+      "localstorage-backup.cursor_v1.json"
+    ],
+    "headers": [
+      {
+        "source": "**/*.@(js|html)",
+        "headers": [
+          { "key": "Cache-Control", "value": "no-cache" }
+        ]
+      }
+    ]
+  },
   "firestore": {
     "rules": "firestore.rules"
   }
