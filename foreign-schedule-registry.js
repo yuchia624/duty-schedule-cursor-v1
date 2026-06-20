@@ -460,6 +460,38 @@
     return { ok: !errors.length, saved, errors };
   }
 
+  function exportMasterPayload() {
+    const meta = loadMeta();
+    const rowsByScheduleId = {};
+    (meta.schedules || []).forEach(sched => {
+      rowsByScheduleId[sched.scheduleId] = loadRows(sched.scheduleId);
+    });
+    return {
+      version: REGISTRY_VERSION,
+      meta,
+      rowsByScheduleId
+    };
+  }
+
+  function importMasterPayload(payload) {
+    if (!payload || typeof payload !== 'object') return { ok: false, error: '無效資料' };
+    const nextMeta = payload.meta;
+    const rowsByScheduleId = payload.rowsByScheduleId || {};
+    if (!nextMeta || !Array.isArray(nextMeta.schedules)) return { ok: false, error: '無效主檔' };
+
+    const oldMeta = loadMeta();
+    const nextIds = new Set(nextMeta.schedules.map(s => s.scheduleId));
+    (oldMeta.schedules || []).forEach(sched => {
+      if (!nextIds.has(sched.scheduleId)) deleteRows(sched.scheduleId);
+    });
+    nextMeta.schedules.forEach(sched => {
+      const rows = Array.isArray(rowsByScheduleId[sched.scheduleId]) ? rowsByScheduleId[sched.scheduleId] : [];
+      saveRows(sched.scheduleId, rows);
+    });
+    saveMeta(nextMeta);
+    return { ok: true, scheduleCount: nextMeta.schedules.length };
+  }
+
   global.ForeignScheduleRegistry = {
     REGISTRY_VERSION,
     KNOWN_CARRIERS,
@@ -484,6 +516,8 @@
     addRowAt,
     updateRowAt,
     listAllFlightRows,
-    migrateLegacyConnectingFltFromFixed
+    migrateLegacyConnectingFltFromFixed,
+    exportMasterPayload,
+    importMasterPayload
   };
 })(typeof window !== 'undefined' ? window : globalThis);
