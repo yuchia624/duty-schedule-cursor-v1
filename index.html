@@ -14,7 +14,9 @@
 <script src="foreign-duty-rules.js?v=20260613-oz-abg-label"></script>
 <script src="homeline-pax-parser.js?v=20260620-v4"></script>
 <script src="homeline-pax-registry.js?v=20260620-v5"></script>
-<script src="dest-class-registry.js?v=20260620-v1"></script>
+<script src="dest-class-registry.js?v=20260620-v4"></script>
+<script src="dest-class-seed.js?v=20260620-v4"></script>
+<script src="dest-class-parser.js?v=20260620-v1"></script>
 <title>今天的完整拖拉管制表 v2</title>
 <style>
   :root {
@@ -4378,97 +4380,103 @@
   #flightManagerPanelHomelinePax .hp-date-range-inputs .fs-flight-date-trigger {
     width: auto; min-width: 118px;
   }
-  #flightManagerPanelDestClass .dc-manager {
-    display: flex; flex: 1; min-height: 0; width: 100%; background: #fff;
-    border: 1px solid #e2e8f0; border-radius: 10px 10px 0 0; overflow: hidden;
+  #flightManagerPanelDestClass .dc-table-manager {
+    display: flex; flex: 1; min-height: 0; width: 100%; flex-direction: column;
+    background: #fff; border: 1px solid #e2e8f0; border-radius: 10px 10px 0 0; overflow: hidden;
   }
-  #flightManagerPanelDestClass .dc-layout {
-    display: grid; grid-template-columns: 240px minmax(0, 1fr); flex: 1; min-height: 0; width: 100%;
+  #flightManagerPanelDestClass .dc-table-toolbar {
+    display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-start; gap: 10px;
+    padding: 12px 16px 10px; border-bottom: 1px solid #e2e8f0; background: #fff;
   }
-  #flightManagerPanelDestClass .dc-sidebar {
-    border-right: 1px solid #e2e8f0; background: #f8fafc; display: flex; flex-direction: column; min-height: 0;
+  #flightManagerPanelDestClass .dc-search-wrap {
+    flex: 0 1 220px; max-width: 240px; display: flex; align-items: center; gap: 6px;
+    border: 1px solid #cbd5e1; border-radius: 8px; padding: 0 10px; min-height: 32px; background: #fff;
   }
-  #flightManagerPanelDestClass .dc-sidebar-head {
-    display: flex; align-items: flex-start; justify-content: space-between; gap: 8px;
-    padding: 14px 12px 10px; border-bottom: 1px solid #e2e8f0;
-  }
-  #flightManagerPanelDestClass .dc-sidebar-meta { font-size: 11px; color: #64748b; margin-top: 4px; }
-  #flightManagerPanelDestClass .dc-add-btn { flex: 0 0 auto; padding: 6px 10px; font-size: 12px; }
-  #flightManagerPanelDestClass .dc-search-wrap { padding: 8px 12px; border-bottom: 1px solid #e2e8f0; }
   #flightManagerPanelDestClass .dc-search-wrap input {
-    width: 100%; border: 1px solid #cbd5e1; border-radius: 8px; padding: 7px 10px; font-size: 12px;
+    border: 0; width: 100%; font-size: 13px; outline: none; background: transparent;
   }
-  #flightManagerPanelDestClass .dc-group-list {
-    list-style: none; margin: 0; padding: 6px; overflow: auto; flex: 1; min-height: 0;
+  #flightManagerPanelDestClass .dc-toolbar-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  #flightManagerPanelDestClass label.dc-import-btn { cursor: pointer; }
+  #flightManagerPanelDestClass .fs-table-meta {
+    padding: 10px 16px; margin: 0; font-size: 12px; color: #64748b; border-bottom: 1px solid #f1f5f9;
   }
-  #flightManagerPanelDestClass .dc-group-item {
-    width: 100%; border: 0; background: transparent; text-align: left; border-radius: 8px;
-    padding: 10px 10px; cursor: pointer; display: block;
+  #flightManagerPanelDestClass .dc-table-wrap { flex: 1; min-height: 0; overflow: auto; padding: 0 16px 12px; }
+  #flightManagerPanelDestClass .foreign-schedule-table.dc-table {
+    table-layout: auto; width: 100%; min-width: 100%; font-size: 12px; border-collapse: collapse;
   }
-  #flightManagerPanelDestClass .dc-group-item:hover { background: #eef2ff; }
-  #flightManagerPanelDestClass .dc-group-item.is-active { background: #dbeafe; color: #1d4ed8; }
-  #flightManagerPanelDestClass .dc-group-item-label { font-size: 13px; font-weight: 700; color: inherit; }
-  #flightManagerPanelDestClass .dc-group-item-meta { font-size: 11px; color: #64748b; margin-top: 2px; }
-  #flightManagerPanelDestClass .dc-group-item.is-active .dc-group-item-meta { color: #3b82f6; }
-  #flightManagerPanelDestClass .dc-main {
-    display: flex; flex-direction: column; min-height: 0; overflow: auto; padding: 18px 20px 16px; gap: 18px;
+  #flightManagerPanelDestClass .foreign-schedule-table.dc-table th,
+  #flightManagerPanelDestClass .foreign-schedule-table.dc-table td {
+    padding: 10px 12px; vertical-align: middle; line-height: 1.35; border-bottom: 1px solid #f1f5f9;
   }
-  #flightManagerPanelDestClass .dc-empty {
-    flex: 1; display: flex; align-items: center; justify-content: center; color: #64748b; font-size: 14px;
+  #flightManagerPanelDestClass .foreign-schedule-table.dc-table thead th {
+    padding-top: 8px; padding-bottom: 8px; position: sticky; top: 0; z-index: 1;
+    background: #f8fafc; color: #64748b; font-size: 11px; font-weight: 700; text-align: left;
   }
-  #flightManagerPanelDestClass .dc-editor.hidden,
-  #flightManagerPanelDestClass .dc-empty.hidden { display: none !important; }
-  #flightManagerPanelDestClass .dc-editor-head label {
-    display: flex; flex-direction: column; gap: 6px; font-size: 12px; font-weight: 600; color: #475569; max-width: 320px;
+  #flightManagerPanelDestClass .dc-table col.dc-col-name { width: 112px; }
+  #flightManagerPanelDestClass .dc-table col.dc-col-region { width: 96px; }
+  #flightManagerPanelDestClass .dc-table col.dc-col-actions { width: 88px; }
+  #flightManagerPanelDestClass .dc-table tbody tr { min-height: 48px; }
+  #flightManagerPanelDestClass .dc-table tbody tr:hover { background: #fafbff; }
+  #flightManagerPanelDestClass .dc-table th.dc-col-name,
+  #flightManagerPanelDestClass .dc-table td.dc-col-name {
+    padding-left: 0; padding-right: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
-  #flightManagerPanelDestClass .dc-editor-head input {
-    font-size: 14px; padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-weight: 600;
+  #flightManagerPanelDestClass .dc-table th.dc-col-region,
+  #flightManagerPanelDestClass .dc-table td.dc-col-region {
+    padding-left: 10px; padding-right: 10px; white-space: nowrap;
   }
-  #flightManagerPanelDestClass .dc-section-head {
-    display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 10px;
+  #flightManagerPanelDestClass .dc-table th.dc-col-airports,
+  #flightManagerPanelDestClass .dc-table td.dc-col-airports {
+    padding-left: 10px; padding-right: 10px;
+    white-space: nowrap; overflow: visible; text-overflow: clip;
   }
-  #flightManagerPanelDestClass .dc-section-head strong { font-size: 13px; color: #0f172a; }
-  #flightManagerPanelDestClass .dc-section-hint { font-size: 11px; color: #64748b; }
-  #flightManagerPanelDestClass .dc-airport-add-row {
-    display: flex; gap: 8px; margin-bottom: 8px; max-width: 220px;
+  #flightManagerPanelDestClass .dc-table th.dc-col-actions,
+  #flightManagerPanelDestClass .dc-table td.dc-col-actions {
+    width: 88px; min-width: 88px; max-width: 88px;
+    padding: 10px 8px; text-align: center; white-space: nowrap;
   }
-  #flightManagerPanelDestClass .dc-airport-add-row input {
-    width: 72px; font-size: 13px; font-weight: 700; letter-spacing: 0.04em;
-    padding: 7px 8px; border: 1px solid #cbd5e1; border-radius: 8px; text-transform: uppercase;
+  #flightManagerPanelDestClass .dc-name-cell {
+    display: flex; align-items: center; gap: 8px; font-weight: 700; color: #0f172a;
   }
-  #flightManagerPanelDestClass .dc-airport-add-row button,
-  #flightManagerPanelDestClass .dc-bulk-btn { padding: 7px 12px; font-size: 12px; }
-  #flightManagerPanelDestClass #destClassBulkInput {
-    width: 100%; max-width: 480px; border: 1px solid #cbd5e1; border-radius: 8px;
-    padding: 8px 10px; font-size: 12px; resize: vertical; margin-bottom: 8px;
+  #flightManagerPanelDestClass .dc-name-icon {
+    width: 20px; height: 20px; border-radius: 999px; display: inline-flex; align-items: center;
+    justify-content: center; background: #f1f5f9; font-size: 13px; flex: 0 0 auto;
   }
-  #flightManagerPanelDestClass .dc-chip-list {
-    display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px;
+  #flightManagerPanelDestClass .dc-airport-preview {
+    color: #475569; font-variant-numeric: tabular-nums; font-size: 12px;
   }
-  #flightManagerPanelDestClass .dc-chip {
-    display: inline-flex; align-items: center; gap: 4px; padding: 4px 8px 4px 10px;
-    border-radius: 999px; background: #eff6ff; border: 1px solid #bfdbfe; color: #1e40af;
-    font-size: 12px; font-weight: 700; letter-spacing: 0.04em;
+  #flightManagerPanelDestClass .dc-col-actions .fs-row-actions {
+    display: inline-flex; align-items: center; justify-content: center; width: 100%;
   }
-  #flightManagerPanelDestClass .dc-chip button {
-    border: 0; background: transparent; color: #64748b; cursor: pointer; font-size: 14px; line-height: 1; padding: 0 2px;
+  #flightManagerPanelDestClass .dc-region-tag {
+    display: inline-flex; align-items: center; justify-content: center; min-width: 52px;
+    padding: 1px 7px; border-radius: 999px; font-size: 11px; font-weight: 700; line-height: 1.2;
+    border: 1px solid transparent; white-space: nowrap;
   }
-  #flightManagerPanelDestClass .dc-chip button:hover { color: #dc2626; }
-  #flightManagerPanelDestClass .dc-chip-list--muted .dc-chip {
-    background: #f8fafc; border-color: #e2e8f0; color: #475569; cursor: pointer;
+  #flightManagerPanelDestClass .dc-region-tag.is-purple { background: #f3e8ff; color: #7c3aed; border-color: #ddd6fe; }
+  #flightManagerPanelDestClass .dc-region-tag.is-green { background: #dcfce7; color: #15803d; border-color: #bbf7d0; }
+  #flightManagerPanelDestClass .dc-region-tag.is-blue { background: #dbeafe; color: #2563eb; border-color: #bfdbfe; }
+  #flightManagerPanelDestClass .dc-region-tag.is-orange { background: #ffedd5; color: #ea580c; border-color: #fed7aa; }
+  #flightManagerPanelDestClass .dc-region-tag.is-indigo { background: #e0e7ff; color: #4338ca; border-color: #c7d2fe; }
+  #flightManagerPanelDestClass .dc-region-tag.is-teal { background: #ccfbf1; color: #0f766e; border-color: #99f6e4; }
+  #flightManagerPanelDestClass .dc-region-tag.is-muted { background: #f8fafc; color: #94a3b8; border-color: #e2e8f0; }
+  #flightManagerPanelDestClass .fs-row-actions button {
+    width: 24px; height: 24px; padding: 0;
   }
-  #flightManagerPanelDestClass .dc-chip-list--muted .dc-chip:hover { background: #eef2ff; border-color: #bfdbfe; }
-  #flightManagerPanelDestClass .dc-editor-actions {
-    display: flex; align-items: center; justify-content: space-between; gap: 12px;
-    padding-top: 8px; border-top: 1px solid #e2e8f0; margin-top: 4px;
+  #flightManagerPanelDestClass .fs-row-actions button svg { width: 14px; height: 14px; }
+  #destClassEditorModal .dc-editor-grid label {
+    display: flex; flex-direction: column; gap: 6px; font-size: 12px; font-weight: 600; color: #475569;
   }
-  #flightManagerPanelDestClass .dc-delete-btn {
+  #destClassEditorModal .dc-editor-grid input,
+  #destClassEditorModal .dc-editor-grid textarea,
+  #destClassEditorModal .dc-editor-grid select {
+    border: 1px solid #cbd5e1; border-radius: 8px; padding: 8px 10px; font-size: 13px;
+  }
+  #destClassEditorModal .dc-editor-grid { display: grid; gap: 12px; margin-bottom: 12px; }
+  #destClassEditorModal .dc-icon-input { max-width: 72px; text-align: center; font-size: 18px; }
+  #destClassEditorModal .dc-delete-btn {
     border: 1px solid #fecaca; background: #fff; color: #dc2626; border-radius: 8px;
-    padding: 8px 12px; font-size: 12px; font-weight: 600; cursor: pointer;
-  }
-  #flightManagerPanelDestClass .dc-editor-actions-right { display: flex; gap: 8px; }
-  #flightManagerPanelDestClass .dc-unclassified {
-    border-top: 1px solid #e2e8f0; padding-top: 14px;
+    padding: 8px 12px; font-size: 12px; font-weight: 600; cursor: pointer; margin-right: auto;
   }
   .foreign-schedule-manager {
     gap: 0; padding: 0; overflow: hidden; display: flex; flex-direction: column; align-items: center;
@@ -7458,58 +7466,65 @@
               </div>
             </div>
             <div id="flightManagerPanelDestClass" class="fm-hub-panel hidden" role="region" aria-labelledby="flightManagerSectionTitle">
-              <div class="fs-page-body dc-manager">
-                <div class="dc-layout">
-                  <aside class="dc-sidebar">
-                    <div class="dc-sidebar-head">
-                      <div>
-                        <strong>航線群</strong>
-                        <div class="dc-sidebar-meta" id="destClassStatsMeta">—</div>
-                      </div>
-                      <button type="button" class="fs-btn-secondary dc-add-btn" id="destClassAddGroupBtn">新增</button>
-                    </div>
-                    <label class="dc-search-wrap">
-                      <input type="search" id="destClassGroupSearch" placeholder="搜尋航線或 IATA…" autocomplete="off" />
+              <div class="fs-page-body dc-table-manager">
+                <div class="dc-table-toolbar">
+                  <label class="dc-search-wrap">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+                    <input type="search" id="destClassGroupSearch" placeholder="搜尋分類名稱、航點代碼或國家…" autocomplete="off" />
+                  </label>
+                  <div class="dc-toolbar-actions">
+                    <label class="fs-filter-btn dc-import-btn">
+                      匯入夏季班表
+                      <input type="file" id="destClassImportInput" accept=".xlsx,.xls" hidden />
                     </label>
-                    <ul class="dc-group-list" id="destClassGroupList"></ul>
-                  </aside>
-                  <main class="dc-main">
-                    <div class="dc-empty" id="destClassEditorEmpty">請選擇左側航線群，或按「新增」建立。</div>
-                    <div class="dc-editor hidden" id="destClassEditorPanel">
-                      <div class="dc-editor-head">
-                        <label>航線名稱
-                          <input type="text" id="destClassLabelInput" maxlength="40" placeholder="例如：越南線" autocomplete="off" />
-                        </label>
-                      </div>
-                      <div class="dc-editor-section">
-                        <div class="dc-section-head">
-                          <strong>目的地 IATA</strong>
-                          <span class="dc-section-hint" id="destClassAirportCount">0 個航點</span>
-                        </div>
-                        <div class="dc-airport-add-row">
-                          <input type="text" id="destClassAirportInput" maxlength="3" placeholder="SGN" autocomplete="off" />
-                          <button type="button" class="fs-btn-secondary" id="destClassAirportAddBtn">加入</button>
-                        </div>
-                        <textarea id="destClassBulkInput" rows="3" placeholder="批次貼上 IATA，以空白、逗號或換行分隔"></textarea>
-                        <button type="button" class="fs-btn-secondary dc-bulk-btn" id="destClassBulkAddBtn">批次加入</button>
-                        <div class="dc-chip-list" id="destClassAirportChips"></div>
-                      </div>
-                      <div class="dc-editor-actions">
-                        <button type="button" class="dc-delete-btn" id="destClassDeleteBtn" hidden>刪除航線群</button>
-                        <div class="dc-editor-actions-right">
-                          <button type="button" class="btn-secondary" id="destClassCancelBtn">取消</button>
-                          <button type="button" class="fs-btn-primary" id="destClassSaveBtn">儲存</button>
-                        </div>
-                      </div>
-                    </div>
-                    <div class="dc-unclassified">
-                      <div class="dc-section-head">
-                        <strong>尚未分類的航點</strong>
-                        <span class="dc-section-hint">來自 EDW 訂位與外家時刻表 · 點擊加入目前航線群</span>
-                      </div>
-                      <div class="dc-chip-list dc-chip-list--muted" id="destClassUnclassifiedList"></div>
-                    </div>
-                  </main>
+                    <button type="button" class="fs-filter-btn fs-add-flight-btn" id="destClassAddGroupBtn">＋ 新增分類</button>
+                  </div>
+                </div>
+                <div class="fs-table-meta" id="destClassTableMeta">共 0 個分類</div>
+                <div class="fs-table-wrap dc-table-wrap">
+                  <table class="foreign-schedule-table dc-table" id="destClassTable">
+                    <colgroup>
+                      <col class="dc-col-name" />
+                      <col class="dc-col-region" />
+                      <col class="dc-col-airports" />
+                      <col class="dc-col-actions" />
+                    </colgroup>
+                    <thead>
+                      <tr>
+                        <th class="dc-col-name">分類名稱</th>
+                        <th class="dc-col-region">區域分類</th>
+                        <th class="dc-col-airports">包含航點</th>
+                        <th class="dc-col-actions">操作</th>
+                      </tr>
+                    </thead>
+                    <tbody id="destClassTableBody">
+                      <tr><td colspan="4" class="foreign-schedule-empty">載入中…</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+            <div class="fs-modal-overlay hidden" id="destClassEditorModal">
+              <div class="fs-modal">
+                <h3 id="destClassEditorModalTitle">編輯分類</h3>
+                <div class="dc-editor-grid">
+                  <label>分類名稱
+                    <input type="text" id="destClassLabelInput" maxlength="40" placeholder="例如：越南線" autocomplete="off" />
+                  </label>
+                  <label>圖示（選填）
+                    <input type="text" id="destClassIconInput" maxlength="4" class="dc-icon-input" placeholder="🇻🇳" autocomplete="off" />
+                  </label>
+                  <label>區域分類
+                    <select id="destClassRegionSelect"></select>
+                  </label>
+                  <label>包含航點 IATA
+                    <textarea id="destClassBulkInput" rows="4" placeholder="以空白、逗號或換行分隔，例如：HAN, SGN, DAD"></textarea>
+                  </label>
+                </div>
+                <div class="foreign-schedule-form-actions">
+                  <button type="button" id="destClassDeleteBtn" class="dc-delete-btn" hidden>刪除分類</button>
+                  <button type="button" id="destClassCancelBtn">取消</button>
+                  <button type="button" class="fs-btn-primary" id="destClassSaveBtn">儲存</button>
                 </div>
               </div>
             </div>
@@ -15887,7 +15902,7 @@ let foreignScheduleManagerBound = false;
 const FLIGHT_MANAGER_SECTIONS = {
   foreign: { panelId: 'flightManagerPanelForeign', label: '外家時刻表' },
   'homeline-pax': { panelId: 'flightManagerPanelHomelinePax', label: '匯入訂位資料(本家)' },
-  'dest-class': { panelId: 'flightManagerPanelDestClass', label: '航點分類(本家)' },
+  'dest-class': { panelId: 'flightManagerPanelDestClass', label: '航線分類管理(本家)' },
   handover: { panelId: 'flightManagerPanelHandover', label: '航班交接' }
 };
 const savedFlightSectionRaw = localStorage.getItem('cursor_v1_flight_manager_section') || 'foreign';
@@ -15898,7 +15913,6 @@ let homelinePaxManagerBound = false;
 let homelinePaxPage = 1;
 let destClassManagerBound = false;
 let destClassSelectedGroupId = null;
-let destClassDraftAirports = [];
 let destClassGroupSearch = '';
 let foreignScheduleFlatCache = null;
 let foreignScheduleMasterSeedAttempted = false;
@@ -17598,164 +17612,147 @@ function bindHomelinePaxManager() {
   });
 }
 
-function getDestClassDraftAirportsSorted() {
-  if (typeof DestClassRegistry === 'undefined') return [];
-  return DestClassRegistry.normalizeAirports
-    ? DestClassRegistry.normalizeAirports(destClassDraftAirports)
-    : [...new Set(destClassDraftAirports.map(c => String(c || '').trim().toUpperCase()).filter(Boolean))].sort();
+function formatDestClassAirportPreview(airports) {
+  const list = (airports || []).slice().sort();
+  if (!list.length) return '—';
+  return list.join(', ');
 }
 
-function setDestClassDraftAirports(list) {
-  destClassDraftAirports = typeof DestClassRegistry !== 'undefined' && DestClassRegistry.normalizeAirports
-    ? DestClassRegistry.normalizeAirports(list)
-    : [...new Set((list || []).map(c => String(c || '').trim().toUpperCase()).filter(Boolean))].sort();
+function populateDestClassRegionSelect(selectedId = '') {
+  const sel = document.getElementById('destClassRegionSelect');
+  if (!sel || typeof DestClassSeed === 'undefined') return;
+  const regions = DestClassSeed.listRegions?.() || [];
+  sel.innerHTML = regions.map(region => `
+    <option value="${escapeHtml(region.id)}"${region.id === selectedId ? ' selected' : ''}>${escapeHtml(region.label)}</option>
+  `).join('');
 }
 
-function selectDestClassGroup(groupId) {
-  destClassSelectedGroupId = groupId || null;
-  if (groupId === '__new__') {
-    setDestClassDraftAirports([]);
-    const labelInput = document.getElementById('destClassLabelInput');
-    if (labelInput) labelInput.value = '';
-  } else if (groupId && typeof DestClassRegistry !== 'undefined') {
-    const group = DestClassRegistry.getGroup(groupId);
-    setDestClassDraftAirports(group?.airports || []);
-    const labelInput = document.getElementById('destClassLabelInput');
-    if (labelInput) labelInput.value = group?.label || '';
-  }
-  renderDestClassEditor();
-  renderDestClassGroupList();
+function formatDestClassRegionCell(group) {
+  const region = DestClassSeed?.getRegion?.(group?.regionId);
+  if (!region) return '<span class="dc-region-tag is-muted">—</span>';
+  return `<span class="dc-region-tag is-${escapeHtml(region.tone || 'muted')}">${escapeHtml(region.label)}</span>`;
 }
 
-function addDestClassDraftAirports(codes) {
-  const incoming = typeof DestClassRegistry !== 'undefined' && DestClassRegistry.parseIataList
-    ? DestClassRegistry.parseIataList(Array.isArray(codes) ? codes.join(' ') : codes)
-    : String(codes || '').split(/[\s,;]+/).map(s => s.trim().toUpperCase()).filter(Boolean);
-  if (!incoming.length) return 0;
-  const merged = getDestClassDraftAirportsSorted().concat(incoming);
-  setDestClassDraftAirports(merged);
-  renderDestClassAirportChips();
-  return incoming.length;
+function getDestClassRegionLabel(group) {
+  return DestClassSeed?.getRegion?.(group?.regionId)?.label || '';
 }
 
-function removeDestClassDraftAirport(code) {
-  const key = String(code || '').trim().toUpperCase();
-  setDestClassDraftAirports(getDestClassDraftAirportsSorted().filter(c => c !== key));
-  renderDestClassAirportChips();
-}
-
-function renderDestClassStatsMeta() {
-  const el = document.getElementById('destClassStatsMeta');
-  if (!el || typeof DestClassRegistry === 'undefined') return;
-  const stats = DestClassRegistry.getStats();
-  if (!stats.groupCount) {
-    el.textContent = '尚未建立航線群';
+function ensureDestClassSeeded() {
+  if (typeof DestClassRegistry === 'undefined') return;
+  if (!DestClassRegistry.listGroups().length) {
+    DestClassRegistry.seedDefaultGroupsIfEmpty();
+    DestClassRegistry.saveCatalogMeta?.({ seedVersion: DestClassSeed?.SEED_VERSION || '' });
     return;
   }
-  el.textContent = `${stats.groupCount} 個航線群 · ${stats.airportCount} 個航點`;
+  DestClassRegistry.syncCatalogUpgrade?.();
 }
 
-function renderDestClassGroupList() {
-  const listEl = document.getElementById('destClassGroupList');
-  if (!listEl || typeof DestClassRegistry === 'undefined') return;
+function openDestClassEditor(groupId = '__new__') {
+  destClassSelectedGroupId = groupId || '__new__';
+  const modal = document.getElementById('destClassEditorModal');
+  const title = document.getElementById('destClassEditorModalTitle');
+  const deleteBtn = document.getElementById('destClassDeleteBtn');
+  const labelInput = document.getElementById('destClassLabelInput');
+  const iconInput = document.getElementById('destClassIconInput');
+  const bulkInput = document.getElementById('destClassBulkInput');
+  populateDestClassRegionSelect();
+  if (groupId === '__new__') {
+    if (title) title.textContent = '新增分類';
+    if (labelInput) labelInput.value = '';
+    if (iconInput) iconInput.value = '';
+    if (bulkInput) bulkInput.value = '';
+    document.getElementById('destClassRegionSelect').value = 'sea';
+    if (deleteBtn) deleteBtn.hidden = true;
+  } else {
+    const group = DestClassRegistry?.getGroup(groupId);
+    if (!group) return;
+    if (title) title.textContent = `編輯 ${group.label}`;
+    if (labelInput) labelInput.value = group.label || '';
+    if (iconInput) iconInput.value = group.icon || '';
+    if (bulkInput) bulkInput.value = (group.airports || []).join(', ');
+    populateDestClassRegionSelect(group.regionId || DestClassRegistry.resolveRegionId?.(group) || 'sea');
+    if (deleteBtn) deleteBtn.hidden = false;
+  }
+  modal?.classList.remove('hidden');
+}
+
+function closeDestClassEditor() {
+  document.getElementById('destClassEditorModal')?.classList.add('hidden');
+  destClassSelectedGroupId = null;
+}
+
+function renderDestClassTable() {
+  ensureDestClassSeeded();
+  const tbody = document.getElementById('destClassTableBody');
+  const meta = document.getElementById('destClassTableMeta');
+  if (!tbody || typeof DestClassRegistry === 'undefined') return;
   const q = destClassGroupSearch.trim().toUpperCase();
   const groups = DestClassRegistry.listGroups().filter(group => {
     if (!q) return true;
     if (group.label.toUpperCase().includes(q)) return true;
-    return group.airports.some(iata => iata.includes(q));
+    if (getDestClassRegionLabel(group).toUpperCase().includes(q)) return true;
+    return (group.airports || []).some(iata => iata.includes(q));
   });
-  if (!DestClassRegistry.listGroups().length) {
-    listEl.innerHTML = '<li class="foreign-schedule-empty" style="padding:16px 10px;">尚未建立航線群。</li>';
-    return;
-  }
+  if (meta) meta.textContent = `共 ${groups.length} 個分類`;
   if (!groups.length) {
-    listEl.innerHTML = '<li class="foreign-schedule-empty" style="padding:16px 10px;">找不到符合的航線群。</li>';
+    tbody.innerHTML = '<tr><td colspan="4" class="foreign-schedule-empty">找不到符合的分類。</td></tr>';
     return;
   }
-  listEl.innerHTML = groups.map(group => {
-    const active = destClassSelectedGroupId === group.id ? ' is-active' : '';
-    const meta = `${group.airports.length} 個航點`;
-    return `<li><button type="button" class="dc-group-item${active}" data-dest-class-group="${escapeHtml(group.id)}">
-      <div class="dc-group-item-label">${escapeHtml(group.label)}</div>
-      <div class="dc-group-item-meta">${escapeHtml(meta)}</div>
-    </button></li>`;
-  }).join('');
-  listEl.querySelectorAll('[data-dest-class-group]').forEach(btn => {
-    btn.addEventListener('click', () => selectDestClassGroup(btn.dataset.destClassGroup));
-  });
+  tbody.innerHTML = groups.map(group => `
+    <tr data-dest-class-id="${escapeHtml(group.id)}">
+      <td class="dc-col-name">
+        <div class="dc-name-cell">
+          <span class="dc-name-icon" aria-hidden="true">${escapeHtml(group.icon || '🌐')}</span>
+          <span>${escapeHtml(group.label)}</span>
+        </div>
+      </td>
+      <td class="dc-col-region">${formatDestClassRegionCell(group)}</td>
+      <td class="dc-col-airports dc-airport-preview">${escapeHtml(formatDestClassAirportPreview(group.airports))}</td>
+      <td class="dc-col-actions">
+        <div class="fs-row-actions">
+          <button type="button" class="is-edit" data-dc-action="edit" title="編輯" aria-label="編輯">${FS_ICON_EDIT}</button>
+          <button type="button" class="is-danger" data-dc-action="delete" title="刪除" aria-label="刪除">${FS_ICON_DELETE}</button>
+        </div>
+      </td>
+    </tr>
+  `).join('');
 }
 
-function renderDestClassAirportChips() {
-  const chipsEl = document.getElementById('destClassAirportChips');
-  const countEl = document.getElementById('destClassAirportCount');
-  const airports = getDestClassDraftAirportsSorted();
-  if (countEl) countEl.textContent = `${airports.length} 個航點`;
-  if (!chipsEl) return;
-  if (!airports.length) {
-    chipsEl.innerHTML = '<span class="dc-section-hint">尚未加入航點。</span>';
+async function handleDestClassTableAction(e) {
+  const btn = e.target.closest('button[data-dc-action]');
+  if (!btn) return;
+  const tr = btn.closest('tr[data-dest-class-id]');
+  const groupId = tr?.dataset?.destClassId;
+  if (!groupId || typeof DestClassRegistry === 'undefined') return;
+  if (btn.dataset.dcAction === 'edit') {
+    openDestClassEditor(groupId);
     return;
   }
-  const index = typeof DestClassRegistry !== 'undefined' ? DestClassRegistry.buildAirportIndex() : new Map();
-  chipsEl.innerHTML = airports.map(iata => {
-    const others = (index.get(iata) || [])
-      .filter(g => g.id !== destClassSelectedGroupId && destClassSelectedGroupId !== '__new__')
-      .map(g => g.label);
-    const title = others.length ? `亦屬：${others.join('、')}` : '';
-    return `<span class="dc-chip" title="${escapeHtml(title)}">${escapeHtml(iata)}<button type="button" data-remove-iata="${escapeHtml(iata)}" aria-label="移除 ${escapeHtml(iata)}">×</button></span>`;
-  }).join('');
-  chipsEl.querySelectorAll('[data-remove-iata]').forEach(btn => {
-    btn.addEventListener('click', () => removeDestClassDraftAirport(btn.dataset.removeIata));
-  });
-}
-
-function renderDestClassUnclassifiedList() {
-  const el = document.getElementById('destClassUnclassifiedList');
-  if (!el || typeof DestClassRegistry === 'undefined') return;
-  const list = DestClassRegistry.listUnclassifiedAirports();
-  if (!list.length) {
-    el.innerHTML = '<span class="dc-section-hint">目前沒有未分類航點（或尚未匯入 EDW／外家時刻表）。</span>';
-    return;
+  if (btn.dataset.dcAction === 'delete') {
+    const group = DestClassRegistry.getGroup(groupId);
+    if (!group) return;
+    const ok = await appConfirm(`確定刪除「${group.label}」？`, { title: '刪除分類', confirmText: '刪除' });
+    if (!ok) return;
+    const res = DestClassRegistry.deleteGroup(groupId);
+    if (!res.ok) {
+      appAlert(res.error || '無法刪除。', '無法刪除');
+      return;
+    }
+    renderDestClassManager();
   }
-  el.innerHTML = list.map(iata =>
-    `<button type="button" class="dc-chip" data-add-unclassified="${escapeHtml(iata)}" title="加入目前航線群">${escapeHtml(iata)}</button>`
-  ).join('');
-  el.querySelectorAll('[data-add-unclassified]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      if (!destClassSelectedGroupId) {
-        appAlert('請先選擇或新增航線群。', '無法加入');
-        return;
-      }
-      addDestClassDraftAirports(btn.dataset.addUnclassified);
-    });
-  });
-}
-
-function renderDestClassEditor() {
-  const emptyEl = document.getElementById('destClassEditorEmpty');
-  const panelEl = document.getElementById('destClassEditorPanel');
-  const deleteBtn = document.getElementById('destClassDeleteBtn');
-  const hasSelection = !!destClassSelectedGroupId;
-  emptyEl?.classList.toggle('hidden', hasSelection);
-  panelEl?.classList.toggle('hidden', !hasSelection);
-  if (deleteBtn) deleteBtn.hidden = !destClassSelectedGroupId || destClassSelectedGroupId === '__new__';
-  if (!hasSelection) return;
-  renderDestClassAirportChips();
-}
-
-function renderDestClassManager() {
-  bindDestClassManager();
-  renderDestClassStatsMeta();
-  renderDestClassGroupList();
-  renderDestClassEditor();
-  renderDestClassUnclassifiedList();
 }
 
 function saveDestClassGroupFromEditor() {
   if (typeof DestClassRegistry === 'undefined') return;
   const label = document.getElementById('destClassLabelInput')?.value || '';
-  const airports = getDestClassDraftAirportsSorted();
+  const icon = document.getElementById('destClassIconInput')?.value || '';
+  const bulk = document.getElementById('destClassBulkInput')?.value || '';
+  const regionId = document.getElementById('destClassRegionSelect')?.value || '';
+  const airports = DestClassRegistry.parseIataList(bulk);
   const entry = {
     label,
+    icon,
+    regionId,
     airports,
     id: destClassSelectedGroupId === '__new__' ? '' : destClassSelectedGroupId
   };
@@ -17764,74 +17761,79 @@ function saveDestClassGroupFromEditor() {
     appAlert(res.error || '無法儲存。', '無法儲存');
     return;
   }
-  destClassSelectedGroupId = res.group.id;
+  closeDestClassEditor();
   renderDestClassManager();
   appAlert(`已儲存「${res.group.label}」。`, '已儲存', 'success');
 }
 
-function deleteDestClassGroupFromEditor() {
-  if (typeof DestClassRegistry === 'undefined') return;
-  if (!destClassSelectedGroupId || destClassSelectedGroupId === '__new__') return;
-  const group = DestClassRegistry.getGroup(destClassSelectedGroupId);
-  if (!group) return;
-  appConfirm(`確定刪除「${group.label}」？`, { title: '刪除航線群', confirmText: '刪除' }).then(ok => {
-    if (!ok) return;
-    const res = DestClassRegistry.deleteGroup(destClassSelectedGroupId);
-    if (!res.ok) {
-      appAlert(res.error || '無法刪除。', '無法刪除');
+async function handleDestClassImportFile(file) {
+  if (!file || typeof XLSX === 'undefined') {
+    appAlert('Excel 讀取套件尚未載入。', '無法匯入');
+    return;
+  }
+  if (typeof DestClassParser === 'undefined' || typeof DestClassRegistry === 'undefined') {
+    appAlert('分類模組尚未載入。', '無法匯入');
+    return;
+  }
+  try {
+    const buffer = await file.arrayBuffer();
+    const workbook = XLSX.read(buffer, { type: 'array' });
+    const parsed = DestClassParser.parseHomelineSummerWorkbook(workbook);
+    if (!parsed.ok) {
+      appAlert(parsed.error || '無法解析夏季班表。', '匯入失敗');
       return;
     }
-    destClassSelectedGroupId = null;
-    setDestClassDraftAirports([]);
+    const res = DestClassRegistry.importGroupsFromAirports(parsed.airports);
+    if (!res.ok) {
+      appAlert(res.error || '無法建立分類。', '匯入失敗');
+      return;
+    }
     renderDestClassManager();
-  });
+    appAlert(`已從 ${file.name} 匯入 ${parsed.airports.length} 個航點，建立 ${res.count} 個分類。`, '匯入完成', 'success');
+  } catch (err) {
+    appAlert(`匯入失敗：${err.message || err}`, '匯入失敗');
+  }
+}
+
+function renderDestClassManager() {
+  bindDestClassManager();
+  renderDestClassTable();
 }
 
 function bindDestClassManager() {
   if (destClassManagerBound) return;
   destClassManagerBound = true;
-  document.getElementById('destClassAddGroupBtn')?.addEventListener('click', () => selectDestClassGroup('__new__'));
+  document.getElementById('destClassAddGroupBtn')?.addEventListener('click', () => openDestClassEditor('__new__'));
   document.getElementById('destClassGroupSearch')?.addEventListener('input', e => {
     destClassGroupSearch = e.target.value || '';
-    renderDestClassGroupList();
+    renderDestClassTable();
   });
-  document.getElementById('destClassAirportAddBtn')?.addEventListener('click', () => {
-    const input = document.getElementById('destClassAirportInput');
-    const added = addDestClassDraftAirports(input?.value || '');
-    if (!added) {
-      appAlert('請輸入有效的 3 字 IATA 代碼。', '無法加入');
-      return;
-    }
-    if (input) input.value = '';
+  document.getElementById('destClassImportInput')?.addEventListener('change', e => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (file) handleDestClassImportFile(file);
   });
-  document.getElementById('destClassAirportInput')?.addEventListener('keydown', e => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      document.getElementById('destClassAirportAddBtn')?.click();
-    }
-  });
-  document.getElementById('destClassBulkAddBtn')?.addEventListener('click', () => {
-    const text = document.getElementById('destClassBulkInput')?.value || '';
-    const added = addDestClassDraftAirports(text);
-    if (!added) {
-      appAlert('請貼上有效的 IATA 代碼。', '無法加入');
-      return;
-    }
-    const bulk = document.getElementById('destClassBulkInput');
-    if (bulk) bulk.value = '';
-  });
+  document.getElementById('destClassTableBody')?.addEventListener('click', handleDestClassTableAction);
   document.getElementById('destClassSaveBtn')?.addEventListener('click', saveDestClassGroupFromEditor);
-  document.getElementById('destClassCancelBtn')?.addEventListener('click', () => {
-    if (destClassSelectedGroupId === '__new__') {
-      destClassSelectedGroupId = null;
-      setDestClassDraftAirports([]);
-    } else if (destClassSelectedGroupId) {
-      selectDestClassGroup(destClassSelectedGroupId);
-    }
-    renderDestClassEditor();
-    renderDestClassGroupList();
+  document.getElementById('destClassCancelBtn')?.addEventListener('click', closeDestClassEditor);
+  document.getElementById('destClassDeleteBtn')?.addEventListener('click', () => {
+    if (!destClassSelectedGroupId || destClassSelectedGroupId === '__new__') return;
+    const group = DestClassRegistry?.getGroup(destClassSelectedGroupId);
+    if (!group) return;
+    appConfirm(`確定刪除「${group.label}」？`, { title: '刪除分類', confirmText: '刪除' }).then(ok => {
+      if (!ok) return;
+      const res = DestClassRegistry.deleteGroup(destClassSelectedGroupId);
+      if (!res.ok) {
+        appAlert(res.error || '無法刪除。', '無法刪除');
+        return;
+      }
+      closeDestClassEditor();
+      renderDestClassManager();
+    });
   });
-  document.getElementById('destClassDeleteBtn')?.addEventListener('click', deleteDestClassGroupFromEditor);
+  document.getElementById('destClassEditorModal')?.addEventListener('click', e => {
+    if (e.target.id === 'destClassEditorModal') closeDestClassEditor();
+  });
 }
 
 function renderForeignScheduleManager() {

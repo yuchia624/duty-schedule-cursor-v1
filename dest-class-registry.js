@@ -2,8 +2,9 @@
  * 航點／航線分類主檔：依目的地 IATA 對應一或多個航線群（本家）
  */
 (function (global) {
-  const REGISTRY_VERSION = '2026-06-20-v1';
+  const REGISTRY_VERSION = '2026-06-20-v4';
   const DATA_KEY = 'cursor_v1_dest_class_groups_v1';
+  const CATALOG_META_KEY = 'cursor_v1_dest_class_catalog_meta_v1';
 
   function clean(v) {
     return String(v ?? '').replace(/\u3000/g, '').trim();
@@ -65,6 +66,14 @@
     }
   }
 
+  function resolveRegionId(entry) {
+    const raw = clean(entry?.regionId);
+    if (raw && global.DestClassSeed?.getRegion?.(raw)) return raw;
+    const inferred = global.DestClassSeed?.resolveRegionId?.(clean(entry?.id));
+    if (inferred && global.DestClassSeed?.getRegion?.(inferred)) return inferred;
+    return '';
+  }
+
   function normalizeGroup(entry) {
     if (!entry || typeof entry !== 'object') return null;
     const label = clean(entry.label);
@@ -73,6 +82,8 @@
     return {
       id,
       label,
+      icon: clean(entry.icon) || '',
+      regionId: resolveRegionId(entry),
       airports: normalizeAirports(entry.airports),
       sortOrder: Number.isFinite(entry.sortOrder) ? entry.sortOrder : 0,
       updatedAt: clean(entry.updatedAt) || new Date().toISOString()
@@ -113,6 +124,8 @@
     const label = clean(entry?.label);
     if (!label) return '請填寫航線名稱';
     if (label.length > 40) return '航線名稱不可超過 40 字';
+    const regionId = resolveRegionId(entry);
+    if (!regionId) return '請選擇區域分類';
     const airports = normalizeAirports(entry?.airports);
     if (!airports.length) return '請至少加入一個 IATA 航點';
     const dup = listGroups().find(g =>
@@ -125,7 +138,8 @@
   function upsertGroup(entry) {
     const label = clean(entry?.label);
     const airports = normalizeAirports(entry?.airports);
-    const err = validateGroupInput({ label, airports }, entry?.id || null);
+    const regionId = resolveRegionId(entry);
+    const err = validateGroupInput({ label, airports, regionId }, entry?.id || null);
     if (err) return { ok: false, error: err };
     const groups = listGroups();
     const existingIds = new Set(groups.map(g => g.id));
@@ -136,6 +150,8 @@
     const patch = {
       id,
       label,
+      icon: clean(entry?.icon) || getGroup(id)?.icon || '',
+      regionId,
       airports,
       sortOrder: Number.isFinite(entry?.sortOrder) ? entry.sortOrder : groups.length,
       updatedAt: now
@@ -237,6 +253,107 @@
     return collectSuggestedAirports().filter(iata => !classified.has(iata));
   }
 
+  function replaceAllGroups(entries) {
+    const now = new Date().toISOString();
+    const next = (entries || [])
+      .map((entry, idx) => normalizeGroup({
+        ...entry,
+        sortOrder: Number.isFinite(entry?.sortOrder) ? entry.sortOrder : idx,
+        updatedAt: now
+      }))
+      .filter(Boolean);
+    saveGroups(next);
+    return { ok: true, count: next.length, groups: next };
+  }
+
+  function seedDefaultGroupsIfEmpty() {
+    if (listGroups().length) return { ok: true, seeded: false };
+    const seed = global.DestClassSeed?.HOMELINE_SUMMER_2026_GROUPS;
+    if (!Array.isArray(seed) || !seed.length) return { ok: false, error: '找不到預設種子' };
+    return { ...replaceAllGroups(seed), seeded: true };
+  }
+
+  function importGroupsFromAirports(airportList) {
+    if (typeof global.DestClassSeed?.buildGroupsFromAirports !== 'function') {
+      return { ok: false, error: '分類規則未載入' };
+    }
+    const groups = global.DestClassSeed.buildGroupsFromAirports(airportList);
+    if (!groups.length) return { ok: false, error: '找不到可分類的航點' };
+    return replaceAllGroups(groups);
+  }
+
+  /** 依現有航點補上新版規則中缺少的標準航線群 */
+  function ensureCatalogGroups() {
+    const airports = listAllAirports();
+    if (!airports.length) return { ok: true, added: 0 };
+    if (typeof global.DestClassSeed?.buildGroupsFromAirports !== 'function') {
+      return { ok: false, error: '分類規則未載入' };
+    }
+    const built = global.DestClassSeed.buildGroupsFromAirports(airports);
+    const existing = listGroups();
+    const byId = new Map(existing.map(g => [g.id, g]));
+    let added = 0;
+    built.forEach(group => {
+      if (byId.has(group.id)) return;
+      byId.set(group.id, { ...group, updatedAt: new Date().toISOString() });
+      added += 1;
+    });
+    if (!added) return { ok: true, added: 0 };
+    saveGroups([...byId.values()]);
+    return { ok: true, added };
+  }
+
+  /** 依夏季班表種子補上缺少的標準航線群（例如新加坡／吉隆坡／印尼／柬埔寨線） */
+  function mergeMissingCatalogGroups() {
+    const seedGroups = global.DestClassSeed?.HOMELINE_SUMMER_2026_GROUPS;
+    if (!Array.isArray(seedGroups) || !seedGroups.length) return { ok: true, added: 0 };
+    const byId = new Map(listGroups().map(g => [g.id, g]));
+    let added = 0;
+    seedGroups.forEach(group => {
+      if (byId.has(group.id)) return;
+      const normalized = normalizeGroup(group);
+      if (!normalized) return;
+      byId.set(normalized.id, normalized);
+      added += 1;
+    });
+    if (!added) return { ok: true, added: 0 };
+    saveGroups([...byId.values()]);
+    return { ok: true, added };
+  }
+
+  function loadCatalogMeta() {
+    try {
+      const raw = localStorage.getItem(CATALOG_META_KEY);
+      return raw ? JSON.parse(raw) : {};
+    } catch (_) {
+      return {};
+    }
+  }
+
+  function saveCatalogMeta(patch) {
+    const next = { ...loadCatalogMeta(), ...patch, at: new Date().toISOString() };
+    localStorage.setItem(CATALOG_META_KEY, JSON.stringify(next));
+    return next;
+  }
+
+  /** 種子版本更新時，自動補上缺少的標準航線群 */
+  function syncCatalogUpgrade() {
+    const targetVersion = global.DestClassSeed?.SEED_VERSION || '';
+    const meta = loadCatalogMeta();
+    let added = 0;
+
+    const fromAirports = ensureCatalogGroups();
+    if (fromAirports.ok) added += fromAirports.added || 0;
+
+    if (meta.seedVersion !== targetVersion) {
+      const fromSeed = mergeMissingCatalogGroups();
+      if (fromSeed.ok) added += fromSeed.added || 0;
+      saveCatalogMeta({ seedVersion: targetVersion });
+    }
+
+    return { ok: true, added };
+  }
+
   global.DestClassRegistry = {
     REGISTRY_VERSION,
     normalizeIata,
@@ -254,6 +371,14 @@
     collectSuggestedAirports,
     collectAirportsFromHomelinePax,
     collectAirportsFromForeignSchedule,
-    listUnclassifiedAirports
+    listUnclassifiedAirports,
+    replaceAllGroups,
+    seedDefaultGroupsIfEmpty,
+    importGroupsFromAirports,
+    ensureCatalogGroups,
+    mergeMissingCatalogGroups,
+    syncCatalogUpgrade,
+    saveCatalogMeta,
+    resolveRegionId
   };
 })(typeof window !== 'undefined' ? window : globalThis);
