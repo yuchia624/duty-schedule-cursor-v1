@@ -52,6 +52,60 @@
     return normalizeSelectedDate(iso);
   }
 
+  function formatIsoDate(date) {
+    const d = normalizeSelectedDate(date);
+    if (!d) return '';
+    const y = d.getFullYear();
+    const mo = String(d.getMonth() + 1).padStart(2, '0');
+    const da = String(d.getDate()).padStart(2, '0');
+    return `${y}-${mo}-${da}`;
+  }
+
+  /** Excel From/Till：2026/3/29、ISO、或 Excel 序號 */
+  function parseExcelDateValue(value) {
+    if (value == null || value === '') return '';
+    if (value instanceof Date && !Number.isNaN(value.getTime())) return formatIsoDate(value);
+    if (typeof value === 'number' && Number.isFinite(value)) {
+      const epoch = new Date(Date.UTC(1899, 11, 30));
+      const d = new Date(epoch.getTime() + Math.round(value) * 86400000);
+      return formatIsoDate(d);
+    }
+    const s = clean(value);
+    const iso = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (iso) return s;
+    const slash = s.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})$/);
+    if (slash) {
+      return `${slash[1]}-${String(Number(slash[2])).padStart(2, '0')}-${String(Number(slash[3])).padStart(2, '0')}`;
+    }
+    return formatIsoDate(s);
+  }
+
+  function compareIsoDate(a, b) {
+    return String(a || '').localeCompare(String(b || ''));
+  }
+
+  function rowCoversDate(row, selectedDateIso) {
+    const fromDate = clean(row.fromDate);
+    const tillDate = clean(row.tillDate);
+    if (fromDate && compareIsoDate(fromDate, selectedDateIso) > 0) return false;
+    if (tillDate && compareIsoDate(selectedDateIso, tillDate) > 0) return false;
+    return true;
+  }
+
+  function buildAutoSeasonLabel(carrier, startDate, endDate) {
+    const c = clean(carrier).toUpperCase();
+    const start = parseExcelDateValue(startDate);
+    const end = parseExcelDateValue(endDate);
+    if (!start || !end) return c ? `${c} 時刻表` : '時刻表';
+    const sm = Number(start.slice(5, 7));
+    const em = Number(end.slice(5, 7));
+    let kind = '時刻表';
+    if (sm >= 3 && sm <= 4 && em >= 9 && em <= 10) kind = '夏季';
+    else if (sm >= 10 && em <= 3) kind = '冬季';
+    const year = start.slice(0, 4);
+    return `${c} ${year} ${kind}`;
+  }
+
   function timeToMinutes(timeStr) {
     const [hh, mm] = String(timeStr || '').split(':').map(Number);
     if (Number.isNaN(hh) || Number.isNaN(mm)) return null;
@@ -66,22 +120,27 @@
       const mm = total % 60;
       return {
         time: `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`,
+        plusOne: false,
         raw: value
       };
     }
-    const s = clean(value).replace(/\+1.*$/i, '');
+    const rawStr = clean(value);
+    const plusOne = /\+1|\(\+1\)/i.test(rawStr);
+    const s = rawStr.replace(/\s*\(?\+1\)?/gi, '').trim();
     if (/[／/]/.test(s)) return null;
     const m = s.match(/^(\d{1,2}):(\d{2})(?::\d{2})?$/);
     if (!m) return null;
     return {
       time: `${String(Number(m[1])).padStart(2, '0')}:${m[2]}`,
+      plusOne,
       raw: String(value)
     };
   }
 
   function formatTimeRaw(value) {
     const p = parseForeignTimeValue(value);
-    return p?.time || clean(value);
+    if (!p?.time) return clean(value);
+    return p.plusOne ? `${p.time}+1` : p.time;
   }
 
   function parseRoute(routeStr) {
@@ -159,6 +218,8 @@
       dep,
       arr,
       route,
+      fromDate: parseExcelDateValue(raw.From ?? raw.from ?? raw['From'] ?? raw['起始'] ?? ''),
+      tillDate: parseExcelDateValue(raw.Till ?? raw.till ?? raw['Till'] ?? raw['結束'] ?? ''),
       std: raw.STD ?? raw.std ?? '',
       sta: raw.STA ?? raw.sta ?? '',
       schedule: clean(raw.Frequency || raw['班期'] || raw.schedule || ''),
@@ -172,7 +233,19 @@
     return parsed?.time || null;
   }
 
-  function datetimeOnScheduleDay(timeStr, selectedDate) {
+  function datetimeOnScheduleDay(timeInput, selectedDate) {
+    let timeStr = timeInput;
+    let plusOne = false;
+    if (timeInput && typeof timeInput === 'object' && timeInput.time) {
+      timeStr = timeInput.time;
+      plusOne = !!timeInput.plusOne;
+    } else {
+      const parsed = parseForeignTimeValue(timeInput);
+      if (parsed) {
+        timeStr = parsed.time;
+        plusOne = !!parsed.plusOne;
+      }
+    }
     const mins = timeToMinutes(timeStr);
     if (mins == null || !timeStr) return null;
     const date = normalizeSelectedDate(selectedDate);
@@ -182,9 +255,10 @@
     const da = date.getDate();
     const hh = Math.floor(mins / 60);
     const mm = mins % 60;
+    const dayOffset = plusOne ? 1 : 0;
     return {
-      minutes: mins,
-      ms: new Date(y, mo, da, hh, mm, 0).getTime()
+      minutes: mins + dayOffset * 24 * 60,
+      ms: new Date(y, mo, da + dayOffset, hh, mm, 0).getTime()
     };
   }
 
@@ -211,7 +285,11 @@
   }
 
   function buildForeignFlightDef(row, type, anchorTime, normalizeFlightNo, route) {
-    const mins = timeToMinutes(anchorTime);
+    let mins = timeToMinutes(anchorTime);
+    if (type === 'ARR') {
+      const parsedSta = parseForeignTimeValue(row.sta);
+      if (parsedSta?.plusOne && mins != null) mins += 24 * 60;
+    }
     if (mins == null) return null;
     const flight = normalizeFlightNo(row.flt);
     const def = {
@@ -227,7 +305,7 @@
       dep: route.dep,
       arr: route.arr,
       std: type === 'DEP' ? anchorTime : formatTimeRaw(row.std),
-      sta: type === 'ARR' ? anchorTime : formatTimeRaw(row.sta),
+      sta: formatTimeRaw(row.sta),
       etd: '',
       etaRaw: '',
       depGate: '',
@@ -248,6 +326,14 @@
       def.eta = '';
       def.etaManual = false;
       def.changeTime = '';
+      const connectingFlt = clean(row.connectingFlt);
+      if (connectingFlt) {
+        def.connectingFlight = normalizeFlightNo(connectingFlt);
+        def.connectingSource = 'foreign-schedule';
+      } else {
+        def.connectingFlight = '';
+        def.connectingSource = '';
+      }
     }
     return def;
   }
@@ -264,58 +350,77 @@
     return opts;
   }
 
-  function parseForeignScheduleWorkbook(workbook, selectedDateIso, opts = {}) {
+  function inferCarrierFromFlt(flt) {
+    const s = clean(flt).toUpperCase().replace(/\s/g, '');
+    const m = s.match(/^([A-Z0-9]{2})/);
+    return m ? m[1] : '';
+  }
+
+  function parseWorkbookToNormalizedRows(workbook, opts = {}) {
+    const rawRows = sheetRows(workbook);
+    debugLog(opts, 'parseWorkbookToNormalizedRows', 'rawRowCount', rawRows.length);
+    const normalizedRows = rawRows.map((raw, rawIndex) => normalizeWorkbookRow(raw, rawIndex));
+    const rows = normalizedRows.filter(row => !row._skip);
+    normalizedRows.filter(row => row._skip).forEach(row => {
+      debugLog(opts, 'skipped-normalize', { rawIndex: row._rawIndex, reason: row._reason });
+    });
+    return rows;
+  }
+
+  function extractForeignAcTypeOptionsFromRows(rows) {
+    const opts = { OZ: [], HX: [], BX: [], NZ: [] };
+    (rows || []).forEach(row => {
+      const carrier = inferCarrierFromFlt(row.flt);
+      const v = clean(row.acType);
+      if (!carrier || !opts[carrier] || !v || opts[carrier].includes(v)) return;
+      opts[carrier].push(v);
+    });
+    return opts;
+  }
+
+  function detectScheduleBundlesFromRows(rows) {
+    const map = new Map();
+    (rows || []).forEach(row => {
+      const carrier = inferCarrierFromFlt(row.flt);
+      if (!carrier) return;
+      const startDate = clean(row.fromDate);
+      const endDate = clean(row.tillDate);
+      const bundleKey = `${carrier}|${startDate}|${endDate}`;
+      if (!map.has(bundleKey)) {
+        map.set(bundleKey, {
+          bundleKey,
+          carrier,
+          startDate,
+          endDate,
+          seasonLabel: buildAutoSeasonLabel(carrier, startDate, endDate),
+          rows: []
+        });
+      }
+      map.get(bundleKey).rows.push(row);
+    });
+    return [...map.values()].sort((a, b) => {
+      const ca = compareIsoDate(a.carrier, b.carrier);
+      if (ca) return ca;
+      return compareIsoDate(a.startDate, b.startDate);
+    });
+  }
+
+  function buildCandidatesFromNormalizedRows(rows, selectedDateIso, opts = {}) {
     const normalizeFlightNo = typeof opts.normalizeFlightNo === 'function'
       ? opts.normalizeFlightNo
       : (v) => clean(v).toUpperCase();
 
     const selectedDate = parseIsoDate(selectedDateIso);
     if (!selectedDate) {
-      return { error: '系統排班日期無效，無法解析外家時刻表。', candidates: [] };
+      return { error: '系統排班日期無效，無法解析外家時刻表。', candidates: [], skipped: [], stats: { dep: 0, arr: 0, total: 0 } };
     }
 
-    const rawRows = sheetRows(workbook);
-    debugLog(opts, 'VERSION', PARSER_VERSION, 'selectedDate', selectedDateIso, 'excelWeekday', excelWeekday(selectedDate), 'rawRowCount', rawRows.length);
-
-    rawRows.forEach((raw, rawIndex) => {
-      if (!shouldDebugForeignSchedule(opts)) return;
-      const entry = {
-        rawIndex,
-        raw,
-        fltNo: raw['FLT No'],
-        flt: raw.FLT,
-        航班: raw['航班'],
-        dep: raw.DEP,
-        arr: raw.ARR,
-        std: raw.STD,
-        sta: raw.STA,
-        frequency: raw.Frequency,
-        acType: raw['Aircraft Type']
-      };
-      if (isBx792(entry.fltNo || entry.flt || entry.航班)) {
-        console.log('[ForeignScheduleParser][BX792][raw-row]', entry);
-      } else {
-        debugLog(opts, 'raw-row', entry);
-      }
-    });
-
-    const normalizedRows = rawRows.map((raw, rawIndex) => normalizeWorkbookRow(raw, rawIndex));
-    const rows = normalizedRows.filter(row => !row._skip);
-    normalizedRows.filter(row => row._skip).forEach(row => {
-      const msg = { rawIndex: row._rawIndex, reason: row._reason, fltKeys: row._fltKeys, raw: row._raw };
-      if (isBx792(row._raw?.['FLT No'] || row._raw?.FLT || row._raw?.['航班'])) {
-        console.warn('[ForeignScheduleParser][BX792][skipped-normalize]', msg);
-      } else {
-        debugLog(opts, 'skipped-normalize', msg);
-      }
-    });
-
-    debugLog(opts, 'normalizedRowCount', rows.length);
+    debugLog(opts, 'buildCandidatesFromNormalizedRows', 'selectedDate', selectedDateIso, 'rowCount', (rows || []).length);
 
     const candidates = [];
     const skipped = [];
 
-    rows.forEach((row, rowIndex) => {
+    (rows || []).forEach((row, rowIndex) => {
       const baseLog = {
         rowIndex,
         rawIndex: row._rawIndex,
@@ -331,6 +436,12 @@
       };
       const bx792 = isBx792(row.flt);
       const logBx792 = (...args) => { if (bx792) console.log('[ForeignScheduleParser][BX792]', ...args); };
+
+      if (!rowCoversDate(row, selectedDateIso)) {
+        skipped.push({ flt: row.flt, reason: '不在 From/Till 區間', fromDate: row.fromDate, tillDate: row.tillDate });
+        logBx792('SKIP 不在 From/Till 區間', row.fromDate, row.tillDate);
+        return;
+      }
 
       const scheduleMatch = matchesSchedule(row.schedule, selectedDate);
       logBx792('schedule-check', { ...baseLog, scheduleMatch });
@@ -352,13 +463,16 @@
 
       let type = '';
       let anchorTime = '';
+      let windowTimeInput = '';
       if (route.dep === STATION && route.arr !== STATION) {
         type = 'DEP';
         anchorTime = resolveDepStd(row);
+        windowTimeInput = anchorTime;
       } else if (route.arr === STATION && route.dep !== STATION) {
         type = 'ARR';
-        const parsed = parseForeignTimeValue(row.sta);
-        anchorTime = parsed?.time || null;
+        const parsedSta = parseForeignTimeValue(row.sta);
+        anchorTime = parsedSta?.time || null;
+        windowTimeInput = parsedSta || anchorTime;
       } else {
         skipped.push({ flt: row.flt, reason: '非 TPE 出入境航線' });
         logBx792('SKIP 非 TPE 出入境航線', route);
@@ -373,7 +487,7 @@
         return;
       }
 
-      const inWindow = inOperationalWindow(type, anchorTime, selectedDate);
+      const inWindow = inOperationalWindow(type, windowTimeInput, selectedDate);
       logBx792('operational-window', { inWindow, type, anchorTime });
       if (!inWindow) {
         skipped.push({ flt: row.flt, reason: '不在當日營運時間窗口', type, anchorTime });
@@ -398,6 +512,8 @@
         route: flightDef.route,
         anchorTime,
         anchorLabel: type === 'DEP' ? 'STD' : 'STA',
+        tillDate: clean(row.tillDate),
+        carrier: inferCarrierFromFlt(row.flt) || '',
         flightDef
       };
       candidates.push(candidate);
@@ -439,14 +555,34 @@
     };
   }
 
+  function parseForeignScheduleWorkbook(workbook, selectedDateIso, opts = {}) {
+    const selectedDate = parseIsoDate(selectedDateIso);
+    if (!selectedDate) {
+      return { error: '系統排班日期無效，無法解析外家時刻表。', candidates: [] };
+    }
+    const rows = parseWorkbookToNormalizedRows(workbook, opts);
+    return buildCandidatesFromNormalizedRows(rows, selectedDateIso, opts);
+  }
+
   global.ForeignScheduleParser = {
     PARSER_VERSION,
     parseForeignScheduleWorkbook,
+    parseWorkbookToNormalizedRows,
+    buildCandidatesFromNormalizedRows,
+    detectScheduleBundlesFromRows,
     extractForeignAcTypeOptions,
+    extractForeignAcTypeOptionsFromRows,
+    inferCarrierFromFlt,
+    parseExcelDateValue,
+    buildAutoSeasonLabel,
+    rowCoversDate,
+    parseForeignTimeValue,
+    formatTimeRaw,
     matchesSchedule,
     inOperationalWindow,
     datetimeOnScheduleDay,
     normalizeSelectedDate,
+    compareIsoDate,
     STATION
   };
 })(typeof window !== 'undefined' ? window : globalThis);

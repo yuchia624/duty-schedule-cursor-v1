@@ -315,14 +315,6 @@
     return `CONN_${arrFlight}_${depFlight}_${role}`;
   }
 
-  function getFixedConnectingMap(normalizeFlightNo) {
-    const norm = typeof normalizeFlightNo === 'function'
-      ? normalizeFlightNo
-      : (v) => String(v || '').trim().toUpperCase();
-    const utils = global.FlightAssignmentUtils;
-    return utils?.buildFixedConnectingMap?.(norm) || new Map();
-  }
-
   function flightDefKey(f, normalizeFlightNo) {
     const norm = normalizeFlightNo(f?.flight);
     return norm && f?.type ? `${norm}|${f.type}` : '';
@@ -404,10 +396,7 @@
   function getConnectingPair(arrDef, flightDefs, normalizeFlightNo) {
     if (!arrDef || arrDef.type !== 'ARR' || arrDef.status === 'CANX') return null;
     if (!isForeignFlightDef(arrDef)) return null;
-    const norm = normalizeFlightNo(arrDef.flight);
-    const map = getFixedConnectingMap(normalizeFlightNo);
-    let depNorm = arrDef.connectingFlight ? normalizeFlightNo(arrDef.connectingFlight) : '';
-    if (!depNorm && map.has(norm)) depNorm = map.get(norm);
+    const depNorm = arrDef.connectingFlight ? normalizeFlightNo(arrDef.connectingFlight) : '';
     if (!depNorm) return null;
     const depDef = findFlightDef(flightDefs, depNorm, 'DEP', normalizeFlightNo);
     if (!depDef || depDef.status === 'CANX' || !isForeignFlightDef(depDef)) return null;

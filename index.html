@@ -8,7 +8,8 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
 <script src="staff-personnel-seed.js"></script>
 <script src="fis-flight-parser.js"></script>
-<script src="foreign-schedule-parser.js?v=20260527-bx792"></script>
+<script src="foreign-schedule-parser.js?v=20260618-from-till"></script>
+<script src="foreign-schedule-registry.js?v=20260618-v4"></script>
 <script src="flight-assignment-utils.js"></script>
 <script src="foreign-duty-rules.js?v=20260613-oz-abg-label"></script>
 <title>今天的完整拖拉管制表 v2</title>
@@ -4153,6 +4154,382 @@
   }
   .erp-module-head { margin-bottom: 12px; }
   .erp-module-sub { margin-top: 4px; color: #64748b; font-size: 12px; }
+  .foreign-schedule-manager {
+    gap: 0; padding: 0; overflow: hidden; display: flex; flex-direction: column; align-items: center;
+  }
+  #erpPageFlights.active {
+    display: flex; flex-direction: column; min-height: 0; height: 100%;
+    background: #f1f5f9;
+  }
+  #erpPageFlights.active .foreign-schedule-manager {
+    flex: 1; min-height: 0; overflow: hidden; background: #f1f5f9; padding: 10px 12px 0;
+    align-items: center;
+  }
+  .fs-page {
+    display: flex; flex-direction: column; flex: 1; min-height: 0; gap: 8px;
+    width: 100%; max-width: 980px; margin: 0 auto;
+  }
+  .fs-page-head {
+    display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px;
+  }
+  .fs-page-head h2 { margin: 0; font-size: 18px; font-weight: 800; color: #0f172a; }
+  .fs-page-head p { margin: 4px 0 0; font-size: 12px; color: #64748b; max-width: 560px; }
+  .fs-page-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .fs-page-actions button {
+    border: 1px solid #cbd5e1; background: #fff; border-radius: 8px; padding: 6px 10px;
+    font-size: 12px; font-weight: 700; cursor: pointer; color: #334155;
+  }
+  .fs-page-actions button.fs-btn-primary { background: #2563eb; border-color: #2563eb; color: #fff; }
+  .fs-page-body { display: flex; flex: 1; min-height: 0; overflow: hidden; width: 100%; }
+  .fs-main {
+    flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column;
+    background: #fff; border: 1px solid #e2e8f0; border-radius: 10px 10px 0 0;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05); overflow: hidden;
+  }
+  .fs-list-toolbar {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px;
+    padding: 8px 10px; border-bottom: 1px solid #f1f5f9; background: #fff;
+  }
+  .fs-search-wrap {
+    flex: 0 1 auto; width: 220px; max-width: min(220px, 100%);
+    display: flex; align-items: center; gap: 6px;
+    border: 1px solid #e2e8f0; border-radius: 8px; padding: 0 8px; background: #fff;
+  }
+  .fs-search-wrap svg { flex-shrink: 0; color: #94a3b8; }
+  .fs-search-wrap input {
+    flex: 1; min-width: 0; width: 100%; border: 0; background: transparent; font: inherit; font-size: 13px;
+    padding: 8px 0; outline: none;
+  }
+  .fs-list-ref-inline {
+    flex: 0 1 auto; font-size: 13px; font-weight: 600; color: #64748b; white-space: nowrap;
+  }
+  .fs-filter-toolbar-group { display: flex; flex-wrap: wrap; gap: 6px; margin-left: auto; }
+  .fs-filter-btn {
+    display: inline-flex; align-items: center; gap: 5px; border: 1px solid #cbd5e1; background: #fff;
+    border-radius: 8px; padding: 6px 9px; font-size: 12px; font-weight: 700; color: #334155; cursor: pointer;
+  }
+  .fs-filter-btn svg { width: 14px; height: 14px; }
+  .fs-filter-btn:hover { background: #f8fafc; }
+  .fs-filter-btn.is-open { border-color: #2563eb; color: #2563eb; background: #eff6ff; }
+  .fs-filter-btn.has-filters:not(.is-open) { border-color: #93c5fd; color: #1d4ed8; }
+  .fs-filter-btn.fs-add-flight-btn {
+    border-color: #2563eb; background: #2563eb; color: #fff;
+  }
+  .fs-filter-btn.fs-add-flight-btn:hover { background: #1d4ed8; }
+  .fs-filter-panel {
+    border-bottom: 1px solid #e2e8f0; background: #f8fafc; padding: 12px 14px 14px;
+  }
+  .fs-filter-panel.hidden { display: none; }
+  .foreign-schedule-manager.is-filter-open .fs-table-meta,
+  .foreign-schedule-manager.is-filter-open .fs-table-wrap,
+  .foreign-schedule-manager.is-filter-open .fs-pagination {
+    display: none !important;
+  }
+  .foreign-schedule-manager.is-filter-open .fs-filter-panel {
+    flex: 1; min-height: 0; display: flex; flex-direction: column; border-bottom: 0; overflow: hidden;
+  }
+  .foreign-schedule-manager.is-filter-open .fs-filter-panel-grid {
+    flex-shrink: 0;
+  }
+  .foreign-schedule-manager.is-filter-open .fs-filter-preview-area {
+    flex: 1; min-height: 0; display: flex; flex-direction: column; overflow: hidden; margin-top: 4px;
+  }
+  .foreign-schedule-manager.is-filter-open .fs-filter-preview-area > span {
+    flex-shrink: 0; font-size: 11px; font-weight: 700; color: #64748b; margin-bottom: 4px;
+  }
+  .foreign-schedule-manager.is-filter-open .fs-filter-panel-actions {
+    flex-shrink: 0; padding-top: 12px; border-top: 1px solid #e2e8f0; background: #f8fafc;
+  }
+  .foreign-schedule-manager.is-filter-open .fs-list-toolbar {
+    flex-shrink: 0;
+  }
+  .foreign-schedule-manager.is-filter-open .fs-page-body,
+  .foreign-schedule-manager.is-filter-open .fs-main {
+    overflow: hidden;
+  }
+  #erpPageFlights.active .fs-page {
+    overflow: hidden;
+  }
+  .fs-filter-panel-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px 12px;
+  }
+  .fs-filter-field { display: flex; flex-direction: column; gap: 4px; font-size: 11px; font-weight: 700; color: #64748b; }
+  .fs-filter-field input, .fs-filter-field select {
+    font: inherit; font-size: 13px; font-weight: 500; color: #0f172a;
+    border: 1px solid #cbd5e1; border-radius: 8px; padding: 7px 8px; background: #fff;
+  }
+  .fs-filter-field--preview { grid-column: 1 / -1; }
+  .fs-filter-panel-actions { display: flex; justify-content: flex-end; align-items: center; gap: 8px; margin-top: 12px; }
+  .fs-filter-export-btn {
+    border: 1px solid #cbd5e1; background: #fff; color: #334155; border-radius: 8px;
+    padding: 8px 14px; font-size: 13px; font-weight: 700; cursor: pointer;
+  }
+  .fs-filter-export-btn:hover { background: #f8fafc; }
+  .fs-filter-apply-btn {
+    border: 1px solid #2563eb; background: #2563eb; color: #fff; border-radius: 8px;
+    padding: 8px 18px; font-size: 13px; font-weight: 700; cursor: pointer;
+  }
+  .fs-filter-apply-btn:hover { background: #1d4ed8; }
+  .fs-preview-inline {
+    margin-top: 8px; background: #fff; border: 1px solid #dbeafe; border-radius: 8px;
+    font-size: 13px; color: #334155; flex: 1; min-height: 0; overflow: hidden;
+    display: flex; flex-direction: column;
+  }
+  .fs-preview-inline.hidden { display: none; }
+  .fs-preview-table-meta {
+    padding: 8px 12px; font-size: 12px; color: #64748b; border-bottom: 1px solid #f1f5f9; flex-shrink: 0;
+  }
+  .fs-preview-table-wrap { flex: 1; min-height: 0; overflow: auto; -webkit-overflow-scrolling: touch; }
+  .fs-preview-table { width: 100%; border-collapse: collapse; font-size: 12px; table-layout: fixed; }
+  .fs-preview-table th, .fs-preview-table td {
+    border-bottom: 1px solid #f1f5f9; padding: 7px 8px; text-align: left; vertical-align: middle; white-space: nowrap;
+    overflow: hidden; text-overflow: ellipsis;
+  }
+  .fs-preview-table th {
+    position: sticky; top: 0; z-index: 1; background: #f8fafc; font-size: 12px; color: #64748b; font-weight: 700;
+  }
+  .fs-preview-empty { font-size: 13px; color: #94a3b8; line-height: 1.6; padding: 12px 14px; }
+  .fs-table-meta {
+    padding: 8px 12px; font-size: 12px; color: #64748b; border-bottom: 1px solid #f1f5f9;
+  }
+  .fs-table-wrap { flex: 1; min-height: 0; overflow: auto; }
+  .foreign-schedule-table { width: 100%; border-collapse: collapse; font-size: 12px; table-layout: fixed; }
+  .foreign-schedule-table th, .foreign-schedule-table td {
+    border-bottom: 1px solid #f1f5f9; padding: 7px 8px; text-align: left; vertical-align: middle; white-space: nowrap;
+    overflow: hidden; text-overflow: ellipsis;
+  }
+  .foreign-schedule-table th {
+    position: sticky; top: 0; z-index: 1; background: #f8fafc; font-size: 12px; color: #64748b; font-weight: 700;
+  }
+  .foreign-schedule-table col.fs-col-airline { width: 72px; }
+  .foreign-schedule-table col.fs-col-flt { width: 72px; }
+  .foreign-schedule-table col.fs-col-date { width: 88px; }
+  .foreign-schedule-table col.fs-col-ap { width: 44px; }
+  .foreign-schedule-table col.fs-col-time { width: 72px; }
+  .foreign-schedule-table td.fs-col-time-cell {
+    overflow: visible; text-overflow: clip;
+  }
+  .foreign-schedule-table col.fs-col-freq { width: 88px; }
+  .foreign-schedule-table col.fs-col-actype { width: 72px; }
+  .foreign-schedule-table col.fs-col-pair { width: 88px; }
+  .foreign-schedule-table col.fs-col-edit { width: 64px; }
+  .foreign-schedule-table col.fs-col-created { width: 118px; }
+  .foreign-schedule-table th.fs-th-sort { cursor: pointer; user-select: none; }
+  .foreign-schedule-table th.fs-th-sort:hover { color: #2563eb; }
+  .foreign-schedule-table th.fs-th-sort .fs-sort-icon {
+    margin-left: 4px; font-size: 10px; color: #94a3b8; visibility: visible;
+  }
+  .foreign-schedule-table th.fs-th-sort.is-sort-active { color: #2563eb; }
+  .foreign-schedule-table th.fs-th-sort.is-sort-active .fs-sort-icon { color: #2563eb; }
+  .foreign-schedule-table th.fs-col-edit,
+  .foreign-schedule-table td.fs-col-edit {
+    text-align: center; padding-left: 4px; padding-right: 4px;
+  }
+  .fs-connecting-hint { margin-top: 4px; font-size: 11px; color: #64748b; }
+  #foreignScheduleEditConnectingWrap.hidden { display: none !important; }
+  .foreign-schedule-table.is-filter-result-view .fs-col-schedule-extra {
+    display: none;
+  }
+  .foreign-schedule-empty { color: #94a3b8; text-align: center; padding: 28px 12px !important; white-space: normal; }
+  .fs-carrier-badge {
+    display: inline-flex; align-items: center; justify-content: center; min-width: 34px;
+    padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 800; color: #fff;
+  }
+  .fs-carrier-badge.is-hx { background: #0d9488; }
+  .fs-carrier-badge.is-oz { background: #2563eb; }
+  .fs-carrier-badge.is-bx { background: #7c3aed; }
+  .fs-carrier-badge.is-nz { background: #ea580c; }
+  .fs-carrier-badge.is-other { background: #64748b; }
+  .fs-row-actions { display: inline-flex; gap: 0; align-items: center; justify-content: center; }
+  .fs-row-actions button {
+    border: 0; background: transparent; width: 26px; height: 26px; padding: 0;
+    display: inline-flex; align-items: center; justify-content: center; cursor: pointer; border-radius: 6px;
+  }
+  .fs-row-actions button svg { width: 14px; height: 14px; pointer-events: none; }
+  .fs-row-actions button.is-edit { color: #2563eb; }
+  .fs-row-actions button.is-edit:hover { background: #eff6ff; }
+  .fs-row-actions button.is-danger { color: #dc2626; }
+  .fs-row-actions button.is-danger:hover { background: #fef2f2; }
+  .fs-edit-form-grid {
+    display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 12px; margin: 12px 0;
+  }
+  .fs-edit-form-grid label { display: flex; flex-direction: column; gap: 4px; font-size: 11px; font-weight: 700; color: #64748b; }
+  .fs-edit-form-grid input {
+    font: inherit; font-size: 13px; font-weight: 500; color: #0f172a;
+    border: 1px solid #cbd5e1; border-radius: 8px; padding: 7px 8px;
+  }
+  .fs-edit-form-grid label.fs-edit-span-2 { grid-column: span 2; }
+  .fs-pagination {
+    display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px;
+    padding: 10px 12px; border-top: 1px solid #f1f5f9; background: #fff; font-size: 12px; color: #64748b;
+  }
+  .fs-pagination-controls { display: flex; align-items: center; gap: 6px; }
+  .fs-pagination-controls button {
+    border: 1px solid #cbd5e1; background: #fff; border-radius: 6px; min-width: 28px; height: 28px; cursor: pointer;
+  }
+  .fs-pagination-controls button:disabled { opacity: 0.45; cursor: default; }
+  .fs-modal-overlay {
+    position: fixed; inset: 0; z-index: 12000; background: rgba(15, 23, 42, 0.45);
+    display: flex; align-items: center; justify-content: center; padding: 20px;
+  }
+  .fs-modal-overlay.hidden { display: none; }
+  .fs-modal {
+    width: min(760px, 100%); max-height: min(88vh, 820px); overflow: auto;
+    background: #fff; border-radius: 12px; box-shadow: 0 20px 50px rgba(15, 23, 42, 0.2); padding: 16px 18px;
+  }
+  .fs-flight-form { display: flex; flex-direction: column; gap: 14px; margin: 12px 0; }
+  .fs-flight-form-row {
+    display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px 12px;
+  }
+  .fs-flight-form-row--two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .fs-flight-form-row--connecting-freq {
+    grid-template-columns: minmax(140px, 0.85fr) minmax(0, 1.15fr);
+  }
+  .fs-flight-form-row--connecting-freq.is-connecting-hidden {
+    grid-template-columns: 1fr;
+  }
+  .fs-flight-form-row--connecting-freq > .fs-flight-form-section { min-width: 0; }
+  .fs-flight-form-section {
+    border: 1px solid #e2e8f0; border-radius: 10px; padding: 12px 12px 10px; background: #f8fafc;
+  }
+  .fs-flight-form-section-title {
+    font-size: 12px; font-weight: 800; color: #334155; margin-bottom: 10px;
+  }
+  .fs-flight-form label {
+    display: flex; flex-direction: column; gap: 4px; font-size: 11px; font-weight: 700; color: #64748b;
+  }
+  .fs-flight-form input, .fs-flight-form select {
+    font: inherit; font-size: 13px; font-weight: 500; color: #0f172a;
+    border: 1px solid #cbd5e1; border-radius: 8px; padding: 7px 8px; background: #fff;
+  }
+  .fs-flight-form input[readonly] { background: #f1f5f9; color: #64748b; }
+  .fs-flight-form input.fs-text-upper { text-transform: uppercase; }
+  .fs-flight-date-picker { position: relative; width: 100%; }
+  .fs-flight-date-trigger {
+    width: 100%; box-sizing: border-box;
+    border: 1px solid #cbd5e1; border-radius: 8px; padding: 7px 8px;
+    background: #fff; font-size: 13px; font-weight: 500; color: #0f172a;
+  }
+  #foreignScheduleEditModal .app-date-drop-panel,
+  #foreignScheduleEditModal .app-time-drop-panel,
+  .foreign-schedule-manager .app-date-drop-panel,
+  .foreign-schedule-manager .app-time-drop-panel {
+    position: fixed !important;
+    width: 320px; min-width: 320px;
+    max-width: calc(100vw - 32px);
+    z-index: 14001 !important;
+  }
+  .fs-flight-route-grid {
+    display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: 8px; align-items: end;
+  }
+  .fs-flight-route-grid label { min-width: 0; }
+  .fs-flight-route-grid input {
+    width: 100%; min-width: 0; box-sizing: border-box;
+  }
+  .fs-flight-route-arrow { padding-bottom: 8px; color: #94a3b8; font-weight: 700; text-align: center; flex-shrink: 0; }
+  .fs-flight-form-row--two > .fs-flight-form-section { min-width: 0; overflow: hidden; }
+  .fs-flight-time-grid input,
+  .fs-flight-form input.fs-flight-time-input { font-variant-numeric: tabular-nums; }
+  .fs-flight-validity-grid { display: grid; grid-template-columns: 1fr auto 1fr; gap: 8px; align-items: end; }
+  .fs-flight-validity-sep { padding-bottom: 8px; color: #94a3b8; text-align: center; }
+  .fs-flight-time-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+    gap: 10px 12px; align-items: end;
+  }
+  .fs-flight-time-grid > label,
+  .fs-flight-time-grid > .fs-flight-time-field { min-width: 0; margin: 0; }
+  .fs-flight-time-field {
+    display: flex; flex-direction: column; gap: 4px; min-width: 0;
+  }
+  .fs-flight-time-label {
+    font-size: 11px; font-weight: 700; color: #64748b;
+  }
+  .fs-flight-time-picker {
+    position: relative; display: flex; align-items: center; width: 100%;
+  }
+  .fs-flight-time-picker > input[type="text"] {
+    width: 100%; min-width: 0; box-sizing: border-box; padding-right: 34px;
+  }
+  .fs-flight-time-trigger {
+    position: absolute; right: 4px; top: 50%; transform: translateY(-50%);
+    border: 0; background: transparent; color: #94a3b8;
+    width: 28px; height: 28px; padding: 0;
+    display: inline-flex; align-items: center; justify-content: center;
+    cursor: pointer; border-radius: 999px;
+  }
+  .fs-flight-time-trigger:hover { color: #2563eb; background: #eff6ff; }
+  .fs-flight-time-trigger-icon svg { display: block; width: 16px; height: 16px; }
+  .app-time-drop-panel {
+    position: absolute; top: calc(100% + 6px); left: 0; right: 0; z-index: 700;
+    width: 100%; min-width: 220px; border: 1px solid #d1d5db; border-radius: 12px;
+    background: #fff; box-shadow: 0 10px 28px rgba(15, 23, 42, .12);
+    padding: 10px; box-sizing: border-box;
+  }
+  .app-time-drop-panel.hidden { display: none; }
+  .app-time-drop-panel.app-time-drop-panel--above {
+    box-shadow: 0 -10px 28px rgba(15, 23, 42, .12);
+  }
+  .app-time-columns { display: flex; align-items: stretch; gap: 4px; justify-content: center; }
+  .app-time-col { flex: 1; min-width: 0; }
+  .app-time-col-title {
+    text-align: center; font-size: 11px; color: #64748b; font-weight: 700; margin-bottom: 4px;
+  }
+  .app-time-scroll {
+    max-height: 180px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 8px;
+  }
+  .app-time-cell {
+    display: block; width: 100%; border: 0; background: transparent;
+    padding: 6px 0; text-align: center; font-size: 14px; font-variant-numeric: tabular-nums;
+    cursor: pointer; color: #334155;
+  }
+  .app-time-cell.is-selected { background: #eff6ff; color: #2563eb; font-weight: 700; }
+  .app-time-cell:hover { background: #f8fafc; }
+  .app-time-col-sep {
+    display: flex; align-items: center; padding-top: 20px; font-weight: 700; color: #64748b;
+  }
+  .fs-flight-sta-plusone {
+    display: inline-flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 2px; margin: 0; padding-bottom: 8px;
+    font-size: 11px; font-weight: 600; color: #2563eb;
+    cursor: pointer; user-select: none; white-space: nowrap; flex-shrink: 0;
+    align-self: end;
+  }
+  .fs-flight-sta-plusone span { white-space: nowrap; line-height: 1.1; font-size: 11px; }
+  .fs-flight-sta-plusone input[type="checkbox"] {
+    width: 16px; height: 16px; margin: 0; cursor: pointer; accent-color: #2563eb; flex-shrink: 0;
+  }
+  .fs-flight-freq-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 8px; }
+  .fs-flight-freq-days { display: flex; flex-wrap: wrap; gap: 6px; }
+  .fs-flight-freq-day {
+    min-width: 38px; border: 1px solid #cbd5e1; background: #fff; border-radius: 8px;
+    padding: 6px 0; font-size: 12px; font-weight: 700; color: #64748b; cursor: pointer;
+  }
+  .fs-flight-freq-day.is-on { border-color: #2563eb; background: #eff6ff; color: #1d4ed8; }
+  .fs-flight-freq-summary { flex: 1; min-width: 120px; font-size: 12px; color: #64748b; }
+  .fs-flight-freq-clear {
+    border: 0; background: transparent; color: #2563eb; font-size: 12px; font-weight: 700; cursor: pointer; padding: 0;
+  }
+  .foreign-schedule-form-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px 10px; }
+  .foreign-schedule-form-actions .fs-btn-primary {
+    border: 1px solid #2563eb; background: #2563eb; color: #fff; border-radius: 8px;
+    padding: 8px 18px; font-size: 13px; font-weight: 700; cursor: pointer;
+  }
+  .foreign-schedule-form-actions button:not(.fs-btn-primary) {
+    border: 1px solid #cbd5e1; background: #fff; color: #334155; border-radius: 8px;
+    padding: 8px 16px; font-size: 13px; font-weight: 700; cursor: pointer;
+  }
+  .fs-modal h3 { margin: 0 0 8px; font-size: 16px; }
+  .fs-modal-sub { margin: 0 0 12px; font-size: 12px; color: #64748b; }
+  .foreign-schedule-bundle-list { display: flex; flex-direction: column; gap: 8px; margin: 10px 0 12px; }
+  .foreign-schedule-bundle-item {
+    display: flex; align-items: flex-start; gap: 10px; padding: 8px 10px; background: #f8fafc;
+    border: 1px solid #e2e8f0; border-radius: 8px; font-size: 13px;
+  }
+  .foreign-schedule-bundle-item input { margin-top: 3px; }
+  .foreign-schedule-bundle-item strong { color: #0f172a; }
+  .foreign-schedule-bundle-item span { color: #64748b; font-size: 12px; }
+  .foreign-schedule-form-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; }
   .erp-module-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
   .erp-module-actions button {
     border: 1px solid #d1d5db; background: #fff; border-radius: 8px;
@@ -6420,11 +6797,230 @@
         </div>
       </section>
 
-      <section id="erpPageFlights" class="erp-page" data-erp-title="航班管理">
-        <div class="erp-module-card">
-          <div class="erp-module-head erp-page-nav-head">
-            <strong>航班管理</strong>
-            <div class="erp-module-sub">新功能規劃中。匯入航班與時間調整請至「排班作業」。</div>
+      <section id="erpPageFlights" class="erp-page" data-erp-title="外家時刻表管理">
+        <div class="erp-module-card foreign-schedule-manager">
+          <div class="fs-page">
+            <header class="fs-page-head erp-page-nav-head">
+              <h2>外家時刻表管理</h2>
+            </header>
+            <div class="fs-page-body">
+              <div class="fs-main">
+                <div class="fs-list-toolbar">
+                  <label class="fs-search-wrap">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+                    <input type="search" id="foreignScheduleFilterSearch" placeholder="搜尋航班、機場…" autocomplete="off" />
+                  </label>
+                  <div class="fs-filter-toolbar-group">
+                    <button type="button" class="fs-filter-btn fs-add-flight-btn" id="foreignScheduleAddBtn">＋ 新增航班</button>
+                    <button type="button" class="fs-filter-btn fs-filter-toggle" id="foreignScheduleFilterToggleBtn" aria-expanded="false" aria-controls="foreignScheduleFilterPanel">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 5h16"/><path d="M8 12h8"/><path d="M10 19h4"/></svg>
+                      篩選
+                    </button>
+                    <button type="button" class="fs-filter-btn" id="foreignScheduleClearFiltersBtn" aria-label="取消篩選">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>
+                      取消篩選
+                    </button>
+                  </div>
+                </div>
+                <div class="fs-filter-panel hidden" id="foreignScheduleFilterPanel" role="region" aria-label="篩選條件">
+                  <div class="fs-filter-panel-grid">
+                    <label class="fs-filter-field">基準日
+                      <div class="fs-flight-date-picker erp-staff-ref-date-picker" id="foreignSchedulePreviewDatePicker">
+                        <button type="button" class="fs-flight-date-trigger app-date-field-trigger" id="foreignSchedulePreviewDateTrigger" aria-haspopup="dialog" aria-expanded="false" aria-controls="foreignSchedulePreviewDateDropPanel">
+                          <span id="foreignSchedulePreviewDateDisplay">—</span>
+                          <span class="app-date-field-trigger-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></span>
+                        </button>
+                        <input type="hidden" id="foreignSchedulePreviewDate" value="" />
+                        <div class="app-date-drop-panel hidden" id="foreignSchedulePreviewDateDropPanel" role="dialog" aria-label="選擇基準日"></div>
+                      </div>
+                    </label>
+                    <label class="fs-filter-field">Airline
+                      <input type="text" id="foreignScheduleFilterCarrier" list="foreignScheduleFilterCarrierList" autocomplete="off" class="fs-text-upper" inputmode="text" placeholder="全部">
+                      <datalist id="foreignScheduleFilterCarrierList"></datalist>
+                    </label>
+                  </div>
+                  <div class="fs-filter-preview-area">
+                    <span>篩選結果</span>
+                    <div class="fs-preview-inline" id="foreignSchedulePreviewBox">
+                      <div class="fs-preview-empty">請選擇基準日後按「確定」開始篩選。</div>
+                    </div>
+                  </div>
+                  <div class="fs-filter-panel-actions">
+                    <button type="button" class="fs-filter-export-btn" id="foreignScheduleFilterExportBtn">匯出 Excel</button>
+                    <button type="button" class="fs-filter-apply-btn" id="foreignScheduleApplyFiltersBtn">確定</button>
+                  </div>
+                </div>
+                <div class="fs-table-meta" id="foreignScheduleTableMeta">共 0 筆資料</div>
+                <div class="fs-table-wrap">
+                  <table class="foreign-schedule-table" id="foreignScheduleTable">
+                    <colgroup>
+                      <col class="fs-col-airline" />
+                      <col class="fs-col-flt" />
+                      <col class="fs-col-date fs-col-schedule-extra" />
+                      <col class="fs-col-date fs-col-schedule-extra" />
+                      <col class="fs-col-ap" />
+                      <col class="fs-col-ap" />
+                      <col class="fs-col-time" />
+                      <col class="fs-col-time" />
+                      <col class="fs-col-freq fs-col-schedule-extra" />
+                      <col class="fs-col-actype" />
+                      <col class="fs-col-pair" />
+                      <col class="fs-col-edit fs-col-schedule-extra" />
+                      <col class="fs-col-created fs-col-schedule-extra" />
+                    </colgroup>
+                    <thead>
+                      <tr>
+                        <th>Airline</th>
+                        <th>FLT No</th>
+                        <th class="fs-col-schedule-extra">From</th>
+                        <th class="fs-col-schedule-extra">Till</th>
+                        <th>DEP</th>
+                        <th>ARR</th>
+                        <th>STD</th>
+                        <th>STA</th>
+                        <th class="fs-col-schedule-extra">Frequency</th>
+                        <th>Equipment</th>
+                        <th class="fs-col-pair">Turnaround Pair</th>
+                        <th class="fs-col-edit fs-col-schedule-extra">Edit</th>
+                        <th class="fs-col-created fs-col-schedule-extra fs-th-sort" id="foreignScheduleCreatedSortTh" scope="col">Created At<span class="fs-sort-icon" aria-hidden="true">▲</span></th>
+                      </tr>
+                    </thead>
+                    <tbody id="foreignScheduleTableBody">
+                      <tr><td colspan="13" class="foreign-schedule-empty">尚無外家時刻表資料。</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+                <div class="fs-pagination">
+                  <label>每頁
+                    <select id="foreignSchedulePageSize">
+                      <option value="25">25</option>
+                      <option value="50" selected>50</option>
+                      <option value="100">100</option>
+                    </select>
+                  </label>
+                  <div class="fs-pagination-controls">
+                    <button type="button" id="foreignSchedulePagePrev" disabled>‹</button>
+                    <span id="foreignSchedulePageLabel">1 / 1</span>
+                    <button type="button" id="foreignSchedulePageNext" disabled>›</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="fs-modal-overlay hidden" id="foreignScheduleEditModal">
+            <div class="fs-modal">
+              <h3 id="foreignScheduleEditModalTitle">新增航班</h3>
+              <form id="foreignScheduleEditForm" class="fs-flight-form">
+                <div class="fs-flight-form-row">
+                  <label>航空公司<input type="text" id="foreignScheduleEditCarrier" autocomplete="off" class="fs-text-upper" inputmode="text"></label>
+                  <label>航班編號<input type="text" id="foreignScheduleEditFltNo" required autocomplete="off" inputmode="text"></label>
+                  <label>建立日期<input type="text" id="foreignScheduleEditCreated" readonly></label>
+                </div>
+                <div class="fs-flight-form-row fs-flight-form-row--two">
+                  <div class="fs-flight-form-section">
+                    <div class="fs-flight-form-section-title">航線</div>
+                    <div class="fs-flight-route-grid">
+                      <label>出發機場 (DEP)
+                        <input type="text" id="foreignScheduleEditDep" maxlength="3" autocomplete="off" class="fs-text-upper">
+                      </label>
+                      <div class="fs-flight-route-arrow" aria-hidden="true">→</div>
+                      <label>抵達機場 (ARR)
+                        <input type="text" id="foreignScheduleEditArr" maxlength="3" autocomplete="off" class="fs-text-upper">
+                      </label>
+                    </div>
+                  </div>
+                  <div class="fs-flight-form-section">
+                    <div class="fs-flight-form-section-title">有效期間</div>
+                    <div class="fs-flight-validity-grid">
+                      <label>開始日期
+                        <div class="fs-flight-date-picker erp-staff-eff-date-picker" id="foreignScheduleEditFromPicker">
+                          <button type="button" class="fs-flight-date-trigger app-date-field-trigger" id="foreignScheduleEditFromTrigger" aria-haspopup="dialog" aria-expanded="false" aria-controls="foreignScheduleEditFromDropPanel">
+                            <span id="foreignScheduleEditFromDisplay">—</span>
+                            <span class="app-date-field-trigger-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></span>
+                          </button>
+                          <input type="hidden" id="foreignScheduleEditFrom" value="" />
+                          <div class="app-date-drop-panel hidden" id="foreignScheduleEditFromDropPanel" role="dialog" aria-label="選擇開始日期"></div>
+                        </div>
+                      </label>
+                      <div class="fs-flight-validity-sep">~</div>
+                      <label>結束日期
+                        <div class="fs-flight-date-picker erp-staff-eff-date-picker" id="foreignScheduleEditTillPicker">
+                          <button type="button" class="fs-flight-date-trigger app-date-field-trigger" id="foreignScheduleEditTillTrigger" aria-haspopup="dialog" aria-expanded="false" aria-controls="foreignScheduleEditTillDropPanel">
+                            <span id="foreignScheduleEditTillDisplay">—</span>
+                            <span class="app-date-field-trigger-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></span>
+                          </button>
+                          <input type="hidden" id="foreignScheduleEditTill" value="" />
+                          <div class="app-date-drop-panel hidden" id="foreignScheduleEditTillDropPanel" role="dialog" aria-label="選擇結束日期"></div>
+                        </div>
+                      </label>
+                    </div>
+                  </div>
+                </div>
+                <div class="fs-flight-form-row fs-flight-form-row--two">
+                  <div class="fs-flight-form-section">
+                    <div class="fs-flight-form-section-title">航班時間</div>
+                    <div class="fs-flight-time-grid">
+                      <label>STD
+                        <div class="fs-flight-time-picker" id="foreignScheduleEditStdPicker">
+                          <input type="text" id="foreignScheduleEditStd" maxlength="5" inputmode="numeric" autocomplete="off">
+                          <button type="button" class="fs-flight-time-trigger" id="foreignScheduleEditStdTrigger" aria-haspopup="dialog" aria-expanded="false" aria-controls="foreignScheduleEditStdDropPanel" aria-label="選擇 STD">
+                            <span class="fs-flight-time-trigger-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span>
+                          </button>
+                          <div class="app-time-drop-panel hidden" id="foreignScheduleEditStdDropPanel" role="dialog" aria-label="選擇 STD"></div>
+                        </div>
+                      </label>
+                      <div class="fs-flight-time-field">
+                        <span class="fs-flight-time-label">STA</span>
+                        <div class="fs-flight-time-picker" id="foreignScheduleEditStaPicker">
+                          <input type="text" id="foreignScheduleEditSta" maxlength="5" inputmode="numeric" autocomplete="off">
+                          <button type="button" class="fs-flight-time-trigger" id="foreignScheduleEditStaTrigger" aria-haspopup="dialog" aria-expanded="false" aria-controls="foreignScheduleEditStaDropPanel" aria-label="選擇 STA">
+                            <span class="fs-flight-time-trigger-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span>
+                          </button>
+                          <div class="app-time-drop-panel hidden" id="foreignScheduleEditStaDropPanel" role="dialog" aria-label="選擇 STA"></div>
+                        </div>
+                      </div>
+                      <label class="fs-flight-sta-plusone"><input type="checkbox" id="foreignScheduleEditStaPlusOne"><span>+1 Day</span></label>
+                    </div>
+                  </div>
+                  <div class="fs-flight-form-section">
+                    <label>機型
+                      <input type="text" id="foreignScheduleEditAcType" list="foreignScheduleEditAcTypeList" maxlength="8" autocomplete="off" class="fs-text-upper fs-flight-time-input">
+                      <datalist id="foreignScheduleEditAcTypeList"></datalist>
+                    </label>
+                  </div>
+                </div>
+                <div class="fs-flight-form-row fs-flight-form-row--connecting-freq is-connecting-hidden" id="foreignScheduleEditConnectingFreqRow">
+                  <div class="fs-flight-form-section hidden" id="foreignScheduleEditConnectingWrap">
+                    <label>接飛
+                      <input type="text" id="foreignScheduleEditConnectingFlt" list="foreignScheduleEditConnectingList" autocomplete="off" class="fs-text-upper" inputmode="text">
+                      <datalist id="foreignScheduleEditConnectingList"></datalist>
+                    </label>
+                    <div class="fs-connecting-hint hidden" id="foreignScheduleEditConnectingHint"></div>
+                  </div>
+                  <div class="fs-flight-form-section" id="foreignScheduleEditFreqSection">
+                    <div class="fs-flight-form-section-title">飛航日</div>
+                    <div class="fs-flight-freq-toolbar">
+                      <div class="fs-flight-freq-days" id="foreignScheduleEditFreqDays">
+                        <button type="button" class="fs-flight-freq-day" data-freq-day="1">一</button>
+                        <button type="button" class="fs-flight-freq-day" data-freq-day="2">二</button>
+                        <button type="button" class="fs-flight-freq-day" data-freq-day="3">三</button>
+                        <button type="button" class="fs-flight-freq-day" data-freq-day="4">四</button>
+                        <button type="button" class="fs-flight-freq-day" data-freq-day="5">五</button>
+                        <button type="button" class="fs-flight-freq-day" data-freq-day="6">六</button>
+                        <button type="button" class="fs-flight-freq-day" data-freq-day="7">日</button>
+                      </div>
+                      <div class="fs-flight-freq-summary" id="foreignScheduleEditFreqSummary">已選：—</div>
+                      <button type="button" class="fs-flight-freq-clear" id="foreignScheduleEditFreqClear">全部清除</button>
+                    </div>
+                    <input type="hidden" id="foreignScheduleEditFrequency" value="">
+                  </div>
+                </div>
+              </form>
+              <div class="foreign-schedule-form-actions">
+                <button type="button" id="foreignScheduleEditCancelBtn">取消</button>
+                <button type="button" class="fs-btn-primary" id="foreignScheduleEditSaveBtn">儲存</button>
+              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -9422,11 +10018,17 @@ function ensureStaffListRefDateDefault() {
   staffListRefDateOverride = '';
 }
 const inlineAppDateDropClosers = new Map();
+const inlineAppTimeDropClosers = new Map();
 function closeInlineAppDateDrop(pickerId) {
   inlineAppDateDropClosers.get(pickerId)?.();
 }
 function closeAllInlineAppDateDrops(exceptPickerId) {
   inlineAppDateDropClosers.forEach((close, pickerId) => {
+    if (pickerId !== exceptPickerId) close();
+  });
+}
+function closeAllInlineAppTimeDrops(exceptPickerId) {
+  inlineAppTimeDropClosers.forEach((close, pickerId) => {
     if (pickerId !== exceptPickerId) close();
   });
 }
@@ -9592,6 +10194,7 @@ function initInlineAppDateDrop(cfg) {
     if (!panel || !trigger) return;
     if (open) {
       closeAllInlineAppDateDrops(cfg.pickerId);
+      closeAllInlineAppTimeDrops(cfg.pickerId);
       syncPending();
       st.onOpen = st.pending;
       syncView();
@@ -9678,6 +10281,145 @@ function initInlineAppDateDrop(cfg) {
     st.expY = st.vy;
     setView('month');
     renderMonth();
+  });
+}
+function initInlineAppTimeDrop(cfg) {
+  const root = document.getElementById(cfg.pickerId);
+  if (!root || root.dataset.inlineTimeBound === '1') return;
+  root.dataset.inlineTimeBound = '1';
+  const st = { pendingH: 0, pendingM: 0, onOpenH: 0, onOpenM: 0 };
+  const $ = id => document.getElementById(id);
+  const parseCurrent = () => {
+    const raw = String(cfg.getValue?.() || '').trim();
+    const normalized = typeof foreignScheduleNormalizeTimeInput === 'function'
+      ? foreignScheduleNormalizeTimeInput(raw)
+      : raw;
+    const m = normalized.match(/^(\d{2}):(\d{2})$/);
+    if (m) return { h: Number(m[1]), m: Number(m[2]) };
+    const now = new Date();
+    return { h: now.getHours(), m: now.getMinutes() };
+  };
+  const syncPendingFromValue = () => {
+    const p = parseCurrent();
+    st.pendingH = p.h;
+    st.pendingM = p.m;
+  };
+  const positionPanel = () => {
+    const panel = $(cfg.panelId);
+    const trigger = $(cfg.triggerId);
+    if (!panel || !trigger) return;
+    const gap = 6;
+    const pad = 8;
+    const minPanelWidth = 220;
+    const maxPanelWidth = Number(cfg.maxPanelWidth) > 0 ? Number(cfg.maxPanelWidth) : 260;
+    const r = trigger.getBoundingClientRect();
+    const ph = panel.offsetHeight || 260;
+    const safeWidth = Math.min(Math.max(minPanelWidth, r.width), maxPanelWidth, window.innerWidth - pad * 2);
+    const spaceBelow = window.innerHeight - r.bottom - pad;
+    const spaceAbove = r.top - pad;
+    const openBelow = spaceBelow >= ph + gap ? true : spaceAbove < ph + gap ? false : spaceBelow >= spaceAbove;
+    let left = r.right - safeWidth;
+    if (left < pad) left = pad;
+    if (left + safeWidth > window.innerWidth - pad) left = window.innerWidth - safeWidth - pad;
+    panel.style.position = 'fixed';
+    panel.style.width = `${safeWidth}px`;
+    panel.style.maxWidth = `calc(100vw - ${pad * 2}px)`;
+    panel.style.left = `${left}px`;
+    panel.style.right = 'auto';
+    panel.style.zIndex = '14002';
+    if (openBelow) {
+      panel.style.top = `${r.bottom + gap}px`;
+      panel.style.bottom = 'auto';
+      panel.classList.remove('app-time-drop-panel--above');
+    } else {
+      panel.style.top = 'auto';
+      panel.style.bottom = `${window.innerHeight - r.top + gap}px`;
+      panel.classList.add('app-time-drop-panel--above');
+    }
+  };
+  const renderLists = () => {
+    const hourList = $(cfg.hourListId);
+    const minuteList = $(cfg.minuteListId);
+    if (!hourList || !minuteList) return;
+    hourList.innerHTML = '';
+    for (let h = 0; h < 24; h++) {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'app-time-cell' + (h === st.pendingH ? ' is-selected' : '');
+      btn.textContent = String(h).padStart(2, '0');
+      btn.addEventListener('click', e => {
+        e.stopPropagation();
+        st.pendingH = h;
+        renderLists();
+      });
+      hourList.appendChild(btn);
+    }
+    minuteList.innerHTML = '';
+    for (let m = 0; m < 60; m++) {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'app-time-cell' + (m === st.pendingM ? ' is-selected' : '');
+      btn.textContent = String(m).padStart(2, '0');
+      btn.addEventListener('click', e => {
+        e.stopPropagation();
+        st.pendingM = m;
+        renderLists();
+      });
+      minuteList.appendChild(btn);
+    }
+    hourList.querySelector('.is-selected')?.scrollIntoView({ block: 'center' });
+    minuteList.querySelector('.is-selected')?.scrollIntoView({ block: 'center' });
+    if (!$(cfg.panelId)?.classList.contains('hidden')) {
+      requestAnimationFrame(() => positionPanel());
+    }
+  };
+  const setOpen = (open, opts = {}) => {
+    const panel = $(cfg.panelId);
+    const trigger = $(cfg.triggerId);
+    if (!panel || !trigger) return;
+    if (open) {
+      closeAllInlineAppDateDrops(cfg.pickerId);
+      closeAllInlineAppTimeDrops(cfg.pickerId);
+      syncPendingFromValue();
+      st.onOpenH = st.pendingH;
+      st.onOpenM = st.pendingM;
+      panel.classList.remove('hidden');
+      renderLists();
+      trigger.setAttribute('aria-expanded', 'true');
+      requestAnimationFrame(() => {
+        positionPanel();
+        trigger.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+      });
+    } else {
+      if (!opts.confirmed) {
+        st.pendingH = st.onOpenH;
+        st.pendingM = st.onOpenM;
+      }
+      panel.classList.add('hidden');
+      trigger.setAttribute('aria-expanded', 'false');
+    }
+  };
+  inlineAppTimeDropClosers.set(cfg.pickerId, () => setOpen(false));
+  $(cfg.triggerId)?.addEventListener('click', e => {
+    e.stopPropagation();
+    setOpen($(cfg.panelId).classList.contains('hidden'));
+  });
+  document.addEventListener('click', e => {
+    const panel = $(cfg.panelId);
+    if (!panel || panel.classList.contains('hidden')) return;
+    const t = e.target;
+    if (root.contains(t) || panel.contains(t)) return;
+    setOpen(false);
+  });
+  $(cfg.cancelBtnId)?.addEventListener('click', e => {
+    e.stopPropagation();
+    setOpen(false);
+  });
+  $(cfg.confirmBtnId)?.addEventListener('click', e => {
+    e.stopPropagation();
+    const value = `${String(st.pendingH).padStart(2, '0')}:${String(st.pendingM).padStart(2, '0')}`;
+    cfg.onConfirm(value);
+    setOpen(false, { confirmed: true });
   });
 }
 function initStaffFilterRefDatePicker() {
@@ -12608,12 +13350,14 @@ const ERP_MODULE_PAGES = {
 const WORKBENCH_ENTRIES = {
   admin: [
     { title: '人員管理', desc: '在職／停用人員、調入與狀態變更；可刪除測試人員。', module: 'staff', tag: '人員' },
+    { title: '航班管理', desc: '維護 HX/OZ/BX/NZ 外家時刻表季節區間。', module: 'flights', tag: '航班' },
     { title: '匯入人員', desc: '更新代號／戰力主檔（Excel）。', module: 'staff', tag: '匯入' },
     { title: '匯入航班', desc: '於排班作業工具列匯入當日航班。', module: 'schedule-ops', tag: '航班' },
     { title: '排班作業', desc: '進入完整排班畫面。', module: 'schedule-ops', tag: '排班' }
   ],
   scheduler: [
     { title: '匯入航班', desc: '於排班作業工具列匯入當日航班。', module: 'schedule-ops', tag: '航班' },
+    { title: '航班管理', desc: '維護 HX/OZ/BX/NZ 外家時刻表季節區間。', module: 'flights', tag: '外家' },
     { title: '匯入人員', desc: '於排班作業工具列匯入上班人員名單。', module: 'schedule-ops', tag: '人員' },
     { title: '修改戰力', desc: '維護代號／戰力資料庫。', module: 'staff', tag: '戰力' },
     { title: '修改 duty', desc: '自訂 duty 區塊與規則。', module: 'rules', tag: '規則' },
@@ -13081,6 +13825,10 @@ function switchErpModule(moduleKey, options = {}) {
     erpMountEl(document.getElementById('resetBtn'), document.getElementById('erpSettingsMount'));
     updateShiftViewButtonLabel();
     updateRollCallButtonLabel();
+  }
+  if (moduleKey === 'flights') {
+    bindForeignScheduleManager();
+    renderForeignScheduleManager();
   }
   if (moduleKey === 'schedule-ops') {
     requestAnimationFrame(() => {
@@ -14400,6 +15148,8 @@ function normalizeImportedFlightNo(value) {
 }
 
 const FOREIGN_SCHEDULE_URL = '外家時刻表.xlsx';
+/** 新增／編輯外家航班表單：機型下拉選項 */
+const FOREIGN_SCHEDULE_FORM_AC_TYPES = ['777', '787', '380', '350', '330', '320', '321'];
 /** 外家時刻表 Excel 機型欄（parser 用） */
 const FOREIGN_AC_TYPE_OPTIONS = {
   OZ: ['380', '350', '777', '330', '32Q', '321'],
@@ -14419,6 +15169,1427 @@ function syncForeignAcTypeOptionsFromWorkbook(workbook) {
       FOREIGN_AC_TYPE_OPTIONS[code] = opts[code].slice();
     }
   });
+}
+
+function syncForeignAcTypeOptionsFromRows(rows) {
+  if (typeof ForeignScheduleParser === 'undefined'
+    || typeof ForeignScheduleParser.extractForeignAcTypeOptionsFromRows !== 'function') return;
+  const opts = ForeignScheduleParser.extractForeignAcTypeOptionsFromRows(rows || []);
+  Object.keys(FOREIGN_AC_TYPE_OPTIONS).forEach(code => {
+    if (Array.isArray(opts[code]) && opts[code].length) {
+      FOREIGN_AC_TYPE_OPTIONS[code] = opts[code].slice();
+    }
+  });
+}
+
+let foreignSchedulePendingBundles = null;
+let foreignScheduleManagerBound = false;
+let foreignScheduleFlatCache = null;
+let foreignSchedulePage = 1;
+let foreignScheduleEditContext = null;
+let foreignScheduleFiltersApplied = false;
+let foreignSchedulePanelResultsReady = false;
+let foreignScheduleCreatedSortActive = false;
+
+const FOREIGN_SCHEDULE_CARRIER_CLASS = { HX: 'is-hx', OZ: 'is-oz', BX: 'is-bx', NZ: 'is-nz' };
+const FS_ICON_EDIT = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>';
+const FS_ICON_DELETE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>';
+
+function invalidateForeignScheduleCache() {
+  foreignScheduleFlatCache = null;
+}
+
+function getForeignScheduleFlatRows() {
+  if (foreignScheduleFlatCache) return foreignScheduleFlatCache;
+  if (typeof ForeignScheduleRegistry === 'undefined'
+    || typeof ForeignScheduleRegistry.listAllFlightRows !== 'function') {
+    foreignScheduleFlatCache = [];
+    return foreignScheduleFlatCache;
+  }
+  foreignScheduleFlatCache = ForeignScheduleRegistry.listAllFlightRows();
+  return foreignScheduleFlatCache;
+}
+
+function foreignScheduleCarrierBadge(carrier) {
+  const code = String(carrier || '').toUpperCase();
+  const cls = FOREIGN_SCHEDULE_CARRIER_CLASS[code] || 'is-other';
+  return `<span class="fs-carrier-badge ${cls}">${escapeHtml(code || '—')}</span>`;
+}
+
+function formatForeignScheduleDateDisplay(iso) {
+  if (!iso) return '—';
+  const m = String(iso).match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!m) return iso;
+  return `${Number(m[1])}/${Number(m[2])}/${Number(m[3])}`;
+}
+
+function formatForeignScheduleTimeValue(value) {
+  if (typeof ForeignScheduleParser !== 'undefined'
+    && typeof ForeignScheduleParser.parseForeignTimeValue === 'function') {
+    const parsed = ForeignScheduleParser.parseForeignTimeValue(value);
+    if (parsed?.time) {
+      return parsed.plusOne ? `${parsed.time}+1` : parsed.time;
+    }
+  }
+  const s = String(value ?? '').trim();
+  return s || '—';
+}
+
+function formatForeignScheduleTimeHtml(value) {
+  if (typeof ForeignScheduleParser !== 'undefined'
+    && typeof ForeignScheduleParser.parseForeignTimeValue === 'function') {
+    const parsed = ForeignScheduleParser.parseForeignTimeValue(value);
+    if (parsed?.time) {
+      const time = escapeHtml(parsed.time);
+      return parsed.plusOne ? `${time}+1` : time;
+    }
+  }
+  const s = String(value ?? '').trim();
+  return s ? escapeHtml(s) : '—';
+}
+
+function foreignScheduleCarrierFromFlight(flight, fallbackCarrier) {
+  const fb = String(fallbackCarrier || '').trim().toUpperCase();
+  if (fb) return fb;
+  if (typeof ForeignScheduleParser !== 'undefined'
+    && typeof ForeignScheduleParser.inferCarrierFromFlt === 'function') {
+    const inferred = ForeignScheduleParser.inferCarrierFromFlt(flight);
+    if (inferred) return inferred;
+  }
+  const m = String(flight || '').trim().toUpperCase().match(/^([A-Z]{2})/);
+  return m ? m[1] : '';
+}
+
+function foreignScheduleCompareIsoDateDesc(a, b) {
+  const cmp = typeof ForeignScheduleRegistry !== 'undefined'
+    && typeof ForeignScheduleRegistry.compareIsoDate === 'function'
+    ? ForeignScheduleRegistry.compareIsoDate(String(a || ''), String(b || ''))
+    : String(a || '').localeCompare(String(b || ''));
+  return -cmp;
+}
+
+function foreignScheduleStdSortMinutes(value) {
+  const mins = foreignScheduleParseTimeSortMinutes(value);
+  return mins >= 0 ? mins : -1;
+}
+
+function foreignScheduleDepTpeRank(dep) {
+  return String(dep || '').trim().toUpperCase() === 'TPE' ? 0 : 1;
+}
+
+function foreignScheduleIsInboundRow(dep, arr) {
+  const d = String(dep || '').trim().toUpperCase();
+  const a = String(arr || '').trim().toUpperCase();
+  if (d === 'TPE') return false;
+  return a === 'TPE';
+}
+
+function foreignScheduleFormatTurnaroundCell(row) {
+  if (!foreignScheduleIsInboundRow(row.dep, row.arr)) return '—';
+  const stored = String(row.connectingFlt || '').trim();
+  if (stored) return `→ ${cleanForeignFltLabel(stored)}`;
+  return '—';
+}
+
+function foreignScheduleRefreshConnectingDatalist() {
+  const list = document.getElementById('foreignScheduleEditConnectingList');
+  if (!list) return;
+  const carrier = foreignScheduleInferCarrierFromForm();
+  const fromDate = document.getElementById('foreignScheduleEditFrom')?.value || '';
+  const tillDate = document.getElementById('foreignScheduleEditTill')?.value || '';
+  const scheduleDays = foreignScheduleSelectedFreqDays();
+  const compareIso = typeof ForeignScheduleRegistry !== 'undefined'
+    && typeof ForeignScheduleRegistry.compareIsoDate === 'function'
+    ? ForeignScheduleRegistry.compareIsoDate.bind(ForeignScheduleRegistry)
+    : (a, b) => String(a || '').localeCompare(String(b || ''));
+  const flts = [...new Set(getForeignScheduleFlatRows().filter(r => {
+    if (String(r.dep || '').trim().toUpperCase() !== 'TPE') return false;
+    const rowCarrier = foreignScheduleCarrierFromFlight(r.flt, r.carrier);
+    if (carrier && rowCarrier !== carrier) return false;
+    if (fromDate && tillDate && r.fromDate && r.tillDate) {
+      if (compareIso(r.tillDate, fromDate) < 0) return false;
+      if (compareIso(tillDate, r.fromDate) < 0) return false;
+    }
+    if (scheduleDays.length && r.schedule) {
+      const rowDays = foreignScheduleDaysFromFrequency(r.schedule);
+      if (!scheduleDays.some(d => rowDays.includes(d))) return false;
+    }
+    return true;
+  }).map(r => cleanForeignFltLabel(r.flt)).filter(Boolean))].sort();
+  list.innerHTML = flts.map(f => `<option value="${escapeHtml(f)}">`).join('');
+}
+
+function foreignScheduleSyncConnectingFormUi() {
+  const wrap = document.getElementById('foreignScheduleEditConnectingWrap');
+  const row = document.getElementById('foreignScheduleEditConnectingFreqRow');
+  const dep = document.getElementById('foreignScheduleEditDep')?.value;
+  const arr = document.getElementById('foreignScheduleEditArr')?.value;
+  const input = document.getElementById('foreignScheduleEditConnectingFlt');
+  const hintEl = document.getElementById('foreignScheduleEditConnectingHint');
+  const inbound = foreignScheduleIsInboundRow(dep, arr);
+  wrap?.classList.toggle('hidden', !inbound);
+  row?.classList.toggle('is-connecting-hidden', !inbound);
+  if (!inbound) {
+    if (input) input.value = '';
+    if (hintEl) {
+      hintEl.textContent = '';
+      hintEl.classList.add('hidden');
+    }
+    return;
+  }
+  foreignScheduleRefreshConnectingDatalist();
+}
+
+function foreignScheduleNormalizeConnectingFlt(value) {
+  const raw = String(value || '').trim().toUpperCase();
+  if (!raw) return '';
+  return typeof normalizeImportedFlightNo === 'function'
+    ? normalizeImportedFlightNo(raw)
+    : raw.replace(/\s/g, '');
+}
+
+function foreignScheduleValidateConnectingFlt(inboundFlt, connectingFlt) {
+  const conn = foreignScheduleNormalizeConnectingFlt(connectingFlt);
+  if (!conn) return null;
+  const inbound = foreignScheduleNormalizeConnectingFlt(inboundFlt);
+  if (conn === inbound) return '接飛出境班不可與本班相同';
+  const match = getForeignScheduleFlatRows().find(r =>
+    foreignScheduleNormalizeConnectingFlt(r.flt) === conn
+  );
+  if (match && foreignScheduleIsInboundRow(match.dep, match.arr)) {
+    return '接飛班需為出境航班（DEP=TPE），不可選入境班';
+  }
+  if (match && String(match.dep || '').trim().toUpperCase() !== 'TPE') {
+    return '接飛班需為 DEP=TPE 的出境航班';
+  }
+  return null;
+}
+
+function foreignScheduleMaybePrefillConnecting() {
+  foreignScheduleSyncConnectingFormUi();
+}
+
+function compareForeignScheduleRowsComposite(a, b) {
+  const tillDiff = foreignScheduleCompareIsoDateDesc(a.tillDate, b.tillDate);
+  if (tillDiff) return tillDiff;
+  const carrierDiff = String(a.carrier || '').localeCompare(String(b.carrier || ''));
+  if (carrierDiff) return carrierDiff;
+  const depDiff = foreignScheduleDepTpeRank(a.dep) - foreignScheduleDepTpeRank(b.dep);
+  if (depDiff) return depDiff;
+  const stdDiff = foreignScheduleStdSortMinutes(b.std) - foreignScheduleStdSortMinutes(a.std);
+  if (stdDiff) return stdDiff;
+  return cleanForeignFltLabel(a.flt).localeCompare(cleanForeignFltLabel(b.flt));
+}
+
+function compareForeignScheduleCandidatesComposite(a, b) {
+  const tillDiff = foreignScheduleCompareIsoDateDesc(a.tillDate, b.tillDate);
+  if (tillDiff) return tillDiff;
+  const carrierA = foreignScheduleCarrierFromFlight(a.flight, a.carrier);
+  const carrierB = foreignScheduleCarrierFromFlight(b.flight, b.carrier);
+  const carrierDiff = String(carrierA).localeCompare(String(carrierB));
+  if (carrierDiff) return carrierDiff;
+  const depDiff = foreignScheduleDepTpeRank(a.dep) - foreignScheduleDepTpeRank(b.dep);
+  if (depDiff) return depDiff;
+  const fdA = a.flightDef || {};
+  const fdB = b.flightDef || {};
+  const stdDiff = foreignScheduleStdSortMinutes(fdB.std) - foreignScheduleStdSortMinutes(fdA.std);
+  if (stdDiff) return stdDiff;
+  return cleanForeignFltLabel(a.flight).localeCompare(cleanForeignFltLabel(b.flight));
+}
+
+function foreignScheduleParseTimeSortMinutes(value) {
+  if (typeof ForeignScheduleParser !== 'undefined'
+    && typeof ForeignScheduleParser.parseForeignTimeValue === 'function') {
+    const parsed = ForeignScheduleParser.parseForeignTimeValue(value);
+    if (parsed?.time) {
+      const parts = parsed.time.match(/^(\d{2}):(\d{2})$/);
+      if (parts) {
+        let mins = Number(parts[1]) * 60 + Number(parts[2]);
+        if (parsed.plusOne) mins += 24 * 60;
+        return mins;
+      }
+    }
+  }
+  const text = String(value ?? '').trim();
+  const m = text.match(/^(\d{1,2}):(\d{2})/);
+  if (m) return Number(m[1]) * 60 + Number(m[2]);
+  return -1;
+}
+
+function getForeignScheduleRefDate() {
+  return document.getElementById('foreignSchedulePreviewDate')?.value || selectedDate || '';
+}
+
+function foreignScheduleNormalizeCarrierFilter(value) {
+  const v = String(value || '').trim().toUpperCase();
+  if (!v || v === '全部') return '';
+  return v;
+}
+
+function getForeignScheduleFilterState() {
+  return {
+    carrier: foreignScheduleNormalizeCarrierFilter(document.getElementById('foreignScheduleFilterCarrier')?.value),
+    search: String(document.getElementById('foreignScheduleFilterSearch')?.value || '').trim().toLowerCase()
+  };
+}
+
+function foreignScheduleRowValidOnRefDate(row, refDate) {
+  if (!refDate) return true;
+  const fromDate = row.fromDate || '';
+  const tillDate = row.tillDate || '';
+  if (fromDate && ForeignScheduleRegistry.compareIsoDate(fromDate, refDate) > 0) return false;
+  if (tillDate && ForeignScheduleRegistry.compareIsoDate(refDate, tillDate) > 0) return false;
+  return true;
+}
+
+function isForeignScheduleFilterPanelOpen() {
+  const panel = document.getElementById('foreignScheduleFilterPanel');
+  return !!(panel && !panel.classList.contains('hidden'));
+}
+
+function foreignScheduleRowMatchesFilters(row, filters, opts = {}) {
+  if (filters.carrier) {
+    const rowCarrier = foreignScheduleCarrierFromFlight(row.flt, row.carrier);
+    if (rowCarrier !== filters.carrier) return false;
+  }
+  const applyRefDate = opts.applyRefDate ?? foreignScheduleFiltersApplied;
+  if (applyRefDate) {
+    const refDate = getForeignScheduleRefDate();
+    if (refDate && !foreignScheduleRowValidOnRefDate(row, refDate)) return false;
+  }
+  if (filters.search) {
+    const hay = [
+      row.flt, row.dep, row.arr, row.schedule, row.acType, row.carrier
+    ].join(' ').toLowerCase();
+    if (!hay.includes(filters.search)) return false;
+  }
+  return true;
+}
+
+function getFilteredForeignScheduleRows(opts = {}) {
+  const filters = getForeignScheduleFilterState();
+  const rows = getForeignScheduleFlatRows()
+    .filter(row => foreignScheduleRowMatchesFilters(row, filters, opts));
+  return sortForeignScheduleRows(rows);
+}
+
+function sortForeignScheduleRows(rows) {
+  const sorted = rows.slice();
+  if (foreignScheduleCreatedSortActive) {
+    sorted.sort((a, b) => {
+      const ta = Date.parse(a.createdAt || '') || 0;
+      const tb = Date.parse(b.createdAt || '') || 0;
+      if (tb !== ta) return tb - ta;
+      return compareForeignScheduleRowsComposite(a, b);
+    });
+  } else {
+    sorted.sort(compareForeignScheduleRowsComposite);
+  }
+  return sorted;
+}
+
+function updateForeignScheduleCreatedSortUi() {
+  document.getElementById('foreignScheduleCreatedSortTh')
+    ?.classList.toggle('is-sort-active', foreignScheduleCreatedSortActive);
+}
+
+function formatForeignScheduleCreatedDisplay(value) {
+  if (!value) return '—';
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return '—';
+  return foreignScheduleFormatCreatedAt(d);
+}
+
+function getForeignScheduleFilterCandidates(opts = {}) {
+  const applyRefDate = opts.applyRefDate ?? foreignScheduleFiltersApplied;
+  if (!applyRefDate) return [];
+  const refDate = getForeignScheduleRefDate();
+  if (!refDate || typeof ForeignScheduleRegistry === 'undefined' || !ForeignScheduleRegistry.hasAnySchedules()) return [];
+  const result = ForeignScheduleRegistry.buildCandidatesForDate(refDate, { debug: false });
+  let candidates = result.candidates || [];
+  const filters = getForeignScheduleFilterState();
+  if (filters.carrier) {
+    candidates = candidates.filter(c => foreignScheduleCarrierFromFlight(c.flight, c.carrier) === filters.carrier);
+  }
+  if (filters.search) {
+    candidates = candidates.filter(c => {
+      const fd = c.flightDef || {};
+      const hay = [
+        c.flight, c.dep, c.arr, fd.acType, fd.std, fd.sta, c.type
+      ].join(' ').toLowerCase();
+      return hay.includes(filters.search);
+    });
+  }
+  return candidates.sort(compareForeignScheduleCandidatesComposite);
+}
+
+function foreignScheduleCandidateTurnaroundCell(c) {
+  const dep = c.dep || c.flightDef?.dep || '';
+  const arr = c.arr || c.flightDef?.arr || '';
+  if (!foreignScheduleIsInboundRow(dep, arr)) return '—';
+  const conn = String(c.flightDef?.connectingFlight || '').trim();
+  if (!conn) return '—';
+  return `→ ${cleanForeignFltLabel(conn)}`;
+}
+
+function foreignScheduleCandidateRowHtml(c, { includeHiddenCols = false } = {}) {
+  const carrier = foreignScheduleCarrierFromFlight(c.flight, c.carrier);
+  const fd = c.flightDef || {};
+  const pairCell = foreignScheduleCandidateTurnaroundCell(c);
+  if (!includeHiddenCols) {
+    return `<tr>
+      <td>${foreignScheduleCarrierBadge(carrier || '—')}</td>
+      <td>${escapeHtml(cleanForeignFltLabel(c.flight))}</td>
+      <td>${escapeHtml(c.dep || '—')}</td>
+      <td>${escapeHtml(c.arr || '—')}</td>
+      <td class="fs-col-time-cell">${formatForeignScheduleTimeHtml(fd.std)}</td>
+      <td class="fs-col-time-cell">${formatForeignScheduleTimeHtml(fd.sta)}</td>
+      <td>${escapeHtml(fd.acType || '—')}</td>
+      <td class="fs-col-pair">${escapeHtml(pairCell === '—' ? '—' : pairCell)}</td>
+    </tr>`;
+  }
+  return `<tr>
+    <td>${foreignScheduleCarrierBadge(carrier || '—')}</td>
+    <td>${escapeHtml(cleanForeignFltLabel(c.flight))}</td>
+    <td class="fs-col-schedule-extra"></td>
+    <td class="fs-col-schedule-extra"></td>
+    <td>${escapeHtml(c.dep || '—')}</td>
+    <td>${escapeHtml(c.arr || '—')}</td>
+    <td class="fs-col-time-cell">${formatForeignScheduleTimeHtml(fd.std)}</td>
+    <td class="fs-col-time-cell">${formatForeignScheduleTimeHtml(fd.sta)}</td>
+    <td class="fs-col-schedule-extra"></td>
+    <td>${escapeHtml(fd.acType || '—')}</td>
+    <td class="fs-col-pair">${escapeHtml(pairCell === '—' ? '—' : pairCell)}</td>
+    <td class="fs-col-edit fs-col-schedule-extra"></td>
+    <td class="fs-col-created fs-col-schedule-extra"></td>
+  </tr>`;
+}
+
+function foreignScheduleCandidateTableHeadHtml() {
+  return `
+    <tr>
+      <th>Airline</th>
+      <th>FLT No</th>
+      <th>DEP</th>
+      <th>ARR</th>
+      <th>STD</th>
+      <th>STA</th>
+      <th>Equipment</th>
+      <th class="fs-col-pair">Turnaround Pair</th>
+    </tr>
+  `;
+}
+
+function hideForeignScheduleBundleModal() {
+  foreignSchedulePendingBundles = null;
+  document.getElementById('foreignScheduleBundleModal')?.classList.add('hidden');
+  const list = document.getElementById('foreignScheduleBundleList');
+  if (list) list.innerHTML = '';
+}
+
+function renderForeignScheduleBundlePicker(bundles, sourceLabel) {
+  const modal = document.getElementById('foreignScheduleBundleModal');
+  const list = document.getElementById('foreignScheduleBundleList');
+  const hint = document.getElementById('foreignScheduleImportHint');
+  if (!modal || !list) return;
+  foreignSchedulePendingBundles = bundles || [];
+  if (!foreignSchedulePendingBundles.length) {
+    hideForeignScheduleBundleModal();
+    if (hint) hint.textContent = '檔案中沒有可辨識的航司／日期區間';
+    return;
+  }
+  if (hint) hint.textContent = sourceLabel || `已解析 ${foreignSchedulePendingBundles.length} 個區間，請勾選要儲存的項目`;
+  list.innerHTML = foreignSchedulePendingBundles.map((bundle, idx) => {
+    const dateText = bundle.startDate && bundle.endDate
+      ? `${formatForeignScheduleDateDisplay(bundle.startDate)}～${formatForeignScheduleDateDisplay(bundle.endDate)}`
+      : '未標日期';
+    const sampleFlights = (bundle.rows || []).slice(0, 3).map(r => cleanForeignFltLabel(r.flt)).join('、');
+    const more = (bundle.rows || []).length > 3 ? ` 等 ${bundle.rows.length} 列` : ` · ${bundle.rows.length} 列`;
+    return `
+      <label class="foreign-schedule-bundle-item">
+        <input type="checkbox" data-fs-bundle-idx="${idx}" checked />
+        <div>
+          <strong>${escapeHtml(bundle.carrier)} · ${escapeHtml(bundle.seasonLabel || bundle.carrier)}</strong>
+          <div><span>${escapeHtml(dateText)}${escapeHtml(more)}</span></div>
+          ${sampleFlights ? `<div><span>${escapeHtml(sampleFlights)}</span></div>` : ''}
+        </div>
+      </label>
+    `;
+  }).join('');
+  modal.classList.remove('hidden');
+}
+
+function cleanForeignFltLabel(flt) {
+  return String(flt || '').replace(/\s+/g, '').toUpperCase();
+}
+
+function parseForeignScheduleWorkbookToBundles(workbook) {
+  if (typeof ForeignScheduleParser === 'undefined') return [];
+  const rows = ForeignScheduleParser.parseWorkbookToNormalizedRows(workbook, { debug: false });
+  if (!rows.length) return [];
+  syncForeignAcTypeOptionsFromRows(rows);
+  if (typeof ForeignScheduleParser.detectScheduleBundlesFromRows === 'function') {
+    return ForeignScheduleParser.detectScheduleBundlesFromRows(rows);
+  }
+  return [];
+}
+
+async function handleForeignScheduleWorkbook(workbook, sourceLabel) {
+  const bundles = parseForeignScheduleWorkbookToBundles(workbook);
+  if (!bundles.length) {
+    appAlert('檔案中沒有可解析的航班列，或缺少 FLT No / From / Till 欄位。', '無法匯入');
+    return;
+  }
+  renderForeignScheduleBundlePicker(bundles, sourceLabel);
+}
+
+async function handleForeignScheduleImportFile(file) {
+  if (!file) return;
+  if (typeof XLSX === 'undefined') {
+    appAlert('Excel 讀取套件尚未載入。', '無法匯入');
+    return;
+  }
+  const buffer = await file.arrayBuffer();
+  const workbook = XLSX.read(buffer, { type: 'array' });
+  await handleForeignScheduleWorkbook(workbook, `已從 ${file.name} 解析`);
+}
+
+async function loadDefaultForeignScheduleForManager() {
+  try {
+    const workbook = await loadForeignScheduleWorkbook();
+    await handleForeignScheduleWorkbook(workbook, '已從預設外家時刻表解析');
+  } catch (err) {
+    appAlert(`無法載入預設外家時刻表：${err.message || err}`, '載入失敗');
+  }
+}
+
+function saveSelectedForeignScheduleBundles() {
+  if (typeof ForeignScheduleRegistry === 'undefined' || !foreignSchedulePendingBundles?.length) return;
+  const checked = [];
+  document.querySelectorAll('#foreignScheduleBundleList input[data-fs-bundle-idx]').forEach(input => {
+    if (!input.checked) return;
+    const idx = Number(input.dataset.fsBundleIdx);
+    const bundle = foreignSchedulePendingBundles[idx];
+    if (bundle) checked.push(bundle);
+  });
+  if (!checked.length) {
+    appAlert('請至少勾選一個時刻表區間。', '無法儲存');
+    return;
+  }
+  const res = ForeignScheduleRegistry.upsertBundles(checked);
+  if (!res.ok) {
+    appAlert((res.errors || ['儲存失敗']).join('\n'), '部分無法儲存');
+    if (!res.saved?.length) return;
+  }
+  hideForeignScheduleBundleModal();
+  invalidateForeignScheduleCache();
+  foreignSchedulePage = 1;
+  renderForeignScheduleManager();
+  appAlert(`已儲存 ${res.saved.length} 份外家時刻表。`, '已儲存', 'success');
+}
+
+function renderForeignScheduleFlightTable() {
+  const tbody = document.getElementById('foreignScheduleTableBody');
+  const meta = document.getElementById('foreignScheduleTableMeta');
+  const pageLabel = document.getElementById('foreignSchedulePageLabel');
+  const prevBtn = document.getElementById('foreignSchedulePagePrev');
+  const nextBtn = document.getElementById('foreignSchedulePageNext');
+  const table = document.getElementById('foreignScheduleTable');
+  if (!tbody) return;
+
+  table?.classList.toggle('is-filter-result-view', !!foreignScheduleFiltersApplied);
+  updateForeignScheduleCreatedSortUi();
+
+  if (foreignScheduleFiltersApplied) {
+    const candidates = getForeignScheduleFilterCandidates();
+    const pageSize = Math.max(1, Number(document.getElementById('foreignSchedulePageSize')?.value) || 50);
+    const totalPages = Math.max(1, Math.ceil(candidates.length / pageSize));
+    if (foreignSchedulePage > totalPages) foreignSchedulePage = totalPages;
+    if (foreignSchedulePage < 1) foreignSchedulePage = 1;
+    const start = (foreignSchedulePage - 1) * pageSize;
+    const pageRows = candidates.slice(start, start + pageSize);
+    const refDate = getForeignScheduleRefDate();
+    if (meta) {
+      const refLabel = refDate ? ` · 基準日 ${formatForeignScheduleDateDisplay(refDate)}` : '';
+      meta.textContent = `共 ${candidates.length} 筆資料${refLabel}`;
+    }
+    if (pageLabel) pageLabel.textContent = `${foreignSchedulePage} / ${totalPages}`;
+    if (prevBtn) prevBtn.disabled = foreignSchedulePage <= 1;
+    if (nextBtn) nextBtn.disabled = foreignSchedulePage >= totalPages;
+    if (!candidates.length) {
+      tbody.innerHTML = `<tr><td colspan="13" class="foreign-schedule-empty">${refDate ? `${formatForeignScheduleDateDisplay(refDate)} 沒有符合篩選的航班。` : '請先設定基準日並按「確定」篩選。'}</td></tr>`;
+      return;
+    }
+    tbody.innerHTML = pageRows.map(c => foreignScheduleCandidateRowHtml(c, { includeHiddenCols: true })).join('');
+    return;
+  }
+
+  const filtered = getFilteredForeignScheduleRows();
+  const pageSize = Math.max(1, Number(document.getElementById('foreignSchedulePageSize')?.value) || 50);
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  if (foreignSchedulePage > totalPages) foreignSchedulePage = totalPages;
+  if (foreignSchedulePage < 1) foreignSchedulePage = 1;
+  const start = (foreignSchedulePage - 1) * pageSize;
+  const pageRows = filtered.slice(start, start + pageSize);
+
+  if (meta) {
+    const refDate = foreignScheduleFiltersApplied ? getForeignScheduleRefDate() : '';
+    const refLabel = refDate ? ` · 基準日 ${formatForeignScheduleDateDisplay(refDate)}` : '';
+    meta.textContent = `共 ${filtered.length} 筆資料${refLabel}`;
+  }
+  if (pageLabel) pageLabel.textContent = `${foreignSchedulePage} / ${totalPages}`;
+  if (prevBtn) prevBtn.disabled = foreignSchedulePage <= 1;
+  if (nextBtn) nextBtn.disabled = foreignSchedulePage >= totalPages;
+
+  if (!filtered.length) {
+    const hasAny = typeof ForeignScheduleRegistry !== 'undefined' && ForeignScheduleRegistry.hasAnySchedules();
+    tbody.innerHTML = `<tr><td colspan="13" class="foreign-schedule-empty">${hasAny ? '沒有符合基準日篩選的資料。' : '尚無外家時刻表資料。'}</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = pageRows.map(row => `
+    <tr data-schedule-id="${escapeHtml(row.scheduleId)}" data-row-index="${row.rowIndex}">
+      <td>${foreignScheduleCarrierBadge(row.carrier)}</td>
+      <td>${escapeHtml(cleanForeignFltLabel(row.flt))}</td>
+      <td>${escapeHtml(formatForeignScheduleDateDisplay(row.fromDate))}</td>
+      <td>${escapeHtml(formatForeignScheduleDateDisplay(row.tillDate))}</td>
+      <td>${escapeHtml(row.dep || '—')}</td>
+      <td>${escapeHtml(row.arr || '—')}</td>
+      <td class="fs-col-time-cell">${formatForeignScheduleTimeHtml(row.std)}</td>
+      <td class="fs-col-time-cell">${formatForeignScheduleTimeHtml(row.sta)}</td>
+      <td>${escapeHtml(row.schedule || '—')}</td>
+      <td>${escapeHtml(row.acType || '—')}</td>
+      <td class="fs-col-pair fs-col-schedule-extra">${foreignScheduleFormatTurnaroundCell(row)}</td>
+      <td class="fs-col-edit">
+        <div class="fs-row-actions">
+          <button type="button" data-fs-action="edit" class="is-edit" title="編輯">${FS_ICON_EDIT}</button>
+          <button type="button" data-fs-action="delete" class="is-danger" title="刪除">${FS_ICON_DELETE}</button>
+        </div>
+      </td>
+      <td class="fs-col-created fs-col-schedule-extra">${escapeHtml(formatForeignScheduleCreatedDisplay(row.createdAt))}</td>
+    </tr>
+  `).join('');
+}
+
+function hideForeignScheduleEditModal() {
+  foreignScheduleEditContext = null;
+  document.getElementById('foreignScheduleEditModal')?.classList.add('hidden');
+}
+
+const FOREIGN_SCHEDULE_FREQ_LABELS = ['一', '二', '三', '四', '五', '六', '日'];
+
+function foreignScheduleDaysFromFrequency(str) {
+  const s = String(str || '').trim();
+  if (!s || /^daily$/i.test(s) || s === '每日') return [1, 2, 3, 4, 5, 6, 7];
+  return [...new Set(String(s).split(/[,，、\s]+/).map(x => Number(x.trim())).filter(n => n >= 1 && n <= 7))].sort((a, b) => a - b);
+}
+
+function foreignScheduleFrequencyFromDays(days) {
+  const set = [...new Set(days)].filter(n => n >= 1 && n <= 7).sort((a, b) => a - b);
+  if (!set.length) return '';
+  if (set.length === 7) return 'Daily';
+  return set.join(',');
+}
+
+function foreignScheduleFormatCreatedAt(date = new Date()) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  const hh = String(date.getHours()).padStart(2, '0');
+  const mm = String(date.getMinutes()).padStart(2, '0');
+  return `${y}/${m}/${d} ${hh}:${mm}`;
+}
+
+function foreignScheduleTimeToInputValue(value) {
+  if (typeof ForeignScheduleParser !== 'undefined'
+    && typeof ForeignScheduleParser.parseForeignTimeValue === 'function') {
+    const parsed = ForeignScheduleParser.parseForeignTimeValue(value);
+    if (parsed?.time) return parsed.time;
+  }
+  const text = String(value ?? '').trim();
+  if (!text) return '';
+  const m = text.match(/^(\d{1,2}):(\d{2})/);
+  if (!m) return text.replace(/\s*\(?\+1\)?/gi, '').trim();
+  return `${String(Number(m[1])).padStart(2, '0')}:${m[2]}`;
+}
+
+function foreignScheduleStaPlusOneFromValue(value) {
+  if (typeof ForeignScheduleParser !== 'undefined'
+    && typeof ForeignScheduleParser.parseForeignTimeValue === 'function') {
+    return !!ForeignScheduleParser.parseForeignTimeValue(value)?.plusOne;
+  }
+  return /\+1|\(\+1\)/i.test(String(value ?? ''));
+}
+
+function foreignScheduleStaFromForm() {
+  const time = foreignScheduleNormalizeTimeInput(document.getElementById('foreignScheduleEditSta')?.value);
+  const plusOne = !!document.getElementById('foreignScheduleEditStaPlusOne')?.checked;
+  if (!time) return '';
+  return plusOne ? `${time}+1` : time;
+}
+
+function foreignScheduleSetStaFormValues(value) {
+  const timeEl = document.getElementById('foreignScheduleEditSta');
+  const plusEl = document.getElementById('foreignScheduleEditStaPlusOne');
+  if (timeEl) timeEl.value = foreignScheduleTimeToInputValue(value);
+  if (plusEl) plusEl.checked = foreignScheduleStaPlusOneFromValue(value);
+}
+
+function foreignScheduleTimeFromInputValue(value) {
+  return foreignScheduleNormalizeTimeInput(value);
+}
+
+function foreignScheduleSyncFreqUi(selectedDays) {
+  const days = Array.isArray(selectedDays) ? selectedDays : foreignScheduleDaysFromFrequency(
+    document.getElementById('foreignScheduleEditFrequency')?.value || ''
+  );
+  document.querySelectorAll('#foreignScheduleEditFreqDays .fs-flight-freq-day').forEach(btn => {
+    const day = Number(btn.dataset.freqDay);
+    btn.classList.toggle('is-on', days.includes(day));
+  });
+  const hidden = document.getElementById('foreignScheduleEditFrequency');
+  if (hidden) hidden.value = foreignScheduleFrequencyFromDays(days);
+  const summary = document.getElementById('foreignScheduleEditFreqSummary');
+  if (summary) {
+    summary.textContent = days.length
+      ? `已選：${days.map(d => FOREIGN_SCHEDULE_FREQ_LABELS[d - 1]).join('、')}`
+      : '已選：—';
+  }
+}
+
+function foreignScheduleSelectedFreqDays() {
+  return [...document.querySelectorAll('#foreignScheduleEditFreqDays .fs-flight-freq-day.is-on')]
+    .map(btn => Number(btn.dataset.freqDay))
+    .filter(n => n >= 1 && n <= 7)
+    .sort((a, b) => a - b);
+}
+
+function collectAllForeignScheduleAcTypes() {
+  return FOREIGN_SCHEDULE_FORM_AC_TYPES.slice();
+}
+
+function collectAllForeignScheduleCarriers() {
+  const set = new Set();
+  getForeignScheduleFlatRows().forEach(row => {
+    const carrier = foreignScheduleCarrierFromFlight(row.flt, row.carrier);
+    if (carrier) set.add(carrier);
+  });
+  return [...set].sort((a, b) => a.localeCompare(b));
+}
+
+function foreignScheduleRefreshCarrierFilterDatalist() {
+  const list = document.getElementById('foreignScheduleFilterCarrierList');
+  const input = document.getElementById('foreignScheduleFilterCarrier');
+  if (!list || !input) return;
+  const current = foreignScheduleNormalizeCarrierFilter(input.value)
+    ? String(input.value || '').trim().toUpperCase()
+    : '';
+  list.innerHTML = [
+    '<option value="全部"></option>',
+    ...collectAllForeignScheduleCarriers().map(c => `<option value="${escapeHtml(c)}"></option>`)
+  ].join('');
+  input.value = current;
+}
+
+function foreignScheduleSplitFltParts(flt) {
+  const s = cleanForeignFltLabel(flt);
+  if (!s) return { carrier: '', number: '' };
+  if (typeof ForeignScheduleParser !== 'undefined' && typeof ForeignScheduleParser.inferCarrierFromFlt === 'function') {
+    const carrier = ForeignScheduleParser.inferCarrierFromFlt(s);
+    if (carrier && s.length > carrier.length) {
+      return { carrier, number: s.slice(carrier.length) };
+    }
+  }
+  const airline = foreignAirlineFromFlight(s);
+  if (airline && s.length > airline.length) {
+    return { carrier: airline, number: s.slice(airline.length) };
+  }
+  return { carrier: '', number: s };
+}
+
+function foreignScheduleComposeFlt(carrier, number) {
+  const code = String(carrier || '').trim().toUpperCase();
+  const num = String(number || '').trim().toUpperCase();
+  if (!code && !num) return '';
+  if (!code) return num;
+  if (!num) return code;
+  return code + num;
+}
+
+function foreignScheduleNormalizeTimeInput(value) {
+  const text = String(value || '').trim();
+  if (!text) return '';
+  const m = text.match(/^(\d{1,2}):(\d{2})$/);
+  if (!m) return text;
+  const hh = Number(m[1]);
+  const mm = Number(m[2]);
+  if (hh < 0 || hh > 23 || mm < 0 || mm > 59) return text;
+  return `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`;
+}
+
+function foreignScheduleRefreshAcTypeDatalist(selected) {
+  const list = document.getElementById('foreignScheduleEditAcTypeList');
+  const input = document.getElementById('foreignScheduleEditAcType');
+  if (!list || !input) return;
+  const current = String(selected ?? input.value ?? '').trim().toUpperCase();
+  const options = collectAllForeignScheduleAcTypes();
+  list.innerHTML = options.map(v => `<option value="${escapeHtml(v)}"></option>`).join('');
+  input.value = current;
+}
+
+function foreignScheduleBuildTimeDropPanelContent(prefix) {
+  return `
+    <div class="app-time-inline-body">
+      <div class="app-time-columns">
+        <div class="app-time-col">
+          <div class="app-time-col-title">時</div>
+          <div class="app-time-scroll" id="${prefix}HourList"></div>
+        </div>
+        <div class="app-time-col-sep">:</div>
+        <div class="app-time-col">
+          <div class="app-time-col-title">分</div>
+          <div class="app-time-scroll" id="${prefix}MinuteList"></div>
+        </div>
+      </div>
+      <div class="app-date-dialog-foot">
+        <div class="app-date-dialog-actions">
+          <button type="button" class="app-date-outline-btn" id="${prefix}TimeCancelBtn">取消</button>
+          <button type="button" class="app-date-primary-btn" id="${prefix}TimeConfirmBtn">確定</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function foreignScheduleEnsureTimeDropPanel(prefix, ariaLabel) {
+  const panel = document.getElementById(`${prefix}DropPanel`);
+  if (!panel || panel.dataset.ready === '1') return;
+  panel.dataset.ready = '1';
+  panel.innerHTML = foreignScheduleBuildTimeDropPanelContent(prefix);
+  if (ariaLabel) panel.setAttribute('aria-label', ariaLabel);
+}
+
+function initForeignScheduleTimePickers() {
+  if (initForeignScheduleTimePickers._done) return;
+  initForeignScheduleTimePickers._done = true;
+  const pickers = [
+    {
+      prefix: 'foreignScheduleEditStd',
+      pickerId: 'foreignScheduleEditStdPicker',
+      ariaLabel: '選擇 STD',
+      inputId: 'foreignScheduleEditStd'
+    },
+    {
+      prefix: 'foreignScheduleEditSta',
+      pickerId: 'foreignScheduleEditStaPicker',
+      ariaLabel: '選擇 STA',
+      inputId: 'foreignScheduleEditSta'
+    }
+  ];
+  pickers.forEach(cfg => {
+    foreignScheduleEnsureTimeDropPanel(cfg.prefix, cfg.ariaLabel);
+    initInlineAppTimeDrop({
+      pickerId: cfg.pickerId,
+      panelId: `${cfg.prefix}DropPanel`,
+      triggerId: `${cfg.prefix}Trigger`,
+      hourListId: `${cfg.prefix}HourList`,
+      minuteListId: `${cfg.prefix}MinuteList`,
+      cancelBtnId: `${cfg.prefix}TimeCancelBtn`,
+      confirmBtnId: `${cfg.prefix}TimeConfirmBtn`,
+      maxPanelWidth: 260,
+      getValue: () => document.getElementById(cfg.inputId)?.value || '',
+      onConfirm: value => {
+        const input = document.getElementById(cfg.inputId);
+        if (input) input.value = value;
+      }
+    });
+  });
+}
+
+function foreignScheduleBuildDateDropPanelContent(prefix) {
+  return `
+    <div class="app-date-inline-day" id="${prefix}InlineDay">
+      <div class="app-date-dialog-nav-row">
+        <button type="button" class="app-date-dialog-nav-box" id="${prefix}InlinePrevMonth" aria-label="上個月">‹</button>
+        <button type="button" class="app-date-month-trigger" id="${prefix}InlineMonthTrigger" aria-label="選擇月份">
+          <span id="${prefix}InlineMonthLabel"></span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+        </button>
+        <button type="button" class="app-date-dialog-nav-box" id="${prefix}InlineNextMonth" aria-label="下個月">›</button>
+      </div>
+      <div class="app-date-weekdays">
+        <span>日</span><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span>
+      </div>
+      <div class="app-date-grid" id="${prefix}InlineGrid"></div>
+      <div class="app-date-dialog-foot">
+        <button type="button" class="app-date-link-btn" id="${prefix}InlineTodayBtn">今天</button>
+        <div class="app-date-dialog-actions">
+          <button type="button" class="app-date-outline-btn" id="${prefix}InlineCancelBtn">取消</button>
+          <button type="button" class="app-date-primary-btn" id="${prefix}InlineConfirmBtn">確定</button>
+        </div>
+      </div>
+    </div>
+    <div class="app-date-inline-month hidden" id="${prefix}InlineMonth">
+      <div class="app-date-year-list" id="${prefix}InlineYearList"></div>
+    </div>
+  `;
+}
+
+function foreignScheduleEnsureDateDropPanel(prefix, ariaLabel) {
+  const panel = document.getElementById(`${prefix}DropPanel`);
+  if (!panel || panel.dataset.ready === '1') return;
+  panel.dataset.ready = '1';
+  panel.innerHTML = foreignScheduleBuildDateDropPanelContent(prefix);
+  if (ariaLabel) panel.setAttribute('aria-label', ariaLabel);
+}
+
+function syncForeignScheduleHiddenDate(prefix, iso) {
+  const hidden = document.getElementById(prefix);
+  const display = document.getElementById(`${prefix}Display`);
+  const value = String(iso || '').trim();
+  if (hidden) hidden.value = value;
+  if (display) display.textContent = value ? formatForeignScheduleDateDisplay(value) : '—';
+  document.getElementById(`${prefix}Picker`)?.refreshInlineDateDrop?.();
+}
+
+function initForeignScheduleDatePickers() {
+  if (initForeignScheduleDatePickers._done) return;
+  initForeignScheduleDatePickers._done = true;
+  initAppDateFields();
+  initForeignScheduleTimePickers();
+
+  const pickers = [
+    {
+      prefix: 'foreignSchedulePreviewDate',
+      pickerId: 'foreignSchedulePreviewDatePicker',
+      ariaLabel: '選擇基準日',
+      onConfirm: iso => {
+        syncForeignScheduleHiddenDate('foreignSchedulePreviewDate', iso);
+        foreignSchedulePanelResultsReady = false;
+        renderForeignSchedulePreviewPanel();
+      }
+    },
+    {
+      prefix: 'foreignScheduleEditFrom',
+      pickerId: 'foreignScheduleEditFromPicker',
+      ariaLabel: '選擇開始日期',
+      onConfirm: iso => syncForeignScheduleHiddenDate('foreignScheduleEditFrom', iso)
+    },
+    {
+      prefix: 'foreignScheduleEditTill',
+      pickerId: 'foreignScheduleEditTillPicker',
+      ariaLabel: '選擇結束日期',
+      onConfirm: iso => syncForeignScheduleHiddenDate('foreignScheduleEditTill', iso)
+    }
+  ];
+
+  pickers.forEach(cfg => {
+    foreignScheduleEnsureDateDropPanel(cfg.prefix, cfg.ariaLabel);
+    initInlineAppDateDrop({
+      pickerId: cfg.pickerId,
+      panelId: `${cfg.prefix}DropPanel`,
+      triggerId: `${cfg.prefix}Trigger`,
+      dayWrapId: `${cfg.prefix}InlineDay`,
+      monthWrapId: `${cfg.prefix}InlineMonth`,
+      gridId: `${cfg.prefix}InlineGrid`,
+      monthLabelId: `${cfg.prefix}InlineMonthLabel`,
+      yearListId: `${cfg.prefix}InlineYearList`,
+      todayBtnId: `${cfg.prefix}InlineTodayBtn`,
+      cancelBtnId: `${cfg.prefix}InlineCancelBtn`,
+      confirmBtnId: `${cfg.prefix}InlineConfirmBtn`,
+      prevMonthId: `${cfg.prefix}InlinePrevMonth`,
+      nextMonthId: `${cfg.prefix}InlineNextMonth`,
+      monthTriggerId: `${cfg.prefix}InlineMonthTrigger`,
+      fixed: true,
+      maxPanelWidth: 320,
+      getValue: () => document.getElementById(cfg.prefix)?.value || '',
+      getSelectedIso: () => document.getElementById(cfg.prefix)?.value || '',
+      onConfirm: cfg.onConfirm
+    });
+  });
+}
+
+function foreignScheduleFillAcTypeSelect(airline, selected) {
+  foreignScheduleRefreshAcTypeDatalist(selected);
+}
+
+function foreignScheduleInferCarrierFromForm() {
+  return String(document.getElementById('foreignScheduleEditCarrier')?.value || '').trim().toUpperCase();
+}
+
+function foreignScheduleSetDepArrValues(dep, arr) {
+  const depEl = document.getElementById('foreignScheduleEditDep');
+  const arrEl = document.getElementById('foreignScheduleEditArr');
+  if (depEl) depEl.value = String(dep || '').trim().toUpperCase();
+  if (arrEl) arrEl.value = String(arr || '').trim().toUpperCase();
+  foreignScheduleSyncConnectingFormUi();
+}
+
+function foreignScheduleCollectEditFormPatch() {
+  const days = foreignScheduleSelectedFreqDays();
+  const schedule = foreignScheduleFrequencyFromDays(days);
+  if (!schedule) return { error: '請至少選擇一個飛航日' };
+  const fromDate = document.getElementById('foreignScheduleEditFrom')?.value || '';
+  const tillDate = document.getElementById('foreignScheduleEditTill')?.value || '';
+  if (!fromDate || !tillDate) return { error: '請選擇有效期間' };
+  const carrier = foreignScheduleInferCarrierFromForm();
+  const fltNo = String(document.getElementById('foreignScheduleEditFltNo')?.value || '').trim().toUpperCase();
+  const flt = foreignScheduleComposeFlt(carrier, fltNo);
+  if (!flt) return { error: '請填寫航空公司與航班編號' };
+  const std = foreignScheduleTimeFromInputValue(document.getElementById('foreignScheduleEditStd')?.value);
+  const staTime = foreignScheduleNormalizeTimeInput(document.getElementById('foreignScheduleEditSta')?.value);
+  const sta = foreignScheduleStaFromForm();
+  if (std && !/^\d{2}:\d{2}$/.test(std)) return { error: 'STD 請使用 24 小時制（例如 14:15）' };
+  if (staTime && !/^\d{2}:\d{2}$/.test(staTime)) return { error: 'STA 請使用 24 小時制（例如 15:50）' };
+  const dep = String(document.getElementById('foreignScheduleEditDep')?.value || '').trim().toUpperCase();
+  const arr = String(document.getElementById('foreignScheduleEditArr')?.value || '').trim().toUpperCase();
+  const connectingFlt = foreignScheduleIsInboundRow(dep, arr)
+    ? foreignScheduleNormalizeConnectingFlt(document.getElementById('foreignScheduleEditConnectingFlt')?.value)
+    : '';
+  if (connectingFlt) {
+    const connErr = foreignScheduleValidateConnectingFlt(flt, connectingFlt);
+    if (connErr) return { error: connErr };
+  }
+  return {
+    flt,
+    carrier,
+    fromDate,
+    tillDate,
+    dep,
+    arr,
+    std,
+    sta,
+    schedule,
+    acType: document.getElementById('foreignScheduleEditAcType')?.value || '',
+    connectingFlt
+  };
+}
+
+function openForeignScheduleAddForm() {
+  foreignScheduleRefreshAcTypeDatalist('');
+  foreignScheduleEditContext = { mode: 'add' };
+  document.getElementById('foreignScheduleEditModalTitle').textContent = '新增航班';
+  document.getElementById('foreignScheduleEditCarrier').value = '';
+  document.getElementById('foreignScheduleEditCarrier').readOnly = false;
+  document.getElementById('foreignScheduleEditFltNo').value = '';
+  document.getElementById('foreignScheduleEditCreated').value = foreignScheduleFormatCreatedAt();
+  syncForeignScheduleHiddenDate('foreignScheduleEditFrom', selectedDate || '');
+  syncForeignScheduleHiddenDate('foreignScheduleEditTill', selectedDate || '');
+  foreignScheduleSetDepArrValues('', '');
+  document.getElementById('foreignScheduleEditConnectingFlt').value = '';
+  document.getElementById('foreignScheduleEditStd').value = '';
+  foreignScheduleSetStaFormValues('');
+  document.getElementById('foreignScheduleEditAcType').value = '';
+  foreignScheduleSyncFreqUi([1, 2, 3, 4, 5, 6]);
+  foreignScheduleSyncConnectingFormUi();
+  document.getElementById('foreignScheduleEditModal')?.classList.remove('hidden');
+}
+
+function openForeignScheduleRowEditor(scheduleId, rowIndex) {
+  if (typeof ForeignScheduleRegistry === 'undefined') return;
+  const rows = ForeignScheduleRegistry.loadRows(scheduleId);
+  const row = rows[rowIndex];
+  if (!row) {
+    appAlert('找不到此航班列，可能已被刪除。', '無法編輯');
+    invalidateForeignScheduleCache();
+    renderForeignScheduleManager();
+    return;
+  }
+  foreignScheduleEditContext = { mode: 'edit', scheduleId, rowIndex };
+  const parts = foreignScheduleSplitFltParts(row.flt);
+  document.getElementById('foreignScheduleEditModalTitle').textContent = `編輯 ${cleanForeignFltLabel(row.flt)}`;
+  document.getElementById('foreignScheduleEditCarrier').value = parts.carrier || '';
+  document.getElementById('foreignScheduleEditCarrier').readOnly = false;
+  document.getElementById('foreignScheduleEditFltNo').value = parts.number || '';
+  document.getElementById('foreignScheduleEditCreated').value = '—';
+  syncForeignScheduleHiddenDate('foreignScheduleEditFrom', row.fromDate || '');
+  syncForeignScheduleHiddenDate('foreignScheduleEditTill', row.tillDate || '');
+  foreignScheduleSetDepArrValues(row.dep, row.arr);
+  document.getElementById('foreignScheduleEditStd').value = foreignScheduleTimeToInputValue(row.std);
+  foreignScheduleSetStaFormValues(row.sta);
+  foreignScheduleRefreshAcTypeDatalist(row.acType || '');
+  document.getElementById('foreignScheduleEditConnectingFlt').value = row.connectingFlt || '';
+  foreignScheduleSyncFreqUi(foreignScheduleDaysFromFrequency(row.schedule || ''));
+  foreignScheduleSyncConnectingFormUi();
+  document.getElementById('foreignScheduleEditModal')?.classList.remove('hidden');
+}
+
+function saveForeignScheduleRowEdit() {
+  if (!foreignScheduleEditContext || typeof ForeignScheduleRegistry === 'undefined') return;
+  const patch = foreignScheduleCollectEditFormPatch();
+  if (patch.error) {
+    appAlert(patch.error, '無法儲存');
+    return;
+  }
+  let res;
+  if (foreignScheduleEditContext.mode === 'add') {
+    res = ForeignScheduleRegistry.addRowAt(patch);
+  } else {
+    const { scheduleId, rowIndex } = foreignScheduleEditContext;
+    res = ForeignScheduleRegistry.updateRowAt(scheduleId, rowIndex, patch);
+  }
+  if (!res.ok) {
+    appAlert(res.error || '儲存失敗', '無法儲存');
+    return;
+  }
+  hideForeignScheduleEditModal();
+  invalidateForeignScheduleCache();
+  foreignScheduleRefreshAcTypeDatalist('');
+  renderForeignScheduleManager();
+}
+
+async function handleForeignScheduleRowAction(e) {
+  const btn = e.target.closest('button[data-fs-action]');
+  if (!btn) return;
+  e.stopPropagation();
+  const tr = btn.closest('tr[data-schedule-id]');
+  const scheduleId = tr?.dataset?.scheduleId;
+  const rowIndex = Number(tr?.dataset?.rowIndex);
+  if (!scheduleId || Number.isNaN(rowIndex)) return;
+  if (btn.dataset.fsAction === 'edit') {
+    openForeignScheduleRowEditor(scheduleId, rowIndex);
+    return;
+  }
+  if (btn.dataset.fsAction === 'delete') {
+    const ok = await appConfirm('確定刪除此航班列？', { title: '刪除航班', confirmText: '刪除' });
+    if (!ok) return;
+    const res = ForeignScheduleRegistry.removeRowAt(scheduleId, rowIndex);
+    if (!res.ok) { appAlert(res.error || '刪除失敗'); return; }
+    invalidateForeignScheduleCache();
+    renderForeignScheduleManager();
+  }
+}
+
+function renderForeignSchedulePreviewPanel() {
+  const box = document.getElementById('foreignSchedulePreviewBox');
+  if (!box) return;
+  if (!foreignSchedulePanelResultsReady) {
+    box.innerHTML = '<div class="fs-preview-empty">請選擇基準日後按「確定」開始篩選。</div>';
+    return;
+  }
+  const dateISO = getForeignScheduleRefDate();
+  if (!dateISO) {
+    box.innerHTML = '<div class="fs-preview-empty">請選擇基準日後按「確定」開始篩選。</div>';
+    return;
+  }
+  if (typeof ForeignScheduleRegistry === 'undefined' || !ForeignScheduleRegistry.hasAnySchedules()) {
+    box.innerHTML = '<div class="fs-preview-empty">尚未設定時刻表；FIS 匯入時將使用預設 xlsx。</div>';
+    return;
+  }
+  const candidates = getForeignScheduleFilterCandidates();
+  if (!candidates.length) {
+    box.innerHTML = `<div class="fs-preview-empty">${escapeHtml(formatForeignScheduleDateDisplay(dateISO))} 沒有符合篩選的航班。</div>`;
+    return;
+  }
+  const bodyRows = candidates.map(c => foreignScheduleCandidateRowHtml(c)).join('');
+  box.innerHTML = `
+    <div class="fs-preview-table-meta">共 ${candidates.length} 筆 · 基準日 ${escapeHtml(formatForeignScheduleDateDisplay(dateISO))}</div>
+    <div class="fs-preview-table-wrap">
+      <table class="foreign-schedule-table fs-preview-table">
+        <colgroup>
+          <col class="fs-col-airline" />
+          <col class="fs-col-flt" />
+          <col class="fs-col-ap" />
+          <col class="fs-col-ap" />
+          <col class="fs-col-time" />
+          <col class="fs-col-time" />
+          <col class="fs-col-actype" />
+          <col class="fs-col-pair" />
+        </colgroup>
+        <thead>${foreignScheduleCandidateTableHeadHtml()}</thead>
+        <tbody>${bodyRows}</tbody>
+      </table>
+    </div>
+  `;
+}
+
+function exportForeignScheduleExcel() {
+  if (typeof XLSX === 'undefined') {
+    appAlert('Excel 匯出套件尚未載入。', '無法匯出');
+    return;
+  }
+  const refDate = getForeignScheduleRefDate();
+  if (!refDate) {
+    appAlert('請先於篩選設定基準日。', '無法匯出');
+    return;
+  }
+  if (!foreignScheduleFiltersApplied) {
+    appAlert('請先按「確定」套用基準日篩選。', '無法匯出');
+    return;
+  }
+  const candidates = getForeignScheduleFilterCandidates();
+  if (!candidates.length) {
+    appAlert(`${formatForeignScheduleDateDisplay(refDate)} 沒有可匯出的資料。`, '無法匯出');
+    return;
+  }
+  const carrier = getForeignScheduleFilterState().carrier;
+  const carrierSuffix = carrier ? `_${carrier}` : '';
+  const sheetRows = candidates.map(c => {
+    const fd = c.flightDef || {};
+    return {
+      Airline: foreignScheduleCarrierFromFlight(c.flight, c.carrier),
+      'FLT No': cleanForeignFltLabel(c.flight),
+      DEP: c.dep || '',
+      ARR: c.arr || '',
+      STD: fd.std || '',
+      STA: fd.sta || '',
+      Equipment: fd.acType || '',
+      'Turnaround Pair': foreignScheduleCandidateTurnaroundCell(c).replace(/^→\s*/, '')
+    };
+  });
+  const ws = XLSX.utils.json_to_sheet(sheetRows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, '外家時刻表');
+  XLSX.writeFile(wb, `外家時刻表_${refDate}${carrierSuffix}.xlsx`);
+}
+
+function foreignScheduleFiltersAreDefault() {
+  if (!foreignScheduleFiltersApplied) return true;
+  const f = getForeignScheduleFilterState();
+  const refDate = getForeignScheduleRefDate();
+  return !f.carrier
+    && !f.search
+    && refDate === (selectedDate || '');
+}
+
+function updateForeignScheduleFilterToggleUi() {
+  const btn = document.getElementById('foreignScheduleFilterToggleBtn');
+  const panel = document.getElementById('foreignScheduleFilterPanel');
+  if (!btn) return;
+  const open = panel && !panel.classList.contains('hidden');
+  btn.classList.toggle('is-open', open);
+  btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+  btn.classList.toggle('has-filters', !foreignScheduleFiltersAreDefault());
+}
+
+function setForeignScheduleFilterPanelOpen(open) {
+  const panel = document.getElementById('foreignScheduleFilterPanel');
+  const root = document.querySelector('.foreign-schedule-manager');
+  if (!panel) return;
+  if (open) {
+    const previewDate = document.getElementById('foreignSchedulePreviewDate');
+    if (previewDate && !previewDate.value) {
+      syncForeignScheduleHiddenDate('foreignSchedulePreviewDate', selectedDate || '');
+    }
+    panel.classList.remove('hidden');
+    if (foreignScheduleFiltersApplied) foreignSchedulePanelResultsReady = true;
+    renderForeignSchedulePreviewPanel();
+  } else {
+    panel.classList.add('hidden');
+  }
+  root?.classList.toggle('is-filter-open', !!open);
+  updateForeignScheduleFilterToggleUi();
+}
+
+function applyForeignScheduleFilters() {
+  const refDate = getForeignScheduleRefDate();
+  if (!refDate) {
+    appAlert('請先選擇基準日。', '無法篩選');
+    return;
+  }
+  foreignSchedulePage = 1;
+  foreignScheduleFiltersApplied = true;
+  foreignSchedulePanelResultsReady = true;
+  renderForeignScheduleFlightTable();
+  renderForeignSchedulePreviewPanel();
+  updateForeignScheduleFilterToggleUi();
+}
+
+function clearForeignScheduleFilters() {
+  const carrier = document.getElementById('foreignScheduleFilterCarrier');
+  const search = document.getElementById('foreignScheduleFilterSearch');
+  if (carrier) carrier.value = '';
+  if (search) search.value = '';
+  const previewDate = document.getElementById('foreignSchedulePreviewDate');
+  if (previewDate) syncForeignScheduleHiddenDate('foreignSchedulePreviewDate', selectedDate || '');
+  foreignScheduleFiltersApplied = false;
+  foreignSchedulePanelResultsReady = false;
+  foreignSchedulePage = 1;
+  const previewBox = document.getElementById('foreignSchedulePreviewBox');
+  if (previewBox) {
+    previewBox.innerHTML = '<div class="fs-preview-empty">請選擇基準日後按「確定」開始篩選。</div>';
+  }
+  setForeignScheduleFilterPanelOpen(false);
+  renderForeignScheduleFlightTable();
+}
+
+function renderForeignScheduleManager() {
+  initForeignScheduleDatePickers();
+  const previewDate = document.getElementById('foreignSchedulePreviewDate');
+  if (previewDate && !previewDate.value) {
+    syncForeignScheduleHiddenDate('foreignSchedulePreviewDate', selectedDate || '');
+  }
+  foreignScheduleRefreshAcTypeDatalist('');
+  foreignScheduleRefreshCarrierFilterDatalist();
+  updateForeignScheduleFilterToggleUi();
+  renderForeignScheduleFlightTable();
+  if (foreignScheduleFiltersApplied) renderForeignSchedulePreviewPanel();
+}
+
+function bindForeignScheduleManager() {
+  if (foreignScheduleManagerBound) return;
+  foreignScheduleManagerBound = true;
+  initForeignScheduleDatePickers();
+  document.getElementById('foreignScheduleAddBtn')?.addEventListener('click', () => {
+    openForeignScheduleAddForm();
+  });
+  document.getElementById('foreignScheduleFilterToggleBtn')?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const panel = document.getElementById('foreignScheduleFilterPanel');
+    setForeignScheduleFilterPanelOpen(panel?.classList.contains('hidden'));
+  });
+  document.getElementById('foreignScheduleApplyFiltersBtn')?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    applyForeignScheduleFilters();
+  });
+  document.getElementById('foreignScheduleFilterExportBtn')?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    exportForeignScheduleExcel();
+  });
+  document.getElementById('foreignScheduleClearFiltersBtn')?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    clearForeignScheduleFilters();
+  });
+  document.getElementById('foreignScheduleFilterSearch')?.addEventListener('input', () => {
+    foreignSchedulePage = 1;
+    renderForeignScheduleFlightTable();
+    updateForeignScheduleFilterToggleUi();
+    if (foreignScheduleFiltersApplied && foreignSchedulePanelResultsReady && isForeignScheduleFilterPanelOpen()) {
+      renderForeignSchedulePreviewPanel();
+    }
+  });
+  document.getElementById('foreignScheduleCreatedSortTh')?.addEventListener('click', () => {
+    foreignScheduleCreatedSortActive = !foreignScheduleCreatedSortActive;
+    foreignSchedulePage = 1;
+    updateForeignScheduleCreatedSortUi();
+    renderForeignScheduleFlightTable();
+  });
+  document.getElementById('foreignSchedulePageSize')?.addEventListener('change', () => {
+    foreignSchedulePage = 1;
+    renderForeignScheduleFlightTable();
+  });
+  document.getElementById('foreignScheduleFilterCarrier')?.addEventListener('input', () => {
+    const input = document.getElementById('foreignScheduleFilterCarrier');
+    if (input) {
+      const raw = String(input.value || '').trim();
+      input.value = !raw || raw === '全部' ? '' : raw.toUpperCase();
+    }
+    if (!isForeignScheduleFilterPanelOpen()) return;
+    foreignSchedulePanelResultsReady = false;
+    renderForeignSchedulePreviewPanel();
+  });
+  document.getElementById('foreignScheduleFilterCarrier')?.addEventListener('change', () => {
+    if (!isForeignScheduleFilterPanelOpen()) return;
+    foreignSchedulePanelResultsReady = false;
+    renderForeignSchedulePreviewPanel();
+  });
+  document.addEventListener('click', (e) => {
+    const panel = document.getElementById('foreignScheduleFilterPanel');
+    const toggle = document.getElementById('foreignScheduleFilterToggleBtn');
+    const resetBtn = document.getElementById('foreignScheduleClearFiltersBtn');
+    if (!panel || panel.classList.contains('hidden')) return;
+    const t = e.target;
+    if (panel.contains(t) || toggle?.contains(t) || resetBtn?.contains(t)) return;
+    setForeignScheduleFilterPanelOpen(false);
+  });
+  document.getElementById('foreignSchedulePagePrev')?.addEventListener('click', () => {
+    if (foreignSchedulePage > 1) {
+      foreignSchedulePage -= 1;
+      renderForeignScheduleFlightTable();
+    }
+  });
+  document.getElementById('foreignSchedulePageNext')?.addEventListener('click', () => {
+    foreignSchedulePage += 1;
+    renderForeignScheduleFlightTable();
+  });
+  document.getElementById('foreignScheduleTableBody')?.addEventListener('click', (e) => {
+    handleForeignScheduleRowAction(e);
+  });
+  document.getElementById('foreignScheduleEditSaveBtn')?.addEventListener('click', () => {
+    saveForeignScheduleRowEdit();
+  });
+  document.getElementById('foreignScheduleEditCancelBtn')?.addEventListener('click', () => {
+    hideForeignScheduleEditModal();
+  });
+  document.getElementById('foreignScheduleEditModal')?.addEventListener('click', (e) => {
+    if (e.target.id === 'foreignScheduleEditModal') hideForeignScheduleEditModal();
+  });
+  document.getElementById('foreignScheduleEditForm')?.addEventListener('submit', (e) => {
+    e.preventDefault();
+    saveForeignScheduleRowEdit();
+  });
+  document.getElementById('foreignScheduleEditCarrier')?.addEventListener('blur', (e) => {
+    e.target.value = String(e.target.value || '').trim().toUpperCase();
+    foreignScheduleSyncConnectingFormUi();
+    foreignScheduleMaybePrefillConnecting();
+  });
+  document.getElementById('foreignScheduleEditFltNo')?.addEventListener('blur', (e) => {
+    e.target.value = String(e.target.value || '').trim().toUpperCase();
+    foreignScheduleMaybePrefillConnecting();
+  });
+  document.getElementById('foreignScheduleEditDep')?.addEventListener('input', () => {
+    foreignScheduleSyncConnectingFormUi();
+  });
+  document.getElementById('foreignScheduleEditDep')?.addEventListener('blur', (e) => {
+    e.target.value = String(e.target.value || '').trim().toUpperCase();
+    foreignScheduleSyncConnectingFormUi();
+  });
+  document.getElementById('foreignScheduleEditArr')?.addEventListener('input', () => {
+    foreignScheduleSyncConnectingFormUi();
+    foreignScheduleMaybePrefillConnecting();
+  });
+  document.getElementById('foreignScheduleEditArr')?.addEventListener('blur', (e) => {
+    e.target.value = String(e.target.value || '').trim().toUpperCase();
+    foreignScheduleSyncConnectingFormUi();
+    foreignScheduleMaybePrefillConnecting();
+  });
+  document.getElementById('foreignScheduleEditConnectingFlt')?.addEventListener('blur', (e) => {
+    e.target.value = String(e.target.value || '').trim().toUpperCase();
+    foreignScheduleSyncConnectingFormUi();
+  });
+  document.getElementById('foreignScheduleEditFrom')?.addEventListener('change', () => {
+    foreignScheduleSyncConnectingFormUi();
+  });
+  document.getElementById('foreignScheduleEditTill')?.addEventListener('change', () => {
+    foreignScheduleSyncConnectingFormUi();
+  });
+  document.getElementById('foreignScheduleEditStd')?.addEventListener('blur', (e) => {
+    e.target.value = foreignScheduleNormalizeTimeInput(e.target.value);
+  });
+  document.getElementById('foreignScheduleEditSta')?.addEventListener('blur', (e) => {
+    e.target.value = foreignScheduleNormalizeTimeInput(e.target.value);
+  });
+  document.getElementById('foreignScheduleEditFreqDays')?.addEventListener('click', (e) => {
+    const btn = e.target.closest('.fs-flight-freq-day');
+    if (!btn) return;
+    e.preventDefault();
+    btn.classList.toggle('is-on');
+    foreignScheduleSyncFreqUi(foreignScheduleSelectedFreqDays());
+    foreignScheduleSyncConnectingFormUi();
+  });
+  document.getElementById('foreignScheduleEditFreqClear')?.addEventListener('click', () => {
+    foreignScheduleSyncFreqUi([]);
+    foreignScheduleSyncConnectingFormUi();
+  });
+}
+
+async function buildForeignCandidatesForDate(selectedDateIso, opts = {}) {
+  if (typeof ForeignScheduleRegistry !== 'undefined'
+    && typeof ForeignScheduleRegistry.hasAnySchedules === 'function'
+    && ForeignScheduleRegistry.hasAnySchedules()) {
+    const rows = ForeignScheduleRegistry.collectRowsForAcTypeSync(selectedDateIso);
+    syncForeignAcTypeOptionsFromRows(rows);
+    console.log('[foreign-import] registry', ForeignScheduleRegistry.REGISTRY_VERSION, 'selectedDate', selectedDateIso);
+    return ForeignScheduleRegistry.buildCandidatesForDate(selectedDateIso, { ...opts, debug: true });
+  }
+  if (typeof ForeignScheduleParser === 'undefined'
+    || typeof ForeignScheduleParser.parseForeignScheduleWorkbook !== 'function') {
+    return { candidates: [], skipped: [], stats: { dep: 0, arr: 0, total: 0 } };
+  }
+  const foreignWorkbook = await loadForeignScheduleWorkbook();
+  syncForeignAcTypeOptionsFromWorkbook(foreignWorkbook);
+  console.log('[foreign-import] fallback xlsx', ForeignScheduleParser?.PARSER_VERSION, 'selectedDate', selectedDateIso);
+  return ForeignScheduleParser.parseForeignScheduleWorkbook(foreignWorkbook, selectedDateIso, { ...opts, debug: true });
 }
 
 function isForeignPreviewFlight(flight) {
@@ -14734,17 +16905,26 @@ function readPreviewRowFlight(row) {
 }
 
 function getForeignConnectingPair(flight, type) {
-  const utils = window.FlightAssignmentUtils;
-  if (!utils?.buildFixedConnectingMap) return null;
-  const map = utils.buildFixedConnectingMap(normalizeImportedFlightNo);
   const norm = normalizeImportedFlightNo(flight);
-  if (!norm) return null;
-  if (type === 'ARR' && map.has(norm)) {
-    return { partner: map.get(norm), partnerType: 'DEP' };
+  if (!norm || !type) return null;
+  const items = [
+    ...(pendingFlightPreview?.depItems || []),
+    ...(pendingFlightPreview?.arrItems || [])
+  ];
+  if (type === 'ARR') {
+    const arrItem = items.find(it =>
+      it?.type === 'ARR' && normalizeImportedFlightNo(it.flight) === norm
+    );
+    const conn = arrItem?.flightDef?.connectingFlight;
+    if (!conn) return null;
+    return { partner: normalizeImportedFlightNo(conn), partnerType: 'DEP' };
   }
   if (type === 'DEP') {
-    for (const [arr, dep] of map.entries()) {
-      if (dep === norm) return { partner: arr, partnerType: 'ARR' };
+    for (const arrItem of items) {
+      if (arrItem?.type !== 'ARR') continue;
+      const conn = arrItem?.flightDef?.connectingFlight;
+      if (!conn || normalizeImportedFlightNo(conn) !== norm) continue;
+      return { partner: normalizeImportedFlightNo(arrItem.flight), partnerType: 'ARR' };
     }
   }
   return null;
@@ -24976,21 +27156,16 @@ document.getElementById('excelImportInput').addEventListener('change', async (e)
 
   let foreignParsed = { candidates: [], skipped: [], stats: { dep: 0, arr: 0, total: 0 } };
   try {
-    if (typeof ForeignScheduleParser !== 'undefined' && typeof ForeignScheduleParser.parseForeignScheduleWorkbook === 'function') {
-      const foreignWorkbook = await loadForeignScheduleWorkbook();
-      syncForeignAcTypeOptionsFromWorkbook(foreignWorkbook);
-      console.log('[foreign-import] loading parser', ForeignScheduleParser?.PARSER_VERSION, 'selectedDate', selectedDate);
-      foreignParsed = ForeignScheduleParser.parseForeignScheduleWorkbook(foreignWorkbook, selectedDate, {
-        normalizeFlightNo: normalizeImportedFlightNo,
-        debug: true
-      });
-      console.log('[foreign-import] parse result', {
-        parserVersion: foreignParsed.parserVersion,
-        stats: foreignParsed.stats,
-        bx792: (foreignParsed.candidates || []).filter(c => /BX\s*0*792/i.test(c.flight || c.flt || '')),
-        skippedBx792: (foreignParsed.skipped || []).filter(s => /BX\s*0*792/i.test(s.flt || ''))
-      });
-    }
+    foreignParsed = await buildForeignCandidatesForDate(selectedDate, {
+      normalizeFlightNo: normalizeImportedFlightNo
+    });
+    console.log('[foreign-import] parse result', {
+      parserVersion: foreignParsed.parserVersion || foreignParsed.registryVersion,
+      stats: foreignParsed.stats,
+      applied: foreignParsed.applied,
+      bx792: (foreignParsed.candidates || []).filter(c => /BX\s*0*792/i.test(c.flight || c.flt || '')),
+      skippedBx792: (foreignParsed.skipped || []).filter(s => /BX\s*0*792/i.test(s.flt || ''))
+    });
   } catch (err) {
     console.warn(err);
     foreignParsed.error = `外家時刻表載入失敗：${err.message || err}。將僅匯入 FIS。`;

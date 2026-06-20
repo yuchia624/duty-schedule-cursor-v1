@@ -2,18 +2,6 @@
  * 分配表航班欄位：變更紀錄、登機門改色、接飛自動配對
  */
 (function (global) {
-  const FIXED_CONNECTING_RAW = [
-    ['HX252', 'HX253'],
-    ['HX254', 'HX255'],
-    ['HX260', 'HX261'],
-    ['HX282', 'HX283'],
-    ['OZ711', 'OZ712'],
-    ['OZ713', 'OZ714'],
-    ['BX791', 'BX792'],
-    ['BX793', 'BX794'],
-    ['NZ77', 'NZ78']
-  ];
-
   let flightDefIdSeq = 0;
 
   function cleanAcNo(v) {
@@ -41,17 +29,6 @@
     let diff = stdMs - staMs;
     if (diff <= 0) diff += 24 * 60 * 60 * 1000;
     return diff;
-  }
-
-  function buildFixedConnectingMap(normalizeFlightNo) {
-    const norm = typeof normalizeFlightNo === 'function'
-      ? normalizeFlightNo
-      : (v) => String(v || '').trim().toUpperCase();
-    const map = new Map();
-    FIXED_CONNECTING_RAW.forEach(([arr, dep]) => {
-      map.set(norm(arr), norm(dep));
-    });
-    return map;
   }
 
   function ensureFlightDefIds(flightDefs) {
@@ -221,17 +198,14 @@
       ? opts.normalizeFlightNo
       : (v) => String(v || '').trim().toUpperCase();
     const preserveManual = opts.preserveManual !== false;
-    const fixedMap = buildFixedConnectingMap(normalizeFlightNo);
     const depFlights = flightDefs.filter(f => f.type === 'DEP' && f.status !== 'CANX');
     const arrFlights = flightDefs.filter(f => f.type === 'ARR');
 
     arrFlights.forEach(arr => {
       if (preserveManual && arr.connectingSource === 'manual') return;
 
-      const arrNorm = normalizeFlightNo(arr.flight);
-      if (fixedMap.has(arrNorm)) {
-        arr.connectingFlight = fixedMap.get(arrNorm);
-        arr.connectingSource = 'foreign-fixed';
+      if (arr.connectingSource === 'foreign-schedule' && String(arr.connectingFlight || '').trim()) {
+        arr.connectingFlight = normalizeFlightNo(arr.connectingFlight);
         return;
       }
 
@@ -281,7 +255,6 @@
   }
 
   global.FlightAssignmentUtils = {
-    FIXED_CONNECTING_RAW,
     ensureFlightDefIds,
     getFieldEdits,
     getFieldEditCount,
@@ -295,7 +268,6 @@
     buildFieldHistoryHtml,
     stripGateBaselineEdits,
     computeConnectingFlights,
-    buildFixedConnectingMap,
     turnaroundDiffMs
   };
 })(typeof window !== 'undefined' ? window : globalThis);
