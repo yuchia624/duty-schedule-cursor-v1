@@ -3093,6 +3093,63 @@
   .duty-chip.role-RC { background: #e0f2fe; }
   .duty-chip.role-BG { background: #dcfce7; }
   .duty-chip.role-ABG { background: #fef3c7; }
+  .duty-chip.role-ABG.duty-chip--abg-pax { cursor: pointer; }
+  .abg-pax-popover {
+    position: fixed; z-index: 15000;
+    min-width: 420px; max-width: min(520px, calc(100vw - 24px));
+    padding: 10px 12px 12px;
+    background: #fff; border: 1px solid #e2e8f0; border-radius: 10px;
+    box-shadow: 0 10px 28px rgba(15, 23, 42, 0.14);
+  }
+  .abg-pax-popover.hidden { display: none !important; }
+  .abg-pax-popover-title {
+    font-size: 12px; font-weight: 700; color: #334155; margin-bottom: 8px;
+  }
+  .abg-pax-popover-table {
+    display: grid;
+    grid-template-columns: 52px 52px 44px 92px minmax(0, 1fr);
+    grid-template-rows: auto minmax(34px, auto);
+    column-gap: 8px; row-gap: 6px;
+  }
+  .abg-pax-popover-table > .abg-pax-popover-lbl {
+    align-self: start; margin-bottom: 0; min-height: 14px; line-height: 14px;
+  }
+  .abg-pax-popover-table > .abg-pax-popover-val {
+    font-size: 16px; font-weight: 600; line-height: 1.2;
+    align-self: center; justify-self: start;
+  }
+  .abg-pax-popover-table > .abg-pax-popover-val--pax {
+    font-size: 17px; font-weight: 700; color: #0f172a;
+  }
+  .abg-pax-popover-table > .abg-pax-popover-wchr {
+    justify-self: center; color: #334155;
+  }
+  .abg-pax-popover-table > div:nth-child(9),
+  .abg-pax-popover-table > div:nth-child(10) {
+    align-self: end;
+  }
+  .abg-pax-popover-mix-sub {
+    font-size: 9px; font-weight: 600; color: #94a3b8; line-height: 1.2; margin-bottom: 2px;
+  }
+  .abg-pax-popover-lbl {
+    font-size: 10px; font-weight: 700; color: #94a3b8; margin-bottom: 4px; white-space: nowrap;
+  }
+  .abg-pax-popover-val {
+    font-size: 13px; font-weight: 500; color: #334155; font-variant-numeric: tabular-nums;
+  }
+  .abg-pax-popover-val--pax { font-weight: 700; color: #0f172a; }
+  .abg-pax-popover-wchr.is-alert { color: #b45309; font-weight: 700; }
+  .abg-pax-popover-empty {
+    font-size: 12px; color: #64748b; padding: 6px 0 2px;
+  }
+  .abg-pax-popover .hp-viz-cell { min-height: 28px; gap: 4px; }
+  .abg-pax-popover .hp-viz-top { min-height: 14px; line-height: 14px; }
+  .abg-pax-popover .hp-load-pct-text { font-size: 11px; }
+  .abg-pax-popover .hp-mix-text { font-size: 10px; }
+  .abg-pax-popover .hp-th-sub { font-size: 9px; margin-top: 1px; }
+  .abg-pax-popover .hp-viz-bar-row { height: 6px; flex-basis: 6px; }
+  .abg-pax-popover .hp-load-track,
+  .abg-pax-popover .hp-mix-bar { height: 6px; }
   .duty-chip.role-接機RC { background: #ede9fe; }
   .duty-chip.role-接機C { background: #fde2e8; }
   .duty-chip.role-G2 { background: #fef08a; }
@@ -10214,6 +10271,7 @@ function dayStorageKeys(dateStr) {
     tTemplateDefaults: `${LS_PREFIX}_day_${d}_t_template_defaults`,
     tTcSlotAssignments: `${LS_PREFIX}_day_${d}_t_tc_slot_assignments`,
     abgSlotOverrides: `${LS_PREFIX}_day_${d}_abg_slot_overrides`,
+    abgSlotManualLocks: `${LS_PREFIX}_day_${d}_abg_slot_manual_locks`,
     homelineConnectingDutyModes: `${LS_PREFIX}_day_${d}_homeline_connecting_duty_modes`,
     flightsImported: `${LS_PREFIX}_day_${d}_flights_imported`,
     overtimeOverrides: `${LS_PREFIX}_day_${d}_overtime_overrides`,
@@ -10245,6 +10303,7 @@ let tcTemplateDefaults = {};
 let tTemplateDefaults = {};
 let tTcSlotAssignments = {};
 let abgSlotOverrides = {};
+let abgSlotManualLocks = {};
 let homelineConnectingDutyModes = {};
 let staffDirectory = [];
 let staffPersonnelRegistry = null;
@@ -13567,6 +13626,7 @@ function getLiveCloudFingerprint() {
     tTemplateDefaults: normalizeTTemplateDefaultsForCloud(tTemplateDefaults),
     tTcSlotAssignments: normalizeTTcSlotAssignmentsForCloud(tTcSlotAssignments),
     abgSlotOverrides: normalizeAbgSlotOverridesForCloud(abgSlotOverrides),
+    abgSlotManualLocks: normalizeAbgSlotManualLocksForCloud(abgSlotManualLocks),
     homelineConnectingDutyModes: normalizeHomelineConnectingDutyModesForCloud(homelineConnectingDutyModes),
     overtimeHourOverrides,
     dicOvertimeApprovals,
@@ -13592,6 +13652,7 @@ function cloudStatePayload(data) {
     tTemplateDefaults: normalizeTTemplateDefaultsForCloud(data.tTemplateDefaults),
     tTcSlotAssignments: normalizeTTcSlotAssignmentsForCloud(data.tTcSlotAssignments),
     abgSlotOverrides: normalizeAbgSlotOverridesForCloud(data.abgSlotOverrides),
+    abgSlotManualLocks: normalizeAbgSlotManualLocksForCloud(data.abgSlotManualLocks),
     homelineConnectingDutyModes: normalizeHomelineConnectingDutyModesForCloud(data.homelineConnectingDutyModes),
     overtimeHourOverrides: data.overtimeHourOverrides,
     dicOvertimeApprovals: data.dicOvertimeApprovals,
@@ -14201,6 +14262,7 @@ function getCloudState() {
     tTemplateDefaults: normalizeTTemplateDefaultsForCloud(tTemplateDefaults),
     tTcSlotAssignments: normalizeTTcSlotAssignmentsForCloud(tTcSlotAssignments),
     abgSlotOverrides: normalizeAbgSlotOverridesForCloud(abgSlotOverrides),
+    abgSlotManualLocks: normalizeAbgSlotManualLocksForCloud(abgSlotManualLocks),
     homelineConnectingDutyModes: normalizeHomelineConnectingDutyModesForCloud(homelineConnectingDutyModes),
       overtimeHourOverrides,
       dicOvertimeApprovals,
@@ -14277,6 +14339,9 @@ function applyCloudState(data) {
   abgSlotOverrides = data.abgSlotOverrides && typeof data.abgSlotOverrides === 'object'
     ? normalizeAbgSlotOverridesForCloud(data.abgSlotOverrides)
     : abgSlotOverrides;
+  abgSlotManualLocks = data.abgSlotManualLocks && typeof data.abgSlotManualLocks === 'object'
+    ? normalizeAbgSlotManualLocksForCloud(data.abgSlotManualLocks)
+    : abgSlotManualLocks;
   homelineConnectingDutyModes = data.homelineConnectingDutyModes && typeof data.homelineConnectingDutyModes === 'object'
     ? normalizeHomelineConnectingDutyModesForCloud(data.homelineConnectingDutyModes)
     : homelineConnectingDutyModes;
@@ -14303,6 +14368,7 @@ function applyCloudState(data) {
   saveTTemplateDefaults();
   saveTTcSlotAssignments();
   saveAbgSlotOverrides();
+  saveAbgSlotManualLocks();
   saveHomelineConnectingDutyModes();
   saveOvertimeOverrides();
   saveDicOvertimeApprovals();
@@ -14461,6 +14527,7 @@ function processScheduleFirestoreSnapshot(doc) {
     tTemplateDefaults: normalizeTTemplateDefaultsForCloud(data.tTemplateDefaults),
     tTcSlotAssignments: normalizeTTcSlotAssignmentsForCloud(data.tTcSlotAssignments),
     abgSlotOverrides: normalizeAbgSlotOverridesForCloud(data.abgSlotOverrides),
+    abgSlotManualLocks: normalizeAbgSlotManualLocksForCloud(data.abgSlotManualLocks),
     homelineConnectingDutyModes: normalizeHomelineConnectingDutyModesForCloud(data.homelineConnectingDutyModes),
     overtimeHourOverrides: data.overtimeHourOverrides,
     dicOvertimeApprovals: data.dicOvertimeApprovals,
@@ -14912,6 +14979,10 @@ function isBaDepFlight(f) {
 /** 出境 ABG：BR／B7 航班 2 人，其餘 1 人 */
 const ABG_BR_B7_SLOTS = 2;
 const ABG_DEFAULT_SLOTS = 1;
+const ABG_PAX_SLOT_THRESHOLD = 200;
+const ABG_LOAD_PCT_THRESHOLD = 90;
+let abgPaxPopoverAnchor = null;
+let abgPaxPopoverTemplateId = null;
 function isBrOrB7DepFlight(f) {
   if (!f || f.type !== 'DEP') return false;
   const flight = String(f.flight || '').trim().toUpperCase();
@@ -14947,12 +15018,146 @@ function setAbgSlotOverride(flight, flightType, slots) {
 function saveAbgSlotOverrides() {
   localStorage.setItem(dayStorageKeys(selectedDate).abgSlotOverrides, JSON.stringify(abgSlotOverrides || {}));
 }
+function isAbgSlotManualLocked(flight, flightType = 'DEP') {
+  const key = getAbgSlotOverrideKey(flight, flightType);
+  return abgSlotManualLocks?.[key] === true;
+}
+function setAbgSlotManualLock(flight, flightType, locked = true) {
+  const key = getAbgSlotOverrideKey(flight, flightType);
+  if (!abgSlotManualLocks || typeof abgSlotManualLocks !== 'object') abgSlotManualLocks = {};
+  if (locked) abgSlotManualLocks[key] = true;
+  else delete abgSlotManualLocks[key];
+  saveAbgSlotManualLocks();
+}
+function saveAbgSlotManualLocks() {
+  localStorage.setItem(dayStorageKeys(selectedDate).abgSlotManualLocks, JSON.stringify(abgSlotManualLocks || {}));
+}
+function lookupHomelinePaxForScheduleFlight(flight) {
+  if (typeof HomelinePaxRegistry === 'undefined' || !isValidISODate(selectedDate)) return null;
+  const row = HomelinePaxRegistry.lookup(selectedDate, flight);
+  return row ? enrichHomelinePaxRow(row) : null;
+}
+function getSuggestedAbgSlotsFromPaxRow(row) {
+  if (!row) return ABG_BR_B7_SLOTS;
+  const pax = row.pax;
+  const pct = getHomelineLoadPctNum(row);
+  if (Number.isFinite(pax) && pax >= ABG_PAX_SLOT_THRESHOLD) return 3;
+  if (Number.isFinite(pct) && pct >= ABG_LOAD_PCT_THRESHOLD) return 3;
+  return ABG_BR_B7_SLOTS;
+}
+function syncAbgSlotsFromHomelinePax(opts = {}) {
+  if (typeof HomelinePaxRegistry === 'undefined' || !hasImportedFlights()) return { updated: 0 };
+  let updated = 0;
+  flightDefs.forEach(f => {
+    if (!canEditBrB7AbgSlots(f)) return;
+    if (isAbgSlotManualLocked(f.flight, f.type)) return;
+    const row = lookupHomelinePaxForScheduleFlight(f.flight);
+    if (!row) return;
+    const suggested = getSuggestedAbgSlotsFromPaxRow(row);
+    const current = getAbgSlotsForFlightDef(f);
+    if (current === suggested) return;
+    setAbgSlotOverride(f.flight, f.type, suggested);
+    trimAbgAssignmentsToCount(f.flight, f.type, suggested);
+    updated += 1;
+  });
+  return { updated };
+}
+function ensureAbgPaxPopoverEl() {
+  let el = document.getElementById('abgPaxPopover');
+  if (el) return el;
+  el = document.createElement('div');
+  el.id = 'abgPaxPopover';
+  el.className = 'abg-pax-popover hidden';
+  el.setAttribute('role', 'dialog');
+  el.setAttribute('aria-label', 'ABG 訂位資料');
+  document.body.appendChild(el);
+  if (!ensureAbgPaxPopoverEl._bound) {
+    ensureAbgPaxPopoverEl._bound = true;
+    document.addEventListener('click', e => {
+      const pop = document.getElementById('abgPaxPopover');
+      if (!pop || pop.classList.contains('hidden')) return;
+      if (pop.contains(e.target) || e.target.closest('.duty-chip--abg-pax')) return;
+      closeAbgPaxPopover();
+    });
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape') closeAbgPaxPopover();
+    });
+  }
+  return el;
+}
+function closeAbgPaxPopover() {
+  const el = document.getElementById('abgPaxPopover');
+  if (el) el.classList.add('hidden');
+  abgPaxPopoverAnchor = null;
+  abgPaxPopoverTemplateId = null;
+}
+function positionAbgPaxPopover(pop, anchor) {
+  if (!pop || !anchor) return;
+  const rect = anchor.getBoundingClientRect();
+  const margin = 8;
+  pop.classList.remove('hidden');
+  const popRect = pop.getBoundingClientRect();
+  let top = rect.bottom + margin;
+  let left = rect.left;
+  if (left + popRect.width > window.innerWidth - margin) {
+    left = Math.max(margin, window.innerWidth - popRect.width - margin);
+  }
+  if (top + popRect.height > window.innerHeight - margin) {
+    top = Math.max(margin, rect.top - popRect.height - margin);
+  }
+  pop.style.top = `${Math.round(top)}px`;
+  pop.style.left = `${Math.round(left)}px`;
+}
+function buildAbgPaxPopoverHtml(flight, row) {
+  const slots = getSuggestedAbgSlotsFromPaxRow(row);
+  const flightLabel = escapeHtml(formatHomelinePaxFlightLabel(flight));
+  const title = `<div class="abg-pax-popover-title">${flightLabel} · 建議 ABG ${slots} 人</div>`;
+  if (!row) {
+    return title + `<div class="abg-pax-popover-empty">此日無 EDW 訂位資料。</div>`;
+  }
+  const wheelchair = row.wheelchair;
+  const wchrClass = Number.isFinite(wheelchair) && wheelchair >= 15 ? ' is-alert' : '';
+  return title +
+    `<div class="abg-pax-popover-table">` +
+    `<div class="abg-pax-popover-lbl">艙容</div>` +
+    `<div class="abg-pax-popover-lbl">訂位</div>` +
+    `<div class="abg-pax-popover-lbl">輪椅</div>` +
+    `<div class="abg-pax-popover-lbl">載客率</div>` +
+    `<div class="abg-pax-popover-lbl">旅客組成</div>` +
+    `<div class="abg-pax-popover-val">${escapeHtml(formatHomelinePaxCount(row.capacity))}</div>` +
+    `<div class="abg-pax-popover-val abg-pax-popover-val--pax">${escapeHtml(formatHomelinePaxCount(row.pax))}</div>` +
+    `<div class="abg-pax-popover-val abg-pax-popover-wchr${wchrClass}">${escapeHtml(formatHomelinePaxCount(wheelchair))}</div>` +
+    `<div>${buildHomelineLoadCell(row)}</div>` +
+    `<div><div class="abg-pax-popover-mix-sub">轉機／團體／直客</div>${buildHomelinePaxMixCell(row.transit, row.group, row.directPax, row.pax)}</div>` +
+    `</div>`;
+}
+function toggleAbgPaxPopover(anchor, template) {
+  if (!anchor || !template) return;
+  const pop = ensureAbgPaxPopoverEl();
+  if (abgPaxPopoverTemplateId === template.id && !pop.classList.contains('hidden')) {
+    closeAbgPaxPopover();
+    return;
+  }
+  const row = lookupHomelinePaxForScheduleFlight(template.flight);
+  pop.innerHTML = buildAbgPaxPopoverHtml(template.flight, row);
+  abgPaxPopoverTemplateId = template.id;
+  abgPaxPopoverAnchor = anchor;
+  positionAbgPaxPopover(pop, anchor);
+}
 function normalizeAbgSlotOverridesForCloud(value) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
   const out = {};
   Object.keys(value).forEach(k => {
     const n = parseInt(value[k], 10);
     if (Number.isFinite(n) && n >= 1 && n <= 12) out[k] = n;
+  });
+  return out;
+}
+function normalizeAbgSlotManualLocksForCloud(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
+  const out = {};
+  Object.keys(value).forEach(k => {
+    if (value[k]) out[k] = true;
   });
   return out;
 }
@@ -17102,6 +17307,13 @@ async function handleHomelinePaxImport(file) {
     homelinePaxPage = 1;
     const { start, end } = getHomelinePaxDefaultDateRange();
     if (start) syncHomelinePaxBrowseDateRange(start, end);
+    if (hasImportedFlights() && syncAbgSlotsFromHomelinePax().updated) {
+      rebuildTemplates();
+      renderPalette();
+      renderRows();
+      syncAssignmentTableFromSchedule();
+      markUnsynced();
+    }
     renderHomelinePaxManager();
     appAlert(
       `已匯入 ${res.record.rowCount} 筆，更新 ${res.record.dateCount} 個日期。`,
@@ -24770,6 +24982,7 @@ function pruneOrphanDutyScheduleItems() {
   markUnsynced();
 }
 function rebuildTemplates() {
+  syncAbgSlotsFromHomelinePax({ silent: true });
   templates = hasImportedFlights()
     ? [...buildTemplates(), ...createRestTemplates(), ...createTcTemplates(), ...createTTemplates(), ...customTemplates]
     : [];
@@ -24962,6 +25175,7 @@ function loadDayDataFromLocalStorage(dateStr) {
   tTemplateDefaults = readJsonLS(k.tTemplateDefaults, {});
   tTcSlotAssignments = readJsonLS(k.tTcSlotAssignments, {});
   abgSlotOverrides = readJsonLS(k.abgSlotOverrides, {});
+  abgSlotManualLocks = readJsonLS(k.abgSlotManualLocks, {});
   homelineConnectingDutyModes = readJsonLS(k.homelineConnectingDutyModes, {});
   if (!Array.isArray(customTemplates)) customTemplates = [];
   if (!Array.isArray(deletedCustomTemplates)) deletedCustomTemplates = [];
@@ -24970,6 +25184,7 @@ function loadDayDataFromLocalStorage(dateStr) {
   migrateTTimeChainFromLegacySlots();
   if (!tTcSlotAssignments || typeof tTcSlotAssignments !== 'object') tTcSlotAssignments = {};
   if (!abgSlotOverrides || typeof abgSlotOverrides !== 'object') abgSlotOverrides = {};
+  if (!abgSlotManualLocks || typeof abgSlotManualLocks !== 'object') abgSlotManualLocks = {};
   if (!homelineConnectingDutyModes || typeof homelineConnectingDutyModes !== 'object') homelineConnectingDutyModes = {};
   migrateLegacyTTcSlotAssignments();
   selectedBlockId = null;
@@ -25903,6 +26118,7 @@ function saveLocal() {
   saveTTemplateDefaults();
   saveTTcSlotAssignments();
   saveAbgSlotOverrides();
+  saveAbgSlotManualLocks();
   saveHomelineConnectingDutyModes();
   saveStaffDirectory();
   } finally {
@@ -26292,7 +26508,7 @@ function openAbgSlotEditor(flight, flightType = 'DEP') {
   overlay.innerHTML = `
     <div class="tc-editor-panel">
       <h3>調整 ABG 人數</h3>
-      <p>${escapeHtml(flight)} 出境 · 預設 ${ABG_BR_B7_SLOTS} 人</p>
+      <p>${escapeHtml(flight)} 出境</p>
       <div class="t-editor-staff-row">
         <label>人數 <input type="number" min="1" max="12" data-abg-slot-count value="${current}"></label>
       </div>
@@ -26325,6 +26541,7 @@ function openAbgSlotEditor(flight, flightType = 'DEP') {
     }
     pushUndoSnapshot();
     setAbgSlotOverride(flight, flightType, next);
+    setAbgSlotManualLock(flight, flightType, true);
     const syncSummary = trimAbgAssignmentsToCount(flight, flightType, next);
     rebuildTemplates();
     markUnsynced();
@@ -26549,13 +26766,27 @@ function makeChip(t, paletteRoleContext = '') {
     }
     const abgRemain = getAbgSlotsRemaining(t);
     const abgSlots = getAbgSlotsForTemplate(t);
+    if (t.role === 'ABG' && canEditAbgSlotsForTemplate(t)) {
+      chip.classList.add('duty-chip--abg-pax');
+      const paxRow = lookupHomelinePaxForScheduleFlight(t.flight);
+      const slotText = `目前 ${getAbgSlotsForTemplate(t)} 人`;
+      chip.title = paxRow ? `點擊查看訂位 · ${slotText}` : `點擊查看訂位（無 EDW 資料）· ${slotText}`;
+      chip.addEventListener('click', e => {
+        if (e.target.closest('.duty-chip-edit-btn')) return;
+        e.stopPropagation();
+        e.preventDefault();
+        toggleAbgPaxPopover(chip, t);
+      });
+    }
     if (t.role === 'ABG' && abgRemain > 0) {
-      chip.title = `尚可排 ${abgRemain} 人`;
-      if (abgSlots > 1) appendDutyChipSlotBadge(chip, abgRemain, `尚可排 ${abgRemain} 人`);
+      const hint = `尚可排 ${abgRemain} 人`;
+      chip.title = chip.title ? `${chip.title} · ${hint}` : hint;
+      if (abgSlots > 1) appendDutyChipSlotBadge(chip, abgRemain, hint);
     }
   }
 
   chip.addEventListener('dragstart', e => {
+    closeAbgPaxPopover();
     if (!chip.draggable) { e.preventDefault(); return; }
     if (e.target.closest('.duty-chip-delete-btn') || e.target.closest('.duty-chip-edit-btn')) { e.preventDefault(); return; }
     e.dataTransfer.setData('text/template', t.id);
@@ -27707,11 +27938,13 @@ function bootLoadGlobalStorage() {
   tTemplateDefaults = readJsonLS(dayK.tTemplateDefaults, {});
   tTcSlotAssignments = readJsonLS(dayK.tTcSlotAssignments, {});
   abgSlotOverrides = readJsonLS(dayK.abgSlotOverrides, {});
+  abgSlotManualLocks = readJsonLS(dayK.abgSlotManualLocks, {});
   homelineConnectingDutyModes = readJsonLS(dayK.homelineConnectingDutyModes, {});
   if (!tTemplateDefaults || typeof tTemplateDefaults !== 'object') tTemplateDefaults = {};
   migrateTTimeChainFromLegacySlots();
   if (!tTcSlotAssignments || typeof tTcSlotAssignments !== 'object') tTcSlotAssignments = {};
   if (!abgSlotOverrides || typeof abgSlotOverrides !== 'object') abgSlotOverrides = {};
+  if (!abgSlotManualLocks || typeof abgSlotManualLocks !== 'object') abgSlotManualLocks = {};
   if (!homelineConnectingDutyModes || typeof homelineConnectingDutyModes !== 'object') homelineConnectingDutyModes = {};
   staffDirectory = readJsonLS(LS_KEYS_GLOBAL.staffDirectory, []);
   staffPersonnelRegistry = readJsonLS(LS_KEYS_GLOBAL.staffPersonnel, null);
