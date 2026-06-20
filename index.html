@@ -13851,6 +13851,7 @@ function sharedConfigPayload(data) {
     staffPersonnelRegistry: data.staffPersonnelRegistry
   };
   if (data.foreignScheduleMaster) out.foreignScheduleMaster = data.foreignScheduleMaster;
+  if (data.destClassMaster) out.destClassMaster = data.destClassMaster;
   return out;
 }
 const ERP_MODULE_PAGES = {
@@ -14459,6 +14460,9 @@ function getSharedConfigState() {
       staffPersonnelRegistry,
       foreignScheduleMaster: typeof ForeignScheduleRegistry !== 'undefined' && ForeignScheduleRegistry.hasAnySchedules()
         ? ForeignScheduleRegistry.exportMasterPayload()
+        : null,
+      destClassMaster: typeof DestClassRegistry !== 'undefined' && DestClassRegistry.hasAnyGroups()
+        ? DestClassRegistry.exportMasterPayload()
         : null
     }),
     ...getSyncMeta()
@@ -14485,6 +14489,10 @@ function applySharedConfigState(data) {
         invalidateForeignScheduleCache();
         if (activeErpModule === 'flights') renderActiveFlightManagerPanel();
       }
+    }
+    if (data.destClassMaster && typeof DestClassRegistry !== 'undefined') {
+      const res = DestClassRegistry.importMasterPayload(data.destClassMaster);
+      if (res.ok && activeErpModule === 'flights') renderActiveFlightManagerPanel();
     }
     if (activeErpModule === 'staff') {
       renderErpStaffTable();
@@ -14773,6 +14781,11 @@ function attachFirebaseSharedConfig() {
         } else {
           maybeSeedForeignScheduleMasterFromRepo();
         }
+        if (typeof DestClassRegistry !== 'undefined' && DestClassRegistry.hasAnyGroups()) {
+          syncDestClassMasterToCloud();
+        } else {
+          maybeSeedDestClassMasterToCloud();
+        }
         return;
       }
       const data = doc.data();
@@ -14780,6 +14793,7 @@ function attachFirebaseSharedConfig() {
       const remoteState = {
         staffPersonnelRegistry: data.staffPersonnelRegistry,
         foreignScheduleMaster: data.foreignScheduleMaster || null,
+        destClassMaster: data.destClassMaster || null,
         updatedAtLocal: data.updatedAtLocal
       };
       const remoteJson = JSON.stringify(sharedConfigPayload(remoteState));
@@ -14799,6 +14813,13 @@ function attachFirebaseSharedConfig() {
           syncForeignScheduleMasterToCloud();
         } else {
           maybeSeedForeignScheduleMasterFromRepo();
+        }
+      }
+      if (!data.destClassMaster) {
+        if (typeof DestClassRegistry !== 'undefined' && DestClassRegistry.hasAnyGroups()) {
+          syncDestClassMasterToCloud();
+        } else {
+          maybeSeedDestClassMasterToCloud();
         }
       }
     }, (err) => {
@@ -15916,6 +15937,7 @@ let destClassSelectedGroupId = null;
 let destClassGroupSearch = '';
 let foreignScheduleFlatCache = null;
 let foreignScheduleMasterSeedAttempted = false;
+let destClassMasterSeedAttempted = false;
 let foreignSchedulePage = 1;
 let foreignScheduleEditContext = null;
 let foreignScheduleFiltersApplied = false;
@@ -16322,6 +16344,28 @@ function syncForeignScheduleMasterToCloud() {
   if (applyingSharedRemote || typeof ForeignScheduleRegistry === 'undefined') return;
   if (!ForeignScheduleRegistry.hasAnySchedules()) return;
   scheduleSharedConfigSave();
+}
+
+function syncDestClassMasterToCloud() {
+  if (applyingSharedRemote || typeof DestClassRegistry === 'undefined') return;
+  if (!DestClassRegistry.hasAnyGroups()) return;
+  scheduleSharedConfigSave();
+}
+
+function maybeSeedDestClassMasterToCloud() {
+  if (destClassMasterSeedAttempted) return;
+  if (typeof DestClassRegistry === 'undefined' || DestClassRegistry.hasAnyGroups()) return;
+  destClassMasterSeedAttempted = true;
+  const seeded = DestClassRegistry.seedDefaultGroupsIfEmpty();
+  if (seeded.seeded) {
+    DestClassRegistry.saveCatalogMeta({ seedVersion: DestClassSeed?.SEED_VERSION || '' });
+  }
+  if (DestClassRegistry.hasAnyGroups()) {
+    syncDestClassMasterToCloud();
+    if (activeErpModule === 'flights' && flightManagerActiveSection === 'dest-class') {
+      renderDestClassManager();
+    }
+  }
 }
 
 async function maybeSeedForeignScheduleMasterFromRepo() {
@@ -17738,6 +17782,7 @@ async function handleDestClassTableAction(e) {
       appAlert(res.error || '無法刪除。', '無法刪除');
       return;
     }
+    syncDestClassMasterToCloud();
     renderDestClassManager();
   }
 }
@@ -17762,6 +17807,7 @@ function saveDestClassGroupFromEditor() {
     return;
   }
   closeDestClassEditor();
+  syncDestClassMasterToCloud();
   renderDestClassManager();
   appAlert(`已儲存「${res.group.label}」。`, '已儲存', 'success');
 }
@@ -17788,6 +17834,8 @@ async function handleDestClassImportFile(file) {
       appAlert(res.error || '無法建立分類。', '匯入失敗');
       return;
     }
+    DestClassRegistry.saveCatalogMeta?.({ seedVersion: DestClassSeed?.SEED_VERSION || '' });
+    syncDestClassMasterToCloud();
     renderDestClassManager();
     appAlert(`已從 ${file.name} 匯入 ${parsed.airports.length} 個航點，建立 ${res.count} 個分類。`, '匯入完成', 'success');
   } catch (err) {
@@ -17828,6 +17876,7 @@ function bindDestClassManager() {
         return;
       }
       closeDestClassEditor();
+      syncDestClassMasterToCloud();
       renderDestClassManager();
     });
   });

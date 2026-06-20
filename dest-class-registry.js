@@ -2,7 +2,7 @@
  * 航點／航線分類主檔：依目的地 IATA 對應一或多個航線群（本家）
  */
 (function (global) {
-  const REGISTRY_VERSION = '2026-06-20-v4';
+  const REGISTRY_VERSION = '2026-06-20-v5';
   const DATA_KEY = 'cursor_v1_dest_class_groups_v1';
   const CATALOG_META_KEY = 'cursor_v1_dest_class_catalog_meta_v1';
 
@@ -90,6 +90,51 @@
     };
   }
 
+  function loadCatalogMeta() {
+    try {
+      const raw = localStorage.getItem(CATALOG_META_KEY);
+      return raw ? JSON.parse(raw) : {};
+    } catch (_) {
+      return {};
+    }
+  }
+
+  function saveCatalogMeta(patch) {
+    const next = { ...loadCatalogMeta(), ...patch, at: new Date().toISOString() };
+    localStorage.setItem(CATALOG_META_KEY, JSON.stringify(next));
+    return next;
+  }
+
+  function listDeletedGroupIds() {
+    const meta = loadCatalogMeta();
+    return Array.isArray(meta.deletedGroupIds)
+      ? meta.deletedGroupIds.map(clean).filter(Boolean)
+      : [];
+  }
+
+  function markGroupDeleted(id) {
+    const key = clean(id);
+    if (!key) return;
+    const next = new Set(listDeletedGroupIds());
+    next.add(key);
+    saveCatalogMeta({ deletedGroupIds: [...next] });
+  }
+
+  function unmarkGroupDeleted(id) {
+    const key = clean(id);
+    if (!key) return;
+    const next = listDeletedGroupIds().filter(item => item !== key);
+    saveCatalogMeta({ deletedGroupIds: next });
+  }
+
+  function isGroupDeleted(id) {
+    return listDeletedGroupIds().includes(clean(id));
+  }
+
+  function hasAnyGroups() {
+    return listGroups().length > 0;
+  }
+
   function saveGroups(groups) {
     const next = (groups || [])
       .map(normalizeGroup)
@@ -159,6 +204,7 @@
     const idx = groups.findIndex(g => g.id === id);
     if (idx >= 0) groups[idx] = { ...groups[idx], ...patch };
     else groups.push(patch);
+    unmarkGroupDeleted(id);
     saveGroups(groups);
     return { ok: true, group: patch };
   }
@@ -169,6 +215,7 @@
     const groups = listGroups();
     const next = groups.filter(g => g.id !== key);
     if (next.length === groups.length) return { ok: false, error: '找不到航線群' };
+    markGroupDeleted(key);
     saveGroups(next);
     return { ok: true };
   }
@@ -295,6 +342,7 @@
     let added = 0;
     built.forEach(group => {
       if (byId.has(group.id)) return;
+      if (isGroupDeleted(group.id)) return;
       byId.set(group.id, { ...group, updatedAt: new Date().toISOString() });
       added += 1;
     });
@@ -311,6 +359,7 @@
     let added = 0;
     seedGroups.forEach(group => {
       if (byId.has(group.id)) return;
+      if (isGroupDeleted(group.id)) return;
       const normalized = normalizeGroup(group);
       if (!normalized) return;
       byId.set(normalized.id, normalized);
@@ -321,37 +370,44 @@
     return { ok: true, added };
   }
 
-  function loadCatalogMeta() {
-    try {
-      const raw = localStorage.getItem(CATALOG_META_KEY);
-      return raw ? JSON.parse(raw) : {};
-    } catch (_) {
-      return {};
-    }
-  }
-
-  function saveCatalogMeta(patch) {
-    const next = { ...loadCatalogMeta(), ...patch, at: new Date().toISOString() };
-    localStorage.setItem(CATALOG_META_KEY, JSON.stringify(next));
-    return next;
-  }
-
   /** 種子版本更新時，自動補上缺少的標準航線群 */
   function syncCatalogUpgrade() {
     const targetVersion = global.DestClassSeed?.SEED_VERSION || '';
     const meta = loadCatalogMeta();
-    let added = 0;
+    if (meta.seedVersion === targetVersion) return { ok: true, added: 0 };
 
+    let added = 0;
     const fromAirports = ensureCatalogGroups();
     if (fromAirports.ok) added += fromAirports.added || 0;
 
-    if (meta.seedVersion !== targetVersion) {
-      const fromSeed = mergeMissingCatalogGroups();
-      if (fromSeed.ok) added += fromSeed.added || 0;
-      saveCatalogMeta({ seedVersion: targetVersion });
-    }
+    const fromSeed = mergeMissingCatalogGroups();
+    if (fromSeed.ok) added += fromSeed.added || 0;
 
+    saveCatalogMeta({ seedVersion: targetVersion });
     return { ok: true, added };
+  }
+
+  function exportMasterPayload() {
+    return {
+      version: REGISTRY_VERSION,
+      groups: listGroups(),
+      catalogMeta: loadCatalogMeta()
+    };
+  }
+
+  function importMasterPayload(payload) {
+    if (!payload || typeof payload !== 'object') return { ok: false, error: '無效資料' };
+    const groups = Array.isArray(payload.groups)
+      ? payload.groups.map(normalizeGroup).filter(Boolean)
+      : [];
+    const catalogMeta = payload.catalogMeta && typeof payload.catalogMeta === 'object'
+      ? payload.catalogMeta
+      : {};
+    saveGroups(groups);
+    const nextMeta = { ...catalogMeta };
+    if (!nextMeta.at) nextMeta.at = new Date().toISOString();
+    localStorage.setItem(CATALOG_META_KEY, JSON.stringify(nextMeta));
+    return { ok: true, groupCount: groups.length };
   }
 
   global.DestClassRegistry = {
@@ -361,6 +417,7 @@
     parseIataList,
     listGroups,
     getGroup,
+    hasAnyGroups,
     upsertGroup,
     deleteGroup,
     lookupGroupsForAirport,
@@ -379,6 +436,8 @@
     mergeMissingCatalogGroups,
     syncCatalogUpgrade,
     saveCatalogMeta,
-    resolveRegionId
+    resolveRegionId,
+    exportMasterPayload,
+    importMasterPayload
   };
 })(typeof window !== 'undefined' ? window : globalThis);
