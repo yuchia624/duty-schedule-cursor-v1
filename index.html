@@ -13,7 +13,7 @@
 <script src="flight-assignment-utils.js"></script>
 <script src="foreign-duty-rules.js?v=20260613-oz-abg-label"></script>
 <script src="homeline-pax-parser.js?v=20260620-v4"></script>
-<script src="homeline-pax-registry.js?v=20260620-v5"></script>
+<script src="homeline-pax-registry.js?v=20260620-v6"></script>
 <script src="dest-class-registry.js?v=20260620-v4"></script>
 <script src="dest-class-seed.js?v=20260620-v4"></script>
 <script src="dest-class-parser.js?v=20260620-v1"></script>
@@ -13659,7 +13659,11 @@ let sharedConfigUnsub = null;
 let sharedConfigReady = false;
 let sharedConfigSaveTimer = null;
 let lastSharedConfigJson = '';
+let lastHomelinePaxMasterJson = '';
 let pendingSharedConfigSave = false;
+let homelinePaxCloudPruneAlertShown = false;
+const SHARED_CONFIG_DOC_BYTE_LIMIT = 950 * 1024;
+const HOMELINE_PAX_CLOUD_RETENTION_STEPS = [45, 30, 21, 14, 7];
 let applyingSharedRemote = false;
 let dayCloudStatus = { text: '尚未同步', mode: 'pending' };
 let sharedCloudStatus = { text: '已同步', mode: 'synced' };
@@ -13852,7 +13856,86 @@ function sharedConfigPayload(data) {
   };
   if (data.foreignScheduleMaster) out.foreignScheduleMaster = data.foreignScheduleMaster;
   if (data.destClassMaster) out.destClassMaster = data.destClassMaster;
+  if (data.homelinePaxMaster) out.homelinePaxMaster = data.homelinePaxMaster;
   return out;
+}
+function estimateFirestoreDocBytes(obj) {
+  try {
+    return new TextEncoder().encode(JSON.stringify(obj)).length;
+  } catch (_) {
+    return JSON.stringify(obj || {}).length;
+  }
+}
+function homelinePaxMasterFingerprint(master) {
+  if (!master || typeof master !== 'object') return '';
+  return JSON.stringify({
+    version: master.version,
+    retentionDays: master.retentionDays,
+    meta: master.meta,
+    rowsByDate: master.rowsByDate
+  });
+}
+function buildHomelinePaxMasterForSharedConfig(retentionDays) {
+  if (typeof HomelinePaxRegistry === 'undefined' || !HomelinePaxRegistry.hasAnyData()) return null;
+  return HomelinePaxRegistry.exportMasterPayload(
+    Number.isFinite(retentionDays) ? { retentionDays } : undefined
+  );
+}
+function applyHomelinePaxMasterFromCloud(master) {
+  if (!master || typeof HomelinePaxRegistry === 'undefined') return { applied: false };
+  const fp = homelinePaxMasterFingerprint(master);
+  if (fp && fp === lastHomelinePaxMasterJson) return { applied: false };
+  const res = HomelinePaxRegistry.importMasterPayload(master);
+  if (!res.ok) return { applied: false, error: res.error };
+  lastHomelinePaxMasterJson = fp;
+  return { applied: true, ...res };
+}
+function prepareSharedConfigUpload() {
+  const hasHomeline = typeof HomelinePaxRegistry !== 'undefined' && HomelinePaxRegistry.hasAnyData();
+  const retentionSteps = hasHomeline
+    ? HOMELINE_PAX_CLOUD_RETENTION_STEPS
+    : [null];
+  let matchedState = null;
+  let matchedDays = null;
+  for (const days of retentionSteps) {
+    if (hasHomeline && Number.isFinite(days)) {
+      HomelinePaxRegistry.pruneLocalToRetention(days);
+    }
+    const state = Number.isFinite(days)
+      ? getSharedConfigState({ homelineRetentionDays: days })
+      : getSharedConfigState();
+    if (estimateFirestoreDocBytes(state) <= SHARED_CONFIG_DOC_BYTE_LIMIT) {
+      matchedState = state;
+      matchedDays = days;
+      break;
+    }
+  }
+  if (!matchedState) {
+    const fallbackDays = HOMELINE_PAX_CLOUD_RETENTION_STEPS[HOMELINE_PAX_CLOUD_RETENTION_STEPS.length - 1];
+    if (hasHomeline) HomelinePaxRegistry.pruneLocalToRetention(fallbackDays);
+    const state = hasHomeline
+      ? getSharedConfigState({ homelineRetentionDays: fallbackDays })
+      : getSharedConfigState();
+    return {
+      blocked: true,
+      bytes: estimateFirestoreDocBytes(state),
+      message: '共用設定超過 Firebase 單文件上限（約 1MB）。EDW 訂位已保留在本機，但外網無法同步。請縮短匯入天數或請管理員清理雲端主檔。'
+    };
+  }
+  const defaultDays = HomelinePaxRegistry?.DEFAULT_RETENTION_DAYS || 45;
+  if (hasHomeline && Number.isFinite(matchedDays) && matchedDays < defaultDays) {
+    return { blocked: false, state: matchedState, prunedRetentionDays: matchedDays };
+  }
+  return { blocked: false, state: matchedState };
+}
+function notifyHomelinePaxCloudPruned(days) {
+  if (homelinePaxCloudPruneAlertShown) return;
+  homelinePaxCloudPruneAlertShown = true;
+  appAlert(
+    `雲端空間不足，EDW 訂位主檔已自動縮為最近 ${days} 天上傳（本機亦已同步裁切）。`,
+    '雲端已裁切上傳',
+    'info'
+  );
 }
 const ERP_MODULE_PAGES = {
   home: 'erpPageHome',
@@ -14454,7 +14537,7 @@ function getCloudState() {
   };
 }
 
-function getSharedConfigState() {
+function getSharedConfigState(opts = {}) {
   return {
     ...sharedConfigPayload({
       staffPersonnelRegistry,
@@ -14463,7 +14546,8 @@ function getSharedConfigState() {
         : null,
       destClassMaster: typeof DestClassRegistry !== 'undefined' && DestClassRegistry.hasAnyGroups()
         ? DestClassRegistry.exportMasterPayload()
-        : null
+        : null,
+      homelinePaxMaster: buildHomelinePaxMasterForSharedConfig(opts.homelineRetentionDays)
     }),
     ...getSyncMeta()
   };
@@ -14493,6 +14577,14 @@ function applySharedConfigState(data) {
     if (data.destClassMaster && typeof DestClassRegistry !== 'undefined') {
       const res = DestClassRegistry.importMasterPayload(data.destClassMaster);
       if (res.ok && activeErpModule === 'flights') renderActiveFlightManagerPanel();
+    }
+    const homelineRes = applyHomelinePaxMasterFromCloud(data.homelinePaxMaster);
+    if (homelineRes.applied) {
+      if (activeErpModule === 'flights') {
+        if (flightManagerActiveSection === 'homeline-pax') renderHomelinePaxManager();
+        else renderActiveFlightManagerPanel();
+      }
+      if (activeErpModule === 'schedule-ops' && typeof renderPalette === 'function') renderPalette();
     }
     if (activeErpModule === 'staff') {
       renderErpStaffTable();
@@ -14594,14 +14686,28 @@ function flushPendingSharedConfigSave() {
 
 function saveSharedConfigNow() {
   if (!sharedConfigReady || !sharedConfigDocRef || applyingSharedRemote) return;
-  const state = getSharedConfigState();
+  const upload = prepareSharedConfigUpload();
+  if (upload.blocked) {
+    pendingSharedConfigSave = false;
+    setCloudStatus('EDW 主檔過大，雲端未同步', 'offline', 'shared');
+    appAlert(upload.message, '雲端未同步');
+    return;
+  }
+  if (upload.prunedRetentionDays) notifyHomelinePaxCloudPruned(upload.prunedRetentionDays);
+  const state = upload.state || getSharedConfigState();
   const json = JSON.stringify(sharedConfigPayload(state));
   if (json === lastSharedConfigJson) {
     pendingSharedConfigSave = false;
     setCloudStatus('已同步', 'synced', 'shared');
+    if (state.homelinePaxMaster) {
+      lastHomelinePaxMasterJson = homelinePaxMasterFingerprint(state.homelinePaxMaster);
+    }
     return;
   }
   lastSharedConfigJson = json;
+  if (state.homelinePaxMaster) {
+    lastHomelinePaxMasterJson = homelinePaxMasterFingerprint(state.homelinePaxMaster);
+  }
   pendingSharedConfigSave = false;
   setCloudStatus('上傳中', 'saving', 'shared');
   sharedConfigDocRef.set({
@@ -14786,6 +14892,9 @@ function attachFirebaseSharedConfig() {
         } else {
           maybeSeedDestClassMasterToCloud();
         }
+        if (typeof HomelinePaxRegistry !== 'undefined' && HomelinePaxRegistry.hasAnyData()) {
+          syncHomelinePaxMasterToCloud();
+        }
         return;
       }
       const data = doc.data();
@@ -14794,6 +14903,7 @@ function attachFirebaseSharedConfig() {
         staffPersonnelRegistry: data.staffPersonnelRegistry,
         foreignScheduleMaster: data.foreignScheduleMaster || null,
         destClassMaster: data.destClassMaster || null,
+        homelinePaxMaster: data.homelinePaxMaster || null,
         updatedAtLocal: data.updatedAtLocal
       };
       const remoteJson = JSON.stringify(sharedConfigPayload(remoteState));
@@ -14820,6 +14930,11 @@ function attachFirebaseSharedConfig() {
           syncDestClassMasterToCloud();
         } else {
           maybeSeedDestClassMasterToCloud();
+        }
+      }
+      if (!data.homelinePaxMaster) {
+        if (typeof HomelinePaxRegistry !== 'undefined' && HomelinePaxRegistry.hasAnyData()) {
+          syncHomelinePaxMasterToCloud();
         }
       }
     }, (err) => {
@@ -16352,6 +16467,12 @@ function syncDestClassMasterToCloud() {
   scheduleSharedConfigSave();
 }
 
+function syncHomelinePaxMasterToCloud() {
+  if (applyingSharedRemote || typeof HomelinePaxRegistry === 'undefined') return;
+  if (!HomelinePaxRegistry.hasAnyData()) return;
+  scheduleSharedConfigSave();
+}
+
 function maybeSeedDestClassMasterToCloud() {
   if (destClassMasterSeedAttempted) return;
   if (typeof DestClassRegistry === 'undefined' || DestClassRegistry.hasAnyGroups()) return;
@@ -17609,6 +17730,7 @@ async function handleHomelinePaxImport(file) {
       syncAssignmentTableFromSchedule();
       markUnsynced();
     }
+    syncHomelinePaxMasterToCloud();
     renderHomelinePaxManager();
     appAlert(
       `已匯入 ${res.record.rowCount} 筆，更新 ${res.record.dateCount} 個日期。`,

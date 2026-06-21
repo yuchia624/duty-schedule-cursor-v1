@@ -2,7 +2,9 @@
  * 本家 EDW 訂位主檔：依日期分片存放，排班作業按需查詢
  */
 (function (global) {
-  const REGISTRY_VERSION = '2026-06-20-v4';
+  const REGISTRY_VERSION = '2026-06-20-v5';
+  const DEFAULT_RETENTION_DAYS = 45;
+  const MIN_RETENTION_DAYS = 7;
   const META_KEY = 'cursor_v1_homeline_pax_meta_v2';
   const DAY_KEY_PREFIX = 'cursor_v1_homeline_pax_day_v2_';
   const LEGACY_META_KEY = 'cursor_v1_homeline_pax_meta_v1';
@@ -94,13 +96,30 @@
     }
   }
 
+  function pruneCoveredDates(dates, maxDays = DEFAULT_RETENTION_DAYS) {
+    const sorted = [...new Set((dates || []).filter(isValidIsoDate))].sort();
+    const limit = Math.max(MIN_RETENTION_DAYS, maxDays || DEFAULT_RETENTION_DAYS);
+    if (sorted.length <= limit) return sorted;
+    return sorted.slice(-limit);
+  }
+
+  function pruneLocalToRetention(maxDays = DEFAULT_RETENTION_DAYS) {
+    const meta = loadMeta();
+    const nextDates = pruneCoveredDates(meta.coveredDates, maxDays);
+    const keep = new Set(nextDates);
+    (meta.coveredDates || []).forEach(dateIso => {
+      if (!keep.has(dateIso)) deleteDay(dateIso);
+    });
+    meta.coveredDates = nextDates;
+    return saveMeta(meta);
+  }
+
   function saveMeta(meta) {
-    const coveredDates = Array.isArray(meta?.coveredDates)
-      ? [...new Set(meta.coveredDates.filter(isValidIsoDate))].sort()
-      : [];
+    const coveredDates = pruneCoveredDates(meta?.coveredDates, meta?.retentionDays || DEFAULT_RETENTION_DAYS);
     const next = {
       version: REGISTRY_VERSION,
       updatedAt: new Date().toISOString(),
+      retentionDays: Number.isFinite(meta?.retentionDays) ? meta.retentionDays : DEFAULT_RETENTION_DAYS,
       imports: Array.isArray(meta?.imports) ? meta.imports.slice(-20) : [],
       coveredDates
     };
@@ -253,7 +272,9 @@
     };
     meta.imports = [record, ...(meta.imports || [])];
     meta.coveredDates = [...coveredSet].sort();
-    const savedMeta = saveMeta(meta);
+    meta.retentionDays = DEFAULT_RETENTION_DAYS;
+    saveMeta(meta);
+    const savedMeta = pruneLocalToRetention(DEFAULT_RETENTION_DAYS);
 
     return {
       ok: true,
@@ -337,6 +358,78 @@
     return loadDay(dateIso).length > 0;
   }
 
+  function hasAnyData() {
+    return (loadMeta().coveredDates || []).length > 0;
+  }
+
+  function buildRowsByDate(dates) {
+    const rowsByDate = {};
+    (dates || []).forEach(dateIso => {
+      if (!isValidIsoDate(dateIso)) return;
+      const dayRows = loadDay(dateIso).map(r => serializeDayRow(r, r.sourceImportId));
+      if (dayRows.length) rowsByDate[dateIso] = dayRows;
+    });
+    return rowsByDate;
+  }
+
+  function exportMasterPayload(opts = {}) {
+    const retentionDays = Number.isFinite(opts.retentionDays)
+      ? Math.max(MIN_RETENTION_DAYS, opts.retentionDays)
+      : DEFAULT_RETENTION_DAYS;
+    const meta = loadMeta();
+    const coveredDates = pruneCoveredDates(meta.coveredDates, retentionDays);
+    const exportMeta = {
+      version: REGISTRY_VERSION,
+      updatedAt: meta.updatedAt || new Date().toISOString(),
+      retentionDays,
+      imports: Array.isArray(meta.imports) ? meta.imports.slice(-20) : [],
+      coveredDates
+    };
+    return {
+      version: REGISTRY_VERSION,
+      retentionDays,
+      meta: exportMeta,
+      rowsByDate: buildRowsByDate(coveredDates)
+    };
+  }
+
+  function importMasterPayload(payload) {
+    if (!payload || typeof payload !== 'object') return { ok: false, error: '無效資料' };
+    const rawMeta = payload.meta;
+    if (!rawMeta || !Array.isArray(rawMeta.coveredDates)) return { ok: false, error: '無效主檔' };
+    const retentionDays = Number.isFinite(payload.retentionDays)
+      ? Math.max(MIN_RETENTION_DAYS, payload.retentionDays)
+      : (Number.isFinite(rawMeta.retentionDays) ? rawMeta.retentionDays : DEFAULT_RETENTION_DAYS);
+    const coveredDates = pruneCoveredDates(rawMeta.coveredDates, retentionDays);
+    const rowsByDate = payload.rowsByDate && typeof payload.rowsByDate === 'object'
+      ? payload.rowsByDate
+      : {};
+    const oldMeta = loadMeta();
+    const keep = new Set(coveredDates);
+    (oldMeta.coveredDates || []).forEach(dateIso => {
+      if (!keep.has(dateIso)) deleteDay(dateIso);
+    });
+    let rowCount = 0;
+    coveredDates.forEach(dateIso => {
+      const rows = Array.isArray(rowsByDate[dateIso]) ? rowsByDate[dateIso] : [];
+      const nextRows = rows
+        .map(r => serializeDayRow(r, r.sourceImportId))
+        .sort((a, b) => {
+          const ta = compareIsoDate(a.std, b.std);
+          if (ta) return ta;
+          return compareIsoDate(a.flight, b.flight);
+        });
+      rowCount += nextRows.length;
+      saveDay(dateIso, nextRows);
+    });
+    saveMeta({
+      ...rawMeta,
+      retentionDays,
+      coveredDates
+    });
+    return { ok: true, dateCount: coveredDates.length, rowCount, retentionDays };
+  }
+
   function clearAll() {
     const meta = loadMeta();
     (meta.coveredDates || []).forEach(deleteDay);
@@ -348,6 +441,8 @@
 
   global.HomelinePaxRegistry = {
     REGISTRY_VERSION,
+    DEFAULT_RETENTION_DAYS,
+    MIN_RETENTION_DAYS,
     loadMeta,
     getCoverage,
     importRows,
@@ -355,8 +450,12 @@
     listForDate,
     listForDateRange,
     hasDataForDate,
+    hasAnyData,
     loadDay,
     clearAll,
+    pruneLocalToRetention,
+    exportMasterPayload,
+    importMasterPayload,
     normalizeLookupFlight,
     isValidIsoDate,
     enrichDayRow
