@@ -2,8 +2,10 @@
  * 本家 EDW 訂位主檔：依日期分片存放，排班作業按需查詢
  */
 (function (global) {
-  const REGISTRY_VERSION = '2026-06-20-v5';
-  const DEFAULT_RETENTION_DAYS = 45;
+  const REGISTRY_VERSION = '2026-06-20-v6';
+  const RETENTION_BACK_DAYS = 15;
+  const RETENTION_FORWARD_DAYS = 30;
+  const DEFAULT_RETENTION_DAYS = RETENTION_BACK_DAYS + RETENTION_FORWARD_DAYS;
   const MIN_RETENTION_DAYS = 7;
   const META_KEY = 'cursor_v1_homeline_pax_meta_v2';
   const DAY_KEY_PREFIX = 'cursor_v1_homeline_pax_day_v2_';
@@ -96,30 +98,71 @@
     }
   }
 
-  function pruneCoveredDates(dates, maxDays = DEFAULT_RETENTION_DAYS) {
-    const sorted = [...new Set((dates || []).filter(isValidIsoDate))].sort();
-    const limit = Math.max(MIN_RETENTION_DAYS, maxDays || DEFAULT_RETENTION_DAYS);
-    if (sorted.length <= limit) return sorted;
-    return sorted.slice(-limit);
+  function getTodayIso() {
+    const d = new Date();
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
   }
 
-  function pruneLocalToRetention(maxDays = DEFAULT_RETENTION_DAYS) {
+  function addDaysToIso(iso, delta) {
+    const parts = clean(iso).split('-').map(Number);
+    if (parts.length !== 3 || !parts.every(Number.isFinite)) return '';
+    const dt = new Date(parts[0], parts[1] - 1, parts[2]);
+    dt.setDate(dt.getDate() + delta);
+    const y = dt.getFullYear();
+    const m = String(dt.getMonth() + 1).padStart(2, '0');
+    const day = String(dt.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  }
+
+  function filterDatesInRollingWindow(dates, anchorIso, backDays, forwardDays) {
+    const anchor = isValidIsoDate(anchorIso) ? anchorIso : getTodayIso();
+    const back = Math.max(0, Number.isFinite(backDays) ? backDays : RETENTION_BACK_DAYS);
+    const forward = Math.max(0, Number.isFinite(forwardDays) ? forwardDays : RETENTION_FORWARD_DAYS);
+    const start = addDaysToIso(anchor, -back);
+    const end = addDaysToIso(anchor, forward);
+    return [...new Set((dates || []).filter(isValidIsoDate))].filter(dateIso =>
+      compareIsoDate(dateIso, start) >= 0 && compareIsoDate(dateIso, end) <= 0
+    ).sort();
+  }
+
+  function pruneCoveredDates(dates, opts = {}) {
+    return filterDatesInRollingWindow(
+      dates,
+      opts.anchorIso || getTodayIso(),
+      opts.retentionBack ?? opts.retentionDays ?? RETENTION_BACK_DAYS,
+      opts.retentionForward ?? opts.retentionDays ?? RETENTION_FORWARD_DAYS
+    );
+  }
+
+  function pruneLocalToRetention(opts = {}) {
     const meta = loadMeta();
-    const nextDates = pruneCoveredDates(meta.coveredDates, maxDays);
+    const nextDates = pruneCoveredDates(meta.coveredDates, opts);
     const keep = new Set(nextDates);
     (meta.coveredDates || []).forEach(dateIso => {
       if (!keep.has(dateIso)) deleteDay(dateIso);
     });
     meta.coveredDates = nextDates;
+    meta.retentionBack = Number.isFinite(opts.retentionBack) ? opts.retentionBack : RETENTION_BACK_DAYS;
+    meta.retentionForward = Number.isFinite(opts.retentionForward) ? opts.retentionForward : RETENTION_FORWARD_DAYS;
     return saveMeta(meta);
   }
 
   function saveMeta(meta) {
-    const coveredDates = pruneCoveredDates(meta?.coveredDates, meta?.retentionDays || DEFAULT_RETENTION_DAYS);
+    const retentionBack = Number.isFinite(meta?.retentionBack) ? meta.retentionBack : RETENTION_BACK_DAYS;
+    const retentionForward = Number.isFinite(meta?.retentionForward) ? meta.retentionForward : RETENTION_FORWARD_DAYS;
+    const coveredDates = pruneCoveredDates(meta?.coveredDates, {
+      anchorIso: meta?.anchorIso,
+      retentionBack,
+      retentionForward
+    });
     const next = {
       version: REGISTRY_VERSION,
       updatedAt: new Date().toISOString(),
-      retentionDays: Number.isFinite(meta?.retentionDays) ? meta.retentionDays : DEFAULT_RETENTION_DAYS,
+      retentionBack,
+      retentionForward,
       imports: Array.isArray(meta?.imports) ? meta.imports.slice(-20) : [],
       coveredDates
     };
@@ -238,6 +281,7 @@
       return { ok: false, error: '沒有可匯入的訂位資料。' };
     }
 
+    const anchorIso = isValidIsoDate(importMeta.anchorIso) ? clean(importMeta.anchorIso) : getTodayIso();
     const importId = `edw-${Date.now().toString(36)}`;
     const byDate = groupRowsByDate(rows);
     const importedDates = Object.keys(byDate).sort();
@@ -272,16 +316,25 @@
     };
     meta.imports = [record, ...(meta.imports || [])];
     meta.coveredDates = [...coveredSet].sort();
-    meta.retentionDays = DEFAULT_RETENTION_DAYS;
+    meta.retentionBack = RETENTION_BACK_DAYS;
+    meta.retentionForward = RETENTION_FORWARD_DAYS;
+    meta.anchorIso = anchorIso;
     saveMeta(meta);
-    const savedMeta = pruneLocalToRetention(DEFAULT_RETENTION_DAYS);
+    const savedMeta = pruneLocalToRetention({
+      anchorIso,
+      retentionBack: RETENTION_BACK_DAYS,
+      retentionForward: RETENTION_FORWARD_DAYS
+    });
+    record.retainedDateCount = savedMeta.coveredDates.length;
+    record.retainedRowCount = savedMeta.coveredDates.reduce((sum, dateIso) => sum + loadDay(dateIso).length, 0);
 
     return {
       ok: true,
       importId,
       importedDates,
       meta: savedMeta,
-      record
+      record,
+      retainedDateCount: savedMeta.coveredDates.length
     };
   }
 
@@ -373,21 +426,31 @@
   }
 
   function exportMasterPayload(opts = {}) {
-    const retentionDays = Number.isFinite(opts.retentionDays)
-      ? Math.max(MIN_RETENTION_DAYS, opts.retentionDays)
-      : DEFAULT_RETENTION_DAYS;
+    const retentionBack = Number.isFinite(opts.retentionBack)
+      ? Math.max(0, opts.retentionBack)
+      : RETENTION_BACK_DAYS;
+    const retentionForward = Number.isFinite(opts.retentionForward)
+      ? Math.max(0, opts.retentionForward)
+      : RETENTION_FORWARD_DAYS;
     const meta = loadMeta();
-    const coveredDates = pruneCoveredDates(meta.coveredDates, retentionDays);
+    const coveredDates = pruneCoveredDates(meta.coveredDates, {
+      anchorIso: opts.anchorIso,
+      retentionBack,
+      retentionForward
+    });
     const exportMeta = {
       version: REGISTRY_VERSION,
       updatedAt: meta.updatedAt || new Date().toISOString(),
-      retentionDays,
+      retentionBack,
+      retentionForward,
       imports: Array.isArray(meta.imports) ? meta.imports.slice(-20) : [],
       coveredDates
     };
     return {
       version: REGISTRY_VERSION,
-      retentionDays,
+      retentionBack,
+      retentionForward,
+      retentionDays: retentionBack + retentionForward,
       meta: exportMeta,
       rowsByDate: buildRowsByDate(coveredDates)
     };
@@ -397,20 +460,38 @@
     if (!payload || typeof payload !== 'object') return { ok: false, error: '無效資料' };
     const rawMeta = payload.meta;
     if (!rawMeta || !Array.isArray(rawMeta.coveredDates)) return { ok: false, error: '無效主檔' };
-    const retentionDays = Number.isFinite(payload.retentionDays)
-      ? Math.max(MIN_RETENTION_DAYS, payload.retentionDays)
-      : (Number.isFinite(rawMeta.retentionDays) ? rawMeta.retentionDays : DEFAULT_RETENTION_DAYS);
-    const coveredDates = pruneCoveredDates(rawMeta.coveredDates, retentionDays);
+    const retentionBack = Number.isFinite(payload.retentionBack)
+      ? Math.max(0, payload.retentionBack)
+      : (Number.isFinite(rawMeta.retentionBack) ? rawMeta.retentionBack : RETENTION_BACK_DAYS);
+    const retentionForward = Number.isFinite(payload.retentionForward)
+      ? Math.max(0, payload.retentionForward)
+      : (Number.isFinite(rawMeta.retentionForward) ? rawMeta.retentionForward : RETENTION_FORWARD_DAYS);
+    const coveredDates = pruneCoveredDates(rawMeta.coveredDates, {
+      anchorIso: payload.anchorIso || rawMeta.anchorIso,
+      retentionBack,
+      retentionForward
+    });
     const rowsByDate = payload.rowsByDate && typeof payload.rowsByDate === 'object'
       ? payload.rowsByDate
       : {};
+    const rowDateKeys = Object.keys(rowsByDate).filter(isValidIsoDate);
+    let effectiveDates = coveredDates.length
+      ? coveredDates
+      : pruneCoveredDates(rowDateKeys, {
+        anchorIso: payload.anchorIso || rawMeta.anchorIso,
+        retentionBack,
+        retentionForward
+      });
+    if (!effectiveDates.length) {
+      return { ok: false, error: '雲端訂位主檔無有效日期' };
+    }
     const oldMeta = loadMeta();
-    const keep = new Set(coveredDates);
+    const keep = new Set(effectiveDates);
     (oldMeta.coveredDates || []).forEach(dateIso => {
       if (!keep.has(dateIso)) deleteDay(dateIso);
     });
     let rowCount = 0;
-    coveredDates.forEach(dateIso => {
+    effectiveDates.forEach(dateIso => {
       const rows = Array.isArray(rowsByDate[dateIso]) ? rowsByDate[dateIso] : [];
       const nextRows = rows
         .map(r => serializeDayRow(r, r.sourceImportId))
@@ -424,10 +505,12 @@
     });
     saveMeta({
       ...rawMeta,
-      retentionDays,
-      coveredDates
+      retentionBack,
+      retentionForward,
+      anchorIso: payload.anchorIso || rawMeta.anchorIso,
+      coveredDates: effectiveDates
     });
-    return { ok: true, dateCount: coveredDates.length, rowCount, retentionDays };
+    return { ok: true, dateCount: effectiveDates.length, rowCount, retentionBack, retentionForward };
   }
 
   function clearAll() {
@@ -441,6 +524,8 @@
 
   global.HomelinePaxRegistry = {
     REGISTRY_VERSION,
+    RETENTION_BACK_DAYS,
+    RETENTION_FORWARD_DAYS,
     DEFAULT_RETENTION_DAYS,
     MIN_RETENTION_DAYS,
     loadMeta,

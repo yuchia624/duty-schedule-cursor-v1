@@ -13,7 +13,7 @@
 <script src="flight-assignment-utils.js"></script>
 <script src="foreign-duty-rules.js?v=20260613-oz-abg-label"></script>
 <script src="homeline-pax-parser.js?v=20260620-v4"></script>
-<script src="homeline-pax-registry.js?v=20260620-v6"></script>
+<script src="homeline-pax-registry.js?v=20260621-v2"></script>
 <script src="dest-class-registry.js?v=20260620-v4"></script>
 <script src="dest-class-seed.js?v=20260620-v4"></script>
 <script src="dest-class-parser.js?v=20260620-v1"></script>
@@ -13660,10 +13660,17 @@ let sharedConfigReady = false;
 let sharedConfigSaveTimer = null;
 let lastSharedConfigJson = '';
 let lastHomelinePaxMasterJson = '';
+let homelinePaxLocalImportAt = 0;
 let pendingSharedConfigSave = false;
 let homelinePaxCloudPruneAlertShown = false;
 const SHARED_CONFIG_DOC_BYTE_LIMIT = 950 * 1024;
-const HOMELINE_PAX_CLOUD_RETENTION_STEPS = [45, 30, 21, 14, 7];
+const HOMELINE_PAX_CLOUD_WINDOW_STEPS = [
+  { back: 15, forward: 30 },
+  { back: 12, forward: 24 },
+  { back: 10, forward: 20 },
+  { back: 7, forward: 14 },
+  { back: 5, forward: 7 }
+];
 let applyingSharedRemote = false;
 let dayCloudStatus = { text: '尚未同步', mode: 'pending' };
 let sharedCloudStatus = { text: '已同步', mode: 'synced' };
@@ -13870,19 +13877,32 @@ function homelinePaxMasterFingerprint(master) {
   if (!master || typeof master !== 'object') return '';
   return JSON.stringify({
     version: master.version,
-    retentionDays: master.retentionDays,
+    retentionBack: master.retentionBack,
+    retentionForward: master.retentionForward,
     meta: master.meta,
     rowsByDate: master.rowsByDate
   });
 }
-function buildHomelinePaxMasterForSharedConfig(retentionDays) {
+function buildHomelinePaxMasterForSharedConfig(opts = {}) {
   if (typeof HomelinePaxRegistry === 'undefined' || !HomelinePaxRegistry.hasAnyData()) return null;
-  return HomelinePaxRegistry.exportMasterPayload(
-    Number.isFinite(retentionDays) ? { retentionDays } : undefined
-  );
+  const exportOpts = {};
+  if (Number.isFinite(opts.homelineRetentionBack)) exportOpts.retentionBack = opts.homelineRetentionBack;
+  if (Number.isFinite(opts.homelineRetentionForward)) exportOpts.retentionForward = opts.homelineRetentionForward;
+  return HomelinePaxRegistry.exportMasterPayload(exportOpts);
 }
 function applyHomelinePaxMasterFromCloud(master) {
   if (!master || typeof HomelinePaxRegistry === 'undefined') return { applied: false };
+  const remoteDates = Array.isArray(master.meta?.coveredDates) ? master.meta.coveredDates.length : 0;
+  const remoteRows = master.rowsByDate && typeof master.rowsByDate === 'object'
+    ? Object.keys(master.rowsByDate).length
+    : 0;
+  if (!remoteDates && !remoteRows && HomelinePaxRegistry.hasAnyData()) {
+    return { applied: false, skipped: 'empty-remote' };
+  }
+  const remoteAt = Date.parse(master.meta?.updatedAt || master.meta?.imports?.[0]?.importedAt || '') || 0;
+  if (homelinePaxLocalImportAt && remoteAt && remoteAt < homelinePaxLocalImportAt) {
+    return { applied: false, skipped: 'newer-local' };
+  }
   const fp = homelinePaxMasterFingerprint(master);
   if (fp && fp === lastHomelinePaxMasterJson) return { applied: false };
   const res = HomelinePaxRegistry.importMasterPayload(master);
@@ -13890,31 +13910,43 @@ function applyHomelinePaxMasterFromCloud(master) {
   lastHomelinePaxMasterJson = fp;
   return { applied: true, ...res };
 }
+function buildSharedConfigStateWithHomelineRetention(back, forward) {
+  return {
+    ...sharedConfigPayload({
+      staffPersonnelRegistry,
+      foreignScheduleMaster: typeof ForeignScheduleRegistry !== 'undefined' && ForeignScheduleRegistry.hasAnySchedules()
+        ? ForeignScheduleRegistry.exportMasterPayload()
+        : null,
+      destClassMaster: typeof DestClassRegistry !== 'undefined' && DestClassRegistry.hasAnyGroups()
+        ? DestClassRegistry.exportMasterPayload()
+        : null,
+      homelinePaxMaster: buildHomelinePaxMasterForSharedConfig({
+        homelineRetentionBack: back,
+        homelineRetentionForward: forward
+      })
+    }),
+    ...getSyncMeta()
+  };
+}
 function prepareSharedConfigUpload() {
   const hasHomeline = typeof HomelinePaxRegistry !== 'undefined' && HomelinePaxRegistry.hasAnyData();
-  const retentionSteps = hasHomeline
-    ? HOMELINE_PAX_CLOUD_RETENTION_STEPS
-    : [null];
+  const windowSteps = hasHomeline ? HOMELINE_PAX_CLOUD_WINDOW_STEPS : [null];
   let matchedState = null;
-  let matchedDays = null;
-  for (const days of retentionSteps) {
-    if (hasHomeline && Number.isFinite(days)) {
-      HomelinePaxRegistry.pruneLocalToRetention(days);
-    }
-    const state = Number.isFinite(days)
-      ? getSharedConfigState({ homelineRetentionDays: days })
+  let matchedWindow = null;
+  for (const step of windowSteps) {
+    const state = step
+      ? buildSharedConfigStateWithHomelineRetention(step.back, step.forward)
       : getSharedConfigState();
     if (estimateFirestoreDocBytes(state) <= SHARED_CONFIG_DOC_BYTE_LIMIT) {
       matchedState = state;
-      matchedDays = days;
+      matchedWindow = step;
       break;
     }
   }
   if (!matchedState) {
-    const fallbackDays = HOMELINE_PAX_CLOUD_RETENTION_STEPS[HOMELINE_PAX_CLOUD_RETENTION_STEPS.length - 1];
-    if (hasHomeline) HomelinePaxRegistry.pruneLocalToRetention(fallbackDays);
+    const fallback = HOMELINE_PAX_CLOUD_WINDOW_STEPS[HOMELINE_PAX_CLOUD_WINDOW_STEPS.length - 1];
     const state = hasHomeline
-      ? getSharedConfigState({ homelineRetentionDays: fallbackDays })
+      ? buildSharedConfigStateWithHomelineRetention(fallback.back, fallback.forward)
       : getSharedConfigState();
     return {
       blocked: true,
@@ -13922,17 +13954,22 @@ function prepareSharedConfigUpload() {
       message: '共用設定超過 Firebase 單文件上限（約 1MB）。EDW 訂位已保留在本機，但外網無法同步。請縮短匯入天數或請管理員清理雲端主檔。'
     };
   }
-  const defaultDays = HomelinePaxRegistry?.DEFAULT_RETENTION_DAYS || 45;
-  if (hasHomeline && Number.isFinite(matchedDays) && matchedDays < defaultDays) {
-    return { blocked: false, state: matchedState, prunedRetentionDays: matchedDays };
+  if (hasHomeline && matchedWindow) {
+    HomelinePaxRegistry.pruneLocalToRetention(matchedWindow);
+    matchedState = buildSharedConfigStateWithHomelineRetention(matchedWindow.back, matchedWindow.forward);
+  }
+  const defaultBack = HomelinePaxRegistry?.RETENTION_BACK_DAYS || 15;
+  const defaultForward = HomelinePaxRegistry?.RETENTION_FORWARD_DAYS || 30;
+  if (hasHomeline && matchedWindow && (matchedWindow.back < defaultBack || matchedWindow.forward < defaultForward)) {
+    return { blocked: false, state: matchedState, prunedWindow: matchedWindow };
   }
   return { blocked: false, state: matchedState };
 }
-function notifyHomelinePaxCloudPruned(days) {
-  if (homelinePaxCloudPruneAlertShown) return;
+function notifyHomelinePaxCloudPruned(windowStep) {
+  if (homelinePaxCloudPruneAlertShown || !windowStep) return;
   homelinePaxCloudPruneAlertShown = true;
   appAlert(
-    `雲端空間不足，EDW 訂位主檔已自動縮為最近 ${days} 天上傳（本機亦已同步裁切）。`,
+    `雲端空間不足，EDW 訂位主檔已自動縮為當日前 ${windowStep.back} 天、後 ${windowStep.forward} 天上傳（本機亦已同步裁切）。`,
     '雲端已裁切上傳',
     'info'
   );
@@ -14547,7 +14584,10 @@ function getSharedConfigState(opts = {}) {
       destClassMaster: typeof DestClassRegistry !== 'undefined' && DestClassRegistry.hasAnyGroups()
         ? DestClassRegistry.exportMasterPayload()
         : null,
-      homelinePaxMaster: buildHomelinePaxMasterForSharedConfig(opts.homelineRetentionDays)
+      homelinePaxMaster: buildHomelinePaxMasterForSharedConfig({
+        homelineRetentionBack: opts.homelineRetentionBack,
+        homelineRetentionForward: opts.homelineRetentionForward
+      })
     }),
     ...getSyncMeta()
   };
@@ -14693,7 +14733,7 @@ function saveSharedConfigNow() {
     appAlert(upload.message, '雲端未同步');
     return;
   }
-  if (upload.prunedRetentionDays) notifyHomelinePaxCloudPruned(upload.prunedRetentionDays);
+  if (upload.prunedWindow) notifyHomelinePaxCloudPruned(upload.prunedWindow);
   const state = upload.state || getSharedConfigState();
   const json = JSON.stringify(sharedConfigPayload(state));
   if (json === lastSharedConfigJson) {
@@ -17390,6 +17430,11 @@ function setFlightManagerSection(section, options = {}) {
     syncFlightsNavUi();
   }
   if (options.render === false) return;
+  if (changed && flightManagerActiveSection === 'homeline-pax') {
+    const { start, end } = getHomelinePaxDefaultDateRange();
+    syncHomelinePaxBrowseDateRange(start, end);
+    homelinePaxPage = 1;
+  }
   if (changed || options.forceRender) renderActiveFlightManagerPanel();
 }
 
@@ -17532,16 +17577,89 @@ function syncHomelinePaxBrowseDateEnd(iso) {
   }
 }
 
+function shiftIsoDateByDays(iso, delta) {
+  if (!iso || !isValidISODate(iso)) return '';
+  const [y, m, d] = iso.split('-').map(Number);
+  const dt = new Date(y, m - 1, d);
+  dt.setDate(dt.getDate() + delta);
+  return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
+}
+
 function getHomelinePaxDefaultDateRange() {
   const today = getLocalDateISO();
+  const retentionEnd = shiftIsoDateByDays(today, HomelinePaxRegistry?.RETENTION_FORWARD_DAYS || 30);
   const coverage = HomelinePaxRegistry?.getCoverage?.();
-  if (!coverage?.dateMax) {
-    return { start: today, end: today };
+  let end = retentionEnd;
+  if (coverage?.dateMax && compareIsoDate(coverage.dateMax, end) < 0) {
+    end = coverage.dateMax;
   }
-  const end = coverage.dateMax;
   let start = today;
-  if (compareIsoDate(start, end) > 0) start = end;
+  if (compareIsoDate(end, start) < 0) end = start;
   return { start, end };
+}
+
+function getHomelinePaxStoredDateRange() {
+  const coverage = HomelinePaxRegistry?.getCoverage?.();
+  if (!coverage?.dateCount || !coverage.dateMin || !coverage.dateMax) return null;
+  return { start: coverage.dateMin, end: coverage.dateMax };
+}
+
+function previewHomelinePaxImportRetention(parsed, anchorIso = getLocalDateISO()) {
+  const back = HomelinePaxRegistry?.RETENTION_BACK_DAYS || 15;
+  const forward = HomelinePaxRegistry?.RETENTION_FORWARD_DAYS || 30;
+  const windowStart = shiftIsoDateByDays(anchorIso, -back);
+  const windowEnd = shiftIsoDateByDays(anchorIso, forward);
+  const dates = new Set();
+  let rowCount = 0;
+  (parsed?.rows || []).forEach(row => {
+    const dateIso = row?.dateIso;
+    if (!dateIso || !isValidISODate(dateIso)) return;
+    if (compareIsoDate(dateIso, windowStart) < 0 || compareIsoDate(dateIso, windowEnd) > 0) return;
+    dates.add(dateIso);
+    rowCount += 1;
+  });
+  const sorted = [...dates].sort();
+  return {
+    back,
+    forward,
+    windowStart,
+    windowEnd,
+    retainedDateCount: sorted.length,
+    retainedDateMin: sorted[0] || '',
+    retainedDateMax: sorted[sorted.length - 1] || '',
+    retainedRowCount: rowCount,
+    fileDateCount: parsed?.stats?.dates || 0,
+    fileRowCount: parsed?.stats?.rows || 0,
+    fileDateMin: parsed?.stats?.dateMin || '',
+    fileDateMax: parsed?.stats?.dateMax || ''
+  };
+}
+
+function buildHomelinePaxImportConfirmMessage(parsed) {
+  const preview = previewHomelinePaxImportRetention(parsed);
+  const lines = [
+    `提取資料規則：當日前 ${preview.back} 天～當日後 ${preview.forward} 天。`
+  ];
+  if (preview.retainedDateCount) {
+    lines.push(
+      `匯入的資料區間涵蓋 ${preview.retainedDateCount} 個日期（${preview.retainedDateMin}～${preview.retainedDateMax}），共 ${preview.retainedRowCount} 筆。`
+    );
+  } else {
+    lines.push(
+      `檔案含 ${preview.fileRowCount} 筆／${preview.fileDateCount} 個日期（${preview.fileDateMin}～${preview.fileDateMax}），但沒有日期落在保留區間（${preview.windowStart}～${preview.windowEnd}）。`
+    );
+  }
+  lines.push('檔案中出現的日期會覆蓋現有訂位資料。');
+  lines.push('超過艙容之訂位數，以艙容計。');
+  return lines.join('\n');
+}
+
+function formatHomelinePaxTableMetaLabel(search) {
+  const suffix = search ? '（已篩選）' : '';
+  const stored = getHomelinePaxStoredDateRange();
+  if (!stored) return `：0 筆${suffix}`;
+  const rows = HomelinePaxRegistry.listForDateRange(stored.start, stored.end, { search });
+  return `${formatHomelinePaxDateRangeLabel(stored)}：${rows.length} 筆${suffix}`;
 }
 
 function ensureHomelinePaxBrowseDateRange() {
@@ -17686,11 +17804,8 @@ function renderHomelinePaxTable() {
     }).join('');
   }
 
-  const rangeLabel = formatHomelinePaxDateRangeLabel(range);
   if (metaEl) {
-    metaEl.textContent = search
-      ? `${rangeLabel}：${rows.length} 筆（已篩選）`
-      : `${rangeLabel}：${rows.length} 筆`;
+    metaEl.textContent = formatHomelinePaxTableMetaLabel(search);
   }
   if (pageLabel) pageLabel.textContent = `${homelinePaxPage} / ${totalPages}`;
   if (prevBtn) prevBtn.disabled = homelinePaxPage <= 1;
@@ -17706,20 +17821,20 @@ async function handleHomelinePaxImport(file) {
       appAlert(parsed.error || '無法解析 EDW 報表。', '匯入失敗');
       return;
     }
-    const warnText = parsed.warnings?.length
-      ? `\n\n警告 ${parsed.warnings.length} 則（前 3 則）：\n${parsed.warnings.slice(0, 3).join('\n')}`
-      : '';
     const ok = await appConfirm(
-      `將匯入 ${parsed.stats.rows} 筆訂位資料，涵蓋 ${parsed.stats.dates} 個日期（${parsed.stats.dateMin}～${parsed.stats.dateMax}）。\n` +
-      `檔案中出現的日期會覆蓋現有訂位資料。${warnText}`,
+      buildHomelinePaxImportConfirmMessage(parsed),
       { title: '確認匯入 EDW 訂位', confirmText: '匯入' }
     );
     if (!ok) return;
-    const res = HomelinePaxRegistry.importRows(parsed.rows, { fileName: file.name });
+    const res = HomelinePaxRegistry.importRows(parsed.rows, {
+      fileName: file.name,
+      anchorIso: getLocalDateISO()
+    });
     if (!res.ok) {
       appAlert(res.error || '匯入失敗。', '匯入失敗');
       return;
     }
+    homelinePaxLocalImportAt = Date.now();
     homelinePaxPage = 1;
     const { start, end } = getHomelinePaxDefaultDateRange();
     if (start) syncHomelinePaxBrowseDateRange(start, end);
@@ -17730,10 +17845,23 @@ async function handleHomelinePaxImport(file) {
       syncAssignmentTableFromSchedule();
       markUnsynced();
     }
-    syncHomelinePaxMasterToCloud();
     renderHomelinePaxManager();
+    const retained = res.retainedDateCount ?? res.meta?.coveredDates?.length ?? 0;
+    if (!retained) {
+      appAlert(
+        `已解析 ${res.record.rowCount} 筆，但沒有任何日期落在保留區間（當日前 15 天～後 30 天）。請確認 EDW 日期或系統日期。`,
+        '匯入後無保留資料'
+      );
+      return;
+    }
+    setTimeout(() => syncHomelinePaxMasterToCloud(), 200);
+    const coverage = HomelinePaxRegistry.getCoverage?.();
+    const rangeNote = coverage?.dateMin && coverage?.dateMax
+      ? `（${coverage.dateMin}～${coverage.dateMax}）`
+      : '';
+    const rowNote = res.record.retainedRowCount ?? res.record.rowCount;
     appAlert(
-      `已匯入 ${res.record.rowCount} 筆，更新 ${res.record.dateCount} 個日期。`,
+      `已依保留規則（當日前 15 天～後 30 天）匯入 ${rowNote} 筆，保留 ${retained} 個日期${rangeNote}。`,
       '匯入完成',
       'success'
     );
