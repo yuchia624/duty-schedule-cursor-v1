@@ -13691,6 +13691,16 @@ let lastHomelinePaxMasterJson = '';
 let homelinePaxLocalImportAt = 0;
 let pendingSharedConfigSave = false;
 let homelinePaxCloudPruneAlertShown = false;
+let homelinePaxDocRef = null;
+let homelinePaxUnsub = null;
+let homelinePaxCloudReady = false;
+let homelinePaxSaveTimer = null;
+let pendingHomelinePaxCloudSave = false;
+let applyingHomelinePaxRemote = false;
+let homelineMainDocStripPending = false;
+let homelinePaxMigrateStripAttempted = false;
+let homelinePaxCloudStatus = { text: '雲端連線中', mode: 'pending' };
+const HOMELINE_PAX_CLOUD_DOC_ID = 'homelinePax';
 const SHARED_CONFIG_DOC_BYTE_LIMIT = 950 * 1024;
 const HOMELINE_PAX_CLOUD_WINDOW_STEPS = [
   { back: 15, forward: 30 },
@@ -13769,16 +13779,16 @@ function renderHomelinePaxCloudStatusMeta() {
   const el = document.getElementById('homelinePaxCloudStatusMeta');
   if (!el) return;
   const hasLocal = typeof HomelinePaxRegistry !== 'undefined' && HomelinePaxRegistry.hasAnyData();
-  const status = sharedCloudStatus;
+  const status = homelinePaxCloudStatus;
   const label = getCloudStatusDisplayText(status, true);
   const hint = getCloudEditorDisplayHint('shared');
-  if (!hasLocal && !sharedConfigReady) {
+  if (!hasLocal && !homelinePaxCloudReady) {
     el.textContent = '雲端同步：連線中…';
     el.className = 'fs-table-meta fs-table-meta-sub hp-cloud-status pending';
     return;
   }
   if (!hasLocal) {
-    el.textContent = sharedConfigReady
+    el.textContent = homelinePaxCloudReady
       ? `雲端同步：${label}（尚無本機訂位資料，將從雲端載入）`
       : '雲端同步：連線中…';
     el.className = 'fs-table-meta fs-table-meta-sub hp-cloud-status' + (status.mode ? ` ${status.mode}` : '');
@@ -13800,7 +13810,7 @@ function renderCloudStatusUI() {
   );
   applyCloudSyncBtnState(
     document.getElementById('flightsSharedSyncBtn'),
-    sharedCloudStatus,
+    getFlightsCloudStatusForUi(),
     getCloudEditorDisplayHint('shared'),
     { preferFullText: true }
   );
@@ -13979,34 +13989,46 @@ function applyHomelinePaxMasterFromCloud(master) {
   lastHomelinePaxMasterJson = fp;
   return { applied: true, ...res };
 }
-function buildSharedConfigStateWithHomelineRetention(back, forward) {
-  return {
-    ...sharedConfigPayload({
-      staffPersonnelRegistry,
-      foreignScheduleMaster: typeof ForeignScheduleRegistry !== 'undefined' && ForeignScheduleRegistry.hasAnySchedules()
-        ? ForeignScheduleRegistry.exportMasterPayload()
-        : null,
-      destClassMaster: typeof DestClassRegistry !== 'undefined' && DestClassRegistry.hasAnyGroups()
-        ? DestClassRegistry.exportMasterPayload()
-        : null,
-      homelinePaxMaster: buildHomelinePaxMasterForSharedConfig({
-        homelineRetentionBack: back,
-        homelineRetentionForward: forward
-      })
-    }),
-    ...getSyncMeta()
-  };
+function setHomelinePaxCloudStatus(text, mode = '') {
+  const status = { text: text || '', mode: mode || '' };
+  if (homelinePaxCloudStatus.text === status.text && homelinePaxCloudStatus.mode === status.mode) return;
+  homelinePaxCloudStatus = status;
+  renderCloudStatusUI();
 }
-function prepareSharedConfigUpload() {
+function getFlightsCloudStatusForUi() {
+  const onHomeline = flightManagerActiveSection === 'homeline-pax';
   const hasHomeline = typeof HomelinePaxRegistry !== 'undefined' && HomelinePaxRegistry.hasAnyData();
-  const windowSteps = hasHomeline ? HOMELINE_PAX_CLOUD_WINDOW_STEPS : [null];
+  if (onHomeline && (hasHomeline || homelinePaxCloudStatus.mode !== 'synced')) {
+    return homelinePaxCloudStatus;
+  }
+  return sharedCloudStatus;
+}
+function extractHomelinePaxMasterFromCloudDoc(data) {
+  if (!data || typeof data !== 'object') return null;
+  if (data.meta && Array.isArray(data.meta.coveredDates) && data.rowsByDate) return data;
+  if (data.homelinePaxMaster) return data.homelinePaxMaster;
+  return null;
+}
+function homelinePaxCloudDocFingerprint(doc) {
+  const master = extractHomelinePaxMasterFromCloudDoc(doc);
+  return homelinePaxMasterFingerprint(master);
+}
+function buildHomelinePaxCloudState(back, forward) {
+  const master = buildHomelinePaxMasterForSharedConfig({
+    homelineRetentionBack: back,
+    homelineRetentionForward: forward
+  });
+  if (!master) return null;
+  return { ...master, ...getSyncMeta() };
+}
+function prepareHomelinePaxCloudUpload() {
+  const hasHomeline = typeof HomelinePaxRegistry !== 'undefined' && HomelinePaxRegistry.hasAnyData();
+  if (!hasHomeline) return { blocked: true, noData: true };
   let matchedState = null;
   let matchedWindow = null;
-  for (const step of windowSteps) {
-    const state = step
-      ? buildSharedConfigStateWithHomelineRetention(step.back, step.forward)
-      : getSharedConfigState();
-    if (estimateFirestoreDocBytes(state) <= SHARED_CONFIG_DOC_BYTE_LIMIT) {
+  for (const step of HOMELINE_PAX_CLOUD_WINDOW_STEPS) {
+    const state = buildHomelinePaxCloudState(step.back, step.forward);
+    if (state && estimateFirestoreDocBytes(state) <= SHARED_CONFIG_DOC_BYTE_LIMIT) {
       matchedState = state;
       matchedWindow = step;
       break;
@@ -14014,25 +14036,61 @@ function prepareSharedConfigUpload() {
   }
   if (!matchedState) {
     const fallback = HOMELINE_PAX_CLOUD_WINDOW_STEPS[HOMELINE_PAX_CLOUD_WINDOW_STEPS.length - 1];
-    const state = hasHomeline
-      ? buildSharedConfigStateWithHomelineRetention(fallback.back, fallback.forward)
-      : getSharedConfigState();
+    const state = buildHomelinePaxCloudState(fallback.back, fallback.forward);
     return {
       blocked: true,
       bytes: estimateFirestoreDocBytes(state),
-      message: '共用設定超過 Firebase 單文件上限（約 1MB）。EDW 訂位已保留在本機，但外網無法同步。請縮短匯入天數或請管理員清理雲端主檔。'
+      message: 'EDW 訂位主檔超過 Firebase 單文件上限（約 1MB）。資料已保留在本機，但外網無法同步。請縮短匯入天數。'
     };
   }
-  if (hasHomeline && matchedWindow) {
-    HomelinePaxRegistry.pruneLocalToRetention(matchedWindow);
-    matchedState = buildSharedConfigStateWithHomelineRetention(matchedWindow.back, matchedWindow.forward);
+  if (matchedWindow) {
+    HomelinePaxRegistry.pruneLocalToRetention({
+      anchorIso: getLocalDateISO(),
+      retentionBack: matchedWindow.back,
+      retentionForward: matchedWindow.forward
+    });
+    matchedState = buildHomelinePaxCloudState(matchedWindow.back, matchedWindow.forward);
   }
   const defaultBack = HomelinePaxRegistry?.RETENTION_BACK_DAYS || 15;
   const defaultForward = HomelinePaxRegistry?.RETENTION_FORWARD_DAYS || 30;
-  if (hasHomeline && matchedWindow && (matchedWindow.back < defaultBack || matchedWindow.forward < defaultForward)) {
-    return { blocked: false, state: matchedState, prunedWindow: matchedWindow };
+  const prunedWindow = matchedWindow && (matchedWindow.back < defaultBack || matchedWindow.forward < defaultForward)
+    ? matchedWindow
+    : null;
+  return { blocked: false, state: matchedState, prunedWindow };
+}
+function applyHomelinePaxCloudDoc(data) {
+  const master = extractHomelinePaxMasterFromCloudDoc(data);
+  if (!master) return { applied: false };
+  const res = applyHomelinePaxMasterFromCloud(master);
+  if (res.applied) {
+    const { start, end } = getHomelinePaxDefaultDateRange();
+    if (start) syncHomelinePaxBrowseDateRange(start, end);
+    if (activeErpModule === 'flights') {
+      if (flightManagerActiveSection === 'homeline-pax') renderHomelinePaxManager();
+      else renderActiveFlightManagerPanel();
+    }
+    if (activeErpModule === 'schedule-ops' && typeof renderPalette === 'function') renderPalette();
   }
-  return { blocked: false, state: matchedState };
+  return res;
+}
+function stripHomelinePaxFromMainDoc() {
+  if (!sharedConfigDocRef || homelinePaxMigrateStripAttempted) return;
+  homelinePaxMigrateStripAttempted = true;
+  sharedConfigDocRef.update({
+    homelinePaxMaster: firebase.firestore.FieldValue.delete()
+  }).catch(err => console.error('[homeline-pax] strip legacy main field failed', err));
+}
+function prepareSharedConfigUpload() {
+  const state = getSharedConfigState();
+  const bytes = estimateFirestoreDocBytes(state);
+  if (bytes <= SHARED_CONFIG_DOC_BYTE_LIMIT) {
+    return { blocked: false, state };
+  }
+  return {
+    blocked: true,
+    bytes,
+    message: '共用設定（人員／外家時刻表／航線分類）超過 Firebase 單文件上限（約 1MB）。請聯絡管理員清理雲端主檔。'
+  };
 }
 function notifyHomelinePaxCloudPruned(windowStep) {
   if (homelinePaxCloudPruneAlertShown || !windowStep) return;
@@ -14643,7 +14701,7 @@ function getCloudState() {
   };
 }
 
-function getSharedConfigState(opts = {}) {
+function getSharedConfigState() {
   return {
     ...sharedConfigPayload({
       staffPersonnelRegistry,
@@ -14652,11 +14710,7 @@ function getSharedConfigState(opts = {}) {
         : null,
       destClassMaster: typeof DestClassRegistry !== 'undefined' && DestClassRegistry.hasAnyGroups()
         ? DestClassRegistry.exportMasterPayload()
-        : null,
-      homelinePaxMaster: buildHomelinePaxMasterForSharedConfig({
-        homelineRetentionBack: opts.homelineRetentionBack,
-        homelineRetentionForward: opts.homelineRetentionForward
-      })
+        : null
     }),
     ...getSyncMeta()
   };
@@ -14686,16 +14740,6 @@ function applySharedConfigState(data) {
     if (data.destClassMaster && typeof DestClassRegistry !== 'undefined') {
       const res = DestClassRegistry.importMasterPayload(data.destClassMaster);
       if (res.ok && activeErpModule === 'flights') renderActiveFlightManagerPanel();
-    }
-    const homelineRes = applyHomelinePaxMasterFromCloud(data.homelinePaxMaster);
-    if (homelineRes.applied) {
-      const { start, end } = getHomelinePaxDefaultDateRange();
-      if (start) syncHomelinePaxBrowseDateRange(start, end);
-      if (activeErpModule === 'flights') {
-        if (flightManagerActiveSection === 'homeline-pax') renderHomelinePaxManager();
-        else renderActiveFlightManagerPanel();
-      }
-      if (activeErpModule === 'schedule-ops' && typeof renderPalette === 'function') renderPalette();
     }
     if (activeErpModule === 'staff') {
       renderErpStaffTable();
@@ -14789,6 +14833,64 @@ function applyCloudState(data) {
   }
 }
 
+function flushPendingHomelinePaxCloudSave() {
+  if (!pendingHomelinePaxCloudSave || !homelinePaxCloudReady || applyingHomelinePaxRemote) return;
+  pendingHomelinePaxCloudSave = false;
+  scheduleHomelinePaxCloudSave();
+}
+
+function saveHomelinePaxToCloudNow() {
+  if (!homelinePaxCloudReady || !homelinePaxDocRef || applyingHomelinePaxRemote) return;
+  const upload = prepareHomelinePaxCloudUpload();
+  if (upload.noData) {
+    pendingHomelinePaxCloudSave = false;
+    return;
+  }
+  if (upload.blocked) {
+    pendingHomelinePaxCloudSave = false;
+    setHomelinePaxCloudStatus('EDW 主檔過大，雲端未同步', 'offline');
+    appAlert(upload.message, '雲端未同步');
+    return;
+  }
+  if (upload.prunedWindow) notifyHomelinePaxCloudPruned(upload.prunedWindow);
+  const state = upload.state;
+  const json = homelinePaxCloudDocFingerprint(state);
+  if (json && json === lastHomelinePaxMasterJson) {
+    pendingHomelinePaxCloudSave = false;
+    setHomelinePaxCloudStatus('已同步', 'synced');
+    if (homelineMainDocStripPending) stripHomelinePaxFromMainDoc();
+    return;
+  }
+  if (json) lastHomelinePaxMasterJson = json;
+  pendingHomelinePaxCloudSave = false;
+  setHomelinePaxCloudStatus('上傳中', 'saving');
+  homelinePaxDocRef.set({
+    ...state,
+    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+  }, { merge: true })
+    .then(() => {
+      setHomelinePaxCloudStatus('已同步', 'synced');
+      if (homelineMainDocStripPending) stripHomelinePaxFromMainDoc();
+    })
+    .catch(err => {
+      console.error(err);
+      setHomelinePaxCloudStatus('EDW 雲端同步失敗', 'offline');
+    });
+}
+
+function scheduleHomelinePaxCloudSave() {
+  if (applyingHomelinePaxRemote) return;
+  if (!homelinePaxCloudReady) {
+    pendingHomelinePaxCloudSave = true;
+    setHomelinePaxCloudStatus('上傳中', 'saving');
+    return;
+  }
+  pendingHomelinePaxCloudSave = false;
+  clearTimeout(homelinePaxSaveTimer);
+  setHomelinePaxCloudStatus('上傳中', 'saving');
+  homelinePaxSaveTimer = setTimeout(saveHomelinePaxToCloudNow, 350);
+}
+
 function flushPendingSharedConfigSave() {
   if (!pendingSharedConfigSave || !sharedConfigReady || applyingSharedRemote) return;
   pendingSharedConfigSave = false;
@@ -14800,25 +14902,18 @@ function saveSharedConfigNow() {
   const upload = prepareSharedConfigUpload();
   if (upload.blocked) {
     pendingSharedConfigSave = false;
-    setCloudStatus('EDW 主檔過大，雲端未同步', 'offline', 'shared');
+    setCloudStatus('共用主檔過大，雲端未同步', 'offline', 'shared');
     appAlert(upload.message, '雲端未同步');
     return;
   }
-  if (upload.prunedWindow) notifyHomelinePaxCloudPruned(upload.prunedWindow);
   const state = upload.state || getSharedConfigState();
   const json = JSON.stringify(sharedConfigPayload(state));
   if (json === lastSharedConfigJson) {
     pendingSharedConfigSave = false;
     setCloudStatus('已同步', 'synced', 'shared');
-    if (state.homelinePaxMaster) {
-      lastHomelinePaxMasterJson = homelinePaxMasterFingerprint(state.homelinePaxMaster);
-    }
     return;
   }
   lastSharedConfigJson = json;
-  if (state.homelinePaxMaster) {
-    lastHomelinePaxMasterJson = homelinePaxMasterFingerprint(state.homelinePaxMaster);
-  }
   pendingSharedConfigSave = false;
   setCloudStatus('上傳中', 'saving', 'shared');
   sharedConfigDocRef.set({
@@ -15010,11 +15105,11 @@ function attachFirebaseSharedConfig() {
       }
       const data = doc.data();
       remoteSharedEditorMeta = captureRemoteEditorMeta(data);
+      const legacyHomeline = data.homelinePaxMaster || null;
       const remoteState = {
         staffPersonnelRegistry: data.staffPersonnelRegistry,
         foreignScheduleMaster: data.foreignScheduleMaster || null,
         destClassMaster: data.destClassMaster || null,
-        homelinePaxMaster: data.homelinePaxMaster || null,
         updatedAtLocal: data.updatedAtLocal
       };
       const remoteJson = JSON.stringify(sharedConfigPayload(remoteState));
@@ -15022,6 +15117,11 @@ function attachFirebaseSharedConfig() {
         sharedConfigReady = true;
         setCloudStatus('已同步', 'synced', 'shared');
         flushPendingSharedConfigSave();
+        if (legacyHomeline) {
+          homelineMainDocStripPending = true;
+          applyHomelinePaxMasterFromCloud(legacyHomeline);
+          scheduleHomelinePaxCloudSave();
+        }
         return;
       }
       lastSharedConfigJson = remoteJson;
@@ -15029,6 +15129,11 @@ function attachFirebaseSharedConfig() {
       sharedConfigReady = true;
       setCloudStatus('已同步', 'synced', 'shared');
       flushPendingSharedConfigSave();
+      if (legacyHomeline) {
+        homelineMainDocStripPending = true;
+        applyHomelinePaxMasterFromCloud(legacyHomeline);
+        scheduleHomelinePaxCloudSave();
+      }
       if (!data.foreignScheduleMaster) {
         if (typeof ForeignScheduleRegistry !== 'undefined' && ForeignScheduleRegistry.hasAnySchedules()) {
           syncForeignScheduleMasterToCloud();
@@ -15043,14 +15148,55 @@ function attachFirebaseSharedConfig() {
           maybeSeedDestClassMasterToCloud();
         }
       }
-      if (!data.homelinePaxMaster) {
-        if (typeof HomelinePaxRegistry !== 'undefined' && HomelinePaxRegistry.hasAnyData()) {
-          syncHomelinePaxMasterToCloud();
-        }
-      }
     }, (err) => {
       console.error(err);
       setCloudStatus('人員主檔雲端連線失敗', 'offline', 'shared');
+    });
+  } catch (err) {
+    console.error(err);
+  }
+}
+
+function attachFirebaseHomelinePax() {
+  try {
+    if (typeof firebase === 'undefined') return;
+    if (homelinePaxUnsub) {
+      homelinePaxUnsub();
+      homelinePaxUnsub = null;
+    }
+    if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+    if (!db) db = firebase.firestore();
+    homelinePaxDocRef = db.collection('dutySharedConfig').doc(HOMELINE_PAX_CLOUD_DOC_ID);
+    homelinePaxUnsub = homelinePaxDocRef.onSnapshot((doc) => {
+      if (!doc.exists) {
+        homelinePaxCloudReady = true;
+        flushPendingHomelinePaxCloudSave();
+        if (typeof HomelinePaxRegistry !== 'undefined' && HomelinePaxRegistry.hasAnyData()) {
+          scheduleHomelinePaxCloudSave();
+        }
+        return;
+      }
+      const data = doc.data();
+      const remoteJson = homelinePaxCloudDocFingerprint(data);
+      if (remoteJson === lastHomelinePaxMasterJson) {
+        homelinePaxCloudReady = true;
+        setHomelinePaxCloudStatus('已同步', 'synced');
+        flushPendingHomelinePaxCloudSave();
+        return;
+      }
+      applyingHomelinePaxRemote = true;
+      try {
+        if (remoteJson) lastHomelinePaxMasterJson = remoteJson;
+        applyHomelinePaxCloudDoc(data);
+      } finally {
+        applyingHomelinePaxRemote = false;
+      }
+      homelinePaxCloudReady = true;
+      setHomelinePaxCloudStatus('已同步', 'synced');
+      flushPendingHomelinePaxCloudSave();
+    }, (err) => {
+      console.error(err);
+      setHomelinePaxCloudStatus('EDW 雲端連線失敗', 'offline');
     });
   } catch (err) {
     console.error(err);
@@ -16579,9 +16725,9 @@ function syncDestClassMasterToCloud() {
 }
 
 function syncHomelinePaxMasterToCloud() {
-  if (applyingSharedRemote || typeof HomelinePaxRegistry === 'undefined') return;
+  if (applyingHomelinePaxRemote || typeof HomelinePaxRegistry === 'undefined') return;
   if (!HomelinePaxRegistry.hasAnyData()) return;
-  scheduleSharedConfigSave();
+  scheduleHomelinePaxCloudSave();
 }
 
 function maybeSeedDestClassMasterToCloud() {
@@ -17507,6 +17653,7 @@ function setFlightManagerSection(section, options = {}) {
     homelinePaxPage = 1;
   }
   if (changed || options.forceRender) renderActiveFlightManagerPanel();
+  if (changed && activeErpModule === 'flights') renderCloudStatusUI();
 }
 
 function renderActiveFlightManagerPanel() {
@@ -17526,6 +17673,7 @@ function bindFlightManagerHub() {
   bindForeignScheduleManager();
   document.getElementById('flightsSharedSyncBtn')?.addEventListener('click', () => {
     saveSharedConfigNow();
+    saveHomelinePaxToCloudNow();
   });
 }
 
@@ -26452,6 +26600,10 @@ function switchScheduleDate(newDate) {
     clearTimeout(sharedConfigSaveTimer);
     sharedConfigSaveTimer = null;
   }
+  if (homelinePaxSaveTimer) {
+    clearTimeout(homelinePaxSaveTimer);
+    homelinePaxSaveTimer = null;
+  }
   saveLocal();
   saveCloudNow();
   saveSharedConfigNow();
@@ -29242,6 +29394,7 @@ if (!flightsImported) {
 }
 attachFirebaseForSelectedDate();
 attachFirebaseSharedConfig();
+attachFirebaseHomelinePax();
 toggleAssignmentPanel(false);
 initErpNavigation();
 }

@@ -10,7 +10,8 @@ service cloud.firestore {
       allow read, write: if true;
     }
 
-    // 全站共用設定（人員主檔、標籤、參考日等）
+    // 全站共用設定（人員主檔、外家時刻表、航線分類、EDW 訂位等）
+    // homelinePax 為 EDW 訂位獨立文件，與 main 分開存放
     match /dutySharedConfig/{docId} {
       allow read, write: if true;
     }
