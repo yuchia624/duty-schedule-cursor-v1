@@ -13983,7 +13983,8 @@ function applyHomelinePaxMasterFromCloud(master) {
     return { applied: false, skipped: 'newer-local' };
   }
   const fp = homelinePaxMasterFingerprint(master);
-  if (fp && fp === lastHomelinePaxMasterJson) return { applied: false };
+  const hasLocal = HomelinePaxRegistry.hasAnyData();
+  if (fp && fp === lastHomelinePaxMasterJson && hasLocal) return { applied: false };
   const res = HomelinePaxRegistry.importMasterPayload(master);
   if (!res.ok) return { applied: false, error: res.error };
   lastHomelinePaxMasterJson = fp;
@@ -14861,7 +14862,6 @@ function saveHomelinePaxToCloudNow() {
     if (homelineMainDocStripPending) stripHomelinePaxFromMainDoc();
     return;
   }
-  if (json) lastHomelinePaxMasterJson = json;
   pendingHomelinePaxCloudSave = false;
   setHomelinePaxCloudStatus('上傳中', 'saving');
   homelinePaxDocRef.set({
@@ -14869,6 +14869,7 @@ function saveHomelinePaxToCloudNow() {
     updatedAt: firebase.firestore.FieldValue.serverTimestamp()
   }, { merge: true })
     .then(() => {
+      if (json) lastHomelinePaxMasterJson = json;
       setHomelinePaxCloudStatus('已同步', 'synced');
       if (homelineMainDocStripPending) stripHomelinePaxFromMainDoc();
     })
@@ -15178,7 +15179,8 @@ function attachFirebaseHomelinePax() {
       }
       const data = doc.data();
       const remoteJson = homelinePaxCloudDocFingerprint(data);
-      if (remoteJson === lastHomelinePaxMasterJson) {
+      const hasLocalHomeline = typeof HomelinePaxRegistry !== 'undefined' && HomelinePaxRegistry.hasAnyData();
+      if (remoteJson === lastHomelinePaxMasterJson && hasLocalHomeline) {
         homelinePaxCloudReady = true;
         setHomelinePaxCloudStatus('已同步', 'synced');
         flushPendingHomelinePaxCloudSave();
@@ -15186,7 +15188,6 @@ function attachFirebaseHomelinePax() {
       }
       applyingHomelinePaxRemote = true;
       try {
-        if (remoteJson) lastHomelinePaxMasterJson = remoteJson;
         applyHomelinePaxCloudDoc(data);
       } finally {
         applyingHomelinePaxRemote = false;
