@@ -4251,6 +4251,27 @@
     display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px;
   }
   .flight-manager-hub .fs-page-head-top h2 { margin: 0; }
+  .flight-manager-hub .fs-page-head-actions {
+    display: inline-flex; align-items: center; gap: 8px; margin-left: auto;
+  }
+  .flight-manager-hub .fs-page-head-actions .toolbar-icon-btn {
+    width: auto; min-height: 36px; padding: 0 12px 0 10px; border-radius: 10px;
+    display: inline-flex; align-items: center; gap: 8px;
+  }
+  .flight-manager-hub .fs-page-head-actions .toolbar-icon-btn__icon { width: 18px; height: 18px; flex-shrink: 0; }
+  .flight-manager-hub .fs-page-head-actions .toolbar-icon-btn__tip {
+    position: static; opacity: 1; visibility: visible; transform: none; pointer-events: auto;
+    padding: 0; background: transparent; color: #334155; font-size: 13px; font-weight: 600;
+    box-shadow: none; white-space: nowrap; max-width: min(42vw, 320px); overflow: hidden; text-overflow: ellipsis;
+  }
+  .flight-manager-hub .fs-page-head-actions .toolbar-icon-btn__tip::before { display: none; }
+  .flight-manager-hub .fs-page-head-actions .toolbar-icon-btn.cloud-offline .toolbar-icon-btn__tip { color: #b45309; }
+  .flight-manager-hub .fs-page-head-actions .toolbar-icon-btn.cloud-saving .toolbar-icon-btn__tip { color: #2563eb; }
+  .flight-manager-hub .fs-page-head-actions .toolbar-icon-btn.cloud-synced .toolbar-icon-btn__tip { color: #0f766e; }
+  .flight-manager-hub .fs-page-head-actions .toolbar-icon-btn.cloud-pending .toolbar-icon-btn__tip { color: #64748b; }
+  #homelinePaxCloudStatusMeta.hp-cloud-status.offline { color: #b45309; font-weight: 600; }
+  #homelinePaxCloudStatusMeta.hp-cloud-status.saving { color: #2563eb; font-weight: 600; }
+  #homelinePaxCloudStatusMeta.hp-cloud-status.synced { color: #64748b; }
   .fm-hub-panel { display: flex; flex: 1; min-height: 0; flex-direction: column; width: 100%; }
   .fm-hub-panel.hidden { display: none !important; }
   .fm-hub-placeholder {
@@ -7143,6 +7164,12 @@
             <header class="fs-page-head erp-page-nav-head">
               <div class="fs-page-head-top">
                 <h2 id="flightManagerSectionTitle">外家時刻表</h2>
+                <div class="fs-page-head-actions">
+                  <button type="button" class="toolbar-icon-btn cloud-sync-btn cloud-pending" id="flightsSharedSyncBtn" aria-label="雲端同步" title="雲端連線中">
+                    <span class="toolbar-icon-btn__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-7.07L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 7.07L3 16"/></svg></span>
+                    <span class="toolbar-icon-btn__tip" id="flightsSharedSyncLabel">雲端連線中</span>
+                  </button>
+                </div>
               </div>
             </header>
             <div id="flightManagerPanelForeign" class="fm-hub-panel" role="region" aria-labelledby="flightManagerSectionTitle">
@@ -7417,6 +7444,7 @@
                     </label>
                   </div>
                   <div class="fs-table-meta" id="homelinePaxTableMeta">請設定搜尋日期區間</div>
+                  <div class="fs-table-meta fs-table-meta-sub hp-cloud-status" id="homelinePaxCloudStatusMeta">雲端同步：連線中…</div>
                   <div class="fs-table-wrap">
                     <table class="foreign-schedule-table homeline-pax-table" id="homelinePaxTable">
                       <colgroup>
@@ -13673,7 +13701,7 @@ const HOMELINE_PAX_CLOUD_WINDOW_STEPS = [
 ];
 let applyingSharedRemote = false;
 let dayCloudStatus = { text: '尚未同步', mode: 'pending' };
-let sharedCloudStatus = { text: '已同步', mode: 'synced' };
+let sharedCloudStatus = { text: '雲端連線中', mode: 'pending' };
 let remoteDayEditorMeta = null;
 let remoteSharedEditorMeta = null;
 const LS_SYNC_CLIENT_ID = `${LS_PREFIX}_sync_client_id`;
@@ -13718,14 +13746,46 @@ function getCloudStatusNavLabel(text, mode) {
   if (mode === 'pending' || String(text || '').includes('尚未')) return '未同步';
   return '未同步';
 }
-function applyCloudSyncBtnState(btn, status, editorHint) {
+function getCloudStatusDisplayText(status, preferFullText = false) {
+  if (preferFullText && status?.text) return status.text;
+  return getCloudStatusNavLabel(status?.text, status?.mode);
+}
+function usesSharedCloudStatusModule(moduleKey = activeErpModule) {
+  return moduleKey === 'staff' || moduleKey === 'flights';
+}
+function applyCloudSyncBtnState(btn, status, editorHint, options = {}) {
   if (!btn) return;
-  const label = getCloudStatusNavLabel(status.text, status.mode);
-  const fullTitle = editorHint ? `${status.text || label} · ${editorHint}` : (status.text || label);
+  const preferFullText = options.preferFullText === true;
+  const shortLabel = getCloudStatusNavLabel(status.text, status.mode);
+  const label = getCloudStatusDisplayText(status, preferFullText);
+  const fullTitle = editorHint ? `${status.text || shortLabel} · ${editorHint}` : (status.text || shortLabel);
   setToolbarIconBtnLabel(btn, label);
   btn.title = fullTitle;
+  btn.setAttribute('aria-label', label);
   btn.classList.remove('cloud-synced', 'cloud-saving', 'cloud-offline', 'cloud-pending');
   if (status.mode) btn.classList.add(`cloud-${status.mode}`);
+}
+function renderHomelinePaxCloudStatusMeta() {
+  const el = document.getElementById('homelinePaxCloudStatusMeta');
+  if (!el) return;
+  const hasLocal = typeof HomelinePaxRegistry !== 'undefined' && HomelinePaxRegistry.hasAnyData();
+  const status = sharedCloudStatus;
+  const label = getCloudStatusDisplayText(status, true);
+  const hint = getCloudEditorDisplayHint('shared');
+  if (!hasLocal && !sharedConfigReady) {
+    el.textContent = '雲端同步：連線中…';
+    el.className = 'fs-table-meta fs-table-meta-sub hp-cloud-status pending';
+    return;
+  }
+  if (!hasLocal) {
+    el.textContent = sharedConfigReady
+      ? `雲端同步：${label}（尚無本機訂位資料，將從雲端載入）`
+      : '雲端同步：連線中…';
+    el.className = 'fs-table-meta fs-table-meta-sub hp-cloud-status' + (status.mode ? ` ${status.mode}` : '');
+    return;
+  }
+  el.textContent = hint ? `雲端同步：${label}（${hint}）` : `雲端同步：${label}`;
+  el.className = 'fs-table-meta fs-table-meta-sub hp-cloud-status' + (status.mode ? ` ${status.mode}` : '');
 }
 function renderCloudStatusUI() {
   applyCloudSyncBtnState(
@@ -13738,11 +13798,18 @@ function renderCloudStatusUI() {
     sharedCloudStatus,
     getCloudEditorDisplayHint('shared')
   );
-  const navStatus = activeErpModule === 'staff' ? sharedCloudStatus : dayCloudStatus;
-  const navHint = activeErpModule === 'staff'
+  applyCloudSyncBtnState(
+    document.getElementById('flightsSharedSyncBtn'),
+    sharedCloudStatus,
+    getCloudEditorDisplayHint('shared'),
+    { preferFullText: true }
+  );
+  const navStatus = usesSharedCloudStatusModule() ? sharedCloudStatus : dayCloudStatus;
+  const navHint = usesSharedCloudStatusModule()
     ? getCloudEditorDisplayHint('shared')
     : getCloudEditorDisplayHint('day');
-  const navLabel = getCloudStatusNavLabel(navStatus.text, navStatus.mode);
+  const navPreferFull = activeErpModule === 'flights';
+  const navLabel = getCloudStatusDisplayText(navStatus, navPreferFull);
   const fullTitle = navHint ? `${navStatus.text || navLabel} · ${navHint}` : (navStatus.text || navLabel);
   const navText = document.getElementById('cloudStatusNav');
   const navWrap = document.getElementById('cloudStatusNavWrap');
@@ -13751,6 +13818,8 @@ function renderCloudStatusUI() {
     navWrap.title = fullTitle;
     navWrap.className = 'erp-nav-foot-status' + (navStatus.mode ? ` ${navStatus.mode}` : '');
   }
+  renderHomelinePaxCloudStatusMeta();
+  if (activeErpModule === 'flights') updateForeignScheduleSourceMeta();
 }
 function getSyncClientId() {
   let id = localStorage.getItem(LS_SYNC_CLIENT_ID);
@@ -17455,6 +17524,9 @@ function bindFlightManagerHub() {
   flightManagerHubBound = true;
   bindDestClassManager();
   bindForeignScheduleManager();
+  document.getElementById('flightsSharedSyncBtn')?.addEventListener('click', () => {
+    saveSharedConfigNow();
+  });
 }
 
 function renderFlightManagerHub() {
@@ -17883,6 +17955,7 @@ function renderHomelinePaxManager() {
   initHomelinePaxDatePicker();
   ensureHomelinePaxBrowseDateRange();
   renderHomelinePaxMetaSummary();
+  renderHomelinePaxCloudStatusMeta();
   renderHomelinePaxTable();
 }
 
