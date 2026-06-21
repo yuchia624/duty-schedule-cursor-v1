@@ -2,7 +2,7 @@
  * 本家 EDW 訂位主檔：依日期分片存放，排班作業按需查詢
  */
 (function (global) {
-  const REGISTRY_VERSION = '2026-06-20-v6';
+  const REGISTRY_VERSION = '2026-06-20-v7';
   const RETENTION_BACK_DAYS = 15;
   const RETENTION_FORWARD_DAYS = 30;
   const DEFAULT_RETENTION_DAYS = RETENTION_BACK_DAYS + RETENTION_FORWARD_DAYS;
@@ -433,8 +433,11 @@
       ? Math.max(0, opts.retentionForward)
       : RETENTION_FORWARD_DAYS;
     const meta = loadMeta();
+    const anchorIso = isValidIsoDate(opts.anchorIso)
+      ? clean(opts.anchorIso)
+      : (isValidIsoDate(meta.anchorIso) ? clean(meta.anchorIso) : getTodayIso());
     const coveredDates = pruneCoveredDates(meta.coveredDates, {
-      anchorIso: opts.anchorIso,
+      anchorIso,
       retentionBack,
       retentionForward
     });
@@ -443,6 +446,7 @@
       updatedAt: meta.updatedAt || new Date().toISOString(),
       retentionBack,
       retentionForward,
+      anchorIso,
       imports: Array.isArray(meta.imports) ? meta.imports.slice(-20) : [],
       coveredDates
     };
@@ -450,13 +454,24 @@
       version: REGISTRY_VERSION,
       retentionBack,
       retentionForward,
+      anchorIso,
       retentionDays: retentionBack + retentionForward,
       meta: exportMeta,
       rowsByDate: buildRowsByDate(coveredDates)
     };
   }
 
-  function importMasterPayload(payload) {
+  function resolveMasterPayloadDates(payload, rawMeta, rowsByDate) {
+    const metaDates = [...new Set((rawMeta.coveredDates || []).filter(isValidIsoDate))].sort();
+    const rowDateKeys = Object.keys(rowsByDate).filter(isValidIsoDate).sort();
+    if (!rowDateKeys.length) return metaDates;
+    if (!metaDates.length) return rowDateKeys;
+    const rowSet = new Set(rowDateKeys);
+    const intersected = metaDates.filter(dateIso => rowSet.has(dateIso));
+    return intersected.length ? intersected : rowDateKeys;
+  }
+
+  function importMasterPayload(payload, opts = {}) {
     if (!payload || typeof payload !== 'object') return { ok: false, error: '無效資料' };
     const rawMeta = payload.meta;
     if (!rawMeta || !Array.isArray(rawMeta.coveredDates)) return { ok: false, error: '無效主檔' };
@@ -466,22 +481,17 @@
     const retentionForward = Number.isFinite(payload.retentionForward)
       ? Math.max(0, payload.retentionForward)
       : (Number.isFinite(rawMeta.retentionForward) ? rawMeta.retentionForward : RETENTION_FORWARD_DAYS);
-    const coveredDates = pruneCoveredDates(rawMeta.coveredDates, {
-      anchorIso: payload.anchorIso || rawMeta.anchorIso,
-      retentionBack,
-      retentionForward
-    });
     const rowsByDate = payload.rowsByDate && typeof payload.rowsByDate === 'object'
       ? payload.rowsByDate
       : {};
-    const rowDateKeys = Object.keys(rowsByDate).filter(isValidIsoDate);
-    let effectiveDates = coveredDates.length
-      ? coveredDates
-      : pruneCoveredDates(rowDateKeys, {
+    let effectiveDates = resolveMasterPayloadDates(payload, rawMeta, rowsByDate);
+    if (opts.applyRetentionWindow) {
+      effectiveDates = pruneCoveredDates(effectiveDates, {
         anchorIso: payload.anchorIso || rawMeta.anchorIso,
         retentionBack,
         retentionForward
       });
+    }
     if (!effectiveDates.length) {
       return { ok: false, error: '雲端訂位主檔無有效日期' };
     }
@@ -505,9 +515,10 @@
     });
     saveMeta({
       ...rawMeta,
+      version: REGISTRY_VERSION,
       retentionBack,
       retentionForward,
-      anchorIso: payload.anchorIso || rawMeta.anchorIso,
+      anchorIso: payload.anchorIso || rawMeta.anchorIso || getTodayIso(),
       coveredDates: effectiveDates
     });
     return { ok: true, dateCount: effectiveDates.length, rowCount, retentionBack, retentionForward };

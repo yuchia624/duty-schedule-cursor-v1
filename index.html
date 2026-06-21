@@ -13,7 +13,7 @@
 <script src="flight-assignment-utils.js"></script>
 <script src="foreign-duty-rules.js?v=20260613-oz-abg-label"></script>
 <script src="homeline-pax-parser.js?v=20260620-v4"></script>
-<script src="homeline-pax-registry.js?v=20260621-v2"></script>
+<script src="homeline-pax-registry.js?v=20260621-v3"></script>
 <script src="dest-class-registry.js?v=20260620-v4"></script>
 <script src="dest-class-seed.js?v=20260620-v4"></script>
 <script src="dest-class-parser.js?v=20260620-v1"></script>
@@ -13885,7 +13885,7 @@ function homelinePaxMasterFingerprint(master) {
 }
 function buildHomelinePaxMasterForSharedConfig(opts = {}) {
   if (typeof HomelinePaxRegistry === 'undefined' || !HomelinePaxRegistry.hasAnyData()) return null;
-  const exportOpts = {};
+  const exportOpts = { anchorIso: getLocalDateISO() };
   if (Number.isFinite(opts.homelineRetentionBack)) exportOpts.retentionBack = opts.homelineRetentionBack;
   if (Number.isFinite(opts.homelineRetentionForward)) exportOpts.retentionForward = opts.homelineRetentionForward;
   return HomelinePaxRegistry.exportMasterPayload(exportOpts);
@@ -14620,6 +14620,8 @@ function applySharedConfigState(data) {
     }
     const homelineRes = applyHomelinePaxMasterFromCloud(data.homelinePaxMaster);
     if (homelineRes.applied) {
+      const { start, end } = getHomelinePaxDefaultDateRange();
+      if (start) syncHomelinePaxBrowseDateRange(start, end);
       if (activeErpModule === 'flights') {
         if (flightManagerActiveSection === 'homeline-pax') renderHomelinePaxManager();
         else renderActiveFlightManagerPanel();
@@ -17589,12 +17591,19 @@ function getHomelinePaxDefaultDateRange() {
   const today = getLocalDateISO();
   const retentionEnd = shiftIsoDateByDays(today, HomelinePaxRegistry?.RETENTION_FORWARD_DAYS || 30);
   const coverage = HomelinePaxRegistry?.getCoverage?.();
-  let end = retentionEnd;
-  if (coverage?.dateMax && compareIsoDate(coverage.dateMax, end) < 0) {
-    end = coverage.dateMax;
+  if (!coverage?.dateMax) {
+    return { start: today, end: today };
   }
   let start = today;
-  if (compareIsoDate(end, start) < 0) end = start;
+  let end = retentionEnd;
+  if (compareIsoDate(coverage.dateMax, end) < 0) end = coverage.dateMax;
+  if (compareIsoDate(coverage.dateMin, end) > 0) {
+    start = coverage.dateMin;
+    end = coverage.dateMax;
+  } else if (compareIsoDate(end, start) < 0) {
+    start = coverage.dateMin;
+    end = coverage.dateMax;
+  }
   return { start, end };
 }
 
