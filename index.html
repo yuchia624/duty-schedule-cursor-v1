@@ -14059,6 +14059,15 @@ function prepareHomelinePaxCloudUpload() {
     : null;
   return { blocked: false, state: matchedState, prunedWindow };
 }
+function refreshScheduleAfterHomelinePaxApplied() {
+  if (!hasImportedFlights()) return;
+  rebuildTemplates();
+  if (activeErpModule === 'schedule-ops') {
+    renderPalette();
+    renderRows();
+    syncAssignmentTableFromSchedule();
+  }
+}
 function applyHomelinePaxCloudDoc(data) {
   const master = extractHomelinePaxMasterFromCloudDoc(data);
   if (!master) return { applied: false };
@@ -14066,11 +14075,11 @@ function applyHomelinePaxCloudDoc(data) {
   if (res.applied) {
     const { start, end } = getHomelinePaxDefaultDateRange();
     if (start) syncHomelinePaxBrowseDateRange(start, end);
+    refreshScheduleAfterHomelinePaxApplied();
     if (activeErpModule === 'flights') {
       if (flightManagerActiveSection === 'homeline-pax') renderHomelinePaxManager();
       else renderActiveFlightManagerPanel();
     }
-    if (activeErpModule === 'schedule-ops' && typeof renderPalette === 'function') renderPalette();
   }
   return res;
 }
@@ -14611,6 +14620,10 @@ function switchErpModule(moduleKey, options = {}) {
   }
   if (moduleKey === 'schedule-ops') {
     requestAnimationFrame(() => {
+      if (typeof HomelinePaxRegistry !== 'undefined' && HomelinePaxRegistry.hasAnyData() && hasImportedFlights()) {
+        rebuildTemplates();
+      }
+      renderPalette();
       syncAssignmentRowHeights();
       renderRows();
       measureScheduleNavOpenRef();
@@ -15120,7 +15133,7 @@ function attachFirebaseSharedConfig() {
         flushPendingSharedConfigSave();
         if (legacyHomeline) {
           homelineMainDocStripPending = true;
-          applyHomelinePaxMasterFromCloud(legacyHomeline);
+          applyHomelinePaxCloudDoc(legacyHomeline);
           scheduleHomelinePaxCloudSave();
         }
         return;
@@ -15132,7 +15145,7 @@ function attachFirebaseSharedConfig() {
       flushPendingSharedConfigSave();
       if (legacyHomeline) {
         homelineMainDocStripPending = true;
-        applyHomelinePaxMasterFromCloud(legacyHomeline);
+        applyHomelinePaxCloudDoc(legacyHomeline);
         scheduleHomelinePaxCloudSave();
       }
       if (!data.foreignScheduleMaster) {
@@ -18068,11 +18081,8 @@ async function handleHomelinePaxImport(file) {
     homelinePaxPage = 1;
     const { start, end } = getHomelinePaxDefaultDateRange();
     if (start) syncHomelinePaxBrowseDateRange(start, end);
-    if (hasImportedFlights() && syncAbgSlotsFromHomelinePax().updated) {
-      rebuildTemplates();
-      renderPalette();
-      renderRows();
-      syncAssignmentTableFromSchedule();
+    if (hasImportedFlights()) {
+      refreshScheduleAfterHomelinePaxApplied();
       markUnsynced();
     }
     renderHomelinePaxManager();
