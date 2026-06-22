@@ -366,7 +366,7 @@
   .duty-chip strong { font-size:15px; }
   .duty-chip small,.mini,.editor-sub,.panel-sub,.empty-msg { color:#6b7280; }
   .empty-msg { font-size:13px; padding:6px 4px 2px; }
-  .role-RC { background:#e0f2fe; } .role-BG { background:#dcfce7; } .role-ABG { background:#fef3c7; } .role-接機RC { background:#ede9fe; } .role-接機C { background:#fde2e8; } .role-G2 { background:#fef08a; } .role-PPT { background:#ffe4e6; } .role-L1 { background:#e0e7ff; } .role-BA { background:#cffafe; } .role-CKIN { background:#fce7f3; } .role-PRE { background:#ede9fe; } .role-TC { background:#dbeafe; } .role-T { background:#ccfbf1; }
+  .role-RC { background:#e0f2fe; } .role-BG { background:#dcfce7; } .role-ABG { background:#fef3c7; } .role-大件 { background:#ffedd5; } .role-接機RC { background:#ede9fe; } .role-接機C { background:#fde2e8; } .role-G2 { background:#fef08a; } .role-PPT { background:#ffe4e6; } .role-L1 { background:#e0e7ff; } .role-BA { background:#cffafe; } .role-CKIN { background:#fce7f3; } .role-PRE { background:#ede9fe; } .role-TC { background:#dbeafe; } .role-T { background:#ccfbf1; }
   .flight-editor { border-top:1px solid var(--line); padding:8px 12px 12px; overflow:auto; flex:0 0 auto; min-height:0; }
   .flight-editor.collapsed { flex:0 0 auto; overflow:hidden; padding-bottom:8px; }
   .editor-topbar { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:8px; }
@@ -3097,6 +3097,17 @@
   .duty-chip.role-BG { background: #dcfce7; }
   .duty-chip.role-ABG { background: #fef3c7; }
   .duty-chip.role-ABG.duty-chip--abg-pax { cursor: pointer; }
+  .duty-chip.role-大件 { background: #ffedd5; }
+  .duty-chip.role-大件.duty-chip--bulky-pax { cursor: pointer; }
+  .duty-chip.role-大件.duty-chip--bulky-zero {
+    background: #fff !important;
+    border: 1px dashed #cbd5e1;
+    cursor: default;
+  }
+  .duty-chip.role-大件.duty-chip--bulky-zero:hover {
+    background: #f8fafc !important;
+    transform: none;
+  }
   .abg-pax-popover {
     position: fixed; z-index: 15000;
     min-width: 420px; max-width: min(520px, calc(100vw - 24px));
@@ -3364,6 +3375,7 @@
   .duty-chip.role-RC:hover { background: #dbeafe; }
   .duty-chip.role-BG:hover { background: #bbf7d0; }
   .duty-chip.role-ABG:hover { background: #fde68a; }
+  .duty-chip.role-大件:hover { background: #fed7aa; }
   .duty-chip.role-接機RC:hover { background: #ddd6fe; }
   .duty-chip.role-接機C:hover { background: #fbcfe8; }
   .duty-chip.role-G2:hover { background: #fde047; }
@@ -9858,7 +9870,7 @@ function getAssignmentRoleCodes(flight, role) {
 }
 function getAssignmentAbgCellItems(flight) {
   return schedule.filter(item =>
-    item.flight === flight && (item.role === 'ABG' || item.role === 'L1' || item.role === 'BA')
+    item.flight === flight && (item.role === 'ABG' || item.role === 'L1' || item.role === 'BA' || item.role === '大件')
   );
 }
 function getAssignmentAbgCodes(flight) {
@@ -9879,12 +9891,26 @@ function getAssignmentBaCodes(flight) {
     .map(getAssignmentPersonCode)
     .filter(Boolean);
 }
+function getAssignmentBulkyCodes(flight) {
+  return schedule
+    .filter(item => item.flight === flight && item.role === '大件')
+    .map(getAssignmentPersonCode)
+    .filter(Boolean);
+}
+function formatAssignmentBulkyCellText(flight) {
+  const codes = getAssignmentBulkyCodes(flight);
+  if (!codes.length) return '';
+  if (codes.length === 1) return `大:${codes[0]}`;
+  return `大:${codes[0]} ${codes.slice(1).join(' ')}`;
+}
 function getAssignmentAbgCellText(flight) {
   const fDef = flightDefs.find(f => f.flight === flight);
   if (fDef?.status === 'CANX') return '';
+  const bulkyText = formatAssignmentBulkyCellText(flight);
   const parts = [
     ...getAssignmentL1Codes(flight).map(code => `L1:${code}`),
     ...getAssignmentBaCodes(flight).map(code => `BA:${code}`),
+    ...(bulkyText ? [bulkyText] : []),
     ...getAssignmentAbgCodes(flight)
   ];
   return parts.join(' \u2009');
@@ -9894,6 +9920,14 @@ function appendAssignmentAbgRoleSpans(parent, items, className, prefix = '') {
     const code = getAssignmentPersonCode(item);
     if (!code) return;
     parent.appendChild(makeAssignmentCodeSpan(`${prefix}${code}`, item.personIndex, className));
+  });
+}
+function appendAssignmentBulkyRoleSpans(parent, items, className) {
+  items.forEach((item, idx) => {
+    const code = getAssignmentPersonCode(item);
+    if (!code) return;
+    const text = idx === 0 ? `大:${code}` : code;
+    parent.appendChild(makeAssignmentCodeSpan(text, item.personIndex, className));
   });
 }
 function renderAssignmentAbgCell(cell, flight) {
@@ -9911,6 +9945,12 @@ function renderAssignmentAbgCell(cell, flight) {
       prefix: 'BA:'
     },
     {
+      items: schedule.filter(item => item.flight === flight && item.role === '大件'),
+      wrapClass: 'assignment-abg-bulky',
+      codeClass: 'assignment-abg-bulky-code',
+      prefix: '大:'
+    },
+    {
       items: schedule.filter(item => item.flight === flight && item.role === 'ABG'),
       wrapClass: 'assignment-abg-codes',
       codeClass: 'assignment-abg-code',
@@ -9924,13 +9964,21 @@ function renderAssignmentAbgCell(cell, flight) {
   if (segments.length === 1) {
     inner.classList.add('assignment-abg-cell-inner--center');
     const segment = segments[0];
-    appendAssignmentAbgRoleSpans(inner, segment.items, segment.codeClass, segment.prefix);
+    if (segment.wrapClass === 'assignment-abg-bulky') {
+      appendAssignmentBulkyRoleSpans(inner, segment.items, segment.codeClass);
+    } else {
+      appendAssignmentAbgRoleSpans(inner, segment.items, segment.codeClass, segment.prefix);
+    }
   } else {
     inner.classList.add('assignment-abg-cell-inner--multi');
     segments.forEach(segment => {
       const wrap = document.createElement('span');
       wrap.className = segment.wrapClass;
-      appendAssignmentAbgRoleSpans(wrap, segment.items, segment.codeClass, segment.prefix);
+      if (segment.wrapClass === 'assignment-abg-bulky') {
+        appendAssignmentBulkyRoleSpans(wrap, segment.items, segment.codeClass);
+      } else {
+        appendAssignmentAbgRoleSpans(wrap, segment.items, segment.codeClass, segment.prefix);
+      }
       inner.appendChild(wrap);
     });
   }
@@ -10248,7 +10296,7 @@ const EARLY_VIEW_END_MIN = 17 * 60;
 let pxPerMinute = 1.4;
 let activePaletteTab = 'byRole';
 let activePaletteRoleCategory = null;
-const PALETTE_ROLE_ORDER = ['RC', 'BG', 'ABG', 'BA', 'L1', 'G2', '接機RC', '接機C', 'PPT', 'CKIN', 'PRE', 'TC', 'T'];
+const PALETTE_ROLE_ORDER = ['RC', 'BG', 'ABG', '大件', 'BA', 'L1', 'G2', '接機RC', '接機C', 'PPT', 'CKIN', 'PRE', 'TC', 'T'];
 const PALETTE_ROLE_CATEGORIES = PALETTE_ROLE_ORDER.map(role => ({ id: role, label: role, roles: [role] }));
 let activeFlightEditorTab = 'DEP';
 const LS_PREFIX = 'cursor_v1';
@@ -10479,6 +10527,8 @@ function dayStorageKeys(dateStr) {
     tTcSlotAssignments: `${LS_PREFIX}_day_${d}_t_tc_slot_assignments`,
     abgSlotOverrides: `${LS_PREFIX}_day_${d}_abg_slot_overrides`,
     abgSlotManualLocks: `${LS_PREFIX}_day_${d}_abg_slot_manual_locks`,
+    bulkySlotOverrides: `${LS_PREFIX}_day_${d}_bulky_slot_overrides`,
+    bulkySlotManualLocks: `${LS_PREFIX}_day_${d}_bulky_slot_manual_locks`,
     homelineConnectingDutyModes: `${LS_PREFIX}_day_${d}_homeline_connecting_duty_modes`,
     flightsImported: `${LS_PREFIX}_day_${d}_flights_imported`,
     overtimeOverrides: `${LS_PREFIX}_day_${d}_overtime_overrides`,
@@ -10511,6 +10561,8 @@ let tTemplateDefaults = {};
 let tTcSlotAssignments = {};
 let abgSlotOverrides = {};
 let abgSlotManualLocks = {};
+let bulkySlotOverrides = {};
+let bulkySlotManualLocks = {};
 let homelineConnectingDutyModes = {};
 let staffDirectory = [];
 let staffPersonnelRegistry = null;
@@ -13896,6 +13948,8 @@ function getLiveCloudFingerprint() {
     tTcSlotAssignments: normalizeTTcSlotAssignmentsForCloud(tTcSlotAssignments),
     abgSlotOverrides: normalizeAbgSlotOverridesForCloud(abgSlotOverrides),
     abgSlotManualLocks: normalizeAbgSlotManualLocksForCloud(abgSlotManualLocks),
+    bulkySlotOverrides: normalizeBulkySlotOverridesForCloud(bulkySlotOverrides),
+    bulkySlotManualLocks: normalizeBulkySlotManualLocksForCloud(bulkySlotManualLocks),
     homelineConnectingDutyModes: normalizeHomelineConnectingDutyModesForCloud(homelineConnectingDutyModes),
     overtimeHourOverrides,
     dicOvertimeApprovals,
@@ -13922,6 +13976,8 @@ function cloudStatePayload(data) {
     tTcSlotAssignments: normalizeTTcSlotAssignmentsForCloud(data.tTcSlotAssignments),
     abgSlotOverrides: normalizeAbgSlotOverridesForCloud(data.abgSlotOverrides),
     abgSlotManualLocks: normalizeAbgSlotManualLocksForCloud(data.abgSlotManualLocks),
+    bulkySlotOverrides: normalizeBulkySlotOverridesForCloud(data.bulkySlotOverrides),
+    bulkySlotManualLocks: normalizeBulkySlotManualLocksForCloud(data.bulkySlotManualLocks),
     homelineConnectingDutyModes: normalizeHomelineConnectingDutyModesForCloud(data.homelineConnectingDutyModes),
     overtimeHourOverrides: data.overtimeHourOverrides,
     dicOvertimeApprovals: data.dicOvertimeApprovals,
@@ -14706,6 +14762,8 @@ function getCloudState() {
     tTcSlotAssignments: normalizeTTcSlotAssignmentsForCloud(tTcSlotAssignments),
     abgSlotOverrides: normalizeAbgSlotOverridesForCloud(abgSlotOverrides),
     abgSlotManualLocks: normalizeAbgSlotManualLocksForCloud(abgSlotManualLocks),
+    bulkySlotOverrides: normalizeBulkySlotOverridesForCloud(bulkySlotOverrides),
+    bulkySlotManualLocks: normalizeBulkySlotManualLocksForCloud(bulkySlotManualLocks),
     homelineConnectingDutyModes: normalizeHomelineConnectingDutyModesForCloud(homelineConnectingDutyModes),
       overtimeHourOverrides,
       dicOvertimeApprovals,
@@ -14802,6 +14860,12 @@ function applyCloudState(data) {
   abgSlotManualLocks = data.abgSlotManualLocks && typeof data.abgSlotManualLocks === 'object'
     ? normalizeAbgSlotManualLocksForCloud(data.abgSlotManualLocks)
     : abgSlotManualLocks;
+  bulkySlotOverrides = data.bulkySlotOverrides && typeof data.bulkySlotOverrides === 'object'
+    ? normalizeBulkySlotOverridesForCloud(data.bulkySlotOverrides)
+    : bulkySlotOverrides;
+  bulkySlotManualLocks = data.bulkySlotManualLocks && typeof data.bulkySlotManualLocks === 'object'
+    ? normalizeBulkySlotManualLocksForCloud(data.bulkySlotManualLocks)
+    : bulkySlotManualLocks;
   homelineConnectingDutyModes = data.homelineConnectingDutyModes && typeof data.homelineConnectingDutyModes === 'object'
     ? normalizeHomelineConnectingDutyModesForCloud(data.homelineConnectingDutyModes)
     : homelineConnectingDutyModes;
@@ -14829,6 +14893,8 @@ function applyCloudState(data) {
   saveTTcSlotAssignments();
   saveAbgSlotOverrides();
   saveAbgSlotManualLocks();
+  saveBulkySlotOverrides();
+  saveBulkySlotManualLocks();
   saveHomelineConnectingDutyModes();
   saveOvertimeOverrides();
   saveDicOvertimeApprovals();
@@ -15053,6 +15119,8 @@ function processScheduleFirestoreSnapshot(doc) {
     tTcSlotAssignments: normalizeTTcSlotAssignmentsForCloud(data.tTcSlotAssignments),
     abgSlotOverrides: normalizeAbgSlotOverridesForCloud(data.abgSlotOverrides),
     abgSlotManualLocks: normalizeAbgSlotManualLocksForCloud(data.abgSlotManualLocks),
+    bulkySlotOverrides: normalizeBulkySlotOverridesForCloud(data.bulkySlotOverrides),
+    bulkySlotManualLocks: normalizeBulkySlotManualLocksForCloud(data.bulkySlotManualLocks),
     homelineConnectingDutyModes: normalizeHomelineConnectingDutyModesForCloud(data.homelineConnectingDutyModes),
     overtimeHourOverrides: data.overtimeHourOverrides,
     dicOvertimeApprovals: data.dicOvertimeApprovals,
@@ -15621,6 +15689,14 @@ const ABG_BR_B7_SLOTS = 2;
 const ABG_DEFAULT_SLOTS = 1;
 const ABG_PAX_SLOT_THRESHOLD = 200;
 const ABG_LOAD_PCT_THRESHOLD = 90;
+/** 出境大件：EDW 載客率／轉機比符合時預設 1 人，可手動調整人數（含 0 人） */
+const BULKY_DEFAULT_SLOTS = 1;
+const BULKY_FIXED_DEP_FLIGHTS = new Set(['BR395', 'BR271', 'BR391']);
+const BULKY_LOAD_PCT_THRESHOLD = 90;
+const BULKY_TRANSIT_SHARE_THRESHOLD = 0.4;
+const BULKY_BEFORE_MIN = 70;
+const BULKY_ELIGIBLE_REGION_IDS = new Set(['sea', 'eu']);
+const BULKY_ELIGIBLE_GROUP_IDS = new Set(['us', 'ca']);
 let abgPaxPopoverAnchor = null;
 let abgPaxPopoverTemplateId = null;
 function isBrOrB7DepFlight(f) {
@@ -15700,7 +15776,160 @@ function syncAbgSlotsFromHomelinePax(opts = {}) {
     trimAbgAssignmentsToCount(f.flight, f.type, suggested);
     updated += 1;
   });
+  updated += syncBulkySlotsFromHomelinePax();
   return { updated };
+}
+function isFixedBulkyDepFlight(f) {
+  if (!f || f.type !== 'DEP' || f.status === 'CANX') return false;
+  if (isMaintenanceDepFlight(f)) return false;
+  return BULKY_FIXED_DEP_FLIGHTS.has(normalizeFlightSearch(f.flight));
+}
+function isBulkyEligibleRoute(f) {
+  if (!f || f.type !== 'DEP') return false;
+  const dest = getDepDestinationAirport(f);
+  if (!dest) return false;
+  const groups = typeof DestClassRegistry !== 'undefined'
+    ? DestClassRegistry.lookupGroupsForAirport(dest)
+    : [];
+  return groups.some(g =>
+    BULKY_ELIGIBLE_REGION_IDS.has(g.regionId) || BULKY_ELIGIBLE_GROUP_IDS.has(g.id)
+  );
+}
+function isBulkyEligiblePaxRow(row) {
+  if (!row) return false;
+  const pax = row.pax;
+  const transit = row.transit;
+  const pct = getHomelineLoadPctNum(row);
+  if (!Number.isFinite(pax) || pax <= 0) return false;
+  if (!Number.isFinite(transit)) return false;
+  if (!Number.isFinite(pct) || pct < BULKY_LOAD_PCT_THRESHOLD) return false;
+  return (transit / pax) >= BULKY_TRANSIT_SHARE_THRESHOLD;
+}
+function getBulkyPaxRowIfEligible(f) {
+  if (!f || f.type !== 'DEP' || f.status === 'CANX') return null;
+  if (isMaintenanceDepFlight(f)) return null;
+  if (!isBulkyEligibleRoute(f)) return null;
+  const row = lookupHomelinePaxForScheduleFlight(f.flight);
+  return isBulkyEligiblePaxRow(row) ? row : null;
+}
+function isBulkyDepFlight(f) {
+  return isFixedBulkyDepFlight(f) || !!getBulkyPaxRowIfEligible(f);
+}
+function getBulkySlotOverrideKey(flight, flightType = 'DEP') {
+  return `${String(flight || '').trim().toUpperCase()}_${flightType}_bulky`;
+}
+function getBulkySlotOverride(flight, flightType = 'DEP') {
+  const key = getBulkySlotOverrideKey(flight, flightType);
+  if (!bulkySlotOverrides || bulkySlotOverrides[key] == null) return null;
+  const n = parseInt(bulkySlotOverrides[key], 10);
+  return Number.isFinite(n) && n >= 0 && n <= 12 ? n : null;
+}
+function setBulkySlotOverride(flight, flightType, slots) {
+  const key = getBulkySlotOverrideKey(flight, flightType);
+  if (!bulkySlotOverrides || typeof bulkySlotOverrides !== 'object') bulkySlotOverrides = {};
+  bulkySlotOverrides[key] = Math.max(0, Math.min(12, parseInt(slots, 10) || 0));
+  saveBulkySlotOverrides();
+}
+function saveBulkySlotOverrides() {
+  localStorage.setItem(dayStorageKeys(selectedDate).bulkySlotOverrides, JSON.stringify(bulkySlotOverrides || {}));
+}
+function isBulkySlotManualLocked(flight, flightType = 'DEP') {
+  const key = getBulkySlotOverrideKey(flight, flightType);
+  return bulkySlotManualLocks?.[key] === true;
+}
+function setBulkySlotManualLock(flight, flightType, locked = true) {
+  const key = getBulkySlotOverrideKey(flight, flightType);
+  if (!bulkySlotManualLocks || typeof bulkySlotManualLocks !== 'object') bulkySlotManualLocks = {};
+  if (locked) bulkySlotManualLocks[key] = true;
+  else delete bulkySlotManualLocks[key];
+  saveBulkySlotManualLocks();
+}
+function saveBulkySlotManualLocks() {
+  localStorage.setItem(dayStorageKeys(selectedDate).bulkySlotManualLocks, JSON.stringify(bulkySlotManualLocks || {}));
+}
+function normalizeBulkySlotOverridesForCloud(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
+  const out = {};
+  Object.keys(value).forEach(k => {
+    const n = parseInt(value[k], 10);
+    if (Number.isFinite(n) && n >= 0 && n <= 12) out[k] = n;
+  });
+  return out;
+}
+function normalizeBulkySlotManualLocksForCloud(value) {
+  return normalizeAbgSlotManualLocksForCloud(value);
+}
+function trimBulkyAssignmentsToCount(flight, flightType, targetCount) {
+  const target = Math.max(0, Math.min(12, Number(targetCount) || 0));
+  const assigned = schedule.filter(x =>
+    x.flight === flight && x.role === '大件' && x.flightType === flightType
+  );
+  let removedAssigned = 0;
+  if (assigned.length > target) {
+    const sorted = assigned.slice().sort((a, b) => b.uid - a.uid);
+    sorted.slice(0, assigned.length - target).forEach(item => {
+      schedule = schedule.filter(x => x.uid !== item.uid);
+      removedAssigned++;
+    });
+    if (selectedBlockId != null && !schedule.some(x => x.uid === selectedBlockId)) selectedBlockId = null;
+  }
+  return { removedAssigned };
+}
+function getBulkySlotsForFlightDef(f) {
+  if (!isBulkyDepFlight(f)) return 0;
+  const override = getBulkySlotOverride(f.flight, f.type);
+  if (override != null) return override;
+  return BULKY_DEFAULT_SLOTS;
+}
+function getBulkySlotsForTemplate(t) {
+  if (!t || t.role !== '大件') return 0;
+  if (Number.isFinite(t.bulkySlots) && t.bulkySlots >= 0) return t.bulkySlots;
+  const f = flightDefs.find(x => x.flight === t.flight && x.type === t.flightType);
+  return getBulkySlotsForFlightDef(f);
+}
+function countBulkyAssignments(flight, flightType = 'DEP') {
+  return schedule.filter(x =>
+    x.flight === flight && x.role === '大件' && x.flightType === flightType
+  ).length;
+}
+function countBulkyAssignmentsForTemplate(t) {
+  if (!t || t.role !== '大件') return 0;
+  return countBulkyAssignments(t.flight, t.flightType);
+}
+function personHasBulkyAssignment(personIndex, flight, flightType = 'DEP') {
+  return schedule.some(x =>
+    x.personIndex === personIndex && x.flight === flight && x.role === '大件' && x.flightType === flightType
+  );
+}
+function getBulkySlotsRemaining(t) {
+  if (!t || t.role !== '大件') return 0;
+  return Math.max(0, getBulkySlotsForTemplate(t) - countBulkyAssignmentsForTemplate(t));
+}
+function canEditBulkySlotsForTemplate(t) {
+  if (!t || t.role !== '大件') return false;
+  const f = flightDefs.find(x => x.flight === t.flight && x.type === t.flightType);
+  return !!isBulkyDepFlight(f);
+}
+function syncBulkySlotsFromHomelinePax() {
+  let updated = 0;
+  flightDefs.forEach(f => {
+    if (f.type !== 'DEP' || isMaintenanceDepFlight(f) || isFixedBulkyDepFlight(f)) return;
+    if (!isBulkyEligibleRoute(f)) return;
+    const row = lookupHomelinePaxForScheduleFlight(f.flight);
+    const eligible = isBulkyEligiblePaxRow(row);
+    if (eligible) return;
+    const key = getBulkySlotOverrideKey(f.flight, f.type);
+    const hadOverride = bulkySlotOverrides?.[key] != null;
+    const hadAssigned = countBulkyAssignments(f.flight, f.type) > 0;
+    if (!hadOverride && !hadAssigned) return;
+    if (hadOverride && !isBulkySlotManualLocked(f.flight, f.type)) {
+      delete bulkySlotOverrides[key];
+      saveBulkySlotOverrides();
+    }
+    if (hadAssigned) trimBulkyAssignmentsToCount(f.flight, f.type, 0);
+    updated += 1;
+  });
+  return updated;
 }
 function ensureAbgPaxPopoverEl() {
   let el = document.getElementById('abgPaxPopover');
@@ -15716,7 +15945,7 @@ function ensureAbgPaxPopoverEl() {
     document.addEventListener('click', e => {
       const pop = document.getElementById('abgPaxPopover');
       if (!pop || pop.classList.contains('hidden')) return;
-      if (pop.contains(e.target) || e.target.closest('.duty-chip--abg-pax')) return;
+      if (pop.contains(e.target) || e.target.closest('.duty-chip--abg-pax') || e.target.closest('.duty-chip--bulky-pax') || e.target.closest('.duty-chip--bulky-zero')) return;
       closeAbgPaxPopover();
     });
     document.addEventListener('keydown', e => {
@@ -15748,10 +15977,13 @@ function positionAbgPaxPopover(pop, anchor) {
   pop.style.top = `${Math.round(top)}px`;
   pop.style.left = `${Math.round(left)}px`;
 }
-function buildAbgPaxPopoverHtml(flight, row) {
-  const slots = getSuggestedAbgSlotsFromPaxRow(row);
+function buildAbgPaxPopoverHtml(flight, row, options = {}) {
+  const dutyLabel = options.dutyLabel || 'ABG';
+  const slots = options.suggestedSlots != null
+    ? options.suggestedSlots
+    : getSuggestedAbgSlotsFromPaxRow(row);
   const flightLabel = escapeHtml(formatHomelinePaxFlightLabel(flight));
-  const title = `<div class="abg-pax-popover-title">${flightLabel} · 建議 ABG ${slots} 人</div>`;
+  const title = `<div class="abg-pax-popover-title">${flightLabel} · 建議 ${escapeHtml(dutyLabel)} ${slots} 人</div>`;
   if (!row) {
     return title + `<div class="abg-pax-popover-empty">此日無 EDW 訂位資料。</div>`;
   }
@@ -15771,7 +16003,7 @@ function buildAbgPaxPopoverHtml(flight, row) {
     `<div><div class="abg-pax-popover-mix-sub">轉機／團體／直客</div>${buildHomelinePaxMixCell(row.transit, row.group, row.directPax, row.pax)}</div>` +
     `</div>`;
 }
-function toggleAbgPaxPopover(anchor, template) {
+function toggleAbgPaxPopover(anchor, template, dutyKind = 'ABG') {
   if (!anchor || !template) return;
   const pop = ensureAbgPaxPopoverEl();
   if (abgPaxPopoverTemplateId === template.id && !pop.classList.contains('hidden')) {
@@ -15779,7 +16011,13 @@ function toggleAbgPaxPopover(anchor, template) {
     return;
   }
   const row = lookupHomelinePaxForScheduleFlight(template.flight);
-  pop.innerHTML = buildAbgPaxPopoverHtml(template.flight, row);
+  const suggestedSlots = dutyKind === '大件'
+    ? getBulkySlotsForTemplate(template)
+    : getSuggestedAbgSlotsFromPaxRow(row);
+  pop.innerHTML = buildAbgPaxPopoverHtml(template.flight, row, {
+    dutyLabel: dutyKind,
+    suggestedSlots
+  });
   abgPaxPopoverTemplateId = template.id;
   abgPaxPopoverAnchor = anchor;
   positionAbgPaxPopover(pop, anchor);
@@ -15908,6 +16146,10 @@ function isFlightTemplateFullyScheduled(t) {
   }
   if (t.role === 'ABG') {
     return countAbgAssignmentsForTemplate(t) >= getAbgSlotsForTemplate(t);
+  }
+  if (t.role === '大件') {
+    if (getBulkySlotsForTemplate(t) <= 0) return false;
+    return countBulkyAssignmentsForTemplate(t) >= getBulkySlotsForTemplate(t);
   }
   if (t.connectingDuty) {
     if (t.role === 'ABG' && getAbgSlotsForTemplate(t) > 1) {
@@ -26042,7 +26284,7 @@ function pruneOrphanDutyScheduleItems() {
   pruneLegacyForeignConnectingScheduleItems();
   pruneLegacyTPoolScheduleItems();
   const tplIds = new Set(templates.map(t => t.id));
-  const orphanRoles = new Set(['PPT', 'L1', 'BA', 'G2', 'CKIN', 'PRE']);
+  const orphanRoles = new Set(['PPT', 'L1', 'BA', '大件', 'G2', 'CKIN', 'PRE']);
   const before = schedule.length;
   schedule = schedule.filter(item => {
     if (item.connectingDuty) {
@@ -26096,6 +26338,20 @@ function buildTemplates() {
       const ext = Number(f.extension || 0);
       buildDepCoreDutyEntries(f, std, ext).forEach(entry => out.push(entry));
       if (isMaintenanceDepFlight(f)) return;
+      if (isBulkyDepFlight(f)) {
+        const bulkySlots = getBulkySlotsForFlightDef(f);
+        out.push({
+          id: `${f.flight}_大件_${f.type}`,
+          label: `${f.flight} 大件`,
+          compactLabel: `${compactDutyFlightNo(f.flight)}大`,
+          flight: f.flight,
+          role: '大件',
+          flightType: f.type,
+          start: depDutyStart(std, BULKY_BEFORE_MIN, ext),
+          end: std,
+          bulkySlots
+        });
+      }
       if (isBaDepFlight(f)) {
         const role = 'BA';
         const start = depDutyStart(std, BA_BEFORE_MIN, ext);
@@ -26274,6 +26530,8 @@ function loadDayDataFromLocalStorage(dateStr) {
   tTcSlotAssignments = readJsonLS(k.tTcSlotAssignments, {});
   abgSlotOverrides = readJsonLS(k.abgSlotOverrides, {});
   abgSlotManualLocks = readJsonLS(k.abgSlotManualLocks, {});
+  bulkySlotOverrides = readJsonLS(k.bulkySlotOverrides, {});
+  bulkySlotManualLocks = readJsonLS(k.bulkySlotManualLocks, {});
   homelineConnectingDutyModes = readJsonLS(k.homelineConnectingDutyModes, {});
   if (!Array.isArray(customTemplates)) customTemplates = [];
   if (!Array.isArray(deletedCustomTemplates)) deletedCustomTemplates = [];
@@ -26283,6 +26541,8 @@ function loadDayDataFromLocalStorage(dateStr) {
   if (!tTcSlotAssignments || typeof tTcSlotAssignments !== 'object') tTcSlotAssignments = {};
   if (!abgSlotOverrides || typeof abgSlotOverrides !== 'object') abgSlotOverrides = {};
   if (!abgSlotManualLocks || typeof abgSlotManualLocks !== 'object') abgSlotManualLocks = {};
+  if (!bulkySlotOverrides || typeof bulkySlotOverrides !== 'object') bulkySlotOverrides = {};
+  if (!bulkySlotManualLocks || typeof bulkySlotManualLocks !== 'object') bulkySlotManualLocks = {};
   if (!homelineConnectingDutyModes || typeof homelineConnectingDutyModes !== 'object') homelineConnectingDutyModes = {};
   migrateLegacyTTcSlotAssignments();
   selectedBlockId = null;
@@ -27221,6 +27481,8 @@ function saveLocal() {
   saveTTcSlotAssignments();
   saveAbgSlotOverrides();
   saveAbgSlotManualLocks();
+  saveBulkySlotOverrides();
+  saveBulkySlotManualLocks();
   saveHomelineConnectingDutyModes();
   saveStaffDirectory();
   } finally {
@@ -27656,6 +27918,69 @@ function openAbgSlotEditor(flight, flightType = 'DEP') {
     }
   });
 }
+function openBulkySlotEditor(flight, flightType = 'DEP') {
+  const f = flightDefs.find(x => x.flight === flight && x.type === flightType);
+  if (!f || !isBulkyDepFlight(f)) return;
+  const current = getBulkySlotsForFlightDef(f);
+  const assigned = countBulkyAssignments(flight, flightType);
+  let overlay = document.getElementById('bulkySlotEditorOverlay');
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.id = 'bulkySlotEditorOverlay';
+    overlay.className = 'tc-editor-overlay hidden';
+    document.body.appendChild(overlay);
+  }
+  overlay.innerHTML = `
+    <div class="tc-editor-panel">
+      <h3>調整大件人數</h3>
+      <p>${escapeHtml(flight)} 出境</p>
+      <div class="t-editor-staff-row">
+        <label>人數 <input type="number" min="0" max="12" data-bulky-slot-count value="${current}"></label>
+      </div>
+      <p class="t-editor-staff-status" data-bulky-slot-status>已指派 ${assigned} 人</p>
+      <div class="tc-editor-actions">
+        <button type="button" class="btn-secondary" data-bulky-editor-cancel>取消</button>
+        <button type="button" class="btn-primary" data-bulky-editor-save>確認</button>
+      </div>
+    </div>
+  `;
+  overlay.classList.remove('hidden');
+  const close = () => overlay.classList.add('hidden');
+  const countInput = overlay.querySelector('[data-bulky-slot-count]');
+  const statusEl = overlay.querySelector('[data-bulky-slot-status]');
+  const syncStatus = () => {
+    const target = parseInt(countInput?.value, 10);
+    const targetText = Number.isFinite(target) && target >= 0 ? Math.min(12, target) : 0;
+    const remain = Math.max(0, targetText - assigned);
+    statusEl.textContent = targetText === 0
+      ? '已設為 0 人，chip 將無法拖曳'
+      : `尚可排 ${remain} / 目標 ${targetText}${assigned ? `（已排 ${assigned}）` : ''}`;
+  };
+  countInput?.addEventListener('input', syncStatus);
+  syncStatus();
+  overlay.querySelector('[data-bulky-editor-cancel]')?.addEventListener('click', close);
+  overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
+  overlay.querySelector('[data-bulky-editor-save]')?.addEventListener('click', () => {
+    const next = parseInt(countInput?.value, 10);
+    if (!Number.isFinite(next) || next < 0 || next > 12) {
+      appAlert('請輸入有效人數（0–12）。', '無法儲存');
+      return;
+    }
+    pushUndoSnapshot();
+    setBulkySlotOverride(flight, flightType, next);
+    setBulkySlotManualLock(flight, flightType, true);
+    const syncSummary = trimBulkyAssignmentsToCount(flight, flightType, next);
+    rebuildTemplates();
+    markUnsynced();
+    renderPalette();
+    renderRows();
+    syncAssignmentTableFromSchedule();
+    close();
+    if (syncSummary.removedAssigned) {
+      appAlert(`人數已更新，已移除 ${syncSummary.removedAssigned} 個已指派區塊。`, '人數已更新', 'info');
+    }
+  });
+}
 function openHomelineConnectingEditor(arrFlight, depFlight) {
   const pair = getHomelineConnectingPairForArr(
     flightDefs.find(x => x.flight === arrFlight && x.type === 'ARR')
@@ -27831,13 +28156,16 @@ function makeChip(t, paletteRoleContext = '') {
     delBtn.addEventListener('mousedown', e => e.stopPropagation());
   } else {
     const showHomelineConnGear = canToggleHomelineConnectingForTemplate(t);
-    const showAbgGear = !showHomelineConnGear && canEditAbgSlotsForTemplate(t);
+    const showBulkyGear = !showHomelineConnGear && canEditBulkySlotsForTemplate(t);
+    const showAbgGear = !showHomelineConnGear && !showBulkyGear && canEditAbgSlotsForTemplate(t);
     let editPrefix = '';
     if (showHomelineConnGear) {
       const pair = getHomelineConnectingPairFromTemplate(t);
       const merged = pair && getHomelineConnectingDutyMode(pair.arrFlight, pair.depFlight) === 'merged';
       const modeHint = merged ? '拆開接飛 duty' : '合併接飛 duty';
       editPrefix = `<button type="button" class="duty-chip-edit-btn" title="${escapeHtml(modeHint)}">${EDIT_GEAR_ICON_HTML}</button>`;
+    } else if (showBulkyGear) {
+      editPrefix = `<button type="button" class="duty-chip-edit-btn" title="調整大件人數">${EDIT_GEAR_ICON_HTML}</button>`;
     } else if (showAbgGear) {
       editPrefix = `<button type="button" class="duty-chip-edit-btn" title="調整 ABG 人數">${EDIT_GEAR_ICON_HTML}</button>`;
     }
@@ -27849,6 +28177,14 @@ function makeChip(t, paletteRoleContext = '') {
         e.stopPropagation();
         e.preventDefault();
         if (pair) openHomelineConnectingEditor(pair.arrFlight, pair.depFlight);
+      });
+      editBtn?.addEventListener('mousedown', e => e.stopPropagation());
+    } else if (showBulkyGear) {
+      const editBtn = chip.querySelector('.duty-chip-edit-btn');
+      editBtn?.addEventListener('click', e => {
+        e.stopPropagation();
+        e.preventDefault();
+        openBulkySlotEditor(t.flight, t.flightType);
       });
       editBtn?.addEventListener('mousedown', e => e.stopPropagation());
     } else if (showAbgGear) {
@@ -27877,13 +28213,38 @@ function makeChip(t, paletteRoleContext = '') {
         if (e.target.closest('.duty-chip-edit-btn')) return;
         e.stopPropagation();
         e.preventDefault();
-        toggleAbgPaxPopover(chip, t);
+        toggleAbgPaxPopover(chip, t, 'ABG');
       });
     }
     if (t.role === 'ABG' && abgRemain > 0) {
       const hint = `尚可排 ${abgRemain} 人`;
       chip.title = chip.title ? `${chip.title} · ${hint}` : hint;
       if (abgSlots > 1) appendDutyChipSlotBadge(chip, abgRemain, hint);
+    }
+    const bulkyRemain = getBulkySlotsRemaining(t);
+    const bulkySlots = getBulkySlotsForTemplate(t);
+    if (t.role === '大件' && canEditBulkySlotsForTemplate(t)) {
+      chip.classList.add('duty-chip--bulky-pax');
+      const paxRow = lookupHomelinePaxForScheduleFlight(t.flight);
+      const slotText = `目前 ${bulkySlots} 人`;
+      chip.title = paxRow ? `點擊查看訂位 · ${slotText}` : `點擊查看訂位（無 EDW 資料）· ${slotText}`;
+      chip.addEventListener('click', e => {
+        if (e.target.closest('.duty-chip-edit-btn')) return;
+        e.stopPropagation();
+        e.preventDefault();
+        toggleAbgPaxPopover(chip, t, '大件');
+      });
+    }
+    if (t.role === '大件' && bulkyRemain > 0) {
+      const hint = `尚可排 ${bulkyRemain} 人`;
+      chip.title = chip.title ? `${chip.title} · ${hint}` : hint;
+      if (bulkySlots > 1) appendDutyChipSlotBadge(chip, bulkyRemain, hint);
+    }
+    if (t.role === '大件' && bulkySlots <= 0) {
+      chip.draggable = false;
+      chip.classList.add('duty-chip--bulky-zero');
+      const zeroHint = '已設為 0 人，無法拖曳；點齒輪可恢復人數';
+      chip.title = chip.title ? `${chip.title} · ${zeroHint}` : zeroHint;
     }
   }
 
@@ -28344,6 +28705,9 @@ function handleTimelinePaletteDrop(e, timeline) {
     } else if (tpl.role === 'ABG') {
       if (countAbgAssignmentsForTemplate(tpl) >= getAbgSlotsForTemplate(tpl)) return;
       if (personHasAbgAssignment(targetPersonIndex, tpl.flight, tpl.flightType)) return;
+    } else if (tpl.role === '大件') {
+      if (countBulkyAssignmentsForTemplate(tpl) >= getBulkySlotsForTemplate(tpl)) return;
+      if (personHasBulkyAssignment(targetPersonIndex, tpl.flight, tpl.flightType)) return;
     } else if (tpl.connectingDuty) {
       if (tpl.role === 'ABG') {
         if (countAbgAssignmentsForTemplate(tpl) >= getAbgSlotsForTemplate(tpl)) return;
@@ -29041,12 +29405,16 @@ function bootLoadGlobalStorage() {
   tTcSlotAssignments = readJsonLS(dayK.tTcSlotAssignments, {});
   abgSlotOverrides = readJsonLS(dayK.abgSlotOverrides, {});
   abgSlotManualLocks = readJsonLS(dayK.abgSlotManualLocks, {});
+  bulkySlotOverrides = readJsonLS(dayK.bulkySlotOverrides, {});
+  bulkySlotManualLocks = readJsonLS(dayK.bulkySlotManualLocks, {});
   homelineConnectingDutyModes = readJsonLS(dayK.homelineConnectingDutyModes, {});
   if (!tTemplateDefaults || typeof tTemplateDefaults !== 'object') tTemplateDefaults = {};
   migrateTTimeChainFromLegacySlots();
   if (!tTcSlotAssignments || typeof tTcSlotAssignments !== 'object') tTcSlotAssignments = {};
   if (!abgSlotOverrides || typeof abgSlotOverrides !== 'object') abgSlotOverrides = {};
   if (!abgSlotManualLocks || typeof abgSlotManualLocks !== 'object') abgSlotManualLocks = {};
+  if (!bulkySlotOverrides || typeof bulkySlotOverrides !== 'object') bulkySlotOverrides = {};
+  if (!bulkySlotManualLocks || typeof bulkySlotManualLocks !== 'object') bulkySlotManualLocks = {};
   if (!homelineConnectingDutyModes || typeof homelineConnectingDutyModes !== 'object') homelineConnectingDutyModes = {};
   staffDirectory = readJsonLS(LS_KEYS_GLOBAL.staffDirectory, []);
   staffPersonnelRegistry = readJsonLS(LS_KEYS_GLOBAL.staffPersonnel, null);
