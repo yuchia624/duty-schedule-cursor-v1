@@ -21265,16 +21265,15 @@ function splitRollCallSingleCharCodes(codeBlob, count) {
   const blob = cleanRollCallCell(codeBlob);
   const chars = Array.from(blob);
   const issues = [];
+  if (!chars.length) return { codes: [], issues };
   if (!Number.isFinite(count) || count <= 0) {
-    issues.push('人數無效');
-    return { codes: [], issues };
+    issues.push('人數無效（已以代號字數為準）');
+    return { codes: chars, issues };
   }
   if (chars.length !== count) {
-    issues.push(`人數 ${count} 與代號字數 ${chars.length} 不一致`);
+    issues.push(`人數 ${count} 與代號字數 ${chars.length} 不一致（已以代號字數為準）`);
   }
-  const codes = chars.slice(0, count);
-  if (codes.length !== count) issues.push(`僅切出 ${codes.length} 個代號`);
-  return { codes, issues };
+  return { codes: chars, issues };
 }
 function findStaffByCodeAtDate(code, refDateISO) {
   const codeKey = cleanRollCallCell(code);
@@ -21872,12 +21871,20 @@ function applyRollCallAppendDicImport(preview) {
   markUnsynced();
   renderRows();
   if (typeof syncAssignmentTableFromSchedule === 'function') syncAssignmentTableFromSchedule();
+  const countMismatchRows = preview.countMismatchRows || [];
   rollCallImportPreviewState = null;
   setRollCallStaffImportOpen(false);
+  let dicMessage = `已追加 ${toAppend.length} 位 DIC 人員至名單最後。`;
+  if (countMismatchRows.length) {
+    dicMessage += '\n\n班別明細人數與代號不一致（已以代號數量為準）：';
+    countMismatchRows.forEach(x => {
+      dicMessage += `\n· ${x.shift} 列 ${x.rowNum}：${x.issues.join('；')}`;
+    });
+  }
   showAppNotice({
     type: 'success',
     title: 'DIC 人員已追加',
-    message: `已追加 ${toAppend.length} 位 DIC 人員至名單最後。`,
+    message: dicMessage,
     details: [],
     confirmText: '確定',
     showCancel: false
@@ -22023,11 +22030,18 @@ function showRollCallImportApplyResult(options = {}) {
   const {
     importDiff = null,
     showImportDiff = false,
-    visibleDutyOrphans = []
+    visibleDutyOrphans = [],
+    countMismatchRows = []
   } = options;
   let message = showImportDiff && importDiff
     ? formatRollCallImportDiffMessage(importDiff)
     : '已套用匯入上班人員結果。';
+  if (countMismatchRows.length) {
+    message += '\n\n班別明細人數與代號不一致（已以代號數量為準）：';
+    countMismatchRows.forEach(x => {
+      message += `\n· ${x.shift} 列 ${x.rowNum}：${x.issues.join('；')}`;
+    });
+  }
   if (visibleDutyOrphans.length) {
     message += '\n\n以下人員已有 duty，但不在新作業人員名單，請人工處理：';
     visibleDutyOrphans.forEach(o => {
@@ -22089,7 +22103,8 @@ function applyRollCallStaffImport() {
   showRollCallImportApplyResult({
     showImportDiff: isRepeatImport,
     importDiff,
-    visibleDutyOrphans
+    visibleDutyOrphans,
+    countMismatchRows: preview.countMismatchRows || []
   });
   rollCallImportPreviewState = null;
   setRollCallStaffImportOpen(false);

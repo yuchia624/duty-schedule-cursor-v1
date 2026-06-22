@@ -110,9 +110,8 @@
         continue;
       }
       if (!isShiftCode(code)) continue;
-      const count = parseInt(String(getCell(ws, r, 3) ?? '').trim(), 10);
       const people = cleanName(getCell(ws, r, 5));
-      const tokens = (Number.isFinite(count) && count > 0 ? Array.from(people).slice(0, count) : Array.from(people));
+      const tokens = Array.from(people);
       shifts.push({ code, start: normalizeTime(timeRange.split('~')[0].trim()), tokens });
     }
     return shifts;
