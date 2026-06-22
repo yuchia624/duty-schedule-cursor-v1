@@ -15492,6 +15492,35 @@ function resolveArrScheduleStaDateIso(f) {
   }
   return isoFromParts(year, month, day);
 }
+function resolveDepScheduleStdDateIso(f) {
+  if (f?.scheduleStdDateIso && isValidISODate(f.scheduleStdDateIso)) return f.scheduleStdDateIso;
+  const anchor = parseArrStaAnchor(f?.std || f?.baseTime || '');
+  if (!anchor?.daySuffix) return '';
+  const ref = getScheduleReferenceDate();
+  if (!isValidISODate(ref)) return '';
+  const [y, mo, da] = ref.split('-').map(Number);
+  let month = mo - 1;
+  let year = y;
+  const day = Number(anchor.daySuffix);
+  if (!day) return '';
+  if (day < da) {
+    month += 1;
+    if (month > 11) {
+      month = 0;
+      year += 1;
+    }
+  }
+  return isoFromParts(year, month, day);
+}
+function isMaintenanceDepFlight(f) {
+  return !!f && f.type === 'DEP' && String(f.serviceType || '').trim().toUpperCase() === 'K';
+}
+function formatDepStdDisplay(f) {
+  const timeline = depStdMinutes(f);
+  if (timeline == null) return '';
+  if (timeline >= 24 * 60) return `${minutesToTime(timeline - 24 * 60)}+1`;
+  return minutesToTime(timeline);
+}
 function isArrPrefilingRouteFlight(f) {
   if (!f || f.type !== 'ARR') return false;
   const origin = getArrOriginAirport(f);
@@ -19626,7 +19655,7 @@ function hasArrStaTimeChange(f) {
 }
 
 function getAssignmentDepStdDisplayValue(f) {
-  return minutesToTime(depStdMinutes(f));
+  return formatDepStdDisplay(f);
 }
 
 function isInboundAssignmentArrFlight(f) {
@@ -22435,10 +22464,24 @@ function compactDutyFlightNo(flight) {
   return stripped || s;
 }
 function compactDutyLabel(flight, role) { return `${compactDutyFlightNo(flight)}${roleShort(role)}`; }
+function compactMaintenanceDutyLabel(flight, role) {
+  const flightNo = String(flight || '').trim();
+  return `${flightNo} ${roleShort(role)}`;
+}
 function snap5(v) { return Math.round(v / 5) * 5; }
 function depStdMinutes(f) {
   const changed = parseTimeToMinutes(f.changeTime);
-  return changed != null ? changed : f.baseMinutes;
+  let mins = changed != null ? changed : f.baseMinutes;
+  if (mins == null) return null;
+  const refIso = getScheduleReferenceDate();
+  const stdDateIso = resolveDepScheduleStdDateIso(f);
+  if (refIso && stdDateIso && stdDateIso !== refIso) {
+    const refMs = new Date(`${refIso}T12:00:00`).getTime();
+    const stdMs = new Date(`${stdDateIso}T12:00:00`).getTime();
+    const deltaDays = Math.round((stdMs - refMs) / 86400000);
+    mins += deltaDays * 24 * 60;
+  }
+  return mins;
 }
 function arrStaMinutes(f) {
   const changed = parseTimeToMinutes(f.changeTime);
@@ -22874,6 +22917,18 @@ function isOzConnectingDepFlight(f) {
   return ForeignDutyRules?.isOzConnectingDepFlight?.(f, flightDefs, normalizeImportedFlightNo) || false;
 }
 function buildDepCoreDutyEntries(f, std, ext) {
+  if (isMaintenanceDepFlight(f)) {
+    return [{
+      id: `${f.flight}_RC_${f.type}`,
+      label: `${f.flight} RC`,
+      compactLabel: compactMaintenanceDutyLabel(f.flight, 'RC'),
+      flight: f.flight,
+      role: 'RC',
+      flightType: f.type,
+      start: depDutyStart(std, 70, ext),
+      end: depDutyEnd(std, ext)
+    }];
+  }
   const skipRcBg = isForeignConnectingDepFlight(f) || isHomelineConnectingDepFlightMerged(f);
   const skipAbg = isOzConnectingDepFlight(f);
   const hx = ForeignDutyRules?.getHxDepDutyConfig?.(f);
@@ -22993,6 +23048,10 @@ function normalizeFlightDefsInPlace() {
       if (f.pax == null) f.pax = '';
       if (f.changeTime == null) f.changeTime = '';
       if (f.eta == null) f.eta = '';
+      if (!f.scheduleStdDateIso) {
+        const derived = resolveDepScheduleStdDateIso(f);
+        if (derived) f.scheduleStdDateIso = derived;
+      }
       if (!f.changeTime && Number(f.offset || 0) !== 0) {
         f.changeTime = minutesToTime(f.baseMinutes + Number(f.offset || 0));
         f.offset = 0;
@@ -26036,6 +26095,7 @@ function buildTemplates() {
       const std = depStdMinutes(f);
       const ext = Number(f.extension || 0);
       buildDepCoreDutyEntries(f, std, ext).forEach(entry => out.push(entry));
+      if (isMaintenanceDepFlight(f)) return;
       if (isBaDepFlight(f)) {
         const role = 'BA';
         const start = depDutyStart(std, BA_BEFORE_MIN, ext);
@@ -27929,14 +27989,14 @@ function buildEditorRowDep(f) {
   row.innerHTML = `
     <strong>${f.flight}</strong>
     <span class="mini">STD</span>
-    <span class="mini">${f.baseTime}</span>
+    <span class="mini">${formatDepStdDisplay(f)}</span>
     <input type="text" class="editor-change-time-input" inputmode="numeric" maxlength="5" value="${toTimeInputValue(f.changeTime)}" />
-    <span class="mini editor-current">${minutesToTime(adjustedMinutes(f))}</span>
+    <span class="mini editor-current">${formatDepStdDisplay(f)}</span>
   `;
   const changeTimeInput = row.querySelector('.editor-change-time-input');
   const currentEl = row.querySelector('.editor-current');
   const applyFlightEdit = () => {
-    currentEl.textContent = minutesToTime(adjustedMinutes(f));
+    currentEl.textContent = formatDepStdDisplay(f);
     applyFlightScheduleEdit();
   };
   const commitChangeTime = () => {
@@ -28024,7 +28084,7 @@ function renderFlightEditor() {
     if (activeFlightEditorTab === 'ARR') {
       return getArrSortMinutes(a) - getArrSortMinutes(b) || a.flight.localeCompare(b.flight);
     }
-    return a.baseMinutes - b.baseMinutes || a.flight.localeCompare(b.flight);
+    return depStdMinutes(a) - depStdMinutes(b) || a.flight.localeCompare(b.flight);
   });
   const targetWrap = activeFlightEditorTab === 'DEP' ? depWrap : arrWrap;
   const buildRow = activeFlightEditorTab === 'DEP' ? buildEditorRowDep : buildEditorRowArr;

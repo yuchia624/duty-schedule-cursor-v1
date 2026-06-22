@@ -456,7 +456,10 @@
       const parsed = parseFisTimeValue(row.std);
       if (!matchesSelectedScheduleDay('DEP', parsed, suffixMap, selectedDate)) return;
       const def = buildFlightDef('DEP', row, normalizeFlightNo);
-      if (def) flightDefs.push(def);
+      if (!def) return;
+      const dt = datetimeFromFisTime(parsed, suffixMap, selectedDate);
+      if (dt?.dateIso) def.scheduleStdDateIso = dt.dateIso;
+      flightDefs.push(def);
     });
 
     arrCandidates.forEach(row => {
@@ -489,6 +492,16 @@
       warnings.push(`PRE 額外匯入 ${prefilingArrAdded} 筆隔日美加歐澳航班（STA 日期為班表日+1，00:01～09:00）`);
     }
 
+    const depTimelineMinutes = def => {
+      let mins = def.baseMinutes;
+      const stdDateIso = def.scheduleStdDateIso;
+      if (stdDateIso && stdDateIso !== selectedDateIso) {
+        const refMs = new Date(`${selectedDateIso}T12:00:00`).getTime();
+        const stdMs = new Date(`${stdDateIso}T12:00:00`).getTime();
+        mins += Math.round((stdMs - refMs) / 86400000) * 24 * 60;
+      }
+      return mins;
+    };
     flightDefs.sort((a, b) => {
       if (a.type !== b.type) return a.type === 'DEP' ? -1 : 1;
       if (a.type === 'ARR') {
@@ -496,7 +509,7 @@
         const be = timeToMinutes(b.eta) ?? b.baseMinutes;
         return ae - be || a.flight.localeCompare(b.flight);
       }
-      return a.baseMinutes - b.baseMinutes || a.flight.localeCompare(b.flight);
+      return depTimelineMinutes(a) - depTimelineMinutes(b) || a.flight.localeCompare(b.flight);
     });
 
     const dep = flightDefs.filter(f => f.type === 'DEP').length;
