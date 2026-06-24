@@ -2538,6 +2538,18 @@
     font-weight: 700;
     border-bottom-color: #ef4444;
   }
+  .assignment-field-wrap.assignment-field-connecting-duplicate .assignment-field-display {
+    color: #ef4444;
+    font-weight: 700;
+  }
+  .assignment-field-wrap.assignment-field-connecting-duplicate.is-column-editable:hover .assignment-field-display {
+    color: #ef4444;
+  }
+  .assignment-field-wrap.assignment-field-connecting-duplicate .assignment-field-input {
+    color: #ef4444;
+    font-weight: 700;
+    border-bottom-color: #ef4444;
+  }
   .assignment-field-wrap.is-tooltip-editing .assignment-field-display {
     box-shadow: inset 0 0 0 2px #2563eb;
   }
@@ -3019,6 +3031,29 @@
     color: #fff;
     border-color: #111827;
   }
+  .palette-conn-leg-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin: 0 0 10px;
+  }
+  .palette-conn-leg-filter {
+    border: 1px solid #cbd5e1;
+    background: #fff;
+    color: #334155;
+    border-radius: 999px;
+    padding: 4px 12px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    line-height: 1.2;
+  }
+  .palette-conn-leg-filter:hover { border-color: #94a3b8; background: #f8fafc; }
+  .palette-conn-leg-filter.active {
+    background: #eff6ff;
+    color: #1d4ed8;
+    border-color: #93c5fd;
+  }
   .duty-chip {
     position: relative;
     display: inline-flex;
@@ -3211,7 +3246,9 @@
     justify-content: center;
   }
   .duty-chip-edit-btn .edit-gear-icon,
-  .block-edit-btn .edit-gear-icon {
+  .duty-chip-edit-btn .connecting-plane-icon,
+  .block-edit-btn .edit-gear-icon,
+  .block-edit-btn .connecting-plane-icon {
     width: 10px;
     height: 10px;
     display: block;
@@ -3280,6 +3317,16 @@
   .tc-editor-seg-row label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: #475569; }
   .tc-editor-seg-row input { padding: 6px 8px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px; }
   .tc-editor-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px; }
+  .connecting-dup-pick-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 12px;
+  }
+  .connecting-dup-pick-list .connecting-dup-pick-btn {
+    width: 100%;
+    justify-content: center;
+  }
   .tc-editor-actions .btn-primary,
   .tc-editor-actions .btn-secondary {
     padding: 6px 12px; border-radius: 6px; border: 1px solid #cbd5e1; cursor: pointer; font-size: 13px;
@@ -6211,7 +6258,7 @@
   }
 
   .app-notice-dialog {
-    position: fixed; inset: 0; z-index: 2000;
+    position: fixed; inset: 0; z-index: 50000;
     display: flex; align-items: center; justify-content: center;
     padding: 20px 16px;
   }
@@ -9766,6 +9813,8 @@ function renderOvertimePanel() {
 const EDIT_GEAR_ICON = '⚙';
 const EDIT_GEAR_ICON_PATHS = '<path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/>';
 const EDIT_GEAR_ICON_HTML = `<svg class="edit-gear-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${EDIT_GEAR_ICON_PATHS}</svg>`;
+const CONNECTING_PLANE_ICON_PATHS = '<path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z"/>';
+const CONNECTING_PLANE_ICON_HTML = `<svg class="connecting-plane-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${CONNECTING_PLANE_ICON_PATHS}</svg>`;
 const T_ANCHOR_ICON_HTML = `<svg class="t-anchor-mode-btn__svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`;
 function excelCell(val) {
   if (val === null || val === undefined) return '-';
@@ -10296,7 +10345,7 @@ const EARLY_VIEW_END_MIN = 17 * 60;
 let pxPerMinute = 1.4;
 let activePaletteTab = 'byRole';
 let activePaletteRoleCategory = null;
-const PALETTE_ROLE_ORDER = ['RC', 'BG', 'ABG', '大件', 'BA', 'L1', 'G2', '接機RC', '接機C', 'PPT', 'CKIN', 'PRE', 'TC', 'T'];
+const PALETTE_ROLE_ORDER = ['RC', 'BG', 'ABG', '大件', 'BA', 'L1', 'G2', '接機RC', '接機C', '接飛', 'PPT', 'CKIN', 'PRE', 'TC', 'T'];
 const PALETTE_ROLE_CATEGORIES = PALETTE_ROLE_ORDER.map(role => ({ id: role, label: role, roles: [role] }));
 let activeFlightEditorTab = 'DEP';
 const LS_PREFIX = 'cursor_v1';
@@ -16539,6 +16588,33 @@ function normalizeImportedFlightNo(value) {
   if (m) return `${m[1]}${m[2].padStart(4, '0')}`;
   return s;
 }
+function isNormalizedFlightNoForConnecting(value) {
+  const s = String(value || '').trim().toUpperCase();
+  if (!/^[A-Z0-9]{2}\d{4}$/.test(s)) return false;
+  return /[A-Z]/.test(s.slice(0, 2));
+}
+function isValidConnectingFlightNo(value) {
+  const norm = normalizeImportedFlightNo(value);
+  if (!norm || !isNormalizedFlightNoForConnecting(norm)) return false;
+  if (/^\d+$/.test(norm)) return false;
+  const digits = norm.slice(2);
+  if (!/^\d{4}$/.test(digits) || /^0+$/.test(digits)) return false;
+  return true;
+}
+function resolveConnectingDepFlightNo(value) {
+  const raw = String(value || '').trim().toUpperCase();
+  if (!raw) return '';
+  if (isValidConnectingFlightNo(raw)) return normalizeImportedFlightNo(raw);
+  const norm = normalizeImportedFlightNo(raw);
+  if (isValidConnectingFlightNo(norm)) return norm;
+  if (/^\d+$/.test(raw)) {
+    const asBr = normalizeImportedFlightNo(`BR${raw}`);
+    if (isValidConnectingFlightNo(asBr)) return asBr;
+    const asB7 = normalizeImportedFlightNo(`B7${raw}`);
+    if (isValidConnectingFlightNo(asB7)) return asB7;
+  }
+  return '';
+}
 
 const FOREIGN_SCHEDULE_URL = '外家時刻表.xlsx';
 /** 新增／編輯外家航班表單：機型下拉選項 */
@@ -19985,7 +20061,7 @@ function toggleAssignmentColumnEdit(colKey) {
   syncAssignmentColumnEditUi();
 }
 
-function renderAssignmentEditableField(f, field, value, variant) {
+function renderAssignmentEditableField(f, field, value, variant, options = {}) {
   const displayVal = String(value ?? '').trim();
   const emptyClass = displayVal ? '' : ' is-empty';
   const editable = isAssignmentColumnEditable(field);
@@ -19993,7 +20069,9 @@ function renderAssignmentEditableField(f, field, value, variant) {
   const wrapVariant = variant === 'gate' ? ' assignment-field-gate' : ' assignment-field-connecting';
   const gateEditedClass = assignmentFieldEditWrapClass(f, field);
   const colEditableClass = editable ? ' is-column-editable' : '';
-  return `<span class="assignment-field-wrap${wrapVariant}${gateEditedClass}${colEditableClass}">` +
+  const extraWrapClass = options.extraWrapClass || '';
+  const titleAttr = options.title ? ` title="${escapeHtml(options.title)}"` : '';
+  return `<span class="assignment-field-wrap${wrapVariant}${gateEditedClass}${colEditableClass}${extraWrapClass}"${titleAttr}>` +
     `<span class="assignment-field-display${emptyClass}${readonlyClass}" tabindex="${editable ? 0 : -1}" ` +
     `data-flight-def-id="${escapeHtml(f.id)}" data-edit-field="${escapeHtml(field)}" data-value="${escapeHtml(displayVal)}">` +
     `${escapeHtml(displayVal)}</span>` +
@@ -20008,15 +20086,282 @@ function renderAssignmentGateCell(f, type) {
 }
 
 function getInboundFlightConnectingToDep(depFlight) {
-  const depNorm = normalizeImportedFlightNo(depFlight);
+  const depNorm = resolveConnectingDepFlightNo(depFlight);
   if (!depNorm) return '';
-  const arr = flightDefs.find(f =>
+  const arr = flightDefs.find(f => {
+    if (f.type !== 'ARR' || f.status === 'CANX' || !f.connectingFlight) return false;
+    return resolveConnectingDepFlightNo(f.connectingFlight) === depNorm;
+  });
+  return arr ? arr.flight : '';
+}
+function findDuplicateConnectingArrForDep(depFlight, excludeArrFlight) {
+  const others = findAllArrFlightsConnectingToDep(depFlight, excludeArrFlight);
+  return others.length ? others[0] : null;
+}
+function findAllArrFlightsConnectingToDep(depFlight, excludeArrFlight) {
+  const depNorm = resolveConnectingDepFlightNo(depFlight);
+  return findConnectingDepConflictArrFlights(depNorm, excludeArrFlight);
+}
+function findConnectingDepConflictArrFlights(depNorm, excludeArrFlight) {
+  if (!depNorm) return [];
+  const excludeNorm = excludeArrFlight ? normalizeImportedFlightNo(excludeArrFlight) : '';
+  return flightDefs
+    .filter(f => {
+      if (f.type !== 'ARR' || f.status === 'CANX' || !f.connectingFlight) return false;
+      if (excludeNorm && normalizeImportedFlightNo(f.flight) === excludeNorm) return false;
+      return resolveConnectingDepFlightNo(f.connectingFlight) === depNorm;
+    })
+    .map(f => f.flight);
+}
+function traceConnectingDuplicateLookup(entry, {
+  depFlight,
+  depNorm,
+  currentArr,
+  conflicts,
+  extra
+} = {}) {
+  const resolvedDepNorm = depNorm || (depFlight ? resolveConnectingDepFlightNo(depFlight) : '');
+  const excludeNorm = currentArr ? normalizeImportedFlightNo(currentArr) : '';
+  const arrSnapshot = flightDefs
+    .filter(f => f.type === 'ARR')
+    .map(f => {
+      const connRaw = f.connectingFlight || '';
+      const connNorm = connRaw ? normalizeImportedFlightNo(connRaw) : '';
+      const connResolved = connRaw ? resolveConnectingDepFlightNo(connRaw) : '';
+      const flightNorm = normalizeImportedFlightNo(f.flight);
+      const resolvedDepNorm = depFlight ? resolveConnectingDepFlightNo(depFlight) : '';
+      const matchesDepNorm = !!(connResolved && resolvedDepNorm && connResolved === resolvedDepNorm);
+      const connValid = connRaw ? isValidConnectingFlightNo(connRaw) : false;
+      const depValid = depFlight ? !!resolveConnectingDepFlightNo(depFlight) : false;
+      const excluded = excludeNorm && flightNorm === excludeNorm;
+      const includedByFindAll = !!(
+        f.status !== 'CANX'
+        && connRaw
+        && connResolved
+        && connResolved === resolvedDepNorm
+        && !excluded
+      );
+      const looseConflict = includedByFindAll;
+      return {
+        flight: f.flight,
+        flightNorm,
+        connectingFlight: connRaw,
+        connectingNorm: connNorm,
+        connectingResolved: connResolved,
+        connectingValid: connValid,
+        status: f.status || '',
+        matchesDepNorm,
+        excluded,
+        includedByFindAll,
+        looseConflict
+      };
+    });
+  console.group(`[接飛重複 trace] ${entry}`);
+  console.log('操作入口', entry);
+  console.log('depFlight', depFlight ?? '');
+  console.log('depNorm', resolvedDepNorm);
+  console.log('depValid', depFlight ? !!resolveConnectingDepFlightNo(depFlight) : null);
+  console.log('currentArr', currentArr ?? '');
+  console.log('excludeNorm', excludeNorm);
+  console.log('conflicts / depConflicts', conflicts ?? []);
+  if (extra) console.log('extra', extra);
+  console.table(arrSnapshot);
+  const looseConflicts = arrSnapshot.filter(r => r.looseConflict).map(r => r.flight);
+  if (looseConflicts.length && !(conflicts || []).length) {
+    console.warn('[接飛重複 trace] looseConflict 有值但 findAllArrFlightsConnectingToDep 回傳空陣列', looseConflicts);
+  }
+  console.groupEnd();
+}
+function buildConnectingDuplicateCandidateLabel(arrFlight) {
+  const def = flightDefs.find(f =>
+    f.type === 'ARR' && normalizeImportedFlightNo(f.flight) === normalizeImportedFlightNo(arrFlight)
+  );
+  const sta = def ? getAssignmentArrStaDisplayValue(def) : '';
+  const label = compactDutyFlightNo(arrFlight);
+  return sta ? `${label}（STA ${sta}）` : label;
+}
+async function pickConnectingFlightDuplicateWinner({ depFlight, currentArr, otherArrs }) {
+  await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+  await new Promise(resolve => setTimeout(resolve, 80));
+
+  const depNorm = resolveConnectingDepFlightNo(depFlight);
+  const others = (otherArrs || []).filter(Boolean);
+  const candidates = [currentArr, ...others].filter((flight, index, list) =>
+    flight
+    && list.findIndex(x => normalizeImportedFlightNo(x) === normalizeImportedFlightNo(flight)) === index
+  );
+  if (!candidates.length) return null;
+  if (candidates.length === 1 && !others.length) return candidates[0];
+  const depLabel = compactDutyFlightNo(depNorm || depFlight);
+
+  if (candidates.length === 2) {
+    const [a, b] = candidates;
+    const keepA = await appConfirm(
+      `接飛 ${depLabel} 已有重複指定，請選擇要保留接飛的入境班：`,
+      {
+        title: '接飛重複',
+        type: 'warning',
+        pauseEnterMs: 600,
+        confirmText: buildConnectingDuplicateCandidateLabel(a),
+        cancelText: buildConnectingDuplicateCandidateLabel(b),
+        details: [
+          { label: '接飛', value: depLabel, emphasize: true },
+          { label: '候選 1', value: buildConnectingDuplicateCandidateLabel(a) },
+          { label: '候選 2', value: buildConnectingDuplicateCandidateLabel(b) }
+        ]
+      }
+    );
+    return keepA ? a : b;
+  }
+
+  let winner = null;
+  for (let i = 0; i < candidates.length; i += 1) {
+    const candidate = candidates[i];
+    const isLast = i === candidates.length - 1;
+    const keep = await appConfirm(
+      isLast
+        ? `是否保留 ${buildConnectingDuplicateCandidateLabel(candidate)} 為接飛 ${depLabel}？`
+        : `是否保留 ${buildConnectingDuplicateCandidateLabel(candidate)} 為接飛 ${depLabel}？若否，會繼續看下一個選項。`,
+      {
+        title: '接飛重複',
+        type: 'warning',
+        pauseEnterMs: 600,
+        confirmText: '保留此班',
+        cancelText: isLast ? '取消' : '下一個'
+      }
+    );
+    if (keep) {
+      winner = candidate;
+      break;
+    }
+    if (isLast) return null;
+  }
+  return winner;
+}
+function applyConnectingFlightDuplicateWinner(depFlight, winnerArrFlight) {
+  const depNorm = resolveConnectingDepFlightNo(depFlight);
+  const winnerNorm = normalizeImportedFlightNo(winnerArrFlight);
+  if (!depNorm || !winnerNorm) return false;
+
+  const winnerArrDef = flightDefs.find(f =>
     f.type === 'ARR'
     && f.status !== 'CANX'
-    && f.connectingFlight
-    && normalizeImportedFlightNo(f.connectingFlight) === depNorm
+    && normalizeImportedFlightNo(f.flight) === winnerNorm
   );
-  return arr ? arr.flight : '';
+  if (!winnerArrDef) return false;
+
+  const depDef = flightDefs.find(f =>
+    f.type === 'DEP'
+    && f.status !== 'CANX'
+    && resolveConnectingDepFlightNo(f.flight) === depNorm
+  );
+  if (!depDef) return false;
+  const depCanonical = depDef.flight;
+
+  flightDefs.forEach(f => {
+    if (f.type !== 'ARR' || f.status === 'CANX') return;
+    const conn = f.connectingFlight ? resolveConnectingDepFlightNo(f.connectingFlight) : '';
+    if (conn !== depNorm) return;
+    const arrNorm = normalizeImportedFlightNo(f.flight);
+    if (arrNorm === winnerNorm) return;
+
+    const oldDep = conn;
+    migrateMergedConnectingScheduleToSplitOnUnlink(f.flight, oldDep);
+    f.connectingFlight = '';
+    f.connectingSource = '';
+    if (oldDep) clearHomelineConnectingDutyModeForPair(f.flight, oldDep);
+  });
+
+  winnerArrDef.connectingFlight = depCanonical;
+  winnerArrDef.connectingSource = 'manual';
+  return true;
+}
+function migrateMergedConnectingScheduleToSplitOnUnlink(arrFlight, depFlight) {
+  const arrNorm = normalizeImportedFlightNo(arrFlight);
+  const depNorm = normalizeImportedFlightNo(depFlight);
+  if (!arrNorm || !depNorm) return;
+  let migrated = false;
+  [false, true].forEach(foreign => {
+    ['RC', 'BG'].forEach(role => {
+      const merged = findMergedConnectingScheduleItems(arrFlight, depFlight, role, foreign);
+      if (!merged.length) return;
+      applyConnectingDutyModeChange(arrFlight, depFlight, role, 'split', {
+        foreign,
+        fromSchedule: true,
+        refreshPalette: false
+      });
+      migrated = true;
+    });
+  });
+  return migrated;
+}
+async function commitAssignmentConnectingFlightEdit(flightDefId, rawValue) {
+  const f = findFlightDefById(flightDefId);
+  if (!f || f.type !== 'ARR' || typeof FlightAssignmentUtils === 'undefined') return false;
+
+  const newVal = String(rawValue ?? '').trim();
+  const rawOld = f.connectingFlight || '';
+  const oldDep = rawOld ? resolveConnectingDepFlightNo(rawOld) : '';
+  const nextDep = newVal ? resolveConnectingDepFlightNo(newVal) : '';
+  if (newVal && !nextDep) return false;
+  if (!nextDep && !oldDep) return newVal === rawOld ? false : true;
+  if (!nextDep) {
+    if (oldDep) {
+      migrateMergedConnectingScheduleToSplitOnUnlink(f.flight, oldDep);
+      clearHomelineConnectingDutyModeForPair(f.flight, oldDep);
+    }
+    f.connectingFlight = '';
+    f.connectingSource = '';
+    refreshHomelineConnectingStaleFlags();
+    applyFlightScheduleEdit();
+    return true;
+  }
+
+  const depDef = flightDefs.find(x => x.type === 'DEP' && resolveConnectingDepFlightNo(x.flight) === nextDep);
+  if (!depDef) return false;
+
+  const conflicts = findConnectingDepConflictArrFlights(nextDep, f.flight);
+  traceConnectingDuplicateLookup('connectingFlight', {
+    depFlight: depDef.flight,
+    depNorm: nextDep,
+    currentArr: f.flight,
+    conflicts,
+    extra: {
+      rawNewVal: newVal,
+      rawOldConnecting: rawOld,
+      oldDep,
+      nextDep,
+      willEnterPicker: conflicts.length > 0,
+      willDirectAssign: conflicts.length === 0
+    }
+  });
+  if (nextDep && oldDep && nextDep === oldDep && !conflicts.length) return false;
+  if (conflicts.length) {
+    const winner = await pickConnectingFlightDuplicateWinner({
+      depFlight: depDef.flight,
+      currentArr: f.flight,
+      otherArrs: conflicts
+    });
+    if (!winner) return false;
+    if (oldDep && oldDep !== nextDep && normalizeImportedFlightNo(f.flight) === normalizeImportedFlightNo(winner)) {
+      migrateMergedConnectingScheduleToSplitOnUnlink(f.flight, oldDep);
+      clearHomelineConnectingDutyModeForPair(f.flight, oldDep);
+    }
+    if (!applyConnectingFlightDuplicateWinner(depDef.flight, winner)) return false;
+    refreshHomelineConnectingStaleFlags();
+    applyFlightScheduleEdit();
+    return true;
+  }
+
+  if (oldDep && oldDep !== nextDep) {
+    migrateMergedConnectingScheduleToSplitOnUnlink(f.flight, oldDep);
+    clearHomelineConnectingDutyModeForPair(f.flight, oldDep);
+  }
+  f.connectingFlight = depDef.flight;
+  f.connectingSource = 'manual';
+  refreshHomelineConnectingStaleFlags();
+  applyFlightScheduleEdit();
+  return true;
 }
 
 function renderAssignmentDepConnectingCell(depDef) {
@@ -20027,7 +20372,15 @@ function renderAssignmentDepConnectingCell(depDef) {
 
 function renderAssignmentConnectingCell(f) {
   if (f.status === 'CANX') return ASSIGNMENT_CANX_DASH_HTML;
-  return renderAssignmentEditableField(f, 'connectingFlight', f.connectingFlight || '', 'connecting');
+  const dupOthers = f.connectingFlight ? findAllArrFlightsConnectingToDep(f.connectingFlight, f.flight) : [];
+  const extraWrapClass = dupOthers.length ? ' assignment-field-connecting-duplicate' : '';
+  const title = dupOthers.length
+    ? `接飛 ${compactDutyFlightNo(f.connectingFlight)} 與 ${dupOthers.map(compactDutyFlightNo).join('、')} 重複，請選擇要保留的入境班`
+    : '';
+  return renderAssignmentEditableField(f, 'connectingFlight', f.connectingFlight || '', 'connecting', {
+    extraWrapClass,
+    title
+  });
 }
 
 function renderAssignmentEtaCell(f) {
@@ -20155,34 +20508,79 @@ function commitAssignmentArrStaEdit(flightDefId, changeTimeRaw) {
   return true;
 }
 
-function commitAssignmentDepConnectingEdit(depFlightDefId, arrFlightRaw) {
+async function commitAssignmentDepConnectingEdit(depFlightDefId, arrFlightRaw) {
   const depDef = findFlightDefById(depFlightDefId);
   if (!depDef || depDef.type !== 'DEP' || typeof FlightAssignmentUtils === 'undefined') return false;
-  const depNorm = normalizeImportedFlightNo(depDef.flight);
+  const depNorm = resolveConnectingDepFlightNo(depDef.flight);
   const newArrRaw = String(arrFlightRaw ?? '').trim();
-  const newArrNorm = newArrRaw ? normalizeImportedFlightNo(newArrRaw) : '';
-  const oldArrNorm = normalizeImportedFlightNo(getInboundFlightConnectingToDep(depDef.flight));
-  if (oldArrNorm === newArrNorm) return false;
+  const newArrNorm = newArrRaw ? resolveConnectingDepFlightNo(newArrRaw) : '';
+  if (newArrRaw && !newArrNorm) return false;
+  if (!depNorm) return false;
 
-  flightDefs.forEach(f => {
-    if (f.type === 'ARR' && f.connectingFlight && normalizeImportedFlightNo(f.connectingFlight) === depNorm) {
-      f.connectingFlight = '';
-      f.connectingSource = '';
+  if (!newArrNorm) {
+    const currentArrs = findAllArrFlightsConnectingToDep(depDef.flight);
+    if (!currentArrs.length) return false;
+    currentArrs.forEach(arrFlight => {
+      const arrDef = flightDefs.find(f => f.type === 'ARR' && normalizeImportedFlightNo(f.flight) === normalizeImportedFlightNo(arrFlight));
+      if (!arrDef) return;
+      const oldDep = arrDef.connectingFlight ? normalizeImportedFlightNo(arrDef.connectingFlight) : '';
+      if (oldDep) {
+        migrateMergedConnectingScheduleToSplitOnUnlink(arrDef.flight, oldDep);
+        clearHomelineConnectingDutyModeForPair(arrDef.flight, oldDep);
+      }
+      arrDef.connectingFlight = '';
+      arrDef.connectingSource = '';
+    });
+    refreshHomelineConnectingStaleFlags();
+    applyFlightScheduleEdit();
+    return true;
+  }
+
+  const newArrDef = flightDefs.find(f => f.type === 'ARR' && normalizeImportedFlightNo(f.flight) === newArrNorm);
+  if (!newArrDef) return false;
+
+  const selectedOldDep = newArrDef.connectingFlight ? resolveConnectingDepFlightNo(newArrDef.connectingFlight) : '';
+  const depConflicts = findConnectingDepConflictArrFlights(depNorm, newArrDef.flight);
+  traceConnectingDuplicateLookup('depConnectingArr', {
+    depFlight: depDef.flight,
+    depNorm,
+    currentArr: newArrDef.flight,
+    conflicts: depConflicts,
+    extra: {
+      rawNewArr: newArrRaw,
+      newArrNorm,
+      selectedOldDep,
+      selectedAlreadyOnDep: !!(selectedOldDep && selectedOldDep === depNorm),
+      willEnterPicker: depConflicts.length > 0,
+      willDirectAssign: depConflicts.length === 0
     }
   });
+  const selectedAlreadyOnDep = selectedOldDep && selectedOldDep === depNorm;
+  if (selectedAlreadyOnDep && !depConflicts.length) return false;
 
-  if (newArrNorm) {
-    const newArrDef = flightDefs.find(f => f.type === 'ARR' && normalizeImportedFlightNo(f.flight) === newArrNorm);
-    if (!newArrDef) return false;
+  if (depConflicts.length) {
+    const winner = await pickConnectingFlightDuplicateWinner({
+      depFlight: depDef.flight,
+      currentArr: newArrDef.flight,
+      otherArrs: depConflicts
+    });
+    if (!winner) return false;
+    if (selectedOldDep && selectedOldDep !== depNorm && normalizeImportedFlightNo(winner) === newArrNorm) {
+      migrateMergedConnectingScheduleToSplitOnUnlink(newArrDef.flight, selectedOldDep);
+      clearHomelineConnectingDutyModeForPair(newArrDef.flight, selectedOldDep);
+    }
+    if (!applyConnectingFlightDuplicateWinner(depDef.flight, winner)) return false;
+  } else {
+    if (selectedOldDep && selectedOldDep !== depNorm) {
+      migrateMergedConnectingScheduleToSplitOnUnlink(newArrDef.flight, selectedOldDep);
+      clearHomelineConnectingDutyModeForPair(newArrDef.flight, selectedOldDep);
+    }
     newArrDef.connectingFlight = depDef.flight;
     newArrDef.connectingSource = 'manual';
   }
 
+  refreshHomelineConnectingStaleFlags();
   applyFlightScheduleEdit();
-  if (ForeignDutyRules?.isHomelineFlight?.(depDef.flight)) {
-    refreshHomelineConnectingStaleFlags();
-    renderRows();
-  }
   return true;
 }
 
@@ -20207,29 +20605,17 @@ function commitAssignmentFieldEdit(flightDefId, field, rawValue) {
   }
 
   const newVal = String(rawValue ?? '').trim();
-  const simpleFields = ['depGate', 'arrGate', 'connectingFlight'];
+  const simpleFields = ['depGate', 'arrGate'];
   if (!simpleFields.includes(field)) return false;
 
   let oldVal = '';
   if (field === 'depGate') oldVal = f.depGate || '';
   else if (field === 'arrGate') oldVal = f.arrGate || '';
-  else if (field === 'connectingFlight') oldVal = f.connectingFlight || '';
 
   if (oldVal === newVal) return false;
 
   if (field === 'depGate') f.depGate = newVal;
   else if (field === 'arrGate') f.arrGate = newVal;
-  else if (field === 'connectingFlight') {
-    const oldDep = f.connectingFlight ? normalizeImportedFlightNo(f.connectingFlight) : '';
-    f.connectingFlight = newVal ? normalizeImportedFlightNo(newVal) : '';
-    f.connectingSource = 'manual';
-    if (oldDep && oldDep !== f.connectingFlight) {
-      clearHomelineConnectingDutyModeForPair(f.flight, oldDep);
-    }
-    refreshHomelineConnectingStaleFlags();
-    applyFlightScheduleEdit();
-    return true;
-  }
 
   if (isAssignmentGateField(field) && String(oldVal).trim()) {
     FlightAssignmentUtils.recordFieldEdit(f, field, oldVal, newVal);
@@ -20546,6 +20932,7 @@ function showAssignmentFieldTooltipForDisplay(displayEl) {
 }
 
 let activeAssignmentFieldEdit = null;
+let assignmentFieldEditFinishing = false;
 
 function getAssignmentFieldEditInput(wrap, displayEl) {
   const field = displayEl.dataset.editField;
@@ -20623,6 +21010,7 @@ function refreshAssignmentFieldDisplay(displayEl) {
     if (field === 'depGate') val = f.depGate || '';
     else if (field === 'arrGate') val = f.arrGate || '';
     else if (field === 'connectingFlight') val = f.connectingFlight || '';
+    else if (field === 'depConnectingArr') val = getInboundFlightConnectingToDep(f.flight) || '';
     displayEl.dataset.value = val;
     displayEl.textContent = val;
     displayEl.classList.toggle('is-empty', !val);
@@ -20637,7 +21025,7 @@ function refreshAssignmentFieldDisplay(displayEl) {
   }
 }
 
-function startAssignmentFieldEdit(displayEl, mode = 'normal') {
+async function startAssignmentFieldEdit(displayEl, mode = 'normal') {
   if (!displayEl) return;
   if (activeAssignmentFieldEdit?.mode === 'chainNode') {
     cancelAssignmentChainNodeEdit();
@@ -20648,7 +21036,7 @@ function startAssignmentFieldEdit(displayEl, mode = 'normal') {
   if (!f) return;
   if (!isAssignmentColumnEditable(field)) return;
   if (activeAssignmentFieldEdit && activeAssignmentFieldEdit.displayEl !== displayEl) {
-    finishAssignmentFieldEdit(false);
+    await finishAssignmentFieldEdit(false);
   }
   const wrap = displayEl.closest('.assignment-field-wrap');
   if (!wrap) return;
@@ -20670,42 +21058,59 @@ function startAssignmentFieldEdit(displayEl, mode = 'normal') {
   });
 }
 
-function finishAssignmentFieldEdit(cancel) {
+async function finishAssignmentFieldEdit(cancel) {
   if (!activeAssignmentFieldEdit || activeAssignmentFieldEdit.inTooltip) return;
+  if (assignmentFieldEditFinishing) return;
+  assignmentFieldEditFinishing = true;
   const { wrap, displayEl, input, mode = 'normal' } = activeAssignmentFieldEdit;
   activeAssignmentFieldEdit = null;
-  wrap.classList.remove('is-editing', 'is-correcting-last-edit');
-  input.hidden = true;
-  input.placeholder = '';
-  if (cancel) {
-    refreshAssignmentFieldDisplay(displayEl);
-    return;
-  }
-  const newVal = input.value;
-  const origVal = input.dataset.origValue ?? '';
-  if (newVal.trim() === String(origVal).trim()) {
-    refreshAssignmentFieldDisplay(displayEl);
-    return;
-  }
-  const field = input.dataset.editField;
-  if (field === 'depStd') {
-    const ok = commitAssignmentDepStdEdit(input.dataset.flightDefId, newVal);
+  try {
+    wrap.classList.remove('is-editing', 'is-correcting-last-edit');
+    input.hidden = true;
+    input.placeholder = '';
+    if (cancel) {
+      refreshAssignmentFieldDisplay(displayEl);
+      return;
+    }
+    const newVal = input.value;
+    const origVal = input.dataset.origValue ?? '';
+    if (newVal.trim() === String(origVal).trim()) {
+      refreshAssignmentFieldDisplay(displayEl);
+      return;
+    }
+    const field = input.dataset.editField;
+    if (field === 'depStd') {
+      const ok = commitAssignmentDepStdEdit(input.dataset.flightDefId, newVal);
+      if (!ok) refreshAssignmentFieldDisplay(displayEl);
+      return;
+    }
+    if (field === 'arrSta') {
+      const ok = commitAssignmentArrStaEdit(input.dataset.flightDefId, newVal);
+      if (!ok) refreshAssignmentFieldDisplay(displayEl);
+      return;
+    }
+    if (field === 'depConnectingArr') {
+      const ok = await commitAssignmentDepConnectingEdit(input.dataset.flightDefId, newVal);
+      if (!ok) refreshAssignmentFieldDisplay(displayEl);
+      return;
+    }
+    if (field === 'connectingFlight') {
+      const ok = await commitAssignmentConnectingFlightEdit(input.dataset.flightDefId, newVal);
+      if (!ok) refreshAssignmentFieldDisplay(displayEl);
+      return;
+    }
+    const ok = commitAssignmentFieldEdit(input.dataset.flightDefId, field, newVal);
     if (!ok) refreshAssignmentFieldDisplay(displayEl);
-    return;
+  } finally {
+    assignmentFieldEditFinishing = false;
   }
-  if (field === 'arrSta') {
-    const ok = commitAssignmentArrStaEdit(input.dataset.flightDefId, newVal);
-    if (!ok) refreshAssignmentFieldDisplay(displayEl);
-    return;
-  }
-  commitAssignmentFieldEdit(input.dataset.flightDefId, field, newVal);
 }
 
 function onAssignmentFieldInputKeydown(e) {
   if (!activeAssignmentFieldEdit || activeAssignmentFieldEdit.inTooltip) return;
   if (e.key === 'Enter') {
     e.preventDefault();
-    e.target.blur();
+    void finishAssignmentFieldEdit(false);
   } else if (e.key === 'Escape') {
     e.preventDefault();
     const snap = activeAssignmentFieldEdit;
@@ -20722,7 +21127,8 @@ function onAssignmentFieldInputKeydown(e) {
 
 function onAssignmentFieldInputBlur() {
   if (activeAssignmentFieldEdit?.inTooltip) return;
-  finishAssignmentFieldEdit(false);
+  if (assignmentFieldEditFinishing) return;
+  void finishAssignmentFieldEdit(false);
 }
 
 function initAssignmentTableFieldEditors() {
@@ -20949,6 +21355,7 @@ const APP_NOTICE_ICONS = {
 };
 let appNoticeResolve = null;
 let appNoticeExportHandler = null;
+let appNoticeIgnoreEnterUntil = 0;
 
 function buildAppNoticeMessageHtml(message, highlight) {
   const text = String(message || '');
@@ -21013,7 +21420,11 @@ function initAppNoticeDialog() {
   document.addEventListener('keydown', e => {
     if (dlg.hidden || !appNoticeResolve) return;
     if (e.key === 'Escape') { e.preventDefault(); closeAppNotice(false); }
-    if (e.key === 'Enter' && !e.isComposing) { e.preventDefault(); closeAppNotice(true); }
+    if (e.key === 'Enter' && !e.isComposing) {
+      if (Date.now() < appNoticeIgnoreEnterUntil) return;
+      e.preventDefault();
+      closeAppNotice(true);
+    }
   });
 }
 
@@ -21049,6 +21460,11 @@ function showAppNotice(opts) {
       }
     }
     const showCancel = !!o.showCancel;
+    if (showCancel && Number.isFinite(o.pauseEnterMs)) {
+      appNoticeIgnoreEnterUntil = Date.now() + Math.max(0, o.pauseEnterMs);
+    } else if (showCancel) {
+      appNoticeIgnoreEnterUntil = Date.now() + 400;
+    }
     if (cancelBtn) cancelBtn.hidden = !showCancel;
     if (confirmBtn) confirmBtn.textContent = o.confirmText || '確定';
     if (cancelBtn) cancelBtn.textContent = o.cancelText || '取消';
@@ -21083,7 +21499,8 @@ function appConfirm(message, opts = {}) {
     confirmText: o.confirmText || '確定',
     cancelText: o.cancelText || '取消',
     highlight: o.highlight,
-    details: o.details
+    details: o.details,
+    pauseEnterMs: o.pauseEnterMs
   });
 }
 
@@ -22727,7 +23144,17 @@ function depStdMinutes(f) {
 }
 function arrStaMinutes(f) {
   const changed = parseTimeToMinutes(f.changeTime);
-  return changed != null ? changed : f.baseMinutes;
+  let mins = changed != null ? changed : f.baseMinutes;
+  if (mins == null) return null;
+  const refIso = getScheduleReferenceDate();
+  const staDateIso = resolveArrScheduleStaDateIso(f);
+  if (refIso && staDateIso && staDateIso !== refIso) {
+    const refMs = new Date(`${refIso}T12:00:00`).getTime();
+    const staMs = new Date(`${staDateIso}T12:00:00`).getTime();
+    const deltaDays = Math.round((staMs - refMs) / 86400000);
+    mins += deltaDays * 24 * 60;
+  }
+  return mins;
 }
 function depDutyStart(std, before, ext) {
   return Math.max(0, std - before + Math.min(ext, 0));
@@ -22806,43 +23233,125 @@ function hasHomelineConnectingMergedOnScheduleForArr(arrFlight) {
   );
 }
 function clearHomelineConnectingDutyModeForPair(arrFlight, depFlight) {
-  const key = getHomelineConnectingDutyModeKey(arrFlight, depFlight);
-  if (!homelineConnectingDutyModes || !Object.prototype.hasOwnProperty.call(homelineConnectingDutyModes, key)) return;
-  delete homelineConnectingDutyModes[key];
+  if (!homelineConnectingDutyModes) return;
+  const arr = normalizeImportedFlightNo(arrFlight);
+  const dep = normalizeImportedFlightNo(depFlight);
+  [`${arr}|${dep}`, `${arr}|${dep}|RC`, `${arr}|${dep}|BG`].forEach(key => {
+    if (Object.prototype.hasOwnProperty.call(homelineConnectingDutyModes, key)) {
+      delete homelineConnectingDutyModes[key];
+    }
+  });
   saveHomelineConnectingDutyModes();
+}
+function isHomelineConnectingPairFlights(arrFlight, depFlight) {
+  const arrNorm = normalizeImportedFlightNo(arrFlight);
+  const depNorm = normalizeImportedFlightNo(depFlight);
+  const arrDef = flightDefs.find(f => f.type === 'ARR' && normalizeImportedFlightNo(f.flight) === arrNorm);
+  if (!arrDef) return false;
+  const pair = getHomelineConnectingPairForArr(arrDef);
+  return !!(pair && normalizeImportedFlightNo(pair.depFlight) === depNorm);
+}
+function resolveHomelineConnRole(role) {
+  if (role === 'RC' || role === '接機RC') return 'RC';
+  if (role === 'BG' || role === '接機C') return 'BG';
+  return null;
+}
+function getHomelineConnectingDutyModeKey(arrFlight, depFlight, connRole) {
+  const base = `${normalizeImportedFlightNo(arrFlight)}|${normalizeImportedFlightNo(depFlight)}`;
+  if (connRole && isHomelineConnectingPairFlights(arrFlight, depFlight)) return `${base}|${connRole}`;
+  return base;
+}
+function getHomelineConnectingDutyMode(arrFlight, depFlight, connRole) {
+  const homelinePair = isHomelineConnectingPairFlights(arrFlight, depFlight);
+  if (homelinePair && (connRole === 'RC' || connRole === 'BG')) {
+    const roleKey = getHomelineConnectingDutyModeKey(arrFlight, depFlight, connRole);
+    const stored = homelineConnectingDutyModes?.[roleKey];
+    if (stored === 'merged' || stored === 'split') return stored;
+    const legacyKey = `${normalizeImportedFlightNo(arrFlight)}|${normalizeImportedFlightNo(depFlight)}`;
+    const legacy = homelineConnectingDutyModes?.[legacyKey];
+    if (legacy === 'merged' || legacy === 'split') return legacy;
+    const arrNorm = normalizeImportedFlightNo(arrFlight);
+    const arrDef = flightDefs.find(f => f.type === 'ARR' && normalizeImportedFlightNo(f.flight) === arrNorm);
+    if (arrDef && ForeignDutyRules?.isHomelineFlight?.(arrDef.flight)) {
+      return isHomelineConnectingWithinTwoHours(arrFlight, depFlight) ? 'merged' : 'split';
+    }
+    return 'merged';
+  }
+  const key = getHomelineConnectingDutyModeKey(arrFlight, depFlight);
+  const arrNorm = normalizeImportedFlightNo(arrFlight);
+  const arrDef = flightDefs.find(f => f.type === 'ARR' && normalizeImportedFlightNo(f.flight) === arrNorm);
+  if (arrDef && ForeignDutyRules?.isForeignFlightDef?.(arrDef)) return 'merged';
+  const stored = homelineConnectingDutyModes?.[key];
+  if (stored === 'merged' || stored === 'split') return stored;
+  if (arrDef && ForeignDutyRules?.isHomelineFlight?.(arrDef.flight)) {
+    return isHomelineConnectingWithinTwoHours(arrFlight, depFlight) ? 'merged' : 'split';
+  }
+  return 'merged';
+}
+function setHomelineConnectingDutyMode(arrFlight, depFlight, mode, connRole) {
+  if (!homelineConnectingDutyModes || typeof homelineConnectingDutyModes !== 'object') homelineConnectingDutyModes = {};
+  const arrNorm = normalizeImportedFlightNo(arrFlight);
+  const arrDef = flightDefs.find(f => f.type === 'ARR' && normalizeImportedFlightNo(f.flight) === arrNorm);
+  if (mode === 'split' && arrDef && ForeignDutyRules?.isForeignFlightDef?.(arrDef)) return;
+  const next = mode === 'split' ? 'split' : 'merged';
+  if (connRole && isHomelineConnectingPairFlights(arrFlight, depFlight)) {
+    homelineConnectingDutyModes[getHomelineConnectingDutyModeKey(arrFlight, depFlight, connRole)] = next;
+  } else {
+    homelineConnectingDutyModes[getHomelineConnectingDutyModeKey(arrFlight, depFlight)] = next;
+  }
+  saveHomelineConnectingDutyModes();
+}
+function getConnectingDutyModeForPair(pair, connRole, homeline) {
+  if (!pair) return 'split';
+  if (homeline && (connRole === 'RC' || connRole === 'BG')) {
+    return getHomelineConnectingDutyMode(pair.arrFlight, pair.depFlight, connRole);
+  }
+  return getHomelineConnectingDutyMode(pair.arrFlight, pair.depFlight);
+}
+function isHomelineConnectingArrRoleMerged(f, connRole) {
+  const pair = getHomelineConnectingPairForArr(f);
+  if (!pair) return false;
+  return getHomelineConnectingDutyMode(pair.arrFlight, pair.depFlight, connRole) === 'merged';
+}
+function isHomelineConnectingDepRoleMerged(f, connRole) {
+  const pair = getHomelineConnectingPairForDep(f);
+  if (!pair) return false;
+  return getHomelineConnectingDutyMode(pair.arrFlight, pair.depFlight, connRole) === 'merged';
+}
+function isHomelineConnectingArrFlightMerged(f) {
+  return isHomelineConnectingArrRoleMerged(f, 'RC') || isHomelineConnectingArrRoleMerged(f, 'BG');
+}
+function isHomelineConnectingDepFlightMerged(f) {
+  return isHomelineConnectingDepRoleMerged(f, 'RC') || isHomelineConnectingDepRoleMerged(f, 'BG');
+}
+function canSplitHomelineConnectingScheduleBlock(item) {
+  if (!item?.connectingDuty || (!item?.homelineConnecting && !item?.foreignConnecting)) return false;
+  if (item.connectingFlightStale) return true;
+  const arrFlight = item.arrFlight || '';
+  const depFlight = item.depFlight || item.flight || '';
+  if (!arrFlight || !depFlight) return false;
+  if (item.homelineConnecting) {
+    return getHomelineConnectingDutyMode(arrFlight, depFlight, item.role) === 'merged';
+  }
+  return getHomelineConnectingDutyMode(arrFlight, depFlight) === 'merged';
 }
 function getHomelineConnectingTurnaroundMs(arrFlight, depFlight) {
   const arrNorm = normalizeImportedFlightNo(arrFlight);
   const depNorm = normalizeImportedFlightNo(depFlight);
   const arrDef = flightDefs.find(f => f.type === 'ARR' && normalizeImportedFlightNo(f.flight) === arrNorm);
   const depDef = flightDefs.find(f => f.type === 'DEP' && normalizeImportedFlightNo(f.flight) === depNorm);
-  if (!arrDef || !depDef || typeof FlightAssignmentUtils === 'undefined') return null;
-  return FlightAssignmentUtils.turnaroundDiffMs(selectedDate, arrDef.baseTime, depDef.baseTime);
+  if (!arrDef || !depDef) return null;
+  const arrMin = arrStaMinutes(arrDef);
+  const depMin = depStdMinutes(depDef);
+  if (arrMin == null || depMin == null) return null;
+  const diffMin = depMin - arrMin;
+  if (diffMin <= 0) return null;
+  return diffMin * 60 * 1000;
 }
 function isHomelineConnectingWithinTwoHours(arrFlight, depFlight) {
   const ms = getHomelineConnectingTurnaroundMs(arrFlight, depFlight);
-  if (ms == null || ms <= 0) return false;
+  if (ms == null) return false;
   return ms <= 2 * 60 * 60 * 1000;
-}
-function getHomelineConnectingDutyModeKey(arrFlight, depFlight) {
-  return `${normalizeImportedFlightNo(arrFlight)}|${normalizeImportedFlightNo(depFlight)}`;
-}
-function getHomelineConnectingDutyMode(arrFlight, depFlight) {
-  const key = getHomelineConnectingDutyModeKey(arrFlight, depFlight);
-  const stored = homelineConnectingDutyModes?.[key];
-  if (stored === 'merged' || stored === 'split') return stored;
-  const arrNorm = normalizeImportedFlightNo(arrFlight);
-  const arrDef = flightDefs.find(f => f.type === 'ARR' && normalizeImportedFlightNo(f.flight) === arrNorm);
-  if (arrDef && ForeignDutyRules?.isHomelineFlight?.(arrDef.flight)) {
-    return isHomelineConnectingWithinTwoHours(arrFlight, depFlight) ? 'merged' : 'split';
-  }
-  return 'merged';
-}
-function setHomelineConnectingDutyMode(arrFlight, depFlight, mode) {
-  const key = getHomelineConnectingDutyModeKey(arrFlight, depFlight);
-  if (!homelineConnectingDutyModes || typeof homelineConnectingDutyModes !== 'object') homelineConnectingDutyModes = {};
-  homelineConnectingDutyModes[key] = mode === 'split' ? 'split' : 'merged';
-  saveHomelineConnectingDutyModes();
 }
 function saveHomelineConnectingDutyModes() {
   localStorage.setItem(dayStorageKeys(selectedDate).homelineConnectingDutyModes, JSON.stringify(homelineConnectingDutyModes || {}));
@@ -22854,22 +23363,6 @@ function normalizeHomelineConnectingDutyModesForCloud(value) {
     out[k] = value[k] === 'merged' ? 'merged' : 'split';
   });
   return out;
-}
-function isHomelineConnectingArrFlightMerged(f) {
-  const pair = getHomelineConnectingPairForArr(f);
-  return !!(pair && getHomelineConnectingDutyMode(pair.arrFlight, pair.depFlight) === 'merged');
-}
-function isHomelineConnectingDepFlightMerged(f) {
-  const pair = getHomelineConnectingPairForDep(f);
-  return !!(pair && getHomelineConnectingDutyMode(pair.arrFlight, pair.depFlight) === 'merged');
-}
-function canSplitHomelineConnectingScheduleBlock(item) {
-  if (!item?.connectingDuty || (!item?.homelineConnecting && !item?.foreignConnecting)) return false;
-  if (item.connectingFlightStale) return true;
-  const arrFlight = item.arrFlight || '';
-  const depFlight = item.depFlight || item.flight || '';
-  if (!arrFlight || !depFlight) return false;
-  return getHomelineConnectingDutyMode(arrFlight, depFlight) === 'merged';
 }
 function getConnectingPairForArrFlight(arrDef) {
   return getHomelineConnectingPairForArr(arrDef) || getForeignConnectingPairForArr(arrDef) || null;
@@ -22913,12 +23406,217 @@ function createScheduleItemFromDutyTemplate(tpl, personIndex) {
     prefilingStdTimelineMin: null,
     connectingDuty: false,
     homelineConnecting: false,
+    foreignConnecting: false,
     arrFlight: '',
     depFlight: '',
     personIndex,
     start: tpl.start,
     end: tpl.end
   };
+}
+function createScheduleItemFromConnectingTemplate(tpl, personIndex) {
+  return {
+    uid: blockSeq++,
+    label: tpl.label,
+    compactLabel: tpl.compactLabel,
+    role: tpl.role,
+    flight: tpl.flight,
+    flightType: tpl.flightType,
+    templateId: tpl.id,
+    tcKind: '',
+    tKind: '',
+    tMode: '',
+    coveredFlights: null,
+    tFromOrphan: false,
+    tPendingFlights: null,
+    tOrphanOrigins: null,
+    segments: null,
+    prefilingKey: '',
+    prefilingStdTimelineMin: null,
+    connectingDuty: true,
+    homelineConnecting: !!tpl.homelineConnecting,
+    foreignConnecting: !!tpl.foreignConnecting,
+    arrFlight: tpl.arrFlight || '',
+    depFlight: tpl.depFlight || tpl.flight || '',
+    personIndex,
+    start: tpl.start,
+    end: tpl.end
+  };
+}
+function findMergedConnectingScheduleItems(arrFlight, depFlight, connRole, foreign) {
+  const arrNorm = normalizeImportedFlightNo(arrFlight);
+  const depNorm = normalizeImportedFlightNo(depFlight);
+  return schedule.filter(item => {
+    if (!item?.connectingDuty) return false;
+    if (foreign && !item.foreignConnecting) return false;
+    if (!foreign && !item.homelineConnecting) return false;
+    if (item.role !== connRole) return false;
+    return normalizeImportedFlightNo(item.arrFlight) === arrNorm
+      && normalizeImportedFlightNo(item.depFlight || item.flight) === depNorm;
+  });
+}
+function findConnectingMergedTemplate(arrFlight, depFlight, connRole, foreign) {
+  const arrNorm = normalizeImportedFlightNo(arrFlight);
+  const depNorm = normalizeImportedFlightNo(depFlight);
+  return templates.find(t =>
+    t.connectingDuty
+    && (foreign ? t.foreignConnecting : t.homelineConnecting)
+    && t.role === connRole
+    && normalizeImportedFlightNo(t.arrFlight) === arrNorm
+    && normalizeImportedFlightNo(t.depFlight || t.flight) === depNorm
+  ) || null;
+}
+function convertMergedConnectingItemToSplit(item) {
+  if (!item || item.personIndex == null || !item.arrFlight) return false;
+  const arrFlight = item.arrFlight;
+  const depFlight = item.depFlight || item.flight;
+  const roles = getHomelineConnectingSplitRoles(item.role);
+  if (!roles) return false;
+  const arrTpl = roles.arrRole ? findDutyTemplateByFlightRole(arrFlight, roles.arrRole, 'ARR') : null;
+  const depTpl = findDutyTemplateByFlightRole(depFlight, roles.depRole, 'DEP');
+  if ((roles.arrRole && !arrTpl) || !depTpl) return false;
+  const personIndex = item.personIndex;
+  if (item.uid != null) schedule = schedule.filter(x => x.uid !== item.uid);
+  if (arrTpl) schedule.push(createScheduleItemFromDutyTemplate(arrTpl, personIndex));
+  schedule.push(createScheduleItemFromDutyTemplate(depTpl, personIndex));
+  return true;
+}
+function findSplitConnectingLegItems(arrFlight, depFlight, connRole, foreign) {
+  const roles = getHomelineConnectingSplitRoles(connRole);
+  if (!roles) return { arrItems: [], depItems: [] };
+  const arrNorm = normalizeImportedFlightNo(arrFlight);
+  const depNorm = normalizeImportedFlightNo(depFlight);
+  const depItems = schedule.filter(x =>
+    !x.connectingDuty
+    && x.flightType === 'DEP'
+    && x.role === roles.depRole
+    && normalizeImportedFlightNo(x.flight) === depNorm
+  );
+  const arrItems = roles.arrRole
+    ? schedule.filter(x =>
+      !x.connectingDuty
+      && x.flightType === 'ARR'
+      && x.role === roles.arrRole
+      && normalizeImportedFlightNo(x.flight) === arrNorm
+    )
+    : [];
+  return { arrItems, depItems };
+}
+function findSplitConnectingAssignments(arrFlight, depFlight, connRole, foreign) {
+  const roles = getHomelineConnectingSplitRoles(connRole);
+  if (!roles) return [];
+  const arrNorm = normalizeImportedFlightNo(arrFlight);
+  const depNorm = normalizeImportedFlightNo(depFlight);
+  const byPerson = new Map();
+  schedule.filter(x =>
+    !x.connectingDuty
+    && x.flightType === 'DEP'
+    && x.role === roles.depRole
+    && normalizeImportedFlightNo(x.flight) === depNorm
+  ).forEach(depItem => {
+    byPerson.set(depItem.personIndex, {
+      personIndex: depItem.personIndex,
+      depUid: depItem.uid,
+      arrUid: null
+    });
+  });
+  if (roles.arrRole) {
+    schedule.filter(x =>
+      !x.connectingDuty
+      && x.flightType === 'ARR'
+      && x.role === roles.arrRole
+      && normalizeImportedFlightNo(x.flight) === arrNorm
+    ).forEach(arrItem => {
+      const existing = byPerson.get(arrItem.personIndex);
+      if (existing) existing.arrUid = arrItem.uid;
+      else {
+        byPerson.set(arrItem.personIndex, {
+          personIndex: arrItem.personIndex,
+          depUid: null,
+          arrUid: arrItem.uid
+        });
+      }
+    });
+  }
+  return [...byPerson.values()];
+}
+function buildInitiatorMergeSnapshots(arrFlight, depFlight, connRole, foreign, initiatorPersonIndex) {
+  const { arrItems, depItems } = findSplitConnectingLegItems(arrFlight, depFlight, connRole, foreign);
+  const removeUids = [...arrItems, ...depItems].map(x => x.uid);
+  if (!removeUids.length) return [];
+  return [{ personIndex: initiatorPersonIndex, removeUids }];
+}
+function consolidateInitiatorMergeSnapshots(arrFlight, depFlight, connRole, foreign, snapshots) {
+  const mergedTpl = findConnectingMergedTemplate(arrFlight, depFlight, connRole, foreign);
+  if (!mergedTpl || !snapshots.length) return 0;
+  const snap = snapshots[0];
+  const uidsToRemove = new Set(snap.removeUids);
+  schedule = schedule.filter(x => !uidsToRemove.has(x.uid));
+  schedule.push(createScheduleItemFromConnectingTemplate(mergedTpl, snap.personIndex));
+  return 1;
+}
+function consolidateSplitSnapshotsToMerged(arrFlight, depFlight, connRole, foreign, snapshots) {
+  const mergedTpl = findConnectingMergedTemplate(arrFlight, depFlight, connRole, foreign);
+  if (!mergedTpl || !snapshots.length) return 0;
+  const uidsToRemove = new Set();
+  let count = 0;
+  snapshots.forEach(snap => {
+    if (snap.depUid != null) uidsToRemove.add(snap.depUid);
+    if (snap.arrUid != null) uidsToRemove.add(snap.arrUid);
+    schedule.push(createScheduleItemFromConnectingTemplate(mergedTpl, snap.personIndex));
+    count += 1;
+  });
+  if (uidsToRemove.size) schedule = schedule.filter(x => !uidsToRemove.has(x.uid));
+  return count;
+}
+function consolidateConnectingSplitAssignments(arrFlight, depFlight, connRole, foreign) {
+  const snapshots = findSplitConnectingAssignments(arrFlight, depFlight, connRole, foreign);
+  return consolidateSplitSnapshotsToMerged(arrFlight, depFlight, connRole, foreign, snapshots);
+}
+function applyConnectingDutyModeChange(arrFlight, depFlight, connRole, nextMode, options = {}) {
+  const foreign = options.foreign === true;
+  const refreshPalette = options.refreshPalette !== false;
+  const role = connRole === 'ABG' ? 'ABG' : (connRole === 'BG' ? 'BG' : 'RC');
+  const current = foreign
+    ? getHomelineConnectingDutyMode(arrFlight, depFlight)
+    : getHomelineConnectingDutyMode(arrFlight, depFlight, role);
+  if (current === nextMode) return;
+  if (nextMode === 'split') {
+    const mergedSnapshots = findMergedConnectingScheduleItems(arrFlight, depFlight, role, foreign).map(item => ({
+      uid: item.uid,
+      arrFlight: item.arrFlight,
+      depFlight: item.depFlight || item.flight,
+      role: item.role,
+      personIndex: item.personIndex
+    }));
+    if (foreign) setHomelineConnectingDutyMode(arrFlight, depFlight, 'split');
+    else setHomelineConnectingDutyMode(arrFlight, depFlight, 'split', role);
+    rebuildTemplates();
+    mergedSnapshots.forEach(snap => convertMergedConnectingItemToSplit(snap));
+  } else {
+    const initiatorPersonIndex = Number.isFinite(options.initiatorPersonIndex)
+      ? options.initiatorPersonIndex
+      : null;
+    const initiatorSnapshots = initiatorPersonIndex != null
+      ? buildInitiatorMergeSnapshots(arrFlight, depFlight, role, foreign, initiatorPersonIndex)
+      : null;
+    const splitSnapshots = initiatorSnapshots ?? findSplitConnectingAssignments(arrFlight, depFlight, role, foreign);
+    if (foreign) setHomelineConnectingDutyMode(arrFlight, depFlight, 'merged');
+    else setHomelineConnectingDutyMode(arrFlight, depFlight, 'merged', role);
+    rebuildTemplates();
+    if (initiatorPersonIndex != null) {
+      consolidateInitiatorMergeSnapshots(arrFlight, depFlight, role, foreign, initiatorSnapshots);
+    } else {
+      consolidateSplitSnapshotsToMerged(arrFlight, depFlight, role, foreign, splitSnapshots);
+    }
+  }
+  pruneConflictingHomelineConnectingScheduleItems();
+  refreshHomelineConnectingStaleFlags();
+  if (selectedBlockId != null && !schedule.some(x => x.uid === selectedBlockId)) selectedBlockId = null;
+  if (refreshPalette) renderPalette();
+  renderRows();
+  syncAssignmentTableFromSchedule();
+  markUnsynced();
 }
 async function confirmSplitHomelineConnectingScheduleBlock(item) {
   if (!canSplitHomelineConnectingScheduleBlock(item)) return false;
@@ -22931,35 +23629,13 @@ function splitHomelineConnectingScheduleBlock(item) {
   if (!canSplitHomelineConnectingScheduleBlock(item)) return false;
   const arrFlight = item.arrFlight;
   const depFlight = item.depFlight || item.flight;
-  const roles = getHomelineConnectingSplitRoles(item.role);
-  if (!roles) return false;
-
+  const connRole = item.role;
   pushUndoSnapshot();
-  const prevMode = getHomelineConnectingDutyMode(arrFlight, depFlight);
-  setHomelineConnectingDutyMode(arrFlight, depFlight, 'split');
-  rebuildTemplates();
-
-  const arrTpl = roles.arrRole ? findDutyTemplateByFlightRole(arrFlight, roles.arrRole, 'ARR') : null;
-  const depTpl = findDutyTemplateByFlightRole(depFlight, roles.depRole, 'DEP');
-  if ((roles.arrRole && !arrTpl) || !depTpl) {
-    setHomelineConnectingDutyMode(arrFlight, depFlight, prevMode);
-    rebuildTemplates();
-    appAlert('無法拆開：找不到對應的接機或出境 duty 模板。', '拆開失敗', 'info');
-    return false;
-  }
-
-  const personIndex = item.personIndex;
-  schedule = schedule.filter(x => x.uid !== item.uid);
-  if (arrTpl) schedule.push(createScheduleItemFromDutyTemplate(arrTpl, personIndex));
-  schedule.push(createScheduleItemFromDutyTemplate(depTpl, personIndex));
-  pruneConflictingHomelineConnectingScheduleItems();
-  refreshHomelineConnectingStaleFlags();
-
-  if (selectedBlockId != null && !schedule.some(x => x.uid === selectedBlockId)) selectedBlockId = null;
-  renderPalette();
-  renderRows();
-  syncAssignmentTableFromSchedule();
-  markUnsynced();
+  applyConnectingDutyModeChange(arrFlight, depFlight, connRole, 'split', {
+    foreign: !item.homelineConnecting,
+    fromSchedule: true,
+    refreshPalette: false
+  });
   return true;
 }
 function isHomelineConnectingSplitArrDutyItem(item) {
@@ -22969,8 +23645,9 @@ function isHomelineConnectingSplitArrDutyItem(item) {
     f.type === 'ARR' && normalizeImportedFlightNo(f.flight) === normalizeImportedFlightNo(item.flight)
   );
   if (!arrDef) return false;
+  const connRole = resolveHomelineConnRole(item.role);
   const hlPair = getHomelineConnectingPairForArr(arrDef);
-  if (hlPair && getHomelineConnectingDutyMode(hlPair.arrFlight, hlPair.depFlight) === 'merged') return true;
+  if (hlPair && connRole && getHomelineConnectingDutyMode(hlPair.arrFlight, hlPair.depFlight, connRole) === 'merged') return true;
   const frPair = getForeignConnectingPairForArr(arrDef);
   return !!(frPair && getHomelineConnectingDutyMode(frPair.arrFlight, frPair.depFlight) === 'merged');
 }
@@ -22982,7 +23659,7 @@ function isHomelineConnectingSplitDepDutyItem(item) {
   );
   if (!depDef) return false;
   const hlPair = getHomelineConnectingPairForDep(depDef);
-  if (hlPair && getHomelineConnectingDutyMode(hlPair.arrFlight, hlPair.depFlight) === 'merged') return true;
+  if (hlPair && getHomelineConnectingDutyMode(hlPair.arrFlight, hlPair.depFlight, item.role) === 'merged') return true;
   const frPair = getForeignConnectingPairForDep(depDef);
   return !!(frPair && getHomelineConnectingDutyMode(frPair.arrFlight, frPair.depFlight) === 'merged');
 }
@@ -22998,6 +23675,9 @@ function isHomelineConnectingMergedDutyItem(item) {
     ? hlPair
     : (frPair && normalizeImportedFlightNo(frPair.depFlight) === depNorm ? frPair : null);
   if (!pair) return false;
+  if (item.homelineConnecting) {
+    return getHomelineConnectingDutyMode(pair.arrFlight, pair.depFlight, item.role) === 'merged';
+  }
   return getHomelineConnectingDutyMode(pair.arrFlight, pair.depFlight) === 'merged';
 }
 function pruneConflictingHomelineConnectingScheduleItems() {
@@ -23032,8 +23712,14 @@ function pruneConflictingHomelineConnectingScheduleItems() {
       ? flightDefs.find(f => f.type === 'ARR' && normalizeImportedFlightNo(f.flight) === normalizeImportedFlightNo(item.flight))
       : null;
     const pair = arrDef ? getConnectingPairForArrFlight(arrDef) : null;
-    if (pair && getHomelineConnectingDutyMode(pair.arrFlight, pair.depFlight) === 'split') {
-      if (item.role === '接機RC' || item.role === '接機C') {
+    if (pair) {
+      const hlPair = getHomelineConnectingPairForArr(arrDef);
+      const isHl = !!(hlPair && normalizeImportedFlightNo(hlPair.depFlight) === normalizeImportedFlightNo(pair.depFlight));
+      const connRole = resolveHomelineConnRole(item.role);
+      const mode = isHl && connRole
+        ? getHomelineConnectingDutyMode(pair.arrFlight, pair.depFlight, connRole)
+        : getHomelineConnectingDutyMode(pair.arrFlight, pair.depFlight);
+      if (mode === 'split' && (item.role === '接機RC' || item.role === '接機C')) {
         const key = `${normalizeImportedFlightNo(item.flight)}|${item.role}`;
         if (seenSplitArrRoles.has(key)) return false;
         seenSplitArrRoles.add(key);
@@ -23043,8 +23729,13 @@ function pruneConflictingHomelineConnectingScheduleItems() {
       ? flightDefs.find(f => f.type === 'DEP' && normalizeImportedFlightNo(f.flight) === normalizeImportedFlightNo(item.flight))
       : null;
     const depPair = depDef ? getConnectingPairForDepFlight(depDef) : null;
-    if (depPair && getHomelineConnectingDutyMode(depPair.arrFlight, depPair.depFlight) === 'split') {
-      if (item.role === 'RC' || item.role === 'BG') {
+    if (depPair) {
+      const hlDepPair = getHomelineConnectingPairForDep(depDef);
+      const isHl = !!(hlDepPair && normalizeImportedFlightNo(hlDepPair.depFlight) === normalizeImportedFlightNo(depPair.depFlight));
+      const mode = isHl && (item.role === 'RC' || item.role === 'BG')
+        ? getHomelineConnectingDutyMode(depPair.arrFlight, depPair.depFlight, item.role)
+        : getHomelineConnectingDutyMode(depPair.arrFlight, depPair.depFlight);
+      if (mode === 'split' && (item.role === 'RC' || item.role === 'BG')) {
         const key = `${normalizeImportedFlightNo(item.flight)}|${item.role}`;
         if (seenSplitDepRoles.has(key)) return false;
         seenSplitDepRoles.add(key);
@@ -23061,26 +23752,134 @@ function pruneConflictingHomelineConnectingScheduleItems() {
 function isHomelineConnectingArrFlight(f) {
   return ForeignDutyRules?.isHomelineConnectingArrFlight?.(f, flightDefs, normalizeImportedFlightNo) || false;
 }
-function canToggleHomelineConnectingForTemplate(t) {
-  if (!t) return false;
-  const pair = getHomelineConnectingPairFromTemplate(t);
-  if (!pair) return false;
-  const merged = getHomelineConnectingDutyMode(pair.arrFlight, pair.depFlight) === 'merged';
-  if (t.connectingDuty && (t.homelineConnecting || t.foreignConnecting)) return merged;
-  if ((t.role === '接機RC' || t.role === '接機C') && t.flightType === 'ARR') return !merged;
-  return false;
+function getHomelineConnectingContextFromTemplate(t) {
+  return getConnectingContextFromTemplate(t);
 }
-function getHomelineConnectingPairFromTemplate(t) {
+function getConnectingContextFromTemplate(t) {
   if (!t) return null;
   if (t.connectingDuty && (t.homelineConnecting || t.foreignConnecting)) {
-    return { arrFlight: t.arrFlight, depFlight: t.depFlight || t.flight };
+    return {
+      arrFlight: t.arrFlight,
+      depFlight: t.depFlight || t.flight,
+      connRole: t.role,
+      homeline: !!t.homelineConnecting
+    };
   }
-  if ((t.role === '接機RC' || t.role === '接機C') && t.flightType === 'ARR') {
+  if (t.flightType === 'ARR' && (t.role === '接機RC' || t.role === '接機C')) {
     const arrDef = flightDefs.find(x => x.flight === t.flight && x.type === 'ARR');
-    const pair = arrDef ? getConnectingPairForArrFlight(arrDef) : null;
-    if (pair) return { arrFlight: pair.arrFlight, depFlight: pair.depFlight };
+    const hlPair = arrDef ? getHomelineConnectingPairForArr(arrDef) : null;
+    if (hlPair) {
+      return {
+        arrFlight: hlPair.arrFlight,
+        depFlight: hlPair.depFlight,
+        connRole: t.role === '接機RC' ? 'RC' : 'BG',
+        homeline: true
+      };
+    }
+    const frPair = arrDef ? getForeignConnectingPairForArr(arrDef) : null;
+    if (frPair) {
+      return {
+        arrFlight: frPair.arrFlight,
+        depFlight: frPair.depFlight,
+        connRole: t.role === '接機RC' ? 'RC' : 'BG',
+        homeline: false
+      };
+    }
+    return null;
+  }
+  if (t.flightType === 'DEP' && (t.role === 'RC' || t.role === 'BG')) {
+    const depDef = flightDefs.find(x => x.flight === t.flight && x.type === 'DEP');
+    const hlPair = depDef ? getHomelineConnectingPairForDep(depDef) : null;
+    if (hlPair) {
+      return { arrFlight: hlPair.arrFlight, depFlight: hlPair.depFlight, connRole: t.role, homeline: true };
+    }
+    const frPair = depDef ? getForeignConnectingPairForDep(depDef) : null;
+    if (frPair) {
+      return { arrFlight: frPair.arrFlight, depFlight: frPair.depFlight, connRole: t.role, homeline: false };
+    }
+    return null;
   }
   return null;
+}
+function getConnectingContextFromScheduleItem(item) {
+  if (!item) return null;
+  if (item.connectingDuty && (item.homelineConnecting || item.foreignConnecting)) {
+    return {
+      arrFlight: item.arrFlight,
+      depFlight: item.depFlight || item.flight,
+      connRole: item.role,
+      homeline: !!item.homelineConnecting
+    };
+  }
+  if (item.flightType === 'ARR' && (item.role === '接機RC' || item.role === '接機C')) {
+    const arrDef = flightDefs.find(f => f.flight === item.flight && f.type === 'ARR');
+    const hlPair = arrDef ? getHomelineConnectingPairForArr(arrDef) : null;
+    if (hlPair) {
+      return {
+        arrFlight: hlPair.arrFlight,
+        depFlight: hlPair.depFlight,
+        connRole: resolveHomelineConnRole(item.role),
+        homeline: true
+      };
+    }
+    const frPair = arrDef ? getForeignConnectingPairForArr(arrDef) : null;
+    if (frPair) {
+      return {
+        arrFlight: frPair.arrFlight,
+        depFlight: frPair.depFlight,
+        connRole: resolveHomelineConnRole(item.role),
+        homeline: false
+      };
+    }
+    return null;
+  }
+  if (item.flightType === 'DEP' && (item.role === 'RC' || item.role === 'BG')) {
+    const depDef = flightDefs.find(f => f.flight === item.flight && f.type === 'DEP');
+    const hlPair = depDef ? getHomelineConnectingPairForDep(depDef) : null;
+    if (hlPair) {
+      return { arrFlight: hlPair.arrFlight, depFlight: hlPair.depFlight, connRole: item.role, homeline: true };
+    }
+    const frPair = depDef ? getForeignConnectingPairForDep(depDef) : null;
+    if (frPair) {
+      return { arrFlight: frPair.arrFlight, depFlight: frPair.depFlight, connRole: item.role, homeline: false };
+    }
+    return null;
+  }
+  return null;
+}
+function isConnectingDutyModeMerged(ctx) {
+  if (!ctx) return false;
+  if (ctx.homeline) return getHomelineConnectingDutyMode(ctx.arrFlight, ctx.depFlight, ctx.connRole) === 'merged';
+  return getHomelineConnectingDutyMode(ctx.arrFlight, ctx.depFlight) === 'merged';
+}
+function canToggleConnectingForTemplate(t) {
+  const ctx = getConnectingContextFromTemplate(t);
+  if (!ctx?.connRole || !ctx.homeline) return false;
+  const merged = isConnectingDutyModeMerged(ctx);
+  if (t.connectingDuty) return merged;
+  return !merged;
+}
+function canEditConnectingScheduleBlock(item) {
+  const ctx = getConnectingContextFromScheduleItem(item);
+  if (!ctx?.connRole) return false;
+  if (item.connectingFlightStale) return true;
+  return !!ctx.homeline;
+}
+function getConnectingScheduleBlockEditTitle(item, ctx) {
+  if (item.connectingFlightStale) return '接飛已變更，請調整接飛 duty';
+  return isConnectingDutyModeMerged(ctx) ? '拆開接飛 duty' : '合併接飛 duty';
+}
+function canToggleHomelineConnectingForTemplate(t) {
+  const ctx = getConnectingContextFromTemplate(t);
+  if (!ctx?.homeline || !ctx.connRole) return false;
+  const merged = isConnectingDutyModeMerged(ctx);
+  if (t.connectingDuty && t.homelineConnecting) return merged;
+  return !merged;
+}
+function getHomelineConnectingPairFromTemplate(t) {
+  const ctx = getHomelineConnectingContextFromTemplate(t);
+  if (!ctx) return null;
+  return { arrFlight: ctx.arrFlight, depFlight: ctx.depFlight, connRole: ctx.connRole };
 }
 function scheduleItemMatchesTemplate(item, tpl) {
   if (!item || !tpl) return false;
@@ -23171,7 +23970,6 @@ function buildDepCoreDutyEntries(f, std, ext) {
       end: depDutyEnd(std, ext)
     }];
   }
-  const skipRcBg = isForeignConnectingDepFlight(f) || isHomelineConnectingDepFlightMerged(f);
   const skipAbg = isOzConnectingDepFlight(f);
   const hx = ForeignDutyRules?.getHxDepDutyConfig?.(f);
   const bxAbg = ForeignDutyRules?.getBxAbgConfig?.(f, normalizeImportedFlightNo);
@@ -23188,7 +23986,11 @@ function buildDepCoreDutyEntries(f, std, ext) {
         { role: 'BG', before: 60, end: depDutyEnd(std, ext) }
       ];
   const entries = coreSpecs
-    .filter(() => !skipRcBg)
+    .filter(({ role }) => {
+      if (isForeignConnectingDepFlight(f) && isForeignConnectingDepFlightMerged(f)) return false;
+      if (isHomelineConnectingDepRoleMerged(f, role)) return false;
+      return true;
+    })
     .map(({ role, before, end }) => ({
       id: `${f.flight}_${role}_${f.type}`,
       label: `${f.flight} ${role}`,
@@ -23283,6 +24085,16 @@ function normalizeFlightDefsInPlace() {
       }
       if (f.connectingFlight == null) f.connectingFlight = '';
       if (f.connectingSource == null) f.connectingSource = '';
+      if (f.connectingFlight) {
+        const resolved = resolveConnectingDepFlightNo(f.connectingFlight);
+        if (!resolved) {
+          f.connectingFlight = '';
+          f.connectingSource = '';
+        } else {
+          const depDef = flightDefs.find(x => x.type === 'DEP' && resolveConnectingDepFlightNo(x.flight) === resolved);
+          f.connectingFlight = depDef ? depDef.flight : resolved;
+        }
+      }
     }
     if (!Array.isArray(f.edits)) f.edits = [];
     else f.edits = f.edits.filter(e => e.field !== 'connectingFlight');
@@ -26262,12 +27074,12 @@ function pruneLegacyForeignConnectingScheduleItems() {
     if (item.role === '接機RC' || item.role === '接機C') {
       const arrDef = flightDefs.find(f => f.flight === item.flight && f.type === 'ARR');
       if (arrDef && isForeignConnectingArrFlight(arrDef)) return false;
-      if (arrDef && isHomelineConnectingArrFlightMerged(arrDef)) return false;
+      if (arrDef && isHomelineConnectingArrRoleMerged(arrDef, resolveHomelineConnRole(item.role))) return false;
     }
     if ((item.role === 'RC' || item.role === 'BG') && item.flightType === 'DEP') {
       const depDef = flightDefs.find(f => f.flight === item.flight && f.type === 'DEP');
       if (depDef && isForeignConnectingDepFlight(depDef)) return false;
-      if (depDef && isHomelineConnectingDepFlightMerged(depDef)) return false;
+      if (depDef && isHomelineConnectingDepRoleMerged(depDef, item.role)) return false;
     }
     if (item.role === 'ABG' && item.flightType === 'DEP' && !item.connectingDuty) {
       const depDef = flightDefs.find(f => f.flight === item.flight && f.type === 'DEP');
@@ -26297,7 +27109,7 @@ function pruneOrphanDutyScheduleItems() {
         const pair = arrDef ? getHomelineConnectingPairForArr(arrDef) : null;
         if (pair && normalizeImportedFlightNo(pair.depFlight) === depNorm) {
           if (item.homelineConnecting) {
-            return getHomelineConnectingDutyMode(pair.arrFlight, pair.depFlight) === 'merged';
+            return getHomelineConnectingDutyMode(pair.arrFlight, pair.depFlight, item.role) === 'merged';
           }
         }
       }
@@ -26413,9 +27225,15 @@ function buildTemplates() {
         });
       }
     } else {
-      if (!isForeignConnectingArrFlight(f) && !isHomelineConnectingArrFlightMerged(f) && !isArrPrefilingEligibleFlight(f)) {
+      const foreignConnPair = getForeignConnectingPairForArr(f);
+      const skipForeignConnArr = foreignConnPair
+        && getHomelineConnectingDutyMode(foreignConnPair.arrFlight, foreignConnPair.depFlight) === 'merged';
+      if (!skipForeignConnArr && !isArrPrefilingEligibleFlight(f)) {
+        const hlPair = getHomelineConnectingPairForArr(f);
         const { start, end } = getArrDutyWindow(f);
         ['接機RC', '接機C'].forEach(role => {
+          const connRole = role === '接機RC' ? 'RC' : 'BG';
+          if (hlPair && getHomelineConnectingDutyMode(hlPair.arrFlight, hlPair.depFlight, connRole) === 'merged') return;
           out.push({ id: `${f.flight}_${role}_${f.type}`, label: `${f.flight} ${role}`, compactLabel: compactDutyLabel(f.flight, role), flight: f.flight, role, flightType: f.type, start, end });
         });
       }
@@ -26460,7 +27278,8 @@ function buildTemplates() {
     flightDefs,
     normalizeImportedFlightNo,
     arrStaMinutes,
-    depStdMinutes
+    depStdMinutes,
+    (arrFlight, depFlight) => getHomelineConnectingDutyMode(arrFlight, depFlight) === 'merged'
   ) || [];
   connecting.forEach(tpl => out.push(tpl));
   const homelineConnecting = ForeignDutyRules?.buildHomelineConnectingTemplates?.(
@@ -26468,7 +27287,7 @@ function buildTemplates() {
     normalizeImportedFlightNo,
     getArrSortMinutes,
     depStdMinutes,
-    (arrFlight, depFlight) => getHomelineConnectingDutyMode(arrFlight, depFlight) === 'merged'
+    (arrFlight, depFlight, role) => getHomelineConnectingDutyMode(arrFlight, depFlight, role) === 'merged'
   ) || [];
   homelineConnecting.forEach(tpl => out.push(tpl));
   return out;
@@ -27514,14 +28333,77 @@ function paletteEmptyMessage(flightSearchActive) {
   if (flightSearchActive) return '此航班待排 duty 已全部安排，或請確認航班編號';
   return '全部 duty 都已安排完成';
 }
+function hasConnectingPairsOnAssignmentTable() {
+  return flightDefs.some(f => {
+    if (f.type !== 'ARR' || f.status === 'CANX') return false;
+    const hlPair = getHomelineConnectingPairForArr(f);
+    if (hlPair && isHomelineConnectingWithinTwoHours(hlPair.arrFlight, hlPair.depFlight)) return true;
+    const frPair = getForeignConnectingPairForArr(f);
+    if (frPair && isHomelineConnectingWithinTwoHours(frPair.arrFlight, frPair.depFlight)) return true;
+    return false;
+  });
+}
+function hasHomelineConnectingPairsOnAssignmentTable() {
+  return hasConnectingPairsOnAssignmentTable();
+}
+function isConnectingPairWithinTwoHoursForTemplate(t) {
+  const ctx = getConnectingContextFromTemplate(t);
+  if (!ctx?.arrFlight || !ctx.depFlight) return false;
+  return isHomelineConnectingWithinTwoHours(ctx.arrFlight, ctx.depFlight);
+}
+function isConnectingMergedTemplate(t) {
+  return !!((t?.homelineConnecting || t?.foreignConnecting) && t.connectingDuty);
+}
+function isConnectingMergedTemplateActive(t) {
+  if (!isConnectingMergedTemplate(t)) return false;
+  const ctx = getConnectingContextFromTemplate(t);
+  return !!(ctx && isConnectingDutyModeMerged(ctx));
+}
+function isConnectingSplitArrTemplate(t) {
+  if (!t || t.connectingDuty || t.flightType !== 'ARR') return false;
+  if (t.role !== '接機RC' && t.role !== '接機C') return false;
+  const arrDef = flightDefs.find(x => x.flight === t.flight && x.type === 'ARR');
+  if (!arrDef) return false;
+  return !!(getHomelineConnectingPairForArr(arrDef) || getForeignConnectingPairForArr(arrDef));
+}
+function isConnectingSplitArrTemplateActive(t) {
+  if (!isConnectingSplitArrTemplate(t)) return false;
+  const ctx = getConnectingContextFromTemplate(t);
+  return !!(ctx && !isConnectingDutyModeMerged(ctx));
+}
+function isConnectingSplitDepTemplate(t) {
+  if (!t || t.connectingDuty || t.flightType !== 'DEP') return false;
+  if (t.role !== 'RC' && t.role !== 'BG') return false;
+  const depDef = flightDefs.find(x => x.flight === t.flight && x.type === 'DEP');
+  if (!depDef) return false;
+  return !!(getHomelineConnectingPairForDep(depDef) || getForeignConnectingPairForDep(depDef));
+}
+function isConnectingSplitDepTemplateActive(t) {
+  if (!isConnectingSplitDepTemplate(t)) return false;
+  const ctx = getConnectingContextFromTemplate(t);
+  return !!(ctx && !isConnectingDutyModeMerged(ctx));
+}
+function isConnectingTwoHourPaletteTemplate(t) {
+  if (!isConnectingPairWithinTwoHoursForTemplate(t)) return false;
+  if (isConnectingMergedTemplateActive(t)) return true;
+  return isConnectingSplitArrTemplateActive(t) || isConnectingSplitDepTemplateActive(t);
+}
+function pushConnectingTemplateToPaletteGroups(t, grouped, showConnPalette) {
+  if (!showConnPalette || !grouped['接飛']) return;
+  if (!isConnectingTwoHourPaletteTemplate(t)) return;
+  grouped['接飛'].push(t);
+}
 function groupTemplatesByPaletteRole(tabItems) {
   const grouped = Object.fromEntries(PALETTE_ROLE_ORDER.map(role => [role, []]));
+  const showConnPalette = hasConnectingPairsOnAssignmentTable();
   tabItems.forEach(t => {
     if (grouped[t.role]) grouped[t.role].push(t);
-    if (t.homelineConnecting && t.connectingDuty) {
+    if (!isConnectingTwoHourPaletteTemplate(t)) return;
+    if (isConnectingMergedTemplateActive(t)) {
       if (t.role === 'RC' && grouped['接機RC']) grouped['接機RC'].push(t);
       if (t.role === 'BG' && grouped['接機C']) grouped['接機C'].push(t);
     }
+    pushConnectingTemplateToPaletteGroups(t, grouped, showConnPalette);
   });
   return grouped;
 }
@@ -27764,6 +28646,7 @@ function renderPaletteRoleFilters(palette, grouped) {
   });
   bar.appendChild(allBtn);
   PALETTE_ROLE_CATEGORIES.forEach(cat => {
+    if (cat.id === '接飛' && !hasConnectingPairsOnAssignmentTable()) return;
     if (!(grouped[cat.id] || []).length) return;
     const btn = document.createElement('button');
     btn.type = 'button';
@@ -27981,12 +28864,18 @@ function openBulkySlotEditor(flight, flightType = 'DEP') {
     }
   });
 }
-function openHomelineConnectingEditor(arrFlight, depFlight) {
-  const pair = getHomelineConnectingPairForArr(
-    flightDefs.find(x => x.flight === arrFlight && x.type === 'ARR')
-  );
+function openHomelineConnectingEditor(arrFlight, depFlight, connRole = 'RC', options = {}) {
+  const foreign = options.foreign === true;
+  const arrDef = flightDefs.find(x => x.flight === arrFlight && x.type === 'ARR');
+  const pair = foreign
+    ? (arrDef ? getForeignConnectingPairForArr(arrDef) : null)
+    : (arrDef ? getHomelineConnectingPairForArr(arrDef) : null);
   if (!pair || normalizeImportedFlightNo(pair.depFlight) !== normalizeImportedFlightNo(depFlight)) return;
-  const current = getHomelineConnectingDutyMode(arrFlight, depFlight);
+  const role = connRole === 'ABG' ? 'ABG' : (connRole === 'BG' ? 'BG' : 'RC');
+  const current = foreign
+    ? getHomelineConnectingDutyMode(arrFlight, depFlight)
+    : getHomelineConnectingDutyMode(arrFlight, depFlight, role);
+  const suggested = current === 'split' ? 'merged' : 'split';
   let overlay = document.getElementById('homelineConnectingEditorOverlay');
   if (!overlay) {
     overlay = document.createElement('div');
@@ -27996,13 +28885,14 @@ function openHomelineConnectingEditor(arrFlight, depFlight) {
   }
   const arrLabel = escapeHtml(compactDutyFlightNo(arrFlight));
   const depLabel = escapeHtml(compactDutyFlightNo(depFlight));
+  const roleLabel = foreign ? (role === 'BG' ? 'BG' : 'RC') : (role === 'BG' ? 'BG' : 'RC');
   overlay.innerHTML = `
     <div class="tc-editor-panel">
-      <h3>調整接飛 duty</h3>
+      <h3>調整接飛 duty${foreign ? '' : `（${roleLabel}）`}</h3>
       <p>${arrLabel} 接飛 ${depLabel}</p>
       <div class="t-editor-mode-row">
-        <label><input type="radio" name="hl-conn-mode" value="merged" ${current === 'merged' ? 'checked' : ''}> 合併接飛</label>
-        <label><input type="radio" name="hl-conn-mode" value="split" ${current === 'split' ? 'checked' : ''}> 拆開接飛</label>
+        <label><input type="radio" name="hl-conn-mode" value="merged" ${suggested === 'merged' ? 'checked' : ''}> 合併接飛</label>
+        <label><input type="radio" name="hl-conn-mode" value="split" ${suggested === 'split' ? 'checked' : ''}> 拆開接飛</label>
       </div>
       <div class="tc-editor-actions">
         <button type="button" class="btn-secondary" data-hl-conn-cancel>取消</button>
@@ -28019,12 +28909,12 @@ function openHomelineConnectingEditor(arrFlight, depFlight) {
     const next = picked === 'split' ? 'split' : 'merged';
     if (next === current) { close(); return; }
     pushUndoSnapshot();
-    setHomelineConnectingDutyMode(arrFlight, depFlight, next);
-    rebuildTemplates();
-    markUnsynced();
-    renderPalette();
-    renderRows();
-    syncAssignmentTableFromSchedule();
+    applyConnectingDutyModeChange(arrFlight, depFlight, role, next, {
+      foreign,
+      fromSchedule: options.fromSchedule === true,
+      refreshPalette: options.fromSchedule !== true,
+      initiatorPersonIndex: options.initiatorPersonIndex
+    });
     close();
   });
 }
@@ -28155,28 +29045,28 @@ function makeChip(t, paletteRoleContext = '') {
     });
     delBtn.addEventListener('mousedown', e => e.stopPropagation());
   } else {
-    const showHomelineConnGear = canToggleHomelineConnectingForTemplate(t);
-    const showBulkyGear = !showHomelineConnGear && canEditBulkySlotsForTemplate(t);
-    const showAbgGear = !showHomelineConnGear && !showBulkyGear && canEditAbgSlotsForTemplate(t);
+    const showConnPlane = canToggleConnectingForTemplate(t);
+    const showBulkyGear = !showConnPlane && canEditBulkySlotsForTemplate(t);
+    const showAbgGear = !showConnPlane && !showBulkyGear && canEditAbgSlotsForTemplate(t);
     let editPrefix = '';
-    if (showHomelineConnGear) {
-      const pair = getHomelineConnectingPairFromTemplate(t);
-      const merged = pair && getHomelineConnectingDutyMode(pair.arrFlight, pair.depFlight) === 'merged';
+    if (showConnPlane) {
+      const ctx = getConnectingContextFromTemplate(t);
+      const merged = isConnectingDutyModeMerged(ctx);
       const modeHint = merged ? '拆開接飛 duty' : '合併接飛 duty';
-      editPrefix = `<button type="button" class="duty-chip-edit-btn" title="${escapeHtml(modeHint)}">${EDIT_GEAR_ICON_HTML}</button>`;
+      editPrefix = `<button type="button" class="duty-chip-edit-btn" title="${escapeHtml(modeHint)}">${CONNECTING_PLANE_ICON_HTML}</button>`;
     } else if (showBulkyGear) {
       editPrefix = `<button type="button" class="duty-chip-edit-btn" title="調整大件人數">${EDIT_GEAR_ICON_HTML}</button>`;
     } else if (showAbgGear) {
       editPrefix = `<button type="button" class="duty-chip-edit-btn" title="調整 ABG 人數">${EDIT_GEAR_ICON_HTML}</button>`;
     }
     chip.innerHTML = `${editPrefix}<strong>${t.compactLabel}</strong> <small>${minutesToTime(t.start)}-${minutesToTime(t.end)}</small>`;
-    if (showHomelineConnGear) {
-      const pair = getHomelineConnectingPairFromTemplate(t);
+    if (showConnPlane) {
+      const ctx = getConnectingContextFromTemplate(t);
       const editBtn = chip.querySelector('.duty-chip-edit-btn');
       editBtn?.addEventListener('click', e => {
         e.stopPropagation();
         e.preventDefault();
-        if (pair) openHomelineConnectingEditor(pair.arrFlight, pair.depFlight);
+        if (ctx) openHomelineConnectingEditor(ctx.arrFlight, ctx.depFlight, ctx.connRole, { foreign: !ctx.homeline });
       });
       editBtn?.addEventListener('mousedown', e => e.stopPropagation());
     } else if (showBulkyGear) {
@@ -28303,14 +29193,20 @@ function renderPalette() {
     const roleCategory = (grouped[activePaletteRoleCategory] || []).length
       ? activePaletteRoleCategory
       : null;
-    if (activePaletteRoleCategory && !roleCategory) activePaletteRoleCategory = null;
+    if (activePaletteRoleCategory && !roleCategory) {
+      activePaletteRoleCategory = null;
+    }
     renderPaletteRoleFilters(palette, grouped);
     if (!roleCategory) {
       renderPaletteRoleGroups(palette, grouped);
       scheduleFitDutyChipLabels(palette);
       return;
     }
-    sortPaletteTemplates(grouped[roleCategory]).forEach(t => palette.appendChild(makeChip(t)));
+    if (roleCategory === '接飛') {
+      sortPaletteTemplates(grouped['接飛'] || []).forEach(t => palette.appendChild(makeChip(t)));
+    } else {
+      sortPaletteTemplates(grouped[roleCategory]).forEach(t => palette.appendChild(makeChip(t)));
+    }
     scheduleFitDutyChipLabels(palette);
   } else if (activePaletteTab === 'byFunction') {
     const title = document.createElement('div');
@@ -28516,14 +29412,16 @@ function buildBlockElForSlice(item, slice, normalizedSearch, options = {}) {
   if (item.connectingFlightStale) block.classList.add('block-connecting-stale');
   const otBadge = otRanges.length ? '<span class="block-overtime-badge">加班</span>' : '';
   const staleBadge = item.connectingFlightStale
-    ? '<span class="block-connecting-stale-badge" title="接飛已變更，請點 ⚙ 拆開此合併區塊">!</span>'
+    ? '<span class="block-connecting-stale-badge" title="接飛已變更，請點飛機圖示調整此合併區塊">!</span>'
     : '';
   const inconsistentBadge = item.role === 'T' && isTScheduleItemInconsistent(item)
     ? '<button type="button" class="block-t-inconsistent-badge" title="與目前時段規則不一致，點擊同步">⚠</button>'
     : '';
-  const showConnSplit = canSplitHomelineConnectingScheduleBlock(item);
-  const editBtn = options.showEdit && (item.role === 'TC' || item.role === 'T' || showConnSplit)
-    ? `<button class="block-edit-btn" type="button" title="${showConnSplit ? '拆開接飛 duty' : (item.role === 'T' ? '調整辦T' : '調整時段')}">${EDIT_GEAR_ICON_HTML}</button>`
+  const connCtx = getConnectingContextFromScheduleItem(item);
+  const showConnEdit = canEditConnectingScheduleBlock(item);
+  const connEditTitle = showConnEdit ? getConnectingScheduleBlockEditTitle(item, connCtx) : '';
+  const editBtn = options.showEdit && (item.role === 'TC' || item.role === 'T' || showConnEdit)
+    ? `<button class="block-edit-btn" type="button" title="${escapeHtml(connEditTitle || (item.role === 'T' ? '調整辦T' : '調整時段'))}">${showConnEdit ? CONNECTING_PLANE_ICON_HTML : EDIT_GEAR_ICON_HTML}</button>`
     : '';
   const labelHtml = item.role === 'T'
     ? (() => {
@@ -28553,8 +29451,13 @@ function buildBlockElForSlice(item, slice, normalizedSearch, options = {}) {
   block.querySelector('.block-edit-btn')?.addEventListener('click', e => {
     e.stopPropagation();
     e.preventDefault();
-    if (canSplitHomelineConnectingScheduleBlock(item)) {
-      confirmSplitHomelineConnectingScheduleBlock(item);
+    const ctx = getConnectingContextFromScheduleItem(item);
+    if (ctx && canEditConnectingScheduleBlock(item)) {
+      openHomelineConnectingEditor(ctx.arrFlight, ctx.depFlight, ctx.connRole, {
+        foreign: !ctx.homeline,
+        fromSchedule: true,
+        initiatorPersonIndex: item.personIndex
+      });
       return;
     }
     if (item.role === 'T') openTEditor({ mode: 'schedule', tKind: item.tKind, uid: item.uid });
@@ -28586,7 +29489,7 @@ function buildBlockElForSlice(item, slice, normalizedSearch, options = {}) {
   const fullLabel = getDutyDisplayLabel(item);
   if (fullLabel) {
     block.title = item.connectingFlightStale
-      ? `${fullLabel}（接飛已變更，請點 ⚙ 拆開此合併區塊）`
+      ? `${fullLabel}（接飛已變更，請點飛機圖示調整此合併區塊）`
       : fullLabel;
   }
   return block;
@@ -29482,7 +30385,9 @@ window.addEventListener('resize', () => {
 document.getElementById('searchInput').addEventListener('input', renderPalette);
 document.getElementById('clearDutySearchBtn').addEventListener('click', () => {
   document.getElementById('searchInput').value = '';
-  if (activePaletteTab === 'byRole') activePaletteRoleCategory = null;
+  if (activePaletteTab === 'byRole') {
+    activePaletteRoleCategory = null;
+  }
   renderPalette();
 });
 document.getElementById('flightSearchInput').addEventListener('input', renderFlightEditor);

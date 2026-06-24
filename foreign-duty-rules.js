@@ -367,13 +367,13 @@
       const key = `${normalizeFlightNo(pair.arrFlight)}|${normalizeFlightNo(pair.depFlight)}`;
       if (seen.has(key)) return;
       seen.add(key);
-      if (!mergeCheck(pair.arrFlight, pair.depFlight)) return;
       const anchor = getArrAnchorMin(pair.arrDef);
       const std = getDepStdMin(pair.depDef);
       if (anchor == null || std == null) return;
       const start = Math.max(0, anchor - CONNECTING_BEFORE_STA_MIN);
       const end = std;
       ['RC', 'BG'].forEach(role => {
+        if (!mergeCheck(pair.arrFlight, pair.depFlight, role)) return;
         out.push({
           id: connectingTemplateId(pair.arrFlight, pair.depFlight, role),
           label: `${pair.arrFlight}/${pair.depFlight} ${role}`,
