@@ -2672,6 +2672,17 @@
     width: auto;
     max-width: 100%;
   }
+  .assignment-role-codes-inner.assignment-fixed-codes-inner {
+    gap: 0;
+    width: auto;
+    max-width: 100%;
+  }
+  .assignment-fixed-code-sep {
+    flex: 0 0 auto;
+    white-space: pre;
+    pointer-events: none;
+    user-select: none;
+  }
   .assignment-role-code {
     flex: 0 0 auto;
     white-space: nowrap;
@@ -2979,9 +2990,13 @@
     min-width: 0;
   }
   .role-休 { background:#f3f4f6; }
+  .role-DIC { background:#e5e7eb; border:1px solid #d1d5db; }
+  .role-其他 { background:#e5e7eb; border:1px solid #d1d5db; }
 
 
   .rest-60 { background:#e5e7eb !important; border:1px solid #d1d5db !important; } /* 1 hr 灰色 */
+  .block.role-DIC { background:#e5e7eb !important; border:1px solid #d1d5db !important; }
+  .block.role-其他 { background:#e5e7eb !important; border:1px solid #d1d5db !important; }
   .rest-30 { background:#ffffff !important; border:1px dashed #cbd5e1 !important; } /* 0.5 hr 白色 */
 
 
@@ -3462,11 +3477,40 @@
     border-color: #d1d5db;
     color: #1f2937;
   }
+  .duty-chip.func-chip-30,
+  .duty-chip.func-chip-60,
+  .duty-chip.func-chip-90 {
+    min-width: 0;
+    background: #e5e7eb;
+    border-color: #d1d5db;
+    color: #1f2937;
+  }
   .duty-chip.rest-chip-30 {
     min-width: 0;
     background: #ffffff;
     border: 1px dashed #cbd5e1;
     color: #334155;
+  }
+  .duty-chip.role-DIC {
+    justify-content: center;
+    min-width: 0;
+    background: #e5e7eb;
+    border-color: #d1d5db;
+    color: #1f2937;
+  }
+  .duty-chip.role-其他 {
+    justify-content: center;
+    min-width: 0;
+    background: #e5e7eb;
+    border-color: #d1d5db;
+    color: #1f2937;
+  }
+  .duty-chip.role-DIC strong,
+  .duty-chip.role-其他 strong {
+    font-size: 12px;
+    line-height: 1.2;
+    white-space: normal;
+    text-align: center;
   }
 
 
@@ -8649,10 +8693,55 @@ function buildRestStatusHtml(opts) {
   return '<span class="pending-rest">待排休</span>';
 }
 function isFunctionDuty(duty) {
-  return !!duty && (duty.role === '休' || duty.role === '自訂' || duty.isFunction || duty.isCustom);
+  return !!duty && (duty.role === '休' || duty.role === 'DIC' || duty.role === '其他' || duty.role === '自訂' || duty.isFunction || duty.isCustom);
+}
+function isDicDuty(duty) {
+  return !!duty && duty.role === 'DIC';
+}
+function isOtherDuty(duty) {
+  return !!duty && duty.role === '其他';
+}
+function isFuncPaletteDuty(duty) {
+  return isDicDuty(duty) || isOtherDuty(duty);
+}
+function getFuncDutyKind(duty) {
+  return duty?.dicKind || duty?.otherKind || '';
+}
+function getFuncShiftScope(duty) {
+  if (!duty) return '';
+  return duty.dicShiftScope || duty.otherShiftScope || '';
+}
+function isMovableTimeDuty(duty) {
+  return !!duty && (duty.role === '休' || isFuncPaletteDuty(duty));
+}
+function validateFuncDutyPlacement(scope, start, end) {
+  if (scope === 'early') {
+    if (activeShiftView !== 'early') {
+      return { ok: false, message: '此 duty 僅可排在早班管制表，請切換至早班。' };
+    }
+    return { ok: true };
+  }
+  if (scope === 'late') {
+    if (activeShiftView !== 'late') {
+      return { ok: false, message: '此 duty 僅可排在晚班管制表，請切換至晚班。' };
+    }
+    return { ok: true };
+  }
+  if (scope === 'visible') {
+    if (!dutyIntersectsView({ start, end })) {
+      return { ok: false, message: '小天使須排在目前可見時間範圍內。' };
+    }
+    return { ok: true };
+  }
+  return { ok: true };
+}
+function validateDicDutyPlacement(scope, start, end) {
+  return validateFuncDutyPlacement(scope, start, end);
 }
 function isPaletteFreeTimeDrag(tpl) {
-  return !!tpl && (tpl.role === '休' || tpl.role === 'PRE');
+  if (!tpl) return false;
+  if (tpl.freeTimeDrag === false) return false;
+  return tpl.role === '休' || tpl.role === 'PRE' || isFuncPaletteDuty(tpl);
 }
 function isPaletteFunctionDrag(tpl) {
   return isPaletteFreeTimeDrag(tpl);
@@ -9570,6 +9659,8 @@ function resolveConnectingDutyCompactLabel(item) {
 }
 function getDutyDisplayLabel(item) {
   if (item.role === '休') return '休';
+  if (item.role === 'DIC') return item.label || item.compactLabel || 'DIC';
+  if (item.role === '其他') return item.label || item.compactLabel || '其他';
   if (item.role === 'TC') return 'TC';
   if (item.role === 'T') return 'T';
   if (item.role === '自訂') return item.label || '自訂';
@@ -9578,7 +9669,7 @@ function getDutyDisplayLabel(item) {
   return item.compactLabel || compactDutyLabel(item.flight, item.role);
 }
 function getItemOvertimeRanges(item, person) {
-  if (!person || item.role === '休' || item.role === 'PRE') return [];
+  if (!person || item.role === '休' || item.role === 'DIC' || item.role === '其他' || item.role === 'PRE') return [];
   const bounds = getPersonShiftBounds(person);
   if (!bounds) return [];
   const ranges = [];
@@ -10079,6 +10170,8 @@ function renderAssignmentPptCell(cell, flight) {
 }
 function getDutyBlockExportLabel(item) {
   if (item.role === '休') return '休';
+  if (item.role === 'DIC') return String(item.label || item.compactLabel || 'DIC').trim();
+  if (item.role === '其他') return String(item.label || item.compactLabel || '其他').trim();
   if (item.role === 'TC') return 'TC';
   if (item.role === '自訂') return String(item.label || item.compactLabel || '自訂').trim();
   return String(getDutyDisplayLabel(item)).trim();
@@ -10345,7 +10438,7 @@ const EARLY_VIEW_END_MIN = 17 * 60;
 let pxPerMinute = 1.4;
 let activePaletteTab = 'byRole';
 let activePaletteRoleCategory = null;
-const PALETTE_ROLE_ORDER = ['RC', 'BG', 'ABG', '大件', 'BA', 'L1', 'G2', '接機RC', '接機C', '接飛', 'PPT', 'CKIN', 'PRE', 'TC', 'T'];
+const PALETTE_ROLE_ORDER = ['RC', 'BG', 'ABG', '大件', 'BA', 'L1', 'G2', '接機RC', '接機C', '接飛', 'PPT', 'CKIN', 'PRE', 'TC', 'T', 'DIC', '其他'];
 const PALETTE_ROLE_CATEGORIES = PALETTE_ROLE_ORDER.map(role => ({ id: role, label: role, roles: [role] }));
 let activeFlightEditorTab = 'DEP';
 const LS_PREFIX = 'cursor_v1';
@@ -10581,7 +10674,8 @@ function dayStorageKeys(dateStr) {
     homelineConnectingDutyModes: `${LS_PREFIX}_day_${d}_homeline_connecting_duty_modes`,
     flightsImported: `${LS_PREFIX}_day_${d}_flights_imported`,
     overtimeOverrides: `${LS_PREFIX}_day_${d}_overtime_overrides`,
-    dicOvertimeApprovals: `${LS_PREFIX}_day_${d}_dic_ot`
+    dicOvertimeApprovals: `${LS_PREFIX}_day_${d}_dic_ot`,
+    funcSlotOverrides: `${LS_PREFIX}_day_${d}_func_slot_overrides`
   };
 }
 let selectedDate = localStorage.getItem(LS_KEYS_GLOBAL.selectedDate) || getLocalDateISO();
@@ -10609,6 +10703,7 @@ let tcTemplateDefaults = {};
 let tTemplateDefaults = {};
 let tTcSlotAssignments = {};
 let abgSlotOverrides = {};
+let funcSlotOverrides = {};
 let abgSlotManualLocks = {};
 let bulkySlotOverrides = {};
 let bulkySlotManualLocks = {};
@@ -16175,6 +16270,19 @@ function personHasPptAssignment(personIndex, flight, flightType = 'DEP') {
 }
 function isFlightTemplateFullyScheduled(t) {
   if (!t || t.role === '休' || t.role === '自訂') return false;
+  if (t.role === 'DIC') {
+    if (isDicMultiSlotTemplate(t)) {
+      return countDicAssignmentsForTemplate(t) >= getDicSlotsForTemplate(t);
+    }
+    return schedule.some(x => x.role === 'DIC' && x.dicKind === t.dicKind);
+  }
+  if (t.role === '其他') {
+    if (isOtherUnlimitedTemplate(t)) return false;
+    if (isOtherMultiSlotTemplate(t)) {
+      return countOtherAssignmentsForTemplate(t) >= getOtherSlotsForTemplate(t);
+    }
+    return schedule.some(x => x.role === '其他' && x.otherKind === t.otherKind);
+  }
   if (t.role === 'TC') {
     return schedule.some(x => x.role === 'TC' && x.tcKind === t.tcKind);
   }
@@ -16220,7 +16328,7 @@ function normalizeFlightSearch(q) {
   return s;
 }
 function scheduleItemMatchesFlightSearch(item, normalized) {
-  if (!normalized || !item || item.role === '休') return false;
+  if (!normalized || !item || item.role === '休' || item.role === 'DIC' || item.role === '其他') return false;
   if (item.connectingDuty) {
     const arr = String(item.arrFlight || '').trim().toUpperCase();
     const dep = String(item.depFlight || item.flight || '').trim().toUpperCase();
@@ -16234,7 +16342,7 @@ function scheduleItemMatchesFlightSearch(item, normalized) {
   return compactFlightNo(f) === compactFlightNo(normalized);
 }
 function templateMatchesFlightSearch(t, normalized) {
-  if (!normalized || !t || t.role === '休' || t.role === '自訂') return false;
+  if (!normalized || !t || t.role === '休' || t.role === 'DIC' || t.role === '其他' || t.role === '自訂') return false;
   if (t.connectingDuty) {
     const arr = String(t.arrFlight || '').trim().toUpperCase();
     const dep = String(t.depFlight || t.flight || '').trim().toUpperCase();
@@ -16263,7 +16371,7 @@ function scheduleItemSearchHaystack(item) {
   if (!item) return '';
   const label = item.role === '自訂'
     ? (item.label || item.compactLabel || '自訂')
-    : (item.role === '休' ? '休' : getDutyDisplayLabel(item));
+    : (item.role === '休' ? '休' : (item.role === 'DIC' ? (item.label || item.compactLabel || 'DIC') : (item.role === '其他' ? (item.label || item.compactLabel || '其他') : getDutyDisplayLabel(item))));
   return searchHaystackFromParts([
     item.flight, item.arrFlight, item.depFlight, item.label, item.compactLabel, item.role, label
   ]);
@@ -16412,7 +16520,7 @@ function isOzFlight(flight) {
 function dutyRequiresPersonQualification(duty) {
   if (!duty) return false;
   const role = duty.role;
-  return role && role !== '休' && role !== '自訂';
+  return role && role !== '休' && role !== 'DIC' && role !== '其他' && role !== '自訂';
 }
 function personQualifiesForDuty(person, duty) {
   if (!person || !duty) return false;
@@ -21512,11 +21620,11 @@ const ASSIGNMENT_FIXED_DUTIES = [
   { label: 'C5R(7-8)', slots: 1 },
   { label: '抓關單', slots: 5 },
   { label: 'BRIEFING', slots: 10 },
-  { label: '小天使', slots: 2 },
   { label: '轉機通報', slots: 1 },
   { label: '值日生', slots: 4 },
   { label: 'SSBD', slots: 2 },
   { label: '漏查單', slots: 1 },
+  { label: 'UA P/F', slots: 1 },
   { label: '遺失物', slots: 2 },
   { label: 'NZ人/件', slots: 1 }
 ];
@@ -21525,8 +21633,77 @@ const ASSIGNMENT_SHIFT_SLOTS = Array.from({ length: 20 }, (_, i) => {
   const h = 4 + i;
   return `${String(h).padStart(2, '0')}-${String(h + 1).padStart(2, '0')}`;
 });
-function getAssignmentFixedDutyCellText(_dutyKey) {
+function getAssignmentFixedDutyEntries(dutyKey) {
+  const key = String(dutyKey || '').trim();
+  if (!key) return [];
+  const seen = new Set();
+  const entries = [];
+  const pushItem = (item) => {
+    if (seen.has(item.personIndex)) return;
+    seen.add(item.personIndex);
+    const text = getAssignmentPersonCode(item);
+    if (text) entries.push({ text, personIndex: item.personIndex });
+  };
+  schedule.forEach(item => {
+    if (item.role === '其他') {
+      const def = getOtherDutyDef(item.otherKind);
+      if (!def) return;
+      if (def.assignmentTimeSlots) {
+        const slot = def.assignmentTimeSlots.find(s => s.key === key);
+        if (!slot || !otherItemIntersectsRange(item, slot.start, slot.end)) return;
+        pushItem(item);
+        return;
+      }
+      if (def.assignmentKey !== key) return;
+      pushItem(item);
+      return;
+    }
+    if (item.role === 'DIC') {
+      const def = getDicDutyDef(item.dicKind);
+      if (!def || def.assignmentKey !== key) return;
+      pushItem(item);
+    }
+  });
+  return entries;
+}
+function getAssignmentFixedDutySep(dutyKey) {
+  const key = String(dutyKey || '').trim();
+  for (const def of OTHER_DUTY_DEFS) {
+    if (def.assignmentKey === key) return def.assignmentSep || '';
+    if (def.assignmentTimeSlots?.some(s => s.key === key)) return '';
+  }
+  for (const def of DIC_DUTY_DEFS) {
+    if (def.assignmentKey === key) return def.assignmentSep || '';
+  }
   return '';
+}
+function renderAssignmentFixedDutyCell(cell, dutyKey) {
+  const entries = getAssignmentFixedDutyEntries(dutyKey);
+  const sep = getAssignmentFixedDutySep(dutyKey);
+  cell.replaceChildren();
+  if (!entries.length) return false;
+  if (entries.length === 1) {
+    cell.appendChild(makeAssignmentCodeSpan(entries[0].text, entries[0].personIndex));
+    return true;
+  }
+  const inner = document.createElement('span');
+  inner.className = 'assignment-role-codes-inner assignment-fixed-codes-inner';
+  entries.forEach((entry, idx) => {
+    if (idx > 0) {
+      const gap = document.createElement('span');
+      gap.className = 'assignment-fixed-code-sep';
+      gap.textContent = sep === 'space' ? ' ' : ' / ';
+      inner.appendChild(gap);
+    }
+    inner.appendChild(makeAssignmentCodeSpan(entry.text, entry.personIndex));
+  });
+  cell.appendChild(inner);
+  return true;
+}
+function getAssignmentFixedDutyCellText(dutyKey) {
+  return getAssignmentFixedDutyEntries(dutyKey).map(e => e.text).join(
+    getAssignmentFixedDutySep(dutyKey) === 'space' ? ' ' : ' / '
+  );
 }
 function getAssignmentPrefilingCellEntries(flightKey) {
   const seen = new Set();
@@ -21603,18 +21780,30 @@ function assignmentShiftSlotToMinutes(slot) {
   return { start: parts[0] * 60, end: parts[1] * 60 };
 }
 function getAssignmentShiftCellEntries(role, slot) {
-  if (role !== 'TC') return [];
   const range = assignmentShiftSlotToMinutes(slot);
   if (!range) return [];
   const seen = new Set();
   const entries = [];
-  schedule.forEach(item => {
-    if (item.role !== 'TC') return;
-    if (!tcItemIntersectsRange(item, range.start, range.end)) return;
+  const pushItem = (item) => {
     if (seen.has(item.personIndex)) return;
     seen.add(item.personIndex);
     const text = getAssignmentPersonCode(item);
     if (text) entries.push({ text, personIndex: item.personIndex });
+  };
+  schedule.forEach(item => {
+    if (item.role === 'TC') {
+      if (!tcItemIntersectsRange(item, range.start, range.end)) return;
+      if (role !== 'TC') return;
+      pushItem(item);
+      return;
+    }
+    if (item.role === '其他') {
+      const def = getOtherDutyDef(item.otherKind);
+      const assignRole = def?.assignmentShiftRole || item.assignmentShiftRole;
+      if (!assignRole || assignRole !== role) return;
+      if (!otherItemIntersectsRange(item, range.start, range.end)) return;
+      pushItem(item);
+    }
   });
   return entries;
 }
@@ -21777,6 +21966,11 @@ function syncAssignmentFixedSectionFromSchedule() {
     const role = cell.dataset.assignmentShiftRole;
     const slot = cell.dataset.assignmentShiftSlot;
     const hasContent = renderAssignmentShiftRoleCell(cell, role, slot);
+    cell.classList.toggle('assignment-clickable', hasContent);
+  });
+  document.querySelectorAll('[data-assignment-fixed-duty]').forEach(cell => {
+    const dutyKey = cell.dataset.assignmentFixedDuty;
+    const hasContent = renderAssignmentFixedDutyCell(cell, dutyKey);
     cell.classList.toggle('assignment-clickable', hasContent);
   });
 }
@@ -24125,6 +24319,283 @@ function normalizeFlightDefsInPlace() {
   });
 }
 function hasRestForPerson(personIndex) { return schedule.some(x => x.personIndex === personIndex && x.role === '休'); }
+const DIC_ANGEL_KIND = '小天使';
+const DIC_SUPERVISOR_KIND = '業督';
+const DIC_DUTY_DEFS = [
+  { label: '值早早', shiftScope: 'early' },
+  { label: '正早過', shiftScope: 'early' },
+  { label: '副早過', shiftScope: 'early' },
+  { label: 'C5R巡場', shiftScope: 'early' },
+  { label: 'T3巡場', shiftScope: 'early' },
+  { label: '值早', shiftScope: 'early' },
+  { label: '副值早', shiftScope: 'early' },
+  { label: '早接過', shiftScope: 'early', assignmentKey: '轉機通報' },
+  { label: '審班表', shiftScope: 'early' },
+  { label: '小天使', shiftScope: 'visible', defaultSlots: 1, adjustableSlots: true },
+  { label: '業督', shiftScope: 'both', defaultSlots: 4, adjustableSlots: true },
+  { label: '值晚', shiftScope: 'late' },
+  { label: '接副值', shiftScope: 'late' },
+  { label: '晚接過', shiftScope: 'late' },
+  { label: '抓蛇', shiftScope: 'late' },
+  { label: '正晚過', shiftScope: 'late' },
+  { label: '副晚過', shiftScope: 'late' },
+  { label: 'DP DIC', shiftScope: 'late' },
+  { label: '副值晚', shiftScope: 'late' },
+  { label: '大夜', shiftScope: 'late' }
+];
+function getDicDutyDef(dicKind) {
+  return DIC_DUTY_DEFS.find(d => d.label === dicKind) || null;
+}
+function isDicMultiSlotTemplate(t) {
+  return isDicDuty(t) && !!getDicDutyDef(t.dicKind)?.adjustableSlots;
+}
+function isDicAngelTemplate(t) {
+  return isDicDuty(t) && t.dicKind === DIC_ANGEL_KIND;
+}
+function isDicSupervisorTemplate(t) {
+  return isDicDuty(t) && t.dicKind === DIC_SUPERVISOR_KIND;
+}
+function getDicDefaultSlots(dicKind) {
+  const def = getDicDutyDef(dicKind);
+  const n = Number(def?.defaultSlots);
+  return Number.isFinite(n) && n > 0 ? Math.min(12, Math.floor(n)) : 1;
+}
+function getDicSlotsForKind(dicKind) {
+  const override = funcSlotOverrides?.[dicKind];
+  const n = Number(override);
+  if (Number.isFinite(n) && n > 0) return Math.min(12, Math.floor(n));
+  return getDicDefaultSlots(dicKind);
+}
+function setDicSlotOverride(dicKind, slots) {
+  const n = parseInt(slots, 10);
+  if (!Number.isFinite(n) || n <= 0) {
+    delete funcSlotOverrides[dicKind];
+  } else {
+    funcSlotOverrides[dicKind] = Math.min(12, n);
+  }
+  saveDicSlotOverrides();
+}
+function normalizeDicSlotOverridesForStorage(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
+  const out = {};
+  Object.keys(value).forEach(k => {
+    const n = parseInt(value[k], 10);
+    if (Number.isFinite(n) && n >= 1 && n <= 12) out[k] = n;
+  });
+  return out;
+}
+function loadDicSlotOverridesFromStorage(k) {
+  const keys = k || dayStorageKeys(selectedDate);
+  const d = String(selectedDate || '').trim();
+  funcSlotOverrides = normalizeDicSlotOverridesForStorage(readJsonLS(keys.funcSlotOverrides, {}));
+  if (!Object.keys(funcSlotOverrides).length) {
+    const legacyDic = readJsonLS(`${LS_PREFIX}_day_${d}_dic_slot_overrides`, {});
+    if (Object.keys(legacyDic || {}).length) {
+      funcSlotOverrides = normalizeDicSlotOverridesForStorage(legacyDic);
+    }
+  }
+  const legacyAngel = localStorage.getItem(`${LS_PREFIX}_day_${d}_dic_angel_slots`);
+  if (legacyAngel != null && legacyAngel !== '' && funcSlotOverrides[DIC_ANGEL_KIND] == null) {
+    const n = parseInt(legacyAngel, 10);
+    if (Number.isFinite(n) && n > 0) funcSlotOverrides[DIC_ANGEL_KIND] = Math.min(12, n);
+  }
+}
+function saveDicSlotOverrides() {
+  const k = dayStorageKeys(selectedDate);
+  const normalized = normalizeDicSlotOverridesForStorage(funcSlotOverrides);
+  if (!Object.keys(normalized).length) {
+    localStorage.removeItem(k.funcSlotOverrides);
+    return;
+  }
+  localStorage.setItem(k.funcSlotOverrides, JSON.stringify(normalized));
+}
+function getDicSlotsForTemplate(t) {
+  if (!isDicDuty(t)) return 0;
+  if (isDicMultiSlotTemplate(t)) return getDicSlotsForKind(t.dicKind);
+  return 1;
+}
+function countDicAssignments(dicKind) {
+  return schedule.filter(x => x.role === 'DIC' && x.dicKind === dicKind).length;
+}
+function countDicAssignmentsForTemplate(t) {
+  if (!isDicDuty(t)) return 0;
+  return countDicAssignments(t.dicKind);
+}
+function personHasDicAssignment(personIndex, dicKind) {
+  return schedule.some(x =>
+    x.personIndex === personIndex && x.role === 'DIC' && x.dicKind === dicKind
+  );
+}
+function getDicSlotsRemaining(t) {
+  if (!isDicDuty(t)) return 0;
+  return Math.max(0, getDicSlotsForTemplate(t) - countDicAssignmentsForTemplate(t));
+}
+function trimDicAssignmentsToCount(dicKind, targetCount) {
+  const target = Math.max(1, Math.min(12, Number(targetCount) || 1));
+  const assigned = schedule.filter(x => x.role === 'DIC' && x.dicKind === dicKind);
+  let removedAssigned = 0;
+  if (assigned.length > target) {
+    const sorted = assigned.slice().sort((a, b) => b.uid - a.uid);
+    sorted.slice(0, assigned.length - target).forEach(item => {
+      schedule = schedule.filter(x => x.uid !== item.uid);
+      removedAssigned++;
+    });
+    if (selectedBlockId != null && !schedule.some(x => x.uid === selectedBlockId)) selectedBlockId = null;
+  }
+  return { removedAssigned };
+}
+function createDicDutyTemplates() {
+  return DIC_DUTY_DEFS.map(def => {
+    const slug = def.label.replace(/\s+/g, '_');
+    return {
+      id: `DIC_${slug}`,
+      label: def.label,
+      compactLabel: def.label,
+      flight: `DIC_${slug}`,
+      role: 'DIC',
+      flightType: 'FUNC',
+      dicKind: def.label,
+      dicShiftScope: def.shiftScope,
+      dicSlots: def.adjustableSlots ? getDicSlotsForKind(def.label) : 1,
+      start: null,
+      end: null,
+      duration: 60,
+      isFunction: true,
+      isDicDuty: true
+    };
+  });
+}
+const OTHER_DUTY_DEFS = [
+  { label: '抄Load', duration: 60, shiftScope: 'early', defaultSlots: 1, assignmentKey: '抄LOAD' },
+  { label: '入境通報', duration: 90, shiftScope: 'late', defaultSlots: 2, adjustableSlots: true, assignmentKey: '入境通報', assignmentSep: 'space' },
+  { label: '設備', duration: 30, defaultSlots: 2, adjustableSlots: true },
+  { label: '關單', duration: 30, defaultSlots: 4, adjustableSlots: true, assignmentKey: '抓關單', assignmentSep: 'space' },
+  { label: '備品', duration: 30, defaultSlots: 6, adjustableSlots: true },
+  { label: '查房員', duration: 60, shiftScope: 'early', defaultSlots: 1, assignmentKey: '查房員' },
+  { label: '遺失物', duration: 60, shiftScope: 'early', defaultSlots: 2, adjustableSlots: true, assignmentKey: '遺失物', assignmentSep: 'space' },
+  { label: 'C5R指引', duration: 60, shiftScope: 'early', defaultSlots: 2, adjustableSlots: true, assignmentTimeSlots: [
+    { key: 'C5R(6-7)', start: 360, end: 420 },
+    { key: 'C5R(7-8)', start: 420, end: 480 }
+  ]},
+  { label: 'SSBD', duration: 60, shiftScope: 'early', defaultSlots: 2, adjustableSlots: true, assignmentKey: 'SSBD', assignmentSep: 'space' },
+  { label: 'UA P/F', duration: 90, shiftScope: 'late', defaultSlots: 1, assignmentKey: 'UA P/F' },
+  { label: '值日生', duration: 30, defaultSlots: 4, adjustableSlots: true, assignmentKey: '值日生', assignmentSep: 'space' },
+  { label: '漏查單', duration: 30, shiftScope: 'late', defaultSlots: 1, assignmentKey: '漏查單' },
+  { label: '客服', duration: 60, defaultSlots: 7, adjustableSlots: true, assignmentShiftRole: '客服專員' },
+  { label: 'Q2', duration: 60, defaultSlots: 1, assignmentShiftRole: 'Q2' },
+  { label: 'TA', duration: 60, unlimited: true, assignmentShiftRole: 'TA' },
+  { label: 'S', duration: 60, unlimited: true, functionOnly: true },
+  { label: 'B/F', duration: 30, unlimited: true, functionOnly: true, fixedStart: 600, fixedEnd: 630, assignmentKey: 'BRIEFING', assignmentSep: 'space' },
+  { label: 'OJT', duration: 30, unlimited: true, functionOnly: true, fixedStart: 720, fixedEnd: 750 },
+  { label: 'NZ人/件', duration: 60, defaultSlots: 1, assignmentKey: 'NZ人/件', requireNzFlights: true }
+];
+function hasNzFlightsOnDay() {
+  return flightDefs.some(f => f.status !== 'CANX' && /^NZ/i.test(String(f.flight || '').trim()));
+}
+function getOtherDutyDef(otherKind) {
+  return OTHER_DUTY_DEFS.find(d => d.label === otherKind) || null;
+}
+function isOtherMultiSlotTemplate(t) {
+  return isOtherDuty(t) && !!getOtherDutyDef(t.otherKind)?.adjustableSlots;
+}
+function isOtherUnlimitedTemplate(t) {
+  return isOtherDuty(t) && !!getOtherDutyDef(t.otherKind)?.unlimited;
+}
+function getOtherDefaultSlots(otherKind) {
+  const def = getOtherDutyDef(otherKind);
+  const n = Number(def?.defaultSlots);
+  return Number.isFinite(n) && n > 0 ? Math.min(12, Math.floor(n)) : 1;
+}
+function getOtherSlotsForKind(otherKind) {
+  const override = funcSlotOverrides?.[otherKind];
+  const n = Number(override);
+  if (Number.isFinite(n) && n > 0) return Math.min(12, Math.floor(n));
+  return getOtherDefaultSlots(otherKind);
+}
+function setOtherSlotOverride(otherKind, slots) {
+  setDicSlotOverride(otherKind, slots);
+}
+function getOtherSlotsForTemplate(t) {
+  if (!isOtherDuty(t)) return 0;
+  if (isOtherUnlimitedTemplate(t)) return Infinity;
+  if (isOtherMultiSlotTemplate(t)) return getOtherSlotsForKind(t.otherKind);
+  return 1;
+}
+function countOtherAssignments(otherKind) {
+  return schedule.filter(x => x.role === '其他' && x.otherKind === otherKind).length;
+}
+function countOtherAssignmentsForTemplate(t) {
+  if (!isOtherDuty(t)) return 0;
+  return countOtherAssignments(t.otherKind);
+}
+function personHasOtherAssignment(personIndex, otherKind) {
+  return schedule.some(x =>
+    x.personIndex === personIndex && x.role === '其他' && x.otherKind === otherKind
+  );
+}
+function getOtherSlotsRemaining(t) {
+  if (!isOtherDuty(t)) return 0;
+  if (isOtherUnlimitedTemplate(t)) return Infinity;
+  return Math.max(0, getOtherSlotsForTemplate(t) - countOtherAssignmentsForTemplate(t));
+}
+function trimOtherAssignmentsToCount(otherKind, targetCount) {
+  const target = Math.max(1, Math.min(12, Number(targetCount) || 1));
+  const assigned = schedule.filter(x => x.role === '其他' && x.otherKind === otherKind);
+  let removedAssigned = 0;
+  if (assigned.length > target) {
+    const sorted = assigned.slice().sort((a, b) => b.uid - a.uid);
+    sorted.slice(0, assigned.length - target).forEach(item => {
+      schedule = schedule.filter(x => x.uid !== item.uid);
+      removedAssigned++;
+    });
+    if (selectedBlockId != null && !schedule.some(x => x.uid === selectedBlockId)) selectedBlockId = null;
+  }
+  return { removedAssigned };
+}
+function otherItemIntersectsRange(item, rangeStart, rangeEnd) {
+  if (!item || item.start == null || item.end == null) return false;
+  return item.start < rangeEnd && item.end > rangeStart;
+}
+function getFuncChipDurationClass(duration) {
+  const mins = Number(duration) || 60;
+  if (mins <= 30) return 'func-chip-30';
+  if (mins >= 90) return 'func-chip-90';
+  return 'func-chip-60';
+}
+function createOtherDutyTemplates() {
+  return OTHER_DUTY_DEFS.filter(def => !def.requireNzFlights || hasNzFlightsOnDay()).map(def => {
+    const slug = def.label.replace(/\s+/g, '_');
+    return {
+      id: `OTHER_${slug}`,
+      label: def.label,
+      compactLabel: def.label,
+      flight: `OTHER_${slug}`,
+      role: '其他',
+      flightType: 'FUNC',
+      otherKind: def.label,
+      otherShiftScope: def.shiftScope || 'both',
+      otherSlots: def.unlimited ? null : (def.adjustableSlots ? getOtherSlotsForKind(def.label) : def.defaultSlots || 1),
+      assignmentShiftRole: def.assignmentShiftRole || '',
+      start: Number.isFinite(def.fixedStart) ? def.fixedStart : null,
+      end: Number.isFinite(def.fixedEnd) ? def.fixedEnd : null,
+      duration: def.duration,
+      freeTimeDrag: !Number.isFinite(def.fixedStart),
+      isFunction: true,
+      isOtherDuty: true,
+      isFunctionListOnly: !!def.functionOnly
+    };
+  });
+}
+function sortOtherPaletteTemplates(list) {
+  const order = OTHER_DUTY_DEFS.map(d => d.label);
+  return list.slice().sort((a, b) =>
+    order.indexOf(a.otherKind) - order.indexOf(b.otherKind) ||
+    String(a.label || '').localeCompare(String(b.label || ''), 'zh-Hant')
+  );
+}
+function getOtherPaletteTemplates(list) {
+  return sortOtherPaletteTemplates((list || []).filter(isOtherDuty));
+}
 function createRestTemplates() {
   return [
     { id:'REST_30', label:'休 0.5 hr', compactLabel:'休', flight:'REST30', role:'休', flightType:'FUNC', start:null, end:null, duration:30, isFunction:true },
@@ -27135,7 +27606,7 @@ function pruneOrphanDutyScheduleItems() {
 function rebuildTemplates() {
   syncAbgSlotsFromHomelinePax({ silent: true });
   templates = hasImportedFlights()
-    ? [...buildTemplates(), ...createRestTemplates(), ...createTcTemplates(), ...createTTemplates(), ...customTemplates]
+    ? [...buildTemplates(), ...createRestTemplates(), ...createDicDutyTemplates(), ...createOtherDutyTemplates(), ...createTcTemplates(), ...createTTemplates(), ...customTemplates]
     : [];
   pruneOrphanDutyScheduleItems();
 }
@@ -27307,12 +27778,24 @@ function syncScheduleWindows() {
     const connectingLabel = resolveConnectingDutyCompactLabel(item);
     item.compactLabel = connectingLabel || tpl.compactLabel;
     item.label = tpl.label;
+    if (item.role === 'DIC') {
+      item.dicKind = item.dicKind || tpl.dicKind || item.label;
+      item.dicShiftScope = item.dicShiftScope || tpl.dicShiftScope || '';
+      if (isDicMultiSlotTemplate(tpl)) item.dicSlots = getDicSlotsForKind(tpl.dicKind);
+    }
+    if (item.role === '其他') {
+      item.otherKind = item.otherKind || tpl.otherKind || item.label;
+      item.otherShiftScope = item.otherShiftScope || tpl.otherShiftScope || '';
+      item.assignmentShiftRole = item.assignmentShiftRole || tpl.assignmentShiftRole || '';
+      item.freeTimeDrag = tpl.freeTimeDrag !== false;
+      if (isOtherMultiSlotTemplate(tpl)) item.otherSlots = getOtherSlotsForKind(tpl.otherKind);
+    }
     if (item.role === 'TC' && !item.timeOverride && tpl.role === 'TC') {
       item.segments = cloneTcSegments(tpl.segments || getTcKindSegments(tpl.tcKind));
       syncScheduleItemBoundsFromSegments(item);
     } else if (item.role === 'T' && tpl.role === 'T' && tpl.tMode === 'staff') {
       syncTScheduleItemBounds(item);
-    } else if (item.role !== 'PRE' && item.role !== '休' && item.role !== 'TC' && item.role !== 'T') {
+    } else if (item.role !== 'PRE' && item.role !== '休' && item.role !== 'DIC' && item.role !== '其他' && item.role !== 'TC' && item.role !== 'T') {
       item.start = tpl.start;
       item.end = tpl.end;
     }
@@ -27342,6 +27825,7 @@ function loadDayDataFromLocalStorage(dateStr) {
   if (!overtimeHourOverrides || typeof overtimeHourOverrides !== 'object') overtimeHourOverrides = {};
   dicOvertimeApprovals = readJsonLS(k.dicOvertimeApprovals, {});
   if (!dicOvertimeApprovals || typeof dicOvertimeApprovals !== 'object') dicOvertimeApprovals = {};
+  loadDicSlotOverridesFromStorage(k);
   customTemplates = readJsonLS(k.customTemplates, []);
   deletedCustomTemplates = readJsonLS(k.deletedCustomTemplates, []);
   tcTemplateDefaults = readJsonLS(k.tcTemplateDefaults, {});
@@ -27975,7 +28459,7 @@ function getTemplateDragTimeRange(tpl, timelineEl, clientX) {
   const rect = timelineEl.getBoundingClientRect();
   const x = clientX - rect.left;
   const start = snap5(getViewStartMin() + Math.max(0, x / pxPerMinute));
-  const duration = (tpl.role === '休' || tpl.role === 'PRE')
+  const duration = (tpl.role === '休' || isFuncPaletteDuty(tpl) || tpl.role === 'PRE')
     ? tpl.duration
     : Math.max(5, tpl.duration || ((tpl.end != null && tpl.start != null) ? tpl.end - tpl.start : 30));
   return { start, end: start + duration };
@@ -28146,7 +28630,7 @@ function updatePaletteDragGuide(tpl, timelineEl, clientX) {
   const visEnd = Math.min(viewEnd, end);
   const hasVisible = visEnd > visStart;
   const ghost = ensurePaletteDragGhost(timelineEl);
-  const label = tpl.role === '休' ? '休' : (tpl.compactLabel || tpl.label || tpl.role);
+  const label = tpl.role === '休' ? '休' : (isFuncPaletteDuty(tpl) ? tpl.label : (tpl.compactLabel || tpl.label || tpl.role));
   const timeLabel = `${minutesToTime(start % 1440)}–${minutesToTime(end % 1440)}`;
   ghost.classList.toggle('timeline-drag-ghost--offscreen', !hasVisible);
   if (hasVisible) {
@@ -28211,6 +28695,7 @@ function captureUndoState() {
     peopleDisplayOrder: peopleDisplayOrder.slice(),
     customTemplates: JSON.parse(JSON.stringify(customTemplates)),
     homelineConnectingDutyModes: normalizeHomelineConnectingDutyModesForCloud(homelineConnectingDutyModes),
+    funcSlotOverrides: normalizeDicSlotOverridesForStorage(funcSlotOverrides),
     blockSeq,
     selectedBlockId
   };
@@ -28242,6 +28727,7 @@ function undoLastChange() {
   homelineConnectingDutyModes = snap.homelineConnectingDutyModes && typeof snap.homelineConnectingDutyModes === 'object'
     ? normalizeHomelineConnectingDutyModesForCloud(snap.homelineConnectingDutyModes)
     : {};
+  funcSlotOverrides = normalizeDicSlotOverridesForStorage(snap.funcSlotOverrides || {});
   blockSeq = snap.blockSeq;
   selectedBlockId = snap.selectedBlockId;
   rebuildTemplates();
@@ -28303,6 +28789,7 @@ function saveLocal() {
   saveBulkySlotOverrides();
   saveBulkySlotManualLocks();
   saveHomelineConnectingDutyModes();
+  saveDicSlotOverrides();
   saveStaffDirectory();
   } finally {
     console.timeEnd('saveLocal');
@@ -28314,7 +28801,7 @@ function isCustomDutyTemplate(t) {
   return !!t && (t.role === '自訂' || t.isCustom);
 }
 function isFunctionBlockPaletteTemplate(t) {
-  return !!t && (t.role === '休' || isCustomDutyTemplate(t));
+  return !!t && (t.role === '休' || isCustomDutyTemplate(t) || !!t.isFunctionListOnly);
 }
 function isFlightSchedulePaletteTemplate(t) {
   return !!t && !isFunctionBlockPaletteTemplate(t);
@@ -28406,6 +28893,16 @@ function groupTemplatesByPaletteRole(tabItems) {
     pushConnectingTemplateToPaletteGroups(t, grouped, showConnPalette);
   });
   return grouped;
+}
+function sortDicPaletteTemplates(list) {
+  const order = DIC_DUTY_DEFS.map(d => d.label);
+  return list.slice().sort((a, b) =>
+    order.indexOf(a.dicKind) - order.indexOf(b.dicKind) ||
+    String(a.label || '').localeCompare(String(b.label || ''), 'zh-Hant')
+  );
+}
+function getDicPaletteTemplates(list) {
+  return sortDicPaletteTemplates((list || []).filter(isDicDuty));
 }
 function sortPaletteTemplates(list) {
   return list.slice().sort((a, b) =>
@@ -28647,7 +29144,12 @@ function renderPaletteRoleFilters(palette, grouped) {
   bar.appendChild(allBtn);
   PALETTE_ROLE_CATEGORIES.forEach(cat => {
     if (cat.id === '接飛' && !hasConnectingPairsOnAssignmentTable()) return;
-    if (!(grouped[cat.id] || []).length) return;
+    const catItems = cat.id === 'DIC'
+      ? getDicPaletteTemplates(grouped[cat.id] || [])
+      : cat.id === '其他'
+        ? getOtherPaletteTemplates(grouped[cat.id] || [])
+        : (grouped[cat.id] || []);
+    if (!catItems.length) return;
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.className = 'palette-role-filter' + (cat.id === activePaletteRoleCategory ? ' active' : '');
@@ -28668,11 +29170,16 @@ function sortTcPaletteTemplates(list) {
 }
 function renderPaletteRoleGroups(palette, grouped) {
   PALETTE_ROLE_ORDER.forEach(roleName => {
-    const list = roleName === 'TC'
-      ? sortTcPaletteTemplates(grouped[roleName] || [])
+    const rawList = grouped[roleName] || [];
+    const list = roleName === 'DIC'
+      ? getDicPaletteTemplates(rawList)
+      : roleName === '其他'
+        ? getOtherPaletteTemplates(rawList)
+      : roleName === 'TC'
+      ? sortTcPaletteTemplates(rawList)
       : roleName === 'T'
-        ? sortTPaletteTemplates(grouped[roleName] || [])
-        : sortPaletteTemplates(grouped[roleName] || []);
+        ? sortTPaletteTemplates(rawList)
+        : sortPaletteTemplates(rawList);
     if (!list.length) return;
     const title = document.createElement('div');
     title.className = roleName === 'TC'
@@ -28738,6 +29245,64 @@ function openTcDefaultsPicker() {
       close();
       openTcTimeEditor({ mode: 'template', tcKind: btn.dataset.tcPick });
     });
+  });
+}
+function openDicSlotEditor(kind) {
+  const dicDef = getDicDutyDef(kind);
+  const otherDef = getOtherDutyDef(kind);
+  if (!dicDef?.adjustableSlots && !otherDef?.adjustableSlots) return;
+  const current = dicDef ? getDicSlotsForKind(kind) : getOtherSlotsForKind(kind);
+  const assigned = dicDef ? countDicAssignments(kind) : countOtherAssignments(kind);
+  let overlay = document.getElementById('dicSlotEditorOverlay');
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.id = 'dicSlotEditorOverlay';
+    overlay.className = 'tc-editor-overlay hidden';
+    document.body.appendChild(overlay);
+  }
+  overlay.innerHTML = `
+    <div class="tc-editor-panel">
+      <h3>調整${escapeHtml(kind)}人數</h3>
+      <div class="t-editor-staff-row">
+        <label>人數 <input type="number" min="1" max="12" data-dic-slot-count value="${current}"></label>
+      </div>
+      <p class="t-editor-staff-status" data-dic-slot-status>已指派 ${assigned} 人</p>
+      <div class="tc-editor-actions">
+        <button type="button" class="btn-secondary" data-dic-slot-editor-cancel>取消</button>
+        <button type="button" class="btn-primary" data-dic-slot-editor-save>確認</button>
+      </div>
+    </div>
+  `;
+  overlay.classList.remove('hidden');
+  const close = () => overlay.classList.add('hidden');
+  const countInput = overlay.querySelector('[data-dic-slot-count]');
+  const statusEl = overlay.querySelector('[data-dic-slot-status]');
+  const syncStatus = () => {
+    const target = parseInt(countInput?.value, 10);
+    const targetText = Number.isFinite(target) && target > 0 ? Math.min(12, target) : 1;
+    const remain = Math.max(0, targetText - assigned);
+    statusEl.textContent = `尚可排 ${remain} / 目標 ${targetText}${assigned ? `（已排 ${assigned}）` : ''}`;
+  };
+  countInput?.addEventListener('input', syncStatus);
+  syncStatus();
+  overlay.querySelector('[data-dic-slot-editor-cancel]')?.addEventListener('click', close);
+  overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
+  overlay.querySelector('[data-dic-slot-editor-save]')?.addEventListener('click', () => {
+    const next = parseInt(countInput?.value, 10);
+    if (!Number.isFinite(next) || next < 1 || next > 12) {
+      appAlert('請輸入有效人數（1–12）。', '無法儲存');
+      return;
+    }
+    pushUndoSnapshot();
+    setDicSlotOverride(kind, next);
+    if (dicDef) trimDicAssignmentsToCount(kind, next);
+    else trimOtherAssignmentsToCount(kind, next);
+    rebuildTemplates();
+    markUnsynced();
+    renderPalette();
+    renderRows();
+    if (typeof syncAssignmentTableFromSchedule === 'function') syncAssignmentTableFromSchedule();
+    close();
   });
 }
 function openAbgSlotEditor(flight, flightType = 'DEP') {
@@ -28933,6 +29498,42 @@ function makeChip(t, paletteRoleContext = '') {
   if (t.role === '休') {
     chip.classList.add(t.duration >= 60 ? 'rest-chip-60' : 'rest-chip-30');
     chip.innerHTML = `<strong>${t.label}</strong>`;
+  } else if (t.role === 'DIC') {
+    chip.classList.add('rest-chip-60');
+    if (isDicMultiSlotTemplate(t)) {
+      const remain = getDicSlotsRemaining(t);
+      chip.innerHTML = `<button type="button" class="duty-chip-edit-btn" title="調整人數">${EDIT_GEAR_ICON_HTML}</button><strong>${escapeHtml(t.label)}</strong>`;
+      chip.querySelector('.duty-chip-edit-btn')?.addEventListener('click', e => {
+        e.stopPropagation();
+        e.preventDefault();
+        openDicSlotEditor(t.dicKind);
+      });
+      chip.querySelector('.duty-chip-edit-btn')?.addEventListener('mousedown', e => e.stopPropagation());
+      if (remain > 0) {
+        chip.title = `尚可排 ${remain} 人`;
+        appendDutyChipSlotBadge(chip, remain, `尚可排 ${remain} 人`);
+      }
+    } else {
+      chip.innerHTML = `<strong>${escapeHtml(t.label)}</strong>`;
+    }
+  } else if (t.role === '其他') {
+    chip.classList.add(getFuncChipDurationClass(t.duration));
+    if (isOtherMultiSlotTemplate(t)) {
+      const remain = getOtherSlotsRemaining(t);
+      chip.innerHTML = `<button type="button" class="duty-chip-edit-btn" title="調整人數">${EDIT_GEAR_ICON_HTML}</button><strong>${escapeHtml(t.label)}</strong>`;
+      chip.querySelector('.duty-chip-edit-btn')?.addEventListener('click', e => {
+        e.stopPropagation();
+        e.preventDefault();
+        openDicSlotEditor(t.otherKind);
+      });
+      chip.querySelector('.duty-chip-edit-btn')?.addEventListener('mousedown', e => e.stopPropagation());
+      if (Number.isFinite(remain) && remain > 0) {
+        chip.title = `尚可排 ${remain} 人`;
+        appendDutyChipSlotBadge(chip, remain, `尚可排 ${remain} 人`);
+      }
+    } else {
+      chip.innerHTML = `<strong>${escapeHtml(t.label)}</strong>`;
+    }
   } else if (t.role === 'PRE') {
     const stdLine = t.paletteSortLabel
       ? `<small>${escapeHtml(t.paletteSortLabel)}</small>`
@@ -29204,6 +29805,10 @@ function renderPalette() {
     }
     if (roleCategory === '接飛') {
       sortPaletteTemplates(grouped['接飛'] || []).forEach(t => palette.appendChild(makeChip(t)));
+    } else if (roleCategory === 'DIC') {
+      getDicPaletteTemplates(grouped['DIC'] || []).forEach(t => palette.appendChild(makeChip(t)));
+    } else if (roleCategory === '其他') {
+      getOtherPaletteTemplates(grouped['其他'] || []).forEach(t => palette.appendChild(makeChip(t)));
     } else {
       sortPaletteTemplates(grouped[roleCategory]).forEach(t => palette.appendChild(makeChip(t)));
     }
@@ -29602,7 +30207,23 @@ function handleTimelinePaletteDrop(e, timeline) {
   if (!tpl) return;
   const targetPersonIndex = Number(timeline.dataset.originalIndex);
   if (tpl.role !== '休' && tpl.role !== '自訂') {
-    if (tpl.role === 'PPT') {
+    if (isDicDuty(tpl)) {
+      if (isDicMultiSlotTemplate(tpl)) {
+        if (countDicAssignmentsForTemplate(tpl) >= getDicSlotsForTemplate(tpl)) return;
+        if (personHasDicAssignment(targetPersonIndex, tpl.dicKind)) return;
+      } else if (schedule.some(x => x.role === 'DIC' && x.dicKind === tpl.dicKind)) {
+        return;
+      }
+    } else if (isOtherDuty(tpl)) {
+      if (isOtherUnlimitedTemplate(tpl)) {
+        /* 無數量限制 */
+      } else if (isOtherMultiSlotTemplate(tpl)) {
+        if (countOtherAssignmentsForTemplate(tpl) >= getOtherSlotsForTemplate(tpl)) return;
+        if (personHasOtherAssignment(targetPersonIndex, tpl.otherKind)) return;
+      } else if (schedule.some(x => x.role === '其他' && x.otherKind === tpl.otherKind)) {
+        return;
+      }
+    } else if (tpl.role === 'PPT') {
       if (countPptAssignments(tpl.flight, tpl.flightType) >= getPptSlotsForTemplate(tpl)) return;
       if (personHasPptAssignment(targetPersonIndex, tpl.flight, tpl.flightType)) return;
     } else if (tpl.role === 'ABG') {
@@ -29656,6 +30277,15 @@ function handleTimelinePaletteDrop(e, timeline) {
     }
   } else if (!dutyIntersectsView({ start, end })) {
     return;
+  }
+
+  if (isFuncPaletteDuty(tpl)) {
+    const placement = validateFuncDutyPlacement(getFuncShiftScope(tpl), start, end);
+    if (!placement.ok) {
+      appAlert(placement.message, '無法排入', 'info');
+      endPaletteDragSession();
+      return;
+    }
   }
 
   if (!personQualifiesForDuty(people[targetPersonIndex], tpl)) return;
@@ -29713,6 +30343,12 @@ function handleTimelinePaletteDrop(e, timeline) {
     homelineConnecting: !!tpl.homelineConnecting,
     arrFlight: tpl.arrFlight || '',
     depFlight: tpl.depFlight || tpl.flight || '',
+    dicKind: tpl.dicKind || '',
+    dicShiftScope: tpl.dicShiftScope || '',
+    otherKind: tpl.otherKind || '',
+    otherShiftScope: tpl.otherShiftScope || '',
+    assignmentShiftRole: tpl.assignmentShiftRole || '',
+    freeTimeDrag: tpl.freeTimeDrag !== false,
     personIndex: targetPersonIndex,
     start,
     end
@@ -29972,7 +30608,7 @@ function updateBlockMovePreview(item) {
   blocks.forEach(block => {
     if (block.parentElement !== timeline) timeline.appendChild(block);
   });
-  if (item.role === '休' || item.role === 'PRE') {
+  if ((isMovableTimeDuty(item) && item.freeTimeDrag !== false) || item.role === 'PRE') {
     const slice = getVisibleDutySlice({ start: item.start, end: item.end });
     if (!slice) return true;
     blocks.forEach(block => {
@@ -30006,7 +30642,7 @@ function startMoveBlock(e, item) {
     let idx = Math.max(0, Math.min(Math.floor((ev.clientY - boardRect.top - 1) / rowHeight), rowList.length - 1));
     item.personIndex = rowList[idx]?.originalIndex ?? item.personIndex;
 
-    if (item.role === '休' || item.role === 'PRE') {
+    if ((isMovableTimeDuty(item) && item.freeTimeDrag !== false) || item.role === 'PRE') {
       const targetTimeline = document.querySelector(`.timeline[data-original-index="${item.personIndex}"]`) || originTimeline;
       const rect = targetTimeline.getBoundingClientRect();
       const raw = getViewStartMin() + ((ev.clientX - rect.left) / pxPerMinute);
@@ -30046,6 +30682,18 @@ function startMoveBlock(e, item) {
       renderRows();
       selectBlock(item.uid);
       return;
+    }
+    if (isFuncPaletteDuty(item)) {
+      const placement = validateFuncDutyPlacement(getFuncShiftScope(item), item.start, item.end);
+      if (!placement.ok) {
+        appAlert(placement.message, '無法移動', 'info');
+        item.personIndex = originalPersonIndex;
+        item.start = originalStart;
+        item.end = originalEnd;
+        renderRows();
+        selectBlock(item.uid);
+        return;
+      }
     }
     renderRows();
     selectBlock(item.uid);
@@ -30431,6 +31079,7 @@ document.getElementById('toggleShiftViewBtn').addEventListener('click', () => {
   localStorage.setItem(LS_KEYS_GLOBAL.shiftView, activeShiftView);
   updateShiftViewButtonLabel();
   renderTimeHeader();
+  renderPalette();
   renderRows();
 });
 document.getElementById('toggleRollCallBtn')?.addEventListener('click', () => {
