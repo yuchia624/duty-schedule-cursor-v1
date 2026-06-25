@@ -1823,6 +1823,20 @@
     color: #991b1b;
   }
   .timeline-alert-confirm:hover { background: #fee2e2; }
+  .timeline-gap-tip {
+    position: fixed;
+    z-index: 10000;
+    padding: 6px 10px;
+    font-size: 12px;
+    font-weight: 700;
+    color: #fff;
+    background: rgba(30, 64, 175, 0.94);
+    border-radius: 6px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+    pointer-events: none;
+    white-space: nowrap;
+  }
+  .timeline-gap-tip.hidden { display: none; }
   .block { z-index: 3; }
 
   .block-delete-btn {
@@ -10422,6 +10436,101 @@ function getVisibleDutySlice(item) {
   const end = Math.min(item.end, viewEnd);
   if (end <= start) return null;
   return { start, end };
+}
+function getTimelineMinuteFromClientX(timeline, clientX) {
+  const rect = timeline.getBoundingClientRect();
+  const raw = getViewStartMin() + ((clientX - rect.left) / pxPerMinute);
+  return Math.round(raw);
+}
+function getPersonVisualDutySegments(personIndex) {
+  const segments = [];
+  schedule.filter(s => s.personIndex === personIndex).forEach(item => {
+    if (item.role === 'TC') {
+      getTcItemSegments(item).forEach(seg => {
+        const slice = getVisibleDutySlice({ start: seg.start, end: seg.end });
+        if (slice) segments.push({ start: slice.start, end: slice.end });
+      });
+      return;
+    }
+    const slice = getVisibleDutySlice({ start: item.start, end: item.end });
+    if (slice) segments.push({ start: slice.start, end: slice.end });
+  });
+  segments.sort((a, b) => a.start - b.start || a.end - b.end);
+  return segments;
+}
+function findTimelineGapAtMinute(segments, minute) {
+  if (!segments.length || minute == null || !Number.isFinite(minute)) return null;
+  for (let i = 0; i < segments.length - 1; i++) {
+    const left = segments[i];
+    const right = segments[i + 1];
+    if (minute >= left.end && minute <= right.start) {
+      return {
+        gapStart: left.end,
+        gapEnd: right.start,
+        gapMinutes: Math.max(0, right.start - left.end)
+      };
+    }
+  }
+  return null;
+}
+let timelineGapTipEl = null;
+let timelineGapTipTimer = 0;
+function ensureTimelineGapTipEl() {
+  if (!timelineGapTipEl) {
+    timelineGapTipEl = document.createElement('div');
+    timelineGapTipEl.id = 'timelineGapTip';
+    timelineGapTipEl.className = 'timeline-gap-tip hidden';
+    document.body.appendChild(timelineGapTipEl);
+  }
+  return timelineGapTipEl;
+}
+function hideTimelineGapTip() {
+  if (timelineGapTipTimer) {
+    clearTimeout(timelineGapTipTimer);
+    timelineGapTipTimer = 0;
+  }
+  if (timelineGapTipEl) timelineGapTipEl.classList.add('hidden');
+}
+function showTimelineGapTip(clientX, clientY, gap) {
+  const tip = ensureTimelineGapTipEl();
+  const range = `${formatScheduleExportTimeMinutes(gap.gapStart)}–${formatScheduleExportTimeMinutes(gap.gapEnd)}`;
+  const minutesText = gap.gapMinutes === 0 ? '相接（0 分鐘）' : `${gap.gapMinutes} 分鐘`;
+  tip.textContent = `空檔 ${minutesText}（${range}）`;
+  tip.classList.remove('hidden');
+  const margin = 10;
+  const maxLeft = Math.max(margin, window.innerWidth - tip.offsetWidth - margin);
+  const maxTop = Math.max(margin, window.innerHeight - tip.offsetHeight - margin);
+  tip.style.left = `${Math.min(clientX + 8, maxLeft)}px`;
+  tip.style.top = `${Math.min(clientY + 8, maxTop)}px`;
+  if (timelineGapTipTimer) clearTimeout(timelineGapTipTimer);
+  timelineGapTipTimer = setTimeout(() => {
+    timelineGapTipTimer = 0;
+    tip.classList.add('hidden');
+  }, 4000);
+}
+function initTimelineGapClick() {
+  const rows = document.getElementById('rows');
+  if (!rows || rows.dataset.timelineGapBound) return;
+  rows.dataset.timelineGapBound = '1';
+  rows.addEventListener('click', e => {
+    if (e.target.closest('.block, .block-delete-btn, .block-edit-btn, .timeline-alert-confirm')) return;
+    const timeline = e.target.closest('.timeline');
+    if (!timeline) return;
+    const personIndex = Number(timeline.dataset.originalIndex);
+    if (Number.isNaN(personIndex)) return;
+    selectBlock(null);
+    const clickMin = getTimelineMinuteFromClientX(timeline, e.clientX);
+    const gap = findTimelineGapAtMinute(getPersonVisualDutySegments(personIndex), clickMin);
+    if (!gap) {
+      hideTimelineGapTip();
+      return;
+    }
+    showTimelineGapTip(e.clientX, e.clientY, gap);
+  });
+  document.addEventListener('click', e => {
+    if (e.target.closest('.timeline')) return;
+    hideTimelineGapTip();
+  });
 }
 function tStrToMin(s) {
   const m = /^([0-1]?\d|2[0-4]):([0-5]\d)$/.exec(String(s).trim());
@@ -30586,7 +30695,6 @@ function renderRows() {
     refreshPersonTimelineOverlays(timeline, rowInfo.originalIndex);
     rows.appendChild(row);
   });
-  document.querySelectorAll('.timeline').forEach(t => t.addEventListener('click', () => selectBlock(null)));
   syncAssignmentTableFromSchedule();
   renderOvertimePanel();
   fitAllBlockLabels();
@@ -31376,6 +31484,7 @@ syncRollCallBoardClass();
 updateRollCallButtonLabel();
 updateNameColHeader();
 initLeaveDutyOverlayTooltip();
+initTimelineGapClick();
 initClearDataModal();
 initRollCallStaffImportModal();
 initAssignmentTableFieldEditors();
