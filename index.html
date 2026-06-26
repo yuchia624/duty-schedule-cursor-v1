@@ -1511,6 +1511,16 @@
   .person-name { font-weight:800; white-space:nowrap; display:inline-flex; align-items:center; gap:5px; min-width:0; }
   .person-short-name { color:#4338ca; font-weight:900; }
   .person-full-name { color:#0f172a; font-weight:800; }
+  .person-name .person-name-code-mark {
+    background: #dbeafe;
+    color: #1e40af;
+    border: 2px solid #2563eb;
+    border-radius: 3px;
+    padding: 0 2px;
+    font-weight: 900;
+    box-decoration-break: clone;
+    -webkit-box-decoration-break: clone;
+  }
   .timeline {
     position:relative; width:var(--timeline-width); height:100%;
     background-color:#e8ecf0;
@@ -1646,15 +1656,11 @@
     color: #334155;
   }
   .block.selected { outline:2px solid #111827; }
-  .block.dimmed { opacity:.18; }
   .block.block-flight-match,
   .block.block-search-match {
     outline: 3px solid #f59e0b;
     outline-offset: 1px;
     z-index: 6;
-  }
-  .row.search-dim .person-cell {
-    opacity: 0.42;
   }
   .block.block-overtime {
     outline: 2px solid #ea580c;
@@ -8580,6 +8586,15 @@ function syncScheduleSideDockLayout() {
 function getScheduleScrollHost() {
   return document.querySelector('.schedule-board-scroll') || document.querySelector('.schedule-work-area');
 }
+function scrollScheduleBoardToTop(behavior = 'auto') {
+  const scrollHost = getScheduleScrollHost();
+  if (!scrollHost) return;
+  scrollHost.scrollTo({ top: 0, behavior });
+}
+function getSearchMatchedPersonIndicesInView(snap) {
+  if (!snap) return [];
+  return [...snap.personIndices].filter(idx => personMatchesShiftView(people[idx]));
+}
 const SCHEDULE_EDIT_FIELD_CLASSES = [
   'temp-row-name-input',
   'temp-row-shift-input',
@@ -9578,10 +9593,46 @@ function buildPersonRowCoreHtml(opts) {
     buildScheduleRowSeqHtml(opts.seqNo, opts.person, !!opts.showRowDelete),
     '<div class="rc-col rc-grip"><span class="drag-icon">⋮⋮</span></div>',
     `<div class="rc-col rc-level"><span class="badge">${escapeHtml(opts.displayLevel)}</span></div>`,
-    `<div class="rc-col rc-name"><span class="person-name">${escapeHtml(opts.displayName)}</span></div>`,
+    buildPersonNameCellHtml(opts.displayName, opts),
     `<div class="rc-col rc-shift">${renderShiftLabel(opts.shift, opts.adjustedShift)}</div>`,
     `<div class="rc-col rc-rest"><div class="rest-stack">${restCell}</div></div>`
   ];
+}
+function getPersonScheduleDisplayCode(person) {
+  if (!person || isTempControlRow(person)) return '';
+  const code = String(person.code || '').trim();
+  if (code) return code;
+  return String(resolvePersonnelId(person) || '').trim();
+}
+function highlightCodeInPersonNameText(text, code) {
+  const name = String(text || '').trim();
+  const mark = String(code || '').trim();
+  if (!name || !mark) return null;
+  const idx = name.indexOf(mark);
+  if (idx < 0) return null;
+  const before = escapeHtml(name.slice(0, idx));
+  const mid = escapeHtml(name.slice(idx, idx + mark.length));
+  const after = escapeHtml(name.slice(idx + mark.length));
+  return `${before}<span class="person-name-code-mark">${mid}</span>${after}`;
+}
+function buildPersonNameWithInlineCodeHighlight(displayName, person) {
+  const name = String(displayName || '').trim();
+  const code = getPersonScheduleDisplayCode(person);
+  if (!code) return escapeHtml(name);
+  const highlighted = highlightCodeInPersonNameText(name, code);
+  if (highlighted) return highlighted;
+  const rawName = String(person?.name || '').trim();
+  if (rawName && rawName !== name) {
+    const rawHighlighted = highlightCodeInPersonNameText(rawName, code);
+    if (rawHighlighted) return rawHighlighted;
+  }
+  return escapeHtml(name);
+}
+function buildPersonNameCellHtml(displayName, opts = {}) {
+  const inner = opts.showSearchCode
+    ? buildPersonNameWithInlineCodeHighlight(displayName, opts.person)
+    : escapeHtml(displayName || '');
+  return `<div class="rc-col rc-name"><span class="person-name">${inner}</span></div>`;
 }
 function buildRollCallHeaderHtml() {
   return [
@@ -9619,7 +9670,7 @@ function buildNormalRowHtml(opts) {
   return [
     `<div class="rc-col rc-seq"><span class="drag-icon">⋮⋮</span><span class="person-seq">${opts.seqNo}</span></div>`,
     `<div class="rc-col rc-level"><span class="badge">${escapeHtml(opts.displayLevel)}</span>${statusAlert}</div>`,
-    `<div class="rc-col rc-name"><span class="person-name">${escapeHtml(opts.displayName)}</span></div>`,
+    buildPersonNameCellHtml(opts.displayName, opts),
     `<div class="rc-col rc-shift"><span class="normal-shift-tail">${renderShiftLabel(opts.shift, opts.adjustedShift)}<span class="rest-out-stack">${restBit}</span></span></div>`
   ];
 }
@@ -16673,6 +16724,23 @@ function personMatchesNameSearch(person, text) {
   ].filter(Boolean).map(normalizeText);
   return hay.some(n => n.includes(q) || q.includes(n));
 }
+function personCodeMatchesSearchQuery(person, rawQuery) {
+  const q = normalizeText(rawQuery);
+  const code = normalizeText(getPersonScheduleDisplayCode(person));
+  if (!q || !code) return false;
+  return code.includes(q) || q.includes(code);
+}
+function shouldShowPersonCodeSearchHighlight(person, rawQuery) {
+  const raw = String(rawQuery || '').trim();
+  if (!raw || !person) return false;
+  const q = normalizeSearchQuery(raw);
+  if (!personMatchesUniversalSearch(person, q, raw)) return false;
+  if (personCodeMatchesSearchQuery(person, raw)) return true;
+  const parsed = parseTimelineSearch(raw);
+  if (parsed.mode === 'flight' || parsed.mode === 'shift') return false;
+  if (parsed.mode === 'level') return false;
+  return personMatchesNameSearch(person, raw);
+}
 function resolveShiftKey(token) {
   const t = String(token || '').trim();
   if (!t) return null;
@@ -16757,18 +16825,38 @@ function applyTimelineFlightSearch(query, preferredAssignmentRow) {
   if (input) input.value = timelineFlightSearch;
   renderRows();
   renderPalette();
-  updateAssignmentFlightHighlight(preferredAssignmentRow);
+  updateAssignmentFlightHighlight(preferredAssignmentRow, { skipScroll: true });
   if (!preferredAssignmentRow && timelineFlightSearch) {
     const snap = getUniversalSearchSnap();
     if (!snap) return;
-    const blockItem = schedule.find(s => snap.blockUids.has(s.uid));
-    if (blockItem) {
-      scrollControlPanelToTimeRange(blockItem.start, blockItem.end, { center: true });
-      focusPersonInSchedule(blockItem.personIndex);
-      return;
-    }
-    const personIdx = [...snap.personIndices].find(idx => personMatchesShiftView(people[idx]));
-    if (personIdx != null) focusPersonInSchedule(personIdx);
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        const matchedPersons = getSearchMatchedPersonIndicesInView(snap);
+        const blockItem = schedule.find(s => snap.blockUids.has(s.uid));
+        if (matchedPersons.length >= 2) {
+          scrollScheduleBoardToTop();
+          if (blockItem) {
+            scrollControlPanelToTimeRange(blockItem.start, blockItem.end, { center: true });
+            flashPersonInSchedule(blockItem.personIndex);
+            return;
+          }
+          flashPersonInSchedule(matchedPersons[0]);
+          return;
+        }
+        if (matchedPersons.length === 1) {
+          const personIdx = matchedPersons[0];
+          if (blockItem) {
+            scrollControlPanelToTimeRange(blockItem.start, blockItem.end, { center: true });
+          }
+          focusPersonInSchedule(personIdx);
+          return;
+        }
+        if (blockItem) {
+          scrollControlPanelToTimeRange(blockItem.start, blockItem.end, { center: true });
+          flashPersonInSchedule(blockItem.personIndex);
+        }
+      });
+    });
   }
 }
 function scrollAssignmentRowIntoView(row) {
@@ -30114,7 +30202,6 @@ function buildBlockElForSlice(item, slice, normalizedSearch, options = {}) {
   if (normalizedSearch) {
     const snap = getUniversalSearchSnap();
     if (snap?.blockUids.has(item.uid)) block.classList.add('block-search-match');
-    else block.classList.add('dimmed');
   }
   block.dataset.uid = item.uid;
   if (options.segmentIndex != null) block.dataset.segmentIndex = String(options.segmentIndex);
@@ -30498,7 +30585,8 @@ function bindTimelinePaletteDrop(timeline) {
 function renderRows() {
   console.time('renderRows');
   const scrollHost = getScheduleScrollHost();
-  const savedScrollTop = scrollHost?.scrollTop ?? null;
+  const searchActive = !!String(timelineFlightSearch || '').trim();
+  const savedScrollTop = searchActive ? null : (scrollHost?.scrollTop ?? null);
   const focusSnapshot = getScheduleEditFocusSnapshot();
   try {
   refreshHomelineConnectingStaleFlags();
@@ -30507,7 +30595,6 @@ function renderRows() {
   rows.innerHTML = '';
   const displayRows = getDisplayRows();
   const personSeqMap = buildPersonDisplaySeqMap();
-  const searchActive = !!String(timelineFlightSearch || '').trim();
   const searchSnap = getUniversalSearchSnap();
   if (!displayRows.length && searchActive && searchSnap && !searchSnap.personIndices.size && activeShiftView === 'late') {
     const reminder = document.createElement('div');
@@ -30522,7 +30609,6 @@ function renderRows() {
     const row = document.createElement('div');
     row.className = 'row';
     if (rowInfo.matchedRow) row.classList.add('flight-match-top');
-    else if (searchActive) row.classList.add('search-dim');
     if (isTempControlRow(rowInfo.person) && rollCallMode) row.classList.add('row--temp-row');
 
     const left = document.createElement('div');
@@ -30546,6 +30632,11 @@ function renderRows() {
     const displayLevel = isTempRow
       ? String(rowInfo.person.level || '支援').trim()
       : String(rowInfo.person.level || resolveLevel(rowInfo.person) || '').trim();
+    const searchPersonHit = searchActive && rowInfo.matchedRow;
+    const searchPersonOpts = searchPersonHit && shouldShowPersonCodeSearchHighlight(rowInfo.person, timelineFlightSearch) ? {
+      showSearchCode: true,
+      person: rowInfo.person
+    } : {};
     const shiftType = getPersonCellShiftType(rowInfo.person);
     if (shiftType) left.classList.add(`shift-${shiftType}`);
     if (rollCallMode && radioNo && !clockedOut) left.classList.add('on-duty-by-radio');
@@ -30579,7 +30670,8 @@ function renderRows() {
           radioNo,
           ircsNo,
           nextDayShift,
-          clockedOut
+          clockedOut,
+          ...searchPersonOpts
         });
     } else {
       left.classList.add('normal-grid');
@@ -30591,7 +30683,8 @@ function renderRows() {
         adjustedShift,
         hasRest: hasRestForPerson(rowInfo.originalIndex),
         clockedOut,
-        staffStatusAlert: isTempRow ? '' : getStaffStatusAlert(rowInfo.person, getScheduleReferenceDate())
+        staffStatusAlert: isTempRow ? '' : getStaffStatusAlert(rowInfo.person, getScheduleReferenceDate()),
+        ...searchPersonOpts
       }).join('');
     }
     left.addEventListener('dragstart', e => {
@@ -30919,18 +31012,25 @@ function focusPersonInSchedule(personIndex) {
       const rowRect = row.getBoundingClientRect();
       const hostRect = scrollHost.getBoundingClientRect();
       const targetTop = scrollHost.scrollTop + (rowRect.top - hostRect.top) - (hostRect.height / 2) + (rowRect.height / 2);
-      scrollHost.scrollTo({ top: Math.max(0, targetTop), behavior: 'smooth' });
+      scrollHost.scrollTo({ top: Math.max(0, targetTop), behavior: 'auto' });
     } else if (row) {
-      row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      row.scrollIntoView({ behavior: 'auto', block: 'center' });
     }
-    document.querySelectorAll('.row.person-locate-flash, .person-cell.person-locate-flash').forEach(el => el.classList.remove('person-locate-flash'));
-    row.classList.add('person-locate-flash');
-    cell.classList.add('person-locate-flash');
-    setTimeout(() => {
-      row.classList.remove('person-locate-flash');
-      cell.classList.remove('person-locate-flash');
-    }, 2000);
+    flashPersonInSchedule(personIndex);
   });
+}
+function flashPersonInSchedule(personIndex) {
+  const cell = document.querySelector(`.person-cell[data-original-index="${personIndex}"]`);
+  if (!cell) return;
+  const row = cell.closest('.row');
+  if (!row) return;
+  document.querySelectorAll('.row.person-locate-flash, .person-cell.person-locate-flash').forEach(el => el.classList.remove('person-locate-flash'));
+  row.classList.add('person-locate-flash');
+  cell.classList.add('person-locate-flash');
+  setTimeout(() => {
+    row.classList.remove('person-locate-flash');
+    cell.classList.remove('person-locate-flash');
+  }, 2000);
 }
 function syncAssignmentRowHeights() {
   const panel = document.getElementById('assignmentPanel');
@@ -30987,7 +31087,7 @@ function updateAssignmentFlightHighlight(preferredRow, options = {}) {
       scrollAssignmentRowIntoView(focusRow);
       requestAnimationFrame(() => syncAssignmentRowHeights());
     });
-  } else if (parsed.mode === 'none') {
+  } else if (!q) {
     syncAssignmentRowHeights();
   }
 }
