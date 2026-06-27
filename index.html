@@ -1276,6 +1276,12 @@
     justify-content: center;
     flex: 0 0 auto;
   }
+  .board:not(.roll-call-mode) .normal-grid .duty-overlap-alert,
+  .board.roll-call-mode .rollcall-grid .rc-col .duty-overlap-alert {
+    width: 14px;
+    height: 14px;
+    font-size: 10px;
+  }
   .rollcall-grid {
     display:grid !important;
     grid-template-columns:var(--rollcall-grid);
@@ -3204,6 +3210,22 @@
     margin-left:2px; padding:1px 3px; border-radius:999px;
     background:#fff7ed; color:#c2410c; font-size:9px; font-weight:800;
     border:1px solid #fed7aa; flex:0 0 auto;
+  }
+  .duty-overlap-alert {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: 0;
+    width: 14px;
+    height: 14px;
+    border-radius: 999px;
+    background: #fef2f2;
+    color: #dc2626;
+    border: 1px solid #fecaca;
+    font-size: 10px;
+    font-weight: 900;
+    line-height: 1;
+    flex: 0 0 auto;
   }
   .clocked-out-rest {
     display: inline-flex;
@@ -7951,16 +7973,6 @@
         <div class="erp-module-card">
           <div class="erp-module-head erp-page-nav-head">
             <strong>系統設定</strong>
-            <div class="erp-module-sub">資料重置與顯示模式（沿用既有按鈕與邏輯）。</div>
-          </div>
-          <div class="erp-module-actions">
-            <button type="button" id="restoreLocalBackupBtn">一鍵匯入 localstorage-backup</button>
-            <input id="restoreLocalBackupInput" type="file" accept=".json,application/json" hidden />
-          </div>
-          <div class="erp-module-actions" id="erpSettingsMount"></div>
-          <div class="erp-module-actions">
-            <button type="button" class="js-erp-proxy-shift">顯示：早班</button>
-            <button type="button" class="js-erp-proxy-rollcall">點名：關</button>
           </div>
         </div>
       </section>
@@ -8941,8 +8953,11 @@ function updateRollCallButtonLabel() {
   });
 }
 function buildRestStatusHtml(opts) {
+  if (opts.hasDutyOverlap) {
+    return '<span class="duty-overlap-alert" title="duty 區塊時間重疊" aria-label="duty 區塊時間重疊">!</span>';
+  }
   if (opts.clockedOut) return '<span class="clocked-out-rest">已下班</span>';
-  if (opts.hasRest) return opts.useRestCell ? '<span class="rest-cell" aria-hidden="true"></span>' : '';
+  if (opts.hasRest) return '';
   if (isNonWorkAdjustedShiftStatus(getAdjustedShiftInputStatus(opts.adjustedShift))) return '';
   return '<span class="pending-rest">待排休</span>';
 }
@@ -9640,6 +9655,7 @@ function buildTempRollCallCoreHtml(opts) {
   const restCell = buildRestStatusHtml({
     clockedOut: !!opts.clockedOut,
     hasRest: opts.hasRest,
+    hasDutyOverlap: !!opts.hasDutyOverlap,
     useRestCell: true,
     adjustedShift: opts.adjustedShift
   });
@@ -9789,12 +9805,13 @@ function refreshRestStatusDisplay(cell, personIndex) {
   const html = buildRestStatusHtml({
     clockedOut: !!person.clockedOut,
     hasRest: hasRestForPerson(personIndex),
+    hasDutyOverlap: personHasOverlappingDutyBlocks(personIndex),
     useRestCell: !!cell.querySelector('.rest-stack'),
     adjustedShift: person.adjustedShift
   });
   const stack = cell.querySelector('.rest-stack, .rest-out-stack');
   if (!stack) return;
-  const status = stack.querySelector('.pending-rest, .clocked-out-rest, .rest-cell');
+  const status = stack.querySelector('.pending-rest, .clocked-out-rest, .rest-cell, .duty-overlap-alert');
   if (status) {
     if (html) {
       const wrap = document.createElement('span');
@@ -9811,6 +9828,7 @@ function buildPersonRowCoreHtml(opts) {
   const restCell = buildRestStatusHtml({
     clockedOut: !!opts.clockedOut,
     hasRest: opts.hasRest,
+    hasDutyOverlap: !!opts.hasDutyOverlap,
     useRestCell: true,
     adjustedShift: opts.adjustedShift
   });
@@ -9886,6 +9904,7 @@ function buildNormalRowHtml(opts) {
   const restBit = buildRestStatusHtml({
     clockedOut: !!opts.clockedOut,
     hasRest: opts.hasRest,
+    hasDutyOverlap: !!opts.hasDutyOverlap,
     useRestCell: false,
     adjustedShift: opts.adjustedShift
   });
@@ -15701,11 +15720,6 @@ function switchErpModule(moduleKey, options = {}) {
   if (moduleKey === 'rules') {
     const customDuty = document.querySelector('#erpPageSchedule .custom-duty-box');
     erpMountEl(customDuty, document.getElementById('erpRulesMount'));
-  }
-  if (moduleKey === 'settings') {
-    erpMountEl(document.getElementById('resetBtn'), document.getElementById('erpSettingsMount'));
-    updateShiftViewButtonLabel();
-    updateRollCallButtonLabel();
   }
   if (moduleKey === 'flights') {
     if (options.flightSection) setFlightManagerSection(options.flightSection, { render: false });
@@ -25577,6 +25591,29 @@ function normalizeFlightDefsInPlace() {
   });
 }
 function hasRestForPerson(personIndex) { return schedule.some(x => x.personIndex === personIndex && x.role === '休'); }
+function getPersonDutyBlockSegments(personIndex) {
+  const segments = [];
+  schedule.filter(s => s.personIndex === personIndex).forEach(item => {
+    if (item.role === 'TC') {
+      getTcItemSegments(item).forEach(seg => {
+        if (seg.end > seg.start) segments.push({ start: seg.start, end: seg.end });
+      });
+      return;
+    }
+    if (item.start != null && item.end != null && item.end > item.start) {
+      segments.push({ start: item.start, end: item.end });
+    }
+  });
+  segments.sort((a, b) => a.start - b.start || a.end - b.end);
+  return segments;
+}
+function personHasOverlappingDutyBlocks(personIndex) {
+  const segments = getPersonDutyBlockSegments(personIndex);
+  for (let i = 0; i < segments.length - 1; i++) {
+    if (segments[i].end > segments[i + 1].start) return true;
+  }
+  return false;
+}
 const DIC_ANGEL_KIND = '小天使';
 const DIC_SUPERVISOR_KIND = '業督';
 const DIC_DUTY_DEFS = [
@@ -31797,6 +31834,7 @@ function renderRows() {
     if (shiftType) left.classList.add(`shift-${shiftType}`);
     if (rollCallMode && radioNo && !clockedOut) left.classList.add('on-duty-by-radio');
     if (clockedOut) row.classList.add('clocked-out');
+    const hasDutyOverlap = personHasOverlappingDutyBlocks(rowInfo.originalIndex);
     if (rollCallMode) {
       left.classList.add('rollcall-grid');
       left.innerHTML = isTempRow
@@ -31809,6 +31847,7 @@ function renderRows() {
           shift,
           adjustedShift,
           hasRest: hasRestForPerson(rowInfo.originalIndex),
+          hasDutyOverlap,
           radioNo,
           ircsNo,
           nextDayShift,
@@ -31823,6 +31862,7 @@ function renderRows() {
           shift,
           adjustedShift,
           hasRest: hasRestForPerson(rowInfo.originalIndex),
+          hasDutyOverlap,
           radioNo,
           ircsNo,
           nextDayShift,
@@ -31838,6 +31878,7 @@ function renderRows() {
         shift,
         adjustedShift,
         hasRest: hasRestForPerson(rowInfo.originalIndex),
+        hasDutyOverlap,
         clockedOut,
         staffStatusAlert: isTempRow ? '' : getStaffStatusAlert(rowInfo.person, getScheduleReferenceDate()),
         ...searchPersonOpts
@@ -32606,39 +32647,6 @@ document.getElementById('staffDbImportInput').addEventListener('change', async (
   appSuccess(`人員主檔已更新，共 ${imported.length} 人（${withHist} 人有生效日歷史）。`, '匯入完成');
   e.target.value = '';
 });
-document.getElementById('restoreLocalBackupBtn')?.addEventListener('click', () => {
-  document.getElementById('restoreLocalBackupInput')?.click();
-});
-document.getElementById('restoreLocalBackupInput')?.addEventListener('change', async (e) => {
-  const input = e.target;
-  const file = input?.files && input.files[0];
-  if (!file) return;
-  try {
-    const text = await file.text();
-    const payload = JSON.parse(text);
-    const count = payload && payload.data && typeof payload.data === 'object'
-      ? Object.keys(payload.data).filter(k => k.startsWith(`${LS_PREFIX}`)).length
-      : 0;
-    const ok = await appConfirm(
-      `即將還原 localStorage 備份（${count} 筆 cursor_v1 資料）。\n目前頁面暫存資料會被覆蓋，確定繼續嗎？`,
-      { title: '還原 localStorage 備份', confirmText: '確定還原' }
-    );
-    if (!ok) return;
-    const result = restoreCursorLocalStorageBackup(payload);
-    const stamp = new Date().toISOString().replace(/[:.]/g, '-');
-    downloadJsonFile(`localstorage-backup.before-restore.${stamp}.json`, result.rollbackPayload);
-    await appSuccess(
-      `已還原 ${result.restoredCount} 筆資料（清除舊資料 ${result.removedCount} 筆）。\n已自動下載還原前快照；若備份檔缺少標籤，系統會保留現有標籤。\n按下確定後將重新整理頁面套用。`,
-      '還原完成'
-    );
-    window.location.reload();
-  } catch (err) {
-    appAlert(`無法還原備份：${err?.message || err}`, '還原失敗');
-  } finally {
-    if (input) input.value = '';
-  }
-});
-
 document.getElementById('undoBtn')?.addEventListener('click', () => undoLastChange());
 document.getElementById('resetBtn').addEventListener('click', () => setClearDataModalOpen(true));
 document.getElementById('toggleOvertimeBtn')?.addEventListener('click', toggleOvertimePanel);
