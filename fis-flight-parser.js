@@ -26,6 +26,13 @@
     return String(v ?? '').replace(/\u3000/g, '').trim();
   }
 
+  /** FIS「A/C No」括號內為機型，例如 B16785(77X) → 77X */
+  function parseAcTypeFromAcNo(acNo) {
+    const s = clean(acNo);
+    const m = s.match(/\(([^)]+)\)/);
+    return m ? m[1].trim() : '';
+  }
+
   function normHeader(v) {
     return clean(v).replace(/\s+/g, '').toLowerCase();
   }
@@ -365,6 +372,7 @@
       extension: 0,
       flt: row.flt,
       acNo: row.acNo,
+      acType: parseAcTypeFromAcNo(row.acNo),
       dep: row.dep,
       arr: row.arr,
       std: clean(row.std),
@@ -530,6 +538,7 @@
   global.FisFlightParser = {
     parseFisWorkbook,
     parseFisTimeValue,
+    parseAcTypeFromAcNo,
     STATION,
     ALLOWED_SERVICE
   };

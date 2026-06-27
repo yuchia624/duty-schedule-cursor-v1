@@ -12,6 +12,18 @@
   const CONNECTING_BEFORE_STA_MIN = 15;
   const CONNECTING_BEFORE_STA_OZ_BX_MIN = 20;
 
+  /** 本家接飛：機型對應最短作業時間（分鐘） */
+  const HOMELINE_CONNECTING_TURNAROUND_MIN = {
+    '321': 60,
+    '333': 75,
+    '781': 80,
+    '78N': 80,
+    '78P': 80,
+    '77M': 75,
+    '77A': 75,
+    '77B': 75
+  };
+
   /** HX 機型：A330 家族（匯入簡化為 330；相容舊碼 333、33G） */
   const HX_AC_TYPE_A330 = new Set(['330', '333', '33G']);
 
@@ -90,6 +102,35 @@
 
   function normalizeAcType(acType) {
     return String(acType || '').trim().toUpperCase();
+  }
+
+  function parseAcTypeFromAcNo(acNo) {
+    const s = String(acNo ?? '').replace(/\u3000/g, '').trim();
+    const m = s.match(/\(([^)]+)\)/);
+    return m ? m[1].trim() : '';
+  }
+
+  function getFlightDefAcType(fDef) {
+    if (!fDef) return '';
+    const direct = String(fDef.acType || '').trim();
+    if (direct) return direct;
+    return parseAcTypeFromAcNo(fDef.acNo);
+  }
+
+  function getHomelineConnectingTurnaroundMin(arrDef, depDef) {
+    const acType = normalizeAcType(getFlightDefAcType(depDef) || getFlightDefAcType(arrDef));
+    if (!acType) return null;
+    return HOMELINE_CONNECTING_TURNAROUND_MIN[acType] ?? null;
+  }
+
+  function computeHomelineConnectingDutyBounds(arrDef, depDef, getArrAnchorMin, getDepStdMin) {
+    const anchor = getArrAnchorMin(arrDef);
+    const std = getDepStdMin(depDef);
+    if (anchor == null || std == null) return null;
+    const turnaround = getHomelineConnectingTurnaroundMin(arrDef, depDef);
+    const end = turnaround != null ? Math.max(std, anchor + turnaround) : std;
+    const start = Math.max(0, anchor - CONNECTING_BEFORE_STA_MIN);
+    return { start, end };
   }
 
   /** @returns {'A330'|'A321'|null} */
@@ -367,11 +408,14 @@
       const key = `${normalizeFlightNo(pair.arrFlight)}|${normalizeFlightNo(pair.depFlight)}`;
       if (seen.has(key)) return;
       seen.add(key);
-      const anchor = getArrAnchorMin(pair.arrDef);
-      const std = getDepStdMin(pair.depDef);
-      if (anchor == null || std == null) return;
-      const start = Math.max(0, anchor - CONNECTING_BEFORE_STA_MIN);
-      const end = std;
+      const bounds = computeHomelineConnectingDutyBounds(
+        pair.arrDef,
+        pair.depDef,
+        getArrAnchorMin,
+        getDepStdMin
+      );
+      if (!bounds) return;
+      const { start, end } = bounds;
       ['RC', 'BG'].forEach(role => {
         if (!mergeCheck(pair.arrFlight, pair.depFlight, role)) return;
         out.push({
@@ -474,6 +518,7 @@
     OZ_AC_TYPE_A380,
     CONNECTING_BEFORE_STA_MIN,
     CONNECTING_BEFORE_STA_OZ_BX_MIN,
+    HOMELINE_CONNECTING_TURNAROUND_MIN,
     isHomelineFlight,
     isForeignFlightDef,
     isHxFlightDef,
@@ -501,6 +546,8 @@
     connectingCompactLabel,
     connectingTemplateId,
     getConnectingPair,
+    getHomelineConnectingTurnaroundMin,
+    computeHomelineConnectingDutyBounds,
     getHomelineConnectingPair,
     isHomelineConnectingArrFlight,
     isHomelineConnectingDepFlight,

@@ -1846,6 +1846,230 @@
     white-space: nowrap;
   }
   .timeline-gap-tip.hidden { display: none; }
+  .block-duty-info-popover {
+    position: fixed;
+    z-index: 10001;
+    min-width: 168px;
+    max-width: 260px;
+    padding: 12px 14px;
+    background: #fff;
+    border: 1px solid #cbd5e1;
+    border-radius: 10px;
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.16);
+    font-size: 12px;
+    line-height: 1.45;
+    color: #0f172a;
+    pointer-events: auto;
+  }
+  .block-duty-info-popover--connecting {
+    min-width: 260px;
+    max-width: 360px;
+  }
+  .block-duty-info-popover--pax {
+    min-width: 420px;
+    max-width: min(520px, calc(100vw - 24px));
+  }
+  .block-duty-info-popover__head {
+    margin-bottom: 0;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #e2e8f0;
+  }
+  .block-duty-info-popover__head-meta {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 5px;
+  }
+  .block-duty-info-popover.hidden { display: none !important; }
+  .block-duty-info-popover__title {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 12px;
+  }
+  .block-duty-info-popover__title-text {
+    min-width: 0;
+    font-size: 16px;
+    font-weight: 800;
+    color: #0f172a;
+    line-height: 1.2;
+  }
+  .block-duty-info-popover__ac {
+    color: #94a3b8;
+    font-weight: 600;
+    font-size: 12px;
+    line-height: 1.2;
+  }
+  .duty-pax-staff-inline {
+    font-size: 12px;
+    font-weight: 600;
+    color: #64748b;
+    white-space: nowrap;
+  }
+  .duty-pax-staff-inline strong {
+    font-size: 13px;
+    font-weight: 700;
+    color: #0f172a;
+    font-variant-numeric: tabular-nums;
+  }
+  .duty-pax-staff-inline strong.is-short { color: #ea580c; }
+  .duty-pax-staff-inline strong.is-over { color: #dc2626; }
+  .duty-pax-staff-sep {
+    margin: 0 8px;
+    color: #cbd5e1;
+    font-weight: 400;
+  }
+  .duty-pax-staff-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 0;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #e2e8f0;
+  }
+  .duty-pax-staff-flight {
+    font-size: 16px;
+    font-weight: 800;
+    color: #0f172a;
+    white-space: nowrap;
+    line-height: 1.2;
+  }
+  .block-duty-info-popover__cells {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: 1fr;
+    gap: 0;
+    padding: 7px 0 8px;
+    margin-bottom: 8px;
+    border-bottom: 1px solid #e2e8f0;
+  }
+  .block-duty-info-popover__cells--plain {
+    border-top: none;
+    margin-bottom: 0;
+    padding-top: 0;
+    border-bottom: none;
+  }
+  .block-duty-info-popover__cells--after-head {
+    padding-top: 7px;
+    margin-bottom: 0;
+    border-bottom: none;
+  }
+  .block-duty-info-popover__cells--before-foot {
+    margin-bottom: 0;
+    padding-bottom: 7px;
+    border-bottom: none;
+  }
+  .block-duty-info-popover__cell {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    min-width: 0;
+    padding: 0 12px;
+  }
+  .block-duty-info-popover__cells > .block-duty-info-popover__cell:first-child {
+    padding-left: 0;
+  }
+  .block-duty-info-popover__cells > .block-duty-info-popover__cell:last-child {
+    padding-right: 0;
+  }
+  .block-duty-info-popover__cells > .block-duty-info-popover__cell + .block-duty-info-popover__cell {
+    border-left: 1px solid #e2e8f0;
+  }
+  .block-duty-info-popover__lbl {
+    font-size: 11px;
+    font-weight: 600;
+    color: #94a3b8;
+    margin-bottom: 4px;
+    line-height: 1.2;
+  }
+  .block-duty-info-popover__val {
+    font-size: 13px;
+    font-weight: 700;
+    color: #0f172a;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.25;
+    white-space: nowrap;
+  }
+  .block-duty-info-popover__foot {
+    padding-top: 7px;
+    margin-bottom: 8px;
+    border-top: 1px solid #e2e8f0;
+  }
+  .block-duty-info-popover__foot .block-duty-info-popover__cells {
+    margin-bottom: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+    border-bottom: none;
+  }
+  .block-duty-info-popover__conn {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    gap: 0 10px;
+    align-items: start;
+    padding: 7px 0 8px;
+    margin-bottom: 8px;
+    border-bottom: 1px solid #e2e8f0;
+  }
+  .block-duty-info-popover__conn--before-foot {
+    margin-bottom: 0;
+    padding-bottom: 7px;
+    border-bottom: none;
+  }
+  .block-duty-info-popover__conn-col {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .block-duty-info-popover__conn-divider {
+    width: 1px;
+    background: #e2e8f0;
+    align-self: stretch;
+    margin: 2px 0;
+  }
+  .block-duty-info-popover__conn-foot {
+    padding-top: 0;
+    margin-top: 0;
+    border-top: none;
+  }
+  .block-duty-info-popover--pax .abg-pax-popover-table {
+    margin-top: 2px;
+  }
+  .block-duty-info-popover--pax .abg-pax-popover-lbl,
+  .abg-pax-popover .abg-pax-popover-lbl {
+    font-size: 11px;
+    font-weight: 600;
+    color: #94a3b8;
+    margin-bottom: 4px;
+  }
+  .block-duty-info-popover--pax .abg-pax-popover-table > .abg-pax-popover-val,
+  .abg-pax-popover .abg-pax-popover-table > .abg-pax-popover-val {
+    font-size: 14px;
+    font-weight: 700;
+    line-height: 1.25;
+    color: #0f172a;
+  }
+  .block-duty-info-popover--pax .abg-pax-popover-table > .abg-pax-popover-val--pax,
+  .abg-pax-popover .abg-pax-popover-table > .abg-pax-popover-val--pax {
+    font-size: 14px;
+    font-weight: 700;
+  }
+  .block-duty-info-popover--pax .abg-pax-popover-wchr,
+  .abg-pax-popover .abg-pax-popover-wchr {
+    justify-self: start;
+    color: #0f172a;
+  }
+  .block-duty-info-popover--pax .hp-load-pct-text,
+  .abg-pax-popover .hp-load-pct-text {
+    font-size: 14px;
+    font-weight: 700;
+    color: #0f172a;
+  }
+  .block-duty-info-popover--pax .hp-mix-text,
+  .abg-pax-popover .hp-mix-text {
+    font-size: 12px;
+    font-weight: 600;
+    color: #0f172a;
+  }
   .block { z-index: 3; }
 
   .block-delete-btn {
@@ -3184,14 +3408,11 @@
   .abg-pax-popover {
     position: fixed; z-index: 15000;
     min-width: 420px; max-width: min(520px, calc(100vw - 24px));
-    padding: 10px 12px 12px;
+    padding: 12px 14px 14px;
     background: #fff; border: 1px solid #e2e8f0; border-radius: 10px;
     box-shadow: 0 10px 28px rgba(15, 23, 42, 0.14);
   }
   .abg-pax-popover.hidden { display: none !important; }
-  .abg-pax-popover-title {
-    font-size: 12px; font-weight: 700; color: #334155; margin-bottom: 8px;
-  }
   .abg-pax-popover-table {
     display: grid;
     grid-template-columns: 52px 52px 44px 92px minmax(0, 1fr);
@@ -3202,14 +3423,7 @@
     align-self: start; margin-bottom: 0; min-height: 14px; line-height: 14px;
   }
   .abg-pax-popover-table > .abg-pax-popover-val {
-    font-size: 16px; font-weight: 600; line-height: 1.2;
     align-self: center; justify-self: start;
-  }
-  .abg-pax-popover-table > .abg-pax-popover-val--pax {
-    font-size: 17px; font-weight: 700; color: #0f172a;
-  }
-  .abg-pax-popover-table > .abg-pax-popover-wchr {
-    justify-self: center; color: #334155;
   }
   .abg-pax-popover-table > div:nth-child(9),
   .abg-pax-popover-table > div:nth-child(10) {
@@ -3218,16 +3432,9 @@
   .abg-pax-popover-mix-sub {
     font-size: 9px; font-weight: 600; color: #94a3b8; line-height: 1.2; margin-bottom: 2px;
   }
-  .abg-pax-popover-lbl {
-    font-size: 10px; font-weight: 700; color: #94a3b8; margin-bottom: 4px; white-space: nowrap;
-  }
-  .abg-pax-popover-val {
-    font-size: 13px; font-weight: 500; color: #334155; font-variant-numeric: tabular-nums;
-  }
-  .abg-pax-popover-val--pax { font-weight: 700; color: #0f172a; }
-  .abg-pax-popover-wchr.is-alert { color: #b45309; font-weight: 700; }
+  .abg-pax-popover-wchr.is-alert { color: #ea580c; font-weight: 800; }
   .abg-pax-popover-empty {
-    font-size: 12px; color: #64748b; padding: 6px 0 2px;
+    font-size: 12px; color: #94a3b8; padding: 6px 0 2px;
   }
   .abg-pax-popover .hp-viz-cell { min-height: 28px; gap: 4px; }
   .abg-pax-popover .hp-viz-top { min-height: 14px; line-height: 14px; }
@@ -10555,6 +10762,307 @@ function hideTimelineGapTip() {
   }
   if (timelineGapTipEl) timelineGapTipEl.classList.add('hidden');
 }
+let blockDutyInfoPopoverEl = null;
+let blockDutyInfoPopoverUid = null;
+let blockDutyInfoPopoverBound = false;
+let blockDutyInfoPopoverSkipDismissUntil = 0;
+function ensureBlockDutyInfoPopoverEl() {
+  if (!blockDutyInfoPopoverEl) {
+    blockDutyInfoPopoverEl = document.createElement('div');
+    blockDutyInfoPopoverEl.id = 'blockDutyInfoPopover';
+    blockDutyInfoPopoverEl.className = 'block-duty-info-popover hidden';
+    blockDutyInfoPopoverEl.setAttribute('role', 'dialog');
+    document.body.appendChild(blockDutyInfoPopoverEl);
+  }
+  if (!blockDutyInfoPopoverBound) {
+    blockDutyInfoPopoverBound = true;
+    document.addEventListener('click', e => {
+      if (!blockDutyInfoPopoverEl || blockDutyInfoPopoverEl.classList.contains('hidden')) return;
+      if (Date.now() < blockDutyInfoPopoverSkipDismissUntil) return;
+      if (e.target.closest('.block-duty-info-popover, .block')) return;
+      hideBlockDutyInfoPopover();
+    });
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape') hideBlockDutyInfoPopover();
+    });
+  }
+  return blockDutyInfoPopoverEl;
+}
+function hideBlockDutyInfoPopover() {
+  blockDutyInfoPopoverUid = null;
+  if (blockDutyInfoPopoverEl) blockDutyInfoPopoverEl.classList.add('hidden');
+}
+function getScheduleItemFlightDef(item) {
+  if (!item?.flight) return null;
+  const type = item.flightType || 'DEP';
+  return flightDefs.find(f => f.flight === item.flight && f.type === type) || null;
+}
+function formatBlockDutyTimeRange(start, end) {
+  const range = formatPersonDutyTimelineTimeRange(start, end);
+  return range ? range.replace('-', '~') : '';
+}
+function formatArrStaTimelineDisplay(f) {
+  const mins = arrStaMinutes(f);
+  if (mins == null) return '';
+  return formatScheduleExportTimeMinutes(mins);
+}
+function parseAcTypeFromAcNo(acNo) {
+  if (typeof FisFlightParser !== 'undefined' && typeof FisFlightParser.parseAcTypeFromAcNo === 'function') {
+    return FisFlightParser.parseAcTypeFromAcNo(acNo);
+  }
+  const s = String(acNo ?? '').replace(/\u3000/g, '').trim();
+  const m = s.match(/\(([^)]+)\)/);
+  return m ? m[1].trim() : '';
+}
+function getFlightDefAcType(fDef) {
+  if (!fDef) return '';
+  const direct = String(fDef.acType || '').trim();
+  if (direct) return direct;
+  return parseAcTypeFromAcNo(fDef.acNo);
+}
+function formatBlockDutyFlightRow(label, flightNo) {
+  const flight = String(flightNo || '').trim();
+  return flight ? [label, flight] : null;
+}
+function buildBlockDutyInfoContent(item, slice) {
+  const dutyStart = slice?.start ?? item.start;
+  const dutyEnd = slice?.end ?? item.end;
+  const dutyRange = formatBlockDutyTimeRange(dutyStart, dutyEnd);
+  const rows = [];
+  const title = getDutyDisplayLabel(item);
+  if (item.connectingDuty) {
+    const arrFlight = String(item.arrFlight || '').trim();
+    const depFlight = String(item.depFlight || item.flight || '').trim();
+    const arrDef = arrFlight
+      ? flightDefs.find(f => f.flight === arrFlight && f.type === 'ARR')
+      : null;
+    const depDef = depFlight
+      ? flightDefs.find(f => f.flight === depFlight && f.type === 'DEP')
+      : null;
+    const arrRows = [];
+    const depRows = [];
+    if (arrFlight) {
+      const row = formatBlockDutyFlightRow('入境', arrFlight);
+      if (row) arrRows.push(row);
+    }
+    if (arrDef) {
+      const sta = formatArrStaTimelineDisplay(arrDef);
+      if (sta) arrRows.push(['STA', sta]);
+      const etaRaw = String(arrDef.eta || '').trim();
+      if (etaRaw) {
+        const eta = normalizeImportedTime(etaRaw);
+        if (eta) arrRows.push(['ETA', eta]);
+      }
+    }
+    if (depFlight) {
+      const row = formatBlockDutyFlightRow('出境', depFlight);
+      if (row) depRows.push(row);
+    }
+    if (depDef) {
+      const std = formatDepStdDisplay(depDef);
+      if (std) depRows.push(['STD', std]);
+    }
+    const titleAcType = getFlightDefAcType(arrDef) || getFlightDefAcType(depDef);
+    return { title, titleAcType, layout: 'connecting', arrRows, depRows, dutyRange };
+  }
+  if (item.role === 'T' || isFunctionDuty(item)) {
+    if (dutyRange) rows.push(['就位時間', dutyRange]);
+    return { title, rows };
+  }
+  const fDef = getScheduleItemFlightDef(item);
+  let titleAcType = '';
+  if (fDef) {
+    titleAcType = getFlightDefAcType(fDef);
+    const flightRow = formatBlockDutyFlightRow(fDef.type === 'ARR' ? '入境' : '出境', fDef.flight);
+    if (flightRow) rows.push(flightRow);
+    if (fDef.type === 'DEP') {
+      const std = formatDepStdDisplay(fDef);
+      if (std) rows.push(['STD', std]);
+    } else {
+      const sta = formatArrStaTimelineDisplay(fDef);
+      if (sta) rows.push(['STA', sta]);
+      const etaRaw = String(fDef.eta || '').trim();
+      if (etaRaw) {
+        const eta = normalizeImportedTime(etaRaw);
+        if (eta) rows.push(['ETA', eta]);
+      }
+    }
+  }
+  if (dutyRange) rows.push(['就位時間', dutyRange]);
+  if (item.role === 'ABG' || item.role === '大件') {
+    const flightType = item.flightType || 'DEP';
+    const fDef = getScheduleItemFlightDef(item);
+    const paxRow = lookupHomelinePaxForScheduleFlight(item.flight);
+    let suggestedSlots;
+    let assignedSlots;
+    if (item.role === '大件') {
+      suggestedSlots = fDef ? getBulkySlotsForFlightDef(fDef) : 0;
+      assignedSlots = countBulkyAssignments(item.flight, flightType);
+    } else {
+      suggestedSlots = fDef ? getAbgSlotsForFlightDef(fDef) : (paxRow ? getSuggestedAbgSlotsFromPaxRow(paxRow) : ABG_BR_B7_SLOTS);
+      assignedSlots = countAbgAssignments(item.flight, flightType);
+    }
+    return {
+      title,
+      titleAcType,
+      layout: 'pax-duty',
+      dutyLabel: item.role,
+      paxRow,
+      suggestedSlots,
+      assignedSlots,
+      rows
+    };
+  }
+  return { title, titleAcType, rows };
+}
+function buildDutyPaxStaffInlineHtml(suggestedSlots, assignedSlots) {
+  const suggested = Number.isFinite(suggestedSlots) ? suggestedSlots : 0;
+  const assigned = Number.isFinite(assignedSlots) ? assignedSlots : 0;
+  const stateClass = assigned < suggested ? 'is-short' : (assigned > suggested ? 'is-over' : '');
+  return `<span class="duty-pax-staff-inline">` +
+    `建議 <strong>${suggested}</strong> 人<span class="duty-pax-staff-sep">|</span>` +
+    `已排 <strong${stateClass ? ` class="${stateClass}"` : ''}>${assigned}</strong> 人` +
+    `</span>`;
+}
+function buildDutyPaxStaffBarHtml(flight, suggestedSlots, assignedSlots) {
+  const inline = buildDutyPaxStaffInlineHtml(suggestedSlots, assignedSlots);
+  const flightLabel = escapeHtml(formatHomelinePaxFlightLabel(flight));
+  return `<div class="duty-pax-staff-bar"><div class="duty-pax-staff-flight">${flightLabel}</div>${inline}</div>`;
+}
+function buildHomelinePaxStatsTableHtml(row) {
+  if (!row) {
+    return `<div class="abg-pax-popover-empty">此日無 EDW 訂位資料。</div>`;
+  }
+  const wheelchair = row.wheelchair;
+  const wchrClass = Number.isFinite(wheelchair) && wheelchair >= 15 ? ' is-alert' : '';
+  return `<div class="abg-pax-popover-table">` +
+    `<div class="abg-pax-popover-lbl">艙容</div>` +
+    `<div class="abg-pax-popover-lbl">訂位</div>` +
+    `<div class="abg-pax-popover-lbl">輪椅</div>` +
+    `<div class="abg-pax-popover-lbl">載客率</div>` +
+    `<div class="abg-pax-popover-lbl">旅客組成</div>` +
+    `<div class="abg-pax-popover-val">${escapeHtml(formatHomelinePaxCount(row.capacity))}</div>` +
+    `<div class="abg-pax-popover-val abg-pax-popover-val--pax">${escapeHtml(formatHomelinePaxCount(row.pax))}</div>` +
+    `<div class="abg-pax-popover-val abg-pax-popover-wchr${wchrClass}">${escapeHtml(formatHomelinePaxCount(wheelchair))}</div>` +
+    `<div>${buildHomelineLoadCell(row)}</div>` +
+    `<div><div class="abg-pax-popover-mix-sub">轉機／團體／直客</div>${buildHomelinePaxMixCell(row.transit, row.group, row.directPax, row.pax)}</div>` +
+    `</div>`;
+}
+function renderBlockDutyInfoCell(label, value) {
+  return `<div class="block-duty-info-popover__cell">` +
+    `<div class="block-duty-info-popover__lbl">${escapeHtml(label)}</div>` +
+    `<div class="block-duty-info-popover__val">${escapeHtml(value)}</div>` +
+    `</div>`;
+}
+function splitDutyInfoRows(rows) {
+  const main = [];
+  let dutyRow = null;
+  (rows || []).forEach(row => {
+    if (row?.[0] === '就位時間') dutyRow = row;
+    else main.push(row);
+  });
+  return { main, dutyRow };
+}
+function renderBlockDutyInfoDutySection(rows, options = {}) {
+  const { main, dutyRow } = splitDutyInfoRows(rows);
+  let html = '';
+  if (main.length) html += renderBlockDutyInfoCells(main, { ...options, beforeFoot: !!dutyRow });
+  if (dutyRow) {
+    const footWrap = main.length ? '<div class="block-duty-info-popover__foot">' : '';
+    const footWrapEnd = main.length ? '</div>' : '';
+    const dutyOpts = main.length ? { plain: true } : { afterHead: true };
+    html += `${footWrap}${renderBlockDutyInfoCells([dutyRow], dutyOpts)}${footWrapEnd}`;
+  }
+  return html;
+}
+function renderBlockDutyInfoCells(rows, options = {}) {
+  if (!rows?.length) return '';
+  const mods = [];
+  if (options.plain) mods.push('block-duty-info-popover__cells--plain');
+  if (options.afterHead) mods.push('block-duty-info-popover__cells--after-head');
+  if (options.beforeFoot) mods.push('block-duty-info-popover__cells--before-foot');
+  const mod = mods.length ? ` ${mods.join(' ')}` : '';
+  return `<div class="block-duty-info-popover__cells${mod}">` +
+    rows.map(([label, value]) => renderBlockDutyInfoCell(label, value)).join('') +
+    `</div>`;
+}
+function renderBlockDutyInfoRows(rows) {
+  return rows.map(([label, value]) => renderBlockDutyInfoCell(label, value)).join('');
+}
+function renderBlockDutyInfoTitle(title, titleAcType, staffMetrics) {
+  if (!title && !titleAcType && !staffMetrics) return '';
+  const acHtml = titleAcType
+    ? `<span class="block-duty-info-popover__ac">${escapeHtml(titleAcType)}</span>`
+    : '';
+  const titleRow = (title || acHtml)
+    ? `<div class="block-duty-info-popover__title">` +
+      `<span class="block-duty-info-popover__title-text">${escapeHtml(title || '')}</span>${acHtml}</div>`
+    : '';
+  const staffHtml = staffMetrics
+    ? `<div class="block-duty-info-popover__head-meta">${buildDutyPaxStaffInlineHtml(staffMetrics.suggestedSlots, staffMetrics.assignedSlots)}</div>`
+    : '';
+  if (!titleRow && !staffHtml) return '';
+  return `<div class="block-duty-info-popover__head">${titleRow}${staffHtml}</div>`;
+}
+function renderBlockDutyInfoPopoverHtml(content) {
+  const staffMetrics = content.layout === 'pax-duty'
+    ? { suggestedSlots: content.suggestedSlots, assignedSlots: content.assignedSlots }
+    : null;
+  const titleHtml = renderBlockDutyInfoTitle(content.title, content.titleAcType, staffMetrics);
+  if (content.layout === 'connecting') {
+    const { arrRows, depRows, dutyRange } = content;
+    if (!arrRows.length && !depRows.length && !dutyRange) return '';
+    const footRows = dutyRange ? [['就位時間', dutyRange]] : [];
+    const connClass = footRows.length ? ' block-duty-info-popover__conn--before-foot' : '';
+    return titleHtml +
+      `<div class="block-duty-info-popover__conn${connClass}">` +
+      `<div class="block-duty-info-popover__conn-col">${renderBlockDutyInfoRows(arrRows)}</div>` +
+      `<div class="block-duty-info-popover__conn-divider" aria-hidden="true"></div>` +
+      `<div class="block-duty-info-popover__conn-col">${renderBlockDutyInfoRows(depRows)}</div>` +
+      `</div>` +
+      (footRows.length ? `<div class="block-duty-info-popover__foot">${renderBlockDutyInfoCells(footRows, { plain: true })}</div>` : '');
+  }
+  if (content.layout === 'pax-duty') {
+    const dutyHtml = content.rows?.length ? renderBlockDutyInfoCells(content.rows) : '';
+    const paxHtml = buildHomelinePaxStatsTableHtml(content.paxRow);
+    if (!titleHtml && !dutyHtml && !paxHtml) return '';
+    return titleHtml + dutyHtml + paxHtml;
+  }
+  if (!content.rows?.length) return titleHtml || '';
+  return titleHtml + renderBlockDutyInfoDutySection(content.rows);
+}
+function showBlockDutyInfoPopover(blockEl, item, slice) {
+  closeAbgPaxPopover();
+  const pop = ensureBlockDutyInfoPopoverEl();
+  const uidKey = `${item.uid}:${slice?.start ?? item.start}:${slice?.end ?? item.end}`;
+  if (blockDutyInfoPopoverUid === uidKey && !pop.classList.contains('hidden')) {
+    hideBlockDutyInfoPopover();
+    return;
+  }
+  const content = buildBlockDutyInfoContent(item, slice);
+  const html = renderBlockDutyInfoPopoverHtml(content);
+  if (!html) return;
+  pop.classList.toggle('block-duty-info-popover--connecting', content.layout === 'connecting');
+  pop.classList.toggle('block-duty-info-popover--pax', content.layout === 'pax-duty');
+  pop.innerHTML = html;
+  pop.classList.remove('hidden');
+  blockDutyInfoPopoverUid = uidKey;
+  pop.style.visibility = 'hidden';
+  const rect = blockEl.getBoundingClientRect();
+  const margin = 8;
+  const popRect = pop.getBoundingClientRect();
+  let left = rect.left + rect.width / 2 - popRect.width / 2;
+  let top = rect.bottom + margin;
+  if (top + popRect.height > window.innerHeight - margin) {
+    top = rect.top - popRect.height - margin;
+  }
+  left = Math.max(margin, Math.min(left, window.innerWidth - popRect.width - margin));
+  top = Math.max(margin, Math.min(top, window.innerHeight - popRect.height - margin));
+  pop.style.left = `${left}px`;
+  pop.style.top = `${top}px`;
+  pop.style.visibility = '';
+  blockDutyInfoPopoverSkipDismissUntil = Date.now() + 250;
+}
 function showTimelineGapTip(clientX, clientY, gap) {
   const tip = ensureTimelineGapTipEl();
   const range = `${formatScheduleExportTimeMinutes(gap.gapStart)}–${formatScheduleExportTimeMinutes(gap.gapEnd)}`;
@@ -10583,6 +11091,7 @@ function initTimelineGapClick() {
     const personIndex = Number(timeline.dataset.originalIndex);
     if (Number.isNaN(personIndex)) return;
     selectBlock(null);
+    hideBlockDutyInfoPopover();
     const clickMin = getTimelineMinuteFromClientX(timeline, e.clientX);
     const gap = findTimelineGapAtMinute(getPersonVisualDutySegments(personIndex), clickMin);
     if (!gap) {
@@ -16464,32 +16973,18 @@ function positionAbgPaxPopover(pop, anchor) {
 }
 function buildAbgPaxPopoverHtml(flight, row, options = {}) {
   const dutyLabel = options.dutyLabel || 'ABG';
-  const slots = options.suggestedSlots != null
+  const suggestedSlots = options.suggestedSlots != null
     ? options.suggestedSlots
-    : getSuggestedAbgSlotsFromPaxRow(row);
-  const flightLabel = escapeHtml(formatHomelinePaxFlightLabel(flight));
-  const title = `<div class="abg-pax-popover-title">${flightLabel} · 建議 ${escapeHtml(dutyLabel)} ${slots} 人</div>`;
-  if (!row) {
-    return title + `<div class="abg-pax-popover-empty">此日無 EDW 訂位資料。</div>`;
-  }
-  const wheelchair = row.wheelchair;
-  const wchrClass = Number.isFinite(wheelchair) && wheelchair >= 15 ? ' is-alert' : '';
-  return title +
-    `<div class="abg-pax-popover-table">` +
-    `<div class="abg-pax-popover-lbl">艙容</div>` +
-    `<div class="abg-pax-popover-lbl">訂位</div>` +
-    `<div class="abg-pax-popover-lbl">輪椅</div>` +
-    `<div class="abg-pax-popover-lbl">載客率</div>` +
-    `<div class="abg-pax-popover-lbl">旅客組成</div>` +
-    `<div class="abg-pax-popover-val">${escapeHtml(formatHomelinePaxCount(row.capacity))}</div>` +
-    `<div class="abg-pax-popover-val abg-pax-popover-val--pax">${escapeHtml(formatHomelinePaxCount(row.pax))}</div>` +
-    `<div class="abg-pax-popover-val abg-pax-popover-wchr${wchrClass}">${escapeHtml(formatHomelinePaxCount(wheelchair))}</div>` +
-    `<div>${buildHomelineLoadCell(row)}</div>` +
-    `<div><div class="abg-pax-popover-mix-sub">轉機／團體／直客</div>${buildHomelinePaxMixCell(row.transit, row.group, row.directPax, row.pax)}</div>` +
-    `</div>`;
+    : (dutyLabel === '大件'
+      ? 0
+      : getSuggestedAbgSlotsFromPaxRow(row));
+  const assignedSlots = options.assignedSlots != null ? options.assignedSlots : 0;
+  return buildDutyPaxStaffBarHtml(flight, suggestedSlots, assignedSlots) +
+    buildHomelinePaxStatsTableHtml(row);
 }
 function toggleAbgPaxPopover(anchor, template, dutyKind = 'ABG') {
   if (!anchor || !template) return;
+  hideBlockDutyInfoPopover();
   const pop = ensureAbgPaxPopoverEl();
   if (abgPaxPopoverTemplateId === template.id && !pop.classList.contains('hidden')) {
     closeAbgPaxPopover();
@@ -16498,10 +16993,14 @@ function toggleAbgPaxPopover(anchor, template, dutyKind = 'ABG') {
   const row = lookupHomelinePaxForScheduleFlight(template.flight);
   const suggestedSlots = dutyKind === '大件'
     ? getBulkySlotsForTemplate(template)
-    : getSuggestedAbgSlotsFromPaxRow(row);
+    : getAbgSlotsForTemplate(template);
+  const assignedSlots = dutyKind === '大件'
+    ? countBulkyAssignmentsForTemplate(template)
+    : countAbgAssignmentsForTemplate(template);
   pop.innerHTML = buildAbgPaxPopoverHtml(template.flight, row, {
     dutyLabel: dutyKind,
-    suggestedSlots
+    suggestedSlots,
+    assignedSlots
   });
   abgPaxPopoverTemplateId = template.id;
   abgPaxPopoverAnchor = anchor;
@@ -30678,6 +31177,7 @@ function renderTimeHeader() {
 function selectBlock(uid) {
   selectedBlockId = uid;
   document.querySelectorAll('.block').forEach(el => el.classList.toggle('selected', Number(el.dataset.uid) === uid));
+  if (!uid) hideBlockDutyInfoPopover();
 }
 
 function getDisplayRows() {
@@ -30785,14 +31285,34 @@ function buildBlockElForSlice(item, slice, normalizedSearch, options = {}) {
     markUnsynced();
     if (typeof syncAssignmentTableFromSchedule === 'function') syncAssignmentTableFromSchedule();
   });
-  block.addEventListener('click', e => {
-    if (e.target.closest('.block-edit-btn') || e.target.closest('.block-delete-btn') || e.target.closest('.block-t-inconsistent-badge')) return;
-    e.stopPropagation();
-    selectBlock(item.uid);
-  });
   block.addEventListener('mousedown', e => {
     if (e.target.closest('.block-delete-btn') || e.target.closest('.block-edit-btn') || e.target.closest('.block-t-inconsistent-badge')) return;
-    startMoveBlock(e, item);
+    if (e.button !== 0) return;
+    const startX = e.clientX;
+    const startY = e.clientY;
+    const originTimeline = block.parentElement;
+    let dragging = false;
+    function onPointerMove(ev) {
+      if (dragging) return;
+      if (Math.abs(ev.clientX - startX) < 4 && Math.abs(ev.clientY - startY) < 4) return;
+      dragging = true;
+      cleanupPointerWatch();
+      startMoveBlock(ev, item, { originTimeline });
+    }
+    function onPointerUp() {
+      cleanupPointerWatch();
+      if (!dragging) {
+        e.stopPropagation();
+        selectBlock(item.uid);
+        showBlockDutyInfoPopover(block, item, slice);
+      }
+    }
+    function cleanupPointerWatch() {
+      document.removeEventListener('mousemove', onPointerMove);
+      document.removeEventListener('mouseup', onPointerUp);
+    }
+    document.addEventListener('mousemove', onPointerMove);
+    document.addEventListener('mouseup', onPointerUp);
   });
   const fullLabel = getDutyDisplayLabel(item);
   if (fullLabel) {
@@ -31091,6 +31611,7 @@ function bindTimelinePaletteDrop(timeline) {
 
 function renderRows() {
   console.time('renderRows');
+  hideBlockDutyInfoPopover();
   const scrollHost = getScheduleScrollHost();
   const searchActive = !!String(timelineFlightSearch || '').trim();
   const savedScrollTop = searchActive ? null : (scrollHost?.scrollTop ?? null);
@@ -31332,8 +31853,8 @@ function updateBlockMovePreview(item) {
   return true;
 }
 
-function startMoveBlock(e, item) {
-  e.preventDefault();
+function startMoveBlock(e, item, options = {}) {
+  hideBlockDutyInfoPopover();
   selectBlock(item.uid);
   const originalPersonIndex = item.personIndex;
   const originalStart = item.start;
@@ -31342,7 +31863,7 @@ function startMoveBlock(e, item) {
   let lastPreviewKey = '';
   let moveRaf = 0;
   const rowHeight = document.querySelector('.row').getBoundingClientRect().height;
-  const originTimeline = e.currentTarget.parentElement;
+  const originTimeline = options.originTimeline || e.currentTarget?.parentElement;
   const stableRows = getStableShiftRows();
   const isFuncMove = isFunctionDuty(item);
   function onMove(ev) {
@@ -31385,6 +31906,7 @@ function startMoveBlock(e, item) {
     document.removeEventListener('mousemove', onMove);
     document.removeEventListener('mouseup', onUp);
     endBlockMoveSession();
+    if (!undoPushed) return;
     if (!personQualifiesForDuty(people[item.personIndex], item) || !confirmConflict(item.personIndex, item.uid, item.start, item.end, item)) {
       if (item.role === 'TC' && !validateTcPersonAssignment(item.personIndex, item.tcKind, item.uid)) {
         appAlert('此人不可同時排互斥的 TC（例如早 TC 與午 TC、晚 TC 與接晚 TC 休）。', '無法移動', 'info');
@@ -31412,6 +31934,7 @@ function startMoveBlock(e, item) {
     selectBlock(item.uid);
     markUnsynced();
   }
+  if (e) onMove(e);
   document.addEventListener('mousemove', onMove);
   document.addEventListener('mouseup', onUp);
 }
