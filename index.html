@@ -10536,7 +10536,7 @@ function buildPersonDutyTimelineSheetRows(orderedRows) {
     ['日期', getScheduleExportDateText()],
     ['匯出時間', new Date().toLocaleString('zh-TW', { hour12: false })],
     [],
-    ['序', '代號', '姓名', '戰力', '班別', '行程']
+    ['序', '代號', '姓名', '戰力', '班別', '調班班別', '隔日班別', '行程']
   ];
   orderedRows.forEach((rowInfo, displayIdx) => {
     const person = rowInfo.person;
@@ -10546,7 +10546,9 @@ function buildPersonDutyTimelineSheetRows(orderedRows) {
       excelCell(person.code),
       excelCell(resolveFullName(person) || person.name),
       excelCell(person.level || resolveLevel(person)),
-      excelCell(getShiftFilterKey(person) || person.shift),
+      excelCell(person.shift || ''),
+      excelCell(person.adjustedShift || ''),
+      excelCell(person.nextDayShift || person.nextShift || ''),
       excelCell(formatPersonDutyTimelineText(personIndex))
     ]);
   });
@@ -10598,55 +10600,117 @@ function buildControlScheduleSheetRows(orderedRows) {
   return rows;
 }
 function buildAssignmentDepSheetRows() {
-  const depRows = flightDefs
-    .filter(f => f.type === 'DEP')
-    .sort((a, b) => depStdMinutes(a) - depStdMinutes(b) || a.flight.localeCompare(b.flight));
   const rows = [
     ['日期', getScheduleExportDateText()],
     [],
-    ['Flight No', 'STD', 'Gate', 'PPT CHK', 'ABG', 'BG', 'RC', 'Memo']
+    [...ASSIGNMENT_EXPORT_DEP_HEADERS]
   ];
-  depRows.forEach(f => {
-    const isCanx = f.status === 'CANX';
-    rows.push([
-      excelCell(f.flight),
-      excelCell(getAssignmentDepStdDisplayValue(f)),
-      excelCell(isCanx ? '-' : (f.depGate || '')),
-      excelCell(isCanx ? '-' : (isPptDepFlight(f) ? getAssignmentPptCellText(f.flight) : '')),
-      excelCell(isCanx ? '-' : getAssignmentAbgCellText(f.flight)),
-      excelCell(isCanx ? '-' : getAssignmentRoleCodes(f.flight, 'BG')),
-      excelCell(isCanx ? '-' : getAssignmentRoleCodes(f.flight, 'RC')),
-      excelCell(isCanx ? 'CANX' : '')
-    ]);
-  });
+  getAssignmentExportDepFlights().forEach(f => rows.push(buildAssignmentDepDataRow(f)));
   return rows;
 }
 function buildAssignmentArrSheetRows() {
-  const arrRows = flightDefs
-    .filter(isInboundAssignmentArrFlight)
-    .sort((a, b) => getArrSortMinutes(a) - getArrSortMinutes(b) || a.flight.localeCompare(b.flight));
   const rows = [
     ['日期', getScheduleExportDateText()],
     [],
-    ['Flight No', '接飛', 'STA', 'Gate', 'ETA', 'G2', '辦T', 'C', 'RC', 'Memo']
+    [...ASSIGNMENT_EXPORT_ARR_HEADERS]
   ];
-  arrRows.forEach(f => {
-    const isCanx = f.status === 'CANX';
-    const eta = f.eta ? normalizeImportedTime(f.eta) : '';
-    rows.push([
-      excelCell(f.flight),
-      excelCell(isCanx ? '-' : (f.connectingFlight || '')),
-      excelCell(getAssignmentArrStaDisplayValue(f)),
-      excelCell(isCanx ? '-' : (f.arrGate || '')),
-      excelCell(isCanx ? '-' : eta),
-      excelCell(isCanx ? '-' : (isArrG2Flight(f) ? getAssignmentRoleCodes(f.flight, 'G2') : '')),
-      excelCell(isCanx ? '-' : getAssignmentTransitCellText(f.flight)),
-      excelCell(isCanx ? '-' : getAssignmentRoleCodes(f.flight, '接機C')),
-      excelCell(isCanx ? '-' : getAssignmentRoleCodes(f.flight, '接機RC')),
-      excelCell(isCanx ? 'CANX' : '')
-    ]);
+  getAssignmentExportArrFlights().forEach(f => rows.push(buildAssignmentArrDataRow(f)));
+  return rows;
+}
+const ASSIGNMENT_EXPORT_DEP_HEADERS = ['Flight No', 'STD', 'Gate', 'PPT CHK', 'ABG', 'BG', 'RC', 'Memo'];
+const ASSIGNMENT_EXPORT_ARR_HEADERS = ['Flight No', '接飛', 'STA', 'Gate', 'ETA', 'G2', '辦T', 'C', 'RC', 'Memo'];
+function getAssignmentExportDepFlights() {
+  return flightDefs
+    .filter(f => f.type === 'DEP')
+    .sort((a, b) => depStdMinutes(a) - depStdMinutes(b) || a.flight.localeCompare(b.flight));
+}
+function getAssignmentExportArrFlights() {
+  return flightDefs
+    .filter(isInboundAssignmentArrFlight)
+    .sort((a, b) => getArrSortMinutes(a) - getArrSortMinutes(b) || a.flight.localeCompare(b.flight));
+}
+function buildAssignmentDepDataRow(f) {
+  const isCanx = f.status === 'CANX';
+  return [
+    excelCell(f.flight),
+    excelCell(getAssignmentDepStdDisplayValue(f)),
+    excelCell(isCanx ? '-' : (f.depGate || '')),
+    excelCell(isCanx ? '-' : (isPptDepFlight(f) ? getAssignmentPptCellText(f.flight) : '')),
+    excelCell(isCanx ? '-' : getAssignmentAbgCellText(f.flight)),
+    excelCell(isCanx ? '-' : getAssignmentRoleCodes(f.flight, 'BG')),
+    excelCell(isCanx ? '-' : getAssignmentRoleCodes(f.flight, 'RC')),
+    excelCell(isCanx ? 'CANX' : '')
+  ];
+}
+function buildAssignmentArrDataRow(f) {
+  const isCanx = f.status === 'CANX';
+  const eta = f.eta ? normalizeImportedTime(f.eta) : '';
+  return [
+    excelCell(f.flight),
+    excelCell(isCanx ? '-' : (f.connectingFlight || '')),
+    excelCell(getAssignmentArrStaDisplayValue(f)),
+    excelCell(isCanx ? '-' : (f.arrGate || '')),
+    excelCell(isCanx ? '-' : eta),
+    excelCell(isCanx ? '-' : (isArrG2Flight(f) ? getAssignmentRoleCodes(f.flight, 'G2') : '')),
+    excelCell(isCanx ? '-' : getAssignmentTransitCellText(f.flight)),
+    excelCell(isCanx ? '-' : getAssignmentRoleCodes(f.flight, '接機C')),
+    excelCell(isCanx ? '-' : getAssignmentRoleCodes(f.flight, '接機RC')),
+    excelCell(isCanx ? 'CANX' : '')
+  ];
+}
+function padAssignmentExportRow(cells, width) {
+  const row = cells.slice();
+  while (row.length < width) row.push('');
+  return row;
+}
+function buildAssignmentCombinedFlightRows() {
+  const depFlights = getAssignmentExportDepFlights();
+  const arrFlights = getAssignmentExportArrFlights();
+  const depWidth = ASSIGNMENT_EXPORT_DEP_HEADERS.length;
+  const arrWidth = ASSIGNMENT_EXPORT_ARR_HEADERS.length;
+  const rows = [
+    ['日期', getScheduleExportDateText()],
+    [],
+    [...ASSIGNMENT_EXPORT_DEP_HEADERS, '', ...ASSIGNMENT_EXPORT_ARR_HEADERS]
+  ];
+  const rowCount = Math.max(depFlights.length, arrFlights.length);
+  for (let i = 0; i < rowCount; i++) {
+    const depPart = depFlights[i]
+      ? buildAssignmentDepDataRow(depFlights[i])
+      : padAssignmentExportRow([], depWidth);
+    const arrPart = arrFlights[i]
+      ? buildAssignmentArrDataRow(arrFlights[i])
+      : padAssignmentExportRow([], arrWidth);
+    rows.push([...depPart, '', ...arrPart]);
+  }
+  return rows;
+}
+function buildAssignmentFixedSectionSheetRows() {
+  const rows = [[], ['固定勤務分配']];
+  rows.push(['勤務', ...ASSIGNMENT_FIXED_DUTIES.map(d => d.label)]);
+  rows.push(['AGT', ...ASSIGNMENT_FIXED_DUTIES.map(d => excelCell(getAssignmentFixedDutyCellText(d.label)))]);
+  const prefilingKeys = getAssignmentPrefilingFlightKeys();
+  if (prefilingKeys.length) {
+    rows.push([]);
+    rows.push(['航班', ...prefilingKeys.map(key => {
+      const idx = String(key).lastIndexOf('-');
+      return idx > 0 ? key.slice(0, idx) : key;
+    })]);
+    rows.push(['PRE FILING', ...prefilingKeys.map(key => excelCell(getAssignmentPrefilingCellText(key)))]);
+  }
+  rows.push([]);
+  rows.push(['勤務時段', ...ASSIGNMENT_SHIFT_SLOTS]);
+  ASSIGNMENT_SHIFT_ROLES.forEach(role => {
+    rows.push([role, ...ASSIGNMENT_SHIFT_SLOTS.map(slot => excelCell(getAssignmentShiftCellText(role, slot)))]);
   });
   return rows;
+}
+function buildAssignmentFullSheetRows() {
+  if (!getAssignmentExportDepFlights().length && !getAssignmentExportArrFlights().length) return [];
+  return [
+    ...buildAssignmentCombinedFlightRows(),
+    ...buildAssignmentFixedSectionSheetRows()
+  ];
 }
 function exportScheduleWorkbookExcel() {
   if (typeof XLSX === 'undefined') {
@@ -10660,17 +10724,14 @@ function exportScheduleWorkbookExcel() {
   const wb = XLSX.utils.book_new();
   if (people.length) {
     const orderedRows = getDisplaySortedRows();
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(buildControlScheduleSheetRows(orderedRows)), '管制表');
     XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(buildPersonDutyTimelineSheetRows(orderedRows)), '人員行程');
   }
-  if (flightDefs.some(f => f.type === 'DEP')) {
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(buildAssignmentDepSheetRows()), '出境分配');
-  }
-  if (flightDefs.some(f => f.type === 'ARR')) {
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(buildAssignmentArrSheetRows()), '入境分配');
+  const assignmentFullRows = buildAssignmentFullSheetRows();
+  if (assignmentFullRows.length) {
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(assignmentFullRows), '分配表');
   }
   if (!wb.SheetNames.length) {
-    appAlert('目前沒有可匯出的管制表或分配表資料。', '無法匯出', 'info');
+    appAlert('目前沒有可匯出的資料。', '無法匯出', 'info');
     return;
   }
   XLSX.writeFile(wb, `管制表分配表_${getScheduleExportFileDate()}.xlsx`);
@@ -31995,6 +32056,32 @@ function renderRows() {
   }
 }
 
+function resolvePersonIndexFromBoardY(clientY) {
+  const rowsHost = document.getElementById('rows');
+  if (!rowsHost) return null;
+  const rowEls = [...rowsHost.querySelectorAll('.row')];
+  if (!rowEls.length) return null;
+  for (const rowEl of rowEls) {
+    const rect = rowEl.getBoundingClientRect();
+    if (clientY >= rect.top && clientY < rect.bottom) {
+      const idx = Number(rowEl.querySelector('.timeline[data-original-index]')?.dataset.originalIndex);
+      return Number.isFinite(idx) ? idx : null;
+    }
+  }
+  let nearest = rowEls[0];
+  let nearestDist = Infinity;
+  rowEls.forEach(rowEl => {
+    const rect = rowEl.getBoundingClientRect();
+    const dist = Math.abs(clientY - (rect.top + rect.bottom) / 2);
+    if (dist < nearestDist) {
+      nearestDist = dist;
+      nearest = rowEl;
+    }
+  });
+  const idx = Number(nearest.querySelector('.timeline[data-original-index]')?.dataset.originalIndex);
+  return Number.isFinite(idx) ? idx : null;
+}
+
 function getBlockMovePreviewKey(item) {
   return `${item.personIndex}:${item.start}:${item.end}`;
 }
@@ -32026,19 +32113,14 @@ function startMoveBlock(e, item, options = {}) {
   let undoPushed = false;
   let lastPreviewKey = '';
   let moveRaf = 0;
-  const rowHeight = document.querySelector('.row').getBoundingClientRect().height;
   const originTimeline = options.originTimeline || e.currentTarget?.parentElement;
-  const stableRows = getStableShiftRows();
-  const isFuncMove = isFunctionDuty(item);
   function onMove(ev) {
     if (!undoPushed) {
       pushUndoSnapshot();
       undoPushed = true;
     }
-    const boardRect = document.getElementById('rows').getBoundingClientRect();
-    const rowList = isFuncMove ? stableRows : getDisplayRows();
-    let idx = Math.max(0, Math.min(Math.floor((ev.clientY - boardRect.top - 1) / rowHeight), rowList.length - 1));
-    item.personIndex = rowList[idx]?.originalIndex ?? item.personIndex;
+    const personIdx = resolvePersonIndexFromBoardY(ev.clientY);
+    if (personIdx != null) item.personIndex = personIdx;
 
     if ((isMovableTimeDuty(item) && item.freeTimeDrag !== false) || item.role === 'PRE') {
       const targetTimeline = document.querySelector(`.timeline[data-original-index="${item.personIndex}"]`) || originTimeline;
