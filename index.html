@@ -10996,7 +10996,10 @@ function buildBlockDutyInfoContent(item, slice) {
     titleAcType = getFlightDefAcType(fDef);
     const flightRow = formatBlockDutyFlightRow(fDef.type === 'ARR' ? '入境' : '出境', fDef.flight);
     if (flightRow) rows.push(flightRow);
-    if (fDef.type === 'DEP') {
+    if (item.role === 'PRE') {
+      const std = formatPrefilingStdDisplay(item);
+      if (std) rows.push(['STD', std]);
+    } else if (fDef.type === 'DEP') {
       const std = formatDepStdDisplay(fDef);
       if (std) rows.push(['STD', std]);
     } else {
@@ -16627,6 +16630,12 @@ function getPrefilingStdTimelineMinutes(source) {
     return Number(source.paletteSortMinutes);
   }
   return null;
+}
+function formatPrefilingStdDisplay(source) {
+  const mins = getPrefilingStdTimelineMinutes(source);
+  if (mins == null) return '';
+  if (mins >= 24 * 60) return `${minutesToTime(mins - 24 * 60)}+1`;
+  return minutesToTime(mins);
 }
 function isPrefilingStartOnOrAfterStd(source, startMin) {
   const stdMin = getPrefilingStdTimelineMinutes(source);
