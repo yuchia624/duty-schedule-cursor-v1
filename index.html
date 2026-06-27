@@ -3260,9 +3260,15 @@
   .palette-view.palette-view--cols-3 {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
-  .group-title, .timeline-list-title, .empty-msg, .palette-role-filters {
+  .group-title, .timeline-list-title, .empty-msg, .palette-role-filters, .palette-shift-divider {
     grid-column: 1 / -1;
     width: auto;
+  }
+  .palette-shift-divider {
+    height: 0;
+    margin: 4px 6px 8px;
+    border: 0;
+    border-top: 1px solid #cbd5e1;
   }
   .palette-role-filters {
     display: flex;
@@ -3741,6 +3747,14 @@
     line-height: 1.2;
     white-space: normal;
     text-align: center;
+  }
+  .palette-view.palette-view--function .duty-chip strong {
+    flex: 0 1 auto;
+    width: 100%;
+    font-size: 14px;
+    line-height: 1.2;
+    text-align: center;
+    white-space: normal;
   }
 
 
@@ -10729,18 +10743,45 @@ function getPersonVisualDutySegments(personIndex) {
   segments.sort((a, b) => a.start - b.start || a.end - b.end);
   return segments;
 }
-function findTimelineGapAtMinute(segments, minute) {
-  if (!segments.length || minute == null || !Number.isFinite(minute)) return null;
+function findTimelineGapAtMinute(segments, minute, shiftBounds) {
+  if (minute == null || !Number.isFinite(minute)) return null;
+  const viewStart = getViewStartMin();
+  const viewEnd = getViewEndMin();
+  const matchGap = (gapStart, gapEnd) => {
+    if (!Number.isFinite(gapStart) || !Number.isFinite(gapEnd) || gapEnd < gapStart) return null;
+    if (minute < gapStart || minute > gapEnd) return null;
+    return {
+      gapStart,
+      gapEnd,
+      gapMinutes: Math.max(0, gapEnd - gapStart)
+    };
+  };
+  if (!segments.length) {
+    if (!shiftBounds) return null;
+    return matchGap(
+      Math.max(shiftBounds.startMin, viewStart),
+      Math.min(shiftBounds.endMin, viewEnd)
+    );
+  }
+  if (shiftBounds) {
+    const preGap = matchGap(
+      Math.max(shiftBounds.startMin, viewStart),
+      segments[0].start
+    );
+    if (preGap) return preGap;
+  }
   for (let i = 0; i < segments.length - 1; i++) {
     const left = segments[i];
     const right = segments[i + 1];
-    if (minute >= left.end && minute <= right.start) {
-      return {
-        gapStart: left.end,
-        gapEnd: right.start,
-        gapMinutes: Math.max(0, right.start - left.end)
-      };
-    }
+    const betweenGap = matchGap(left.end, right.start);
+    if (betweenGap) return betweenGap;
+  }
+  if (shiftBounds) {
+    const postGap = matchGap(
+      segments[segments.length - 1].end,
+      Math.min(shiftBounds.endMin, viewEnd)
+    );
+    if (postGap) return postGap;
   }
   return null;
 }
@@ -11063,11 +11104,18 @@ function showBlockDutyInfoPopover(blockEl, item, slice) {
   pop.style.visibility = '';
   blockDutyInfoPopoverSkipDismissUntil = Date.now() + 250;
 }
+function formatGapDurationText(minutes) {
+  const total = Math.max(0, Math.round(Number(minutes) || 0));
+  if (total === 0) return '0分';
+  const hours = Math.floor(total / 60);
+  const mins = total % 60;
+  if (hours > 0 && mins > 0) return `${hours}小時${mins}分`;
+  if (hours > 0) return `${hours}小時`;
+  return `${mins}分`;
+}
 function showTimelineGapTip(clientX, clientY, gap) {
   const tip = ensureTimelineGapTipEl();
-  const range = `${formatScheduleExportTimeMinutes(gap.gapStart)}–${formatScheduleExportTimeMinutes(gap.gapEnd)}`;
-  const minutesText = gap.gapMinutes === 0 ? '相接（0 分鐘）' : `${gap.gapMinutes} 分鐘`;
-  tip.textContent = `空檔 ${minutesText}（${range}）`;
+  tip.textContent = `空檔 ${formatGapDurationText(gap.gapMinutes)}`;
   tip.classList.remove('hidden');
   const margin = 10;
   const maxLeft = Math.max(margin, window.innerWidth - tip.offsetWidth - margin);
@@ -11093,7 +11141,9 @@ function initTimelineGapClick() {
     selectBlock(null);
     hideBlockDutyInfoPopover();
     const clickMin = getTimelineMinuteFromClientX(timeline, e.clientX);
-    const gap = findTimelineGapAtMinute(getPersonVisualDutySegments(personIndex), clickMin);
+    const person = people[personIndex];
+    const shiftBounds = person ? getPersonShiftBounds(person) : null;
+    const gap = findTimelineGapAtMinute(getPersonVisualDutySegments(personIndex), clickMin, shiftBounds);
     if (!gap) {
       hideTimelineGapTip();
       return;
@@ -17194,6 +17244,76 @@ function templateMatchesFlightSearch(t, normalized) {
   if (!f) return false;
   if (f === normalized) return true;
   return compactFlightNo(f) === compactFlightNo(normalized);
+}
+const PALETTE_EARLY_LATE_BOUNDARY_FLIGHT = 'BR196';
+const PALETTE_EARLY_LATE_FALLBACK_BOUNDARY_MINUTES = 15 * 60;
+function isPaletteEarlyLateBoundaryTemplate(t) {
+  return templateMatchesFlightSearch(t, PALETTE_EARLY_LATE_BOUNDARY_FLIGHT);
+}
+function scheduleHasPaletteBoundaryFlight(flightNo) {
+  const norm = normalizeImportedFlightNo(flightNo);
+  if (!norm) return false;
+  return flightDefs.some(f => normalizeImportedFlightNo(f.flight) === norm);
+}
+function getPaletteEarlyLateBoundary() {
+  if (scheduleHasPaletteBoundaryFlight(PALETTE_EARLY_LATE_BOUNDARY_FLIGHT)) {
+    let maxMinutes = null;
+    (templates || []).forEach(t => {
+      if (!isFlightSchedulePaletteTemplate(t)) return;
+      if (!isPaletteEarlyLateBoundaryTemplate(t)) return;
+      const minutes = getPaletteTemplateSortMinutes(t);
+      if (!Number.isFinite(minutes) || minutes >= 99999) return;
+      if (maxMinutes == null || minutes > maxMinutes) maxMinutes = minutes;
+    });
+    if (maxMinutes != null) return { minutes: maxMinutes, mode: 'flight' };
+    const dep = flightDefs.find(f =>
+      f.type === 'DEP' &&
+      normalizeImportedFlightNo(f.flight) === normalizeImportedFlightNo(PALETTE_EARLY_LATE_BOUNDARY_FLIGHT)
+    );
+    const std = dep ? depStdMinutes(dep) : null;
+    if (std != null && Number.isFinite(std)) return { minutes: std, mode: 'flight' };
+    return { minutes: PALETTE_EARLY_LATE_FALLBACK_BOUNDARY_MINUTES, mode: 'time' };
+  }
+  return { minutes: PALETTE_EARLY_LATE_FALLBACK_BOUNDARY_MINUTES, mode: 'time' };
+}
+function isPaletteTemplateBeforeBoundary(t, boundary) {
+  const minutes = getPaletteTemplateSortMinutes(t);
+  if (!Number.isFinite(minutes) || minutes >= 99999) return false;
+  if (boundary.mode === 'time') return minutes < boundary.minutes;
+  return minutes <= boundary.minutes;
+}
+function isPaletteTemplateAfterBoundary(t, boundary) {
+  const minutes = getPaletteTemplateSortMinutes(t);
+  if (!Number.isFinite(minutes) || minutes >= 99999) return false;
+  if (boundary.mode === 'time') return minutes >= boundary.minutes;
+  return minutes > boundary.minutes;
+}
+function getPaletteTimeDividerAfterIndex(sorted, boundary) {
+  const hasLate = sorted.some(t => isPaletteTemplateAfterBoundary(t, boundary));
+  const hasEarly = sorted.some(t => isPaletteTemplateBeforeBoundary(t, boundary));
+  if (!hasLate || !hasEarly) return -2;
+  let lastEarlyIdx = -1;
+  sorted.forEach((t, i) => {
+    if (isPaletteTemplateBeforeBoundary(t, boundary)) lastEarlyIdx = i;
+  });
+  return lastEarlyIdx;
+}
+function createPaletteEarlyLateDivider() {
+  const divider = document.createElement('hr');
+  divider.className = 'palette-shift-divider';
+  divider.setAttribute('aria-hidden', 'true');
+  return divider;
+}
+function renderPaletteTimeSortedItems(palette, tabItems) {
+  const sorted = sortPaletteTemplates(tabItems);
+  const boundary = getPaletteEarlyLateBoundary();
+  const dividerAfterIdx = getPaletteTimeDividerAfterIndex(sorted, boundary);
+  sorted.forEach((t, i) => {
+    palette.appendChild(makeChip(t));
+    if (dividerAfterIdx >= 0 && i === dividerAfterIdx) {
+      palette.appendChild(createPaletteEarlyLateDivider());
+    }
+  });
 }
 function normalizeSearchQuery(query) {
   return normalizeSearchHaystackText(String(query || '').trim()).toLowerCase();
@@ -25604,24 +25724,24 @@ function createDicDutyTemplates() {
   });
 }
 const OTHER_DUTY_DEFS = [
-  { label: '抄Load', duration: 60, shiftScope: 'early', defaultSlots: 1, assignmentKey: '抄LOAD' },
-  { label: '入境通報', duration: 90, shiftScope: 'late', defaultSlots: 2, adjustableSlots: true, assignmentKey: '入境通報', assignmentSep: 'space' },
-  { label: '設備', duration: 30, defaultSlots: 2, adjustableSlots: true },
-  { label: '關單', duration: 30, defaultSlots: 4, adjustableSlots: true, assignmentKey: '抓關單', assignmentSep: 'space' },
-  { label: '備品', duration: 30, defaultSlots: 6, adjustableSlots: true },
-  { label: '查房員', duration: 60, shiftScope: 'early', defaultSlots: 1, assignmentKey: '查房員' },
-  { label: '遺失物', duration: 60, shiftScope: 'early', defaultSlots: 2, adjustableSlots: true, assignmentKey: '遺失物', assignmentSep: 'space' },
+  { label: '抄Load', duration: 60, shiftScope: 'early', defaultSlots: 1, assignmentKey: '抄LOAD', paletteSortMinutes: 600 },
+  { label: '入境通報', duration: 90, shiftScope: 'late', defaultSlots: 2, adjustableSlots: true, assignmentKey: '入境通報', assignmentSep: 'space', paletteSortMinutes: 990 },
+  { label: '設備', duration: 30, defaultSlots: 2, adjustableSlots: true, paletteSortMinutes: 240 },
+  { label: '關單', duration: 30, defaultSlots: 4, adjustableSlots: true, assignmentKey: '抓關單', assignmentSep: 'space', paletteSortMinutes: 240 },
+  { label: '備品', duration: 30, defaultSlots: 6, adjustableSlots: true, paletteSortMinutes: 660 },
+  { label: '查房員', duration: 60, shiftScope: 'early', defaultSlots: 1, assignmentKey: '查房員', paletteSortMinutes: 660 },
+  { label: '遺失物', duration: 60, shiftScope: 'early', defaultSlots: 2, adjustableSlots: true, assignmentKey: '遺失物', assignmentSep: 'space', paletteSortMinutes: 630 },
   { label: 'C5R指引', duration: 60, shiftScope: 'early', defaultSlots: 2, adjustableSlots: true, assignmentTimeSlots: [
     { key: 'C5R(6-7)', start: 360, end: 420 },
     { key: 'C5R(7-8)', start: 420, end: 480 }
-  ]},
-  { label: 'SSBD', duration: 60, shiftScope: 'early', defaultSlots: 2, adjustableSlots: true, assignmentKey: 'SSBD', assignmentSep: 'space' },
-  { label: 'UA P/F', duration: 90, shiftScope: 'late', defaultSlots: 1, assignmentKey: 'UA P/F' },
-  { label: '值日生', duration: 30, defaultSlots: 4, adjustableSlots: true, assignmentKey: '值日生', assignmentSep: 'space' },
-  { label: '漏查單', duration: 30, shiftScope: 'late', defaultSlots: 1, assignmentKey: '漏查單' },
-  { label: '客服', duration: 60, defaultSlots: 7, adjustableSlots: true, assignmentShiftRole: '客服專員' },
-  { label: 'Q2', duration: 60, defaultSlots: 1, assignmentShiftRole: 'Q2' },
-  { label: 'TA', duration: 60, unlimited: true, assignmentShiftRole: 'TA' },
+  ], paletteSortMinutes: 360 },
+  { label: 'SSBD', duration: 60, shiftScope: 'early', defaultSlots: 2, adjustableSlots: true, assignmentKey: 'SSBD', assignmentSep: 'space', paletteSortMinutes: 720 },
+  { label: 'UA P/F', duration: 90, shiftScope: 'late', defaultSlots: 1, assignmentKey: 'UA P/F', paletteSortMinutes: 990 },
+  { label: '值日生', duration: 30, defaultSlots: 4, adjustableSlots: true, assignmentKey: '值日生', assignmentSep: 'space', paletteSortMinutes: 720 },
+  { label: '漏查單', duration: 30, shiftScope: 'late', defaultSlots: 1, assignmentKey: '漏查單', paletteSortMinutes: 24 * 60 },
+  { label: '客服', duration: 60, defaultSlots: 7, adjustableSlots: true, assignmentShiftRole: '客服專員', paletteSortMinutes: 600 },
+  { label: 'Q2', duration: 60, defaultSlots: 1, assignmentShiftRole: 'Q2', paletteSortMinutes: 420 },
+  { label: 'TA', duration: 60, unlimited: true, assignmentShiftRole: 'TA', functionOnly: true },
   { label: 'S', duration: 60, unlimited: true, functionOnly: true },
   { label: 'B/F', duration: 30, unlimited: true, functionOnly: true, fixedStart: 600, fixedEnd: 630, assignmentKey: 'BRIEFING', assignmentSep: 'space' },
   { label: 'OJT', duration: 30, unlimited: true, functionOnly: true, fixedStart: 720, fixedEnd: 750 },
@@ -25720,7 +25840,8 @@ function createOtherDutyTemplates() {
       freeTimeDrag: !Number.isFinite(def.fixedStart),
       isFunction: true,
       isOtherDuty: true,
-      isFunctionListOnly: !!def.functionOnly
+      isFunctionListOnly: !!def.functionOnly,
+      paletteSortMinutes: Number.isFinite(def.paletteSortMinutes) ? def.paletteSortMinutes : null
     };
   });
 }
@@ -30070,6 +30191,8 @@ function applyPaletteGridColumns(palette, items) {
 const DUTY_CHIP_LABEL_MAX_PX = 15;
 const DUTY_CHIP_LABEL_MIN_PX = 10;
 const DUTY_CHIP_LABEL_SKIP_LEN = 6;
+const FUNCTION_PALETTE_CHIP_LABEL_MAX_PX = 14;
+const FUNCTION_PALETTE_CHIP_LABEL_MIN_PX = 10;
 const dutyChipLabelFitStats = {
   calls: 0,
   skippedShort: 0,
@@ -30104,7 +30227,8 @@ function fitDutyChipLabel(chip) {
   if (!label) return;
   const remainTitle = chip.title && chip.title.includes('尚可排') ? `${chip.title} · ` : '';
   strong.title = `${remainTitle}${label}`;
-  if (label.length <= DUTY_CHIP_LABEL_SKIP_LEN) {
+  const inFunctionPalette = !!chip.closest('.palette-view--function');
+  if (!inFunctionPalette && label.length <= DUTY_CHIP_LABEL_SKIP_LEN) {
     dutyChipLabelFitStats.skippedShort += 1;
     return;
   }
@@ -30113,9 +30237,11 @@ function fitDutyChipLabel(chip) {
   const padR = parseFloat(style.paddingRight) || 0;
   const maxWidth = chip.clientWidth - padL - padR;
   if (maxWidth <= 0) return;
-  const minStep = Math.round(DUTY_CHIP_LABEL_MIN_PX * 2);
-  const maxStep = Math.round(DUTY_CHIP_LABEL_MAX_PX * 2);
-  strong.style.fontSize = `${DUTY_CHIP_LABEL_MAX_PX}px`;
+  const labelMaxPx = inFunctionPalette ? FUNCTION_PALETTE_CHIP_LABEL_MAX_PX : DUTY_CHIP_LABEL_MAX_PX;
+  const labelMinPx = inFunctionPalette ? FUNCTION_PALETTE_CHIP_LABEL_MIN_PX : DUTY_CHIP_LABEL_MIN_PX;
+  const minStep = Math.round(labelMinPx * 2);
+  const maxStep = Math.round(labelMaxPx * 2);
+  strong.style.fontSize = `${labelMaxPx}px`;
   if (strong.scrollWidth <= maxWidth) return;
   dutyChipLabelFitStats.binarySearchCount += 1;
   let low = minStep;
@@ -31017,6 +31143,7 @@ function renderPalette() {
     sortPaletteTemplates(grouped[regionCategory]).forEach(t => palette.appendChild(makeChip(t)));
     scheduleFitDutyChipLabels(palette);
   } else if (activePaletteTab === 'byFunction') {
+    palette.classList.add('palette-view--function');
     const title = document.createElement('div');
     title.className = 'timeline-list-title';
     title.textContent = '功能區塊';
@@ -31031,16 +31158,12 @@ function renderPalette() {
     } else {
       funcs.forEach(t => palette.appendChild(makeChip(t)));
     }
-  } else {
+  } else if (activePaletteTab === 'byTime') {
     const title = document.createElement('div');
     title.className = 'timeline-list-title';
     title.textContent = '全部待排 duty，依開始時間先後排列';
     palette.appendChild(title);
-    tabItems.slice().sort((a, b) =>
-      getPaletteTemplateSortMinutes(a) - getPaletteTemplateSortMinutes(b) ||
-      (a.end ?? 99999) - (b.end ?? 99999) ||
-      String(a.compactLabel || a.label || '').localeCompare(String(b.compactLabel || b.label || ''))
-    ).forEach(t => palette.appendChild(makeChip(t)));
+    renderPaletteTimeSortedItems(palette, tabItems);
   }
   scheduleFitDutyChipLabels(palette);
   } finally {
