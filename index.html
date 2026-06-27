@@ -10676,6 +10676,111 @@ function getPaletteTemplateAirport(t) {
 function resolvePaletteRegionForTemplate(t) {
   return resolvePaletteRegionForAirport(getPaletteTemplateAirport(t));
 }
+const DUTY_ROLE_SEARCH_SPECS = {
+  RC: { roles: ['RC'], flightTypes: ['DEP'] },
+  BG: { roles: ['BG'] },
+  ABG: { roles: ['ABG'] },
+  PPT: { roles: ['PPT'] },
+  CKIN: { roles: ['CKIN'] },
+  PRE: { roles: ['PRE'] },
+  G2: { roles: ['G2'] },
+  L1: { roles: ['L1'] },
+  BA: { roles: ['BA'] },
+  TC: { roles: ['TC'] },
+  T: { roles: ['T'] },
+  DIC: { roles: ['DIC'] }
+};
+const REGION_SEARCH_EXTRA_ALIASES = {
+  na: ['美國', '加拿大', '美國線', '加拿大線'],
+  hkmo: ['港澳線', '香港', '澳門'],
+  cn: ['大陸線', '中國'],
+  jk: ['日本', '韓國', '日本線', '韓國線', '東北亞', '東北亞線'],
+  euau: ['歐洲', '澳洲', '歐洲線', '澳洲線', '大洋洲'],
+  sea: ['東南亞線', '新加坡', '馬來西亞', '柬埔寨'],
+  th: ['泰國線'],
+  vn: ['越南線'],
+  ph: ['菲律賓線'],
+  id: ['印尼線']
+};
+let regionSearchEntriesCache = null;
+function getRegionSearchEntries() {
+  if (regionSearchEntriesCache) return regionSearchEntriesCache;
+  const byId = new Map();
+  PALETTE_REGION_CATEGORIES.forEach(cat => {
+    byId.set(cat.id, new Set([cat.label]));
+  });
+  Object.entries(REGION_SEARCH_EXTRA_ALIASES).forEach(([id, terms]) => {
+    if (!byId.has(id)) byId.set(id, new Set());
+    terms.forEach(term => byId.get(id).add(term));
+  });
+  const groups = typeof DestClassRegistry !== 'undefined' && DestClassRegistry.hasAnyGroups?.()
+    ? DestClassRegistry.listGroups()
+    : (DestClassSeed?.GROUP_RULES || []);
+  groups.forEach(group => {
+    const regionId = resolvePaletteRegionFromGroupId(group.id);
+    if (!regionId || !group.label) return;
+    if (!byId.has(regionId)) byId.set(regionId, new Set());
+    byId.get(regionId).add(group.label);
+  });
+  regionSearchEntriesCache = [...byId.entries()].map(([id, terms]) => ({ id, terms: [...terms] }));
+  return regionSearchEntriesCache;
+}
+function resolveRegionSearchId(token) {
+  const q = String(token || '').trim();
+  if (!q) return '';
+  const entries = getRegionSearchEntries();
+  for (const entry of entries) {
+    if (entry.terms.some(term => term === q)) return entry.id;
+  }
+  const qCore = q.replace(/線$/, '');
+  for (const entry of entries) {
+    if (entry.terms.some(term => {
+      const core = term.replace(/線$/, '');
+      return core === qCore || core.includes(q) || q.includes(core);
+    })) return entry.id;
+  }
+  return '';
+}
+function normalizeDutyRoleSearchToken(token) {
+  return normalizeLevelSearchToken(token).toUpperCase();
+}
+function isKnownDutyRoleSearchToken(token) {
+  const key = normalizeDutyRoleSearchToken(token);
+  return Object.prototype.hasOwnProperty.call(DUTY_ROLE_SEARCH_SPECS, key);
+}
+function getScheduleItemAirport(item) {
+  if (!item || item.role === '休' || item.role === '自訂' || item.role === 'DIC' || item.role === '其他') return '';
+  const f = flightDefs.find(x => x.flight === item.flight && x.type === item.flightType);
+  if (!f) return '';
+  return f.type === 'DEP' ? getDepDestinationAirport(f) : getArrOriginAirport(f);
+}
+function resolveRegionForScheduleItem(item) {
+  return resolvePaletteRegionForAirport(getScheduleItemAirport(item));
+}
+function scheduleItemMatchesDutyRoleSearch(item, token) {
+  if (!item) return false;
+  const spec = DUTY_ROLE_SEARCH_SPECS[normalizeDutyRoleSearchToken(token)];
+  if (!spec) return false;
+  if (!spec.roles.includes(item.role)) return false;
+  if (spec.flightTypes && !spec.flightTypes.includes(item.flightType)) return false;
+  return true;
+}
+function templateMatchesDutyRoleSearch(t, token) {
+  if (!t || isFunctionBlockPaletteTemplate(t)) return false;
+  const spec = DUTY_ROLE_SEARCH_SPECS[normalizeDutyRoleSearchToken(token)];
+  if (!spec) return false;
+  if (!spec.roles.includes(t.role)) return false;
+  if (spec.flightTypes && !spec.flightTypes.includes(t.flightType)) return false;
+  return true;
+}
+function scheduleItemMatchesRegionSearch(item, regionId) {
+  const id = String(regionId || '').trim();
+  if (!id || !item) return false;
+  return resolveRegionForScheduleItem(item) === id;
+}
+function templateMatchesRegionSearch(t, regionId) {
+  return resolvePaletteRegionForTemplate(t) === String(regionId || '').trim();
+}
 let activeFlightEditorTab = 'DEP';
 const LS_PREFIX = 'cursor_v1';
 const LS_KEYS_GLOBAL = {
@@ -16646,17 +16751,49 @@ function personSearchHaystack(person) {
     activeTags
   ]);
 }
-function scheduleItemMatchesUniversalSearch(item, queryNorm) {
+function scheduleItemMatchesUniversalSearch(item, queryNorm, rawQuery) {
   if (!queryNorm || !item) return false;
-  if (scheduleItemSearchHaystack(item).includes(queryNorm)) return true;
+  const raw = String(rawQuery ?? queryNorm).trim();
+  const compound = parseCompoundSearchQuery(raw);
+  if (compound.mode === 'compound') {
+    return scheduleItemMatchesCompoundSearch(item, compound);
+  }
+  const parsed = parseTimelineSearch(raw);
+  if (parsed.mode === 'role') {
+    return parsed.roles.some(tok => scheduleItemMatchesDutyRoleSearch(item, tok));
+  }
+  if (parsed.mode === 'region') {
+    return scheduleItemMatchesRegionSearch(item, parsed.regionId);
+  }
+  if (scheduleItemSearchHaystack(item).includes(queryNorm)) {
+    if (queryNorm === 'bg' && item.role === 'ABG') return false;
+    if (queryNorm === 'rc' && item.role !== 'RC') return false;
+    return true;
+  }
   if (isTimeLikeSearchQuery(queryNorm) && scheduleItemTimeSearchHaystack(item).includes(queryNorm)) return true;
   const flightToken = normalizeFlightSearch(queryNorm);
   if (flightToken && scheduleItemMatchesFlightSearch(item, flightToken)) return true;
   return false;
 }
-function templateMatchesUniversalSearch(t, queryNorm) {
+function templateMatchesUniversalSearch(t, queryNorm, rawQuery) {
   if (!queryNorm || !t) return false;
-  if (templateSearchHaystack(t).includes(queryNorm)) return true;
+  const raw = String(rawQuery ?? queryNorm).trim();
+  const compound = parseCompoundSearchQuery(raw);
+  if (compound.mode === 'compound') {
+    return templateMatchesCompoundSearch(t, compound);
+  }
+  const parsed = parseTimelineSearch(raw);
+  if (parsed.mode === 'role') {
+    return parsed.roles.some(tok => templateMatchesDutyRoleSearch(t, tok));
+  }
+  if (parsed.mode === 'region') {
+    return templateMatchesRegionSearch(t, parsed.regionId);
+  }
+  if (templateSearchHaystack(t).includes(queryNorm)) {
+    if (queryNorm === 'bg' && t.role === 'ABG') return false;
+    if (queryNorm === 'rc' && t.role !== 'RC') return false;
+    return true;
+  }
   if (isTimeLikeSearchQuery(queryNorm) && templateTimeSearchHaystack(t).includes(queryNorm)) return true;
   const flightToken = normalizeFlightSearch(queryNorm);
   if (flightToken && templateMatchesFlightSearch(t, flightToken)) return true;
@@ -16717,9 +16854,14 @@ function classifySearchTerm(token) {
   if (/^BR/i.test(t)) return { kind: 'flight', token: normalizeFlightSearch(t) };
   if (/[\u4e00-\u9fff]/.test(t)) {
     if (isKnownLevelSearchToken(t)) return { kind: 'level', token: t, minTier };
+    const regionId = resolveRegionSearchId(t);
+    if (regionId) return { kind: 'region', regionId };
     return { kind: 'name', token: t };
   }
-  if (/^[a-zA-Z0-9!*-]+$/.test(t)) return { kind: 'level', token: t, minTier };
+  if (/^[a-zA-Z0-9!*-]+$/.test(t)) {
+    if (isKnownDutyRoleSearchToken(t)) return { kind: 'role', token: normalizeDutyRoleSearchToken(t) };
+    return { kind: 'level', token: t, minTier };
+  }
   return { kind: 'name', token: t };
 }
 function parseCompoundAndSlot(slotRaw) {
@@ -16804,50 +16946,69 @@ function personMatchesParsedPersonSearch(person, parsed) {
   }
   return false;
 }
-function searchSlotIsFlight(slot) {
+function searchSlotTargetsPersonFields(slot) {
   if (!slot) return false;
-  if (slot.kind === 'flight') return true;
-  if (slot.kind === 'or') return slot.terms.some(t => t.kind === 'flight');
-  return false;
+  if (slot.kind === 'or') return slot.terms.some(searchSlotTargetsPersonFields);
+  return slot.kind === 'shift' || slot.kind === 'level' || slot.kind === 'name';
 }
 function scheduleItemMatchesSearchSlot(item, slot) {
   if (!item || !slot) return false;
   if (slot.kind === 'flight') {
     return scheduleItemMatchesFlightSearch(item, slot.token);
   }
+  if (slot.kind === 'role') {
+    return scheduleItemMatchesDutyRoleSearch(item, slot.token);
+  }
+  if (slot.kind === 'region') {
+    return scheduleItemMatchesRegionSearch(item, slot.regionId);
+  }
   if (slot.kind === 'or') {
-    return slot.terms.some(t => t.kind === 'flight' && scheduleItemMatchesFlightSearch(item, t.token));
+    return slot.terms.some(term => {
+      if (term.kind === 'flight') return scheduleItemMatchesFlightSearch(item, term.token);
+      if (term.kind === 'role') return scheduleItemMatchesDutyRoleSearch(item, term.token);
+      if (term.kind === 'region') return scheduleItemMatchesRegionSearch(item, term.regionId);
+      return false;
+    });
   }
   return false;
 }
-function andGroupIsFlightOnly(andGroup) {
-  return andGroup.length > 0 && andGroup.every(slot => {
-    if (!slot) return false;
-    if (slot.kind === 'or') return slot.terms.length > 0 && slot.terms.every(t => t.kind === 'flight');
-    return slot.kind === 'flight';
-  });
+function templateMatchesSearchSlot(t, slot) {
+  if (!t || !slot) return false;
+  if (slot.kind === 'flight') return templateMatchesFlightSearch(t, slot.token);
+  if (slot.kind === 'role') return templateMatchesDutyRoleSearch(t, slot.token);
+  if (slot.kind === 'region') return templateMatchesRegionSearch(t, slot.regionId);
+  if (slot.kind === 'or') {
+    return slot.terms.some(term => templateMatchesSearchSlot(t, term));
+  }
+  return false;
 }
 function scheduleItemMatchesCompoundSearch(item, compound) {
-  return compound.orGroups.some(andGroup => {
-    if (!andGroupIsFlightOnly(andGroup)) return false;
-    return andGroup.every(slot => scheduleItemMatchesSearchSlot(item, slot));
-  });
+  return compound.orGroups.some(andGroup =>
+    andGroup.every(slot => scheduleItemMatchesSearchSlot(item, slot))
+  );
+}
+function templateMatchesCompoundSearch(t, compound) {
+  return compound.orGroups.some(andGroup =>
+    andGroup.every(slot => templateMatchesSearchSlot(t, slot))
+  );
 }
 function compoundSearchTargetsPersonFields(compound) {
-  return compound.orGroups.some(group => group.some(slot => {
-    if (slot?.kind === 'or') return slot.terms.some(t => t.kind !== 'flight');
-    return slot?.kind !== 'flight';
-  }));
-}
-function compoundSearchIncludesFlight(compound) {
-  return compound.orGroups.some(group => group.some(searchSlotIsFlight));
+  return compound.orGroups.some(group => group.some(searchSlotTargetsPersonFields));
 }
 function timelineSearchIsFlightMode(query) {
   const raw = String(query || '').trim();
   if (!raw) return false;
   const compound = parseCompoundSearchQuery(raw);
-  if (compound.mode === 'compound') return compoundSearchIncludesFlight(compound);
-  return parseTimelineSearch(raw).mode === 'flight';
+  if (compound.mode === 'compound') {
+    return compound.orGroups.some(group => group.some(slot => {
+      if (slot?.kind === 'or') {
+        return slot.terms.some(t => t.kind === 'flight' || t.kind === 'role' || t.kind === 'region');
+      }
+      return slot?.kind === 'flight' || slot?.kind === 'role' || slot?.kind === 'region';
+    }));
+  }
+  const parsed = parseTimelineSearch(raw);
+  return parsed.mode === 'flight' || parsed.mode === 'role' || parsed.mode === 'region';
 }
 const SCHEDULE_SEARCH_FULL_ROW_HIGHLIGHT_LEVELS = new Set(['DIC', '業督', '支援', '見習']);
 function personHasSearchTimelineShiftHighlight(person) {
@@ -16880,7 +17041,7 @@ function rebuildUniversalSearchSnap(query) {
     });
   } else {
     schedule.forEach(item => {
-      if (scheduleItemMatchesUniversalSearch(item, q)) {
+      if (scheduleItemMatchesUniversalSearch(item, q, query)) {
         blockUids.add(item.uid);
         personIndices.add(item.personIndex);
       }
@@ -16897,16 +17058,21 @@ function templateMatchesTimelineSearch(t) {
   const compound = parseCompoundSearchQuery(raw);
   if (compound.mode === 'compound') {
     if (compoundSearchTargetsPersonFields(compound)) return true;
-    const q = normalizeSearchQuery(raw);
-    return templateMatchesUniversalSearch(t, q);
+    return templateMatchesCompoundSearch(t, compound);
   }
   const parsed = parseTimelineSearch(raw);
   // 班別／戰力／姓名搜尋只篩管制表人員列，待排 palette 維持完整清單。
   if (parsed.mode === 'shift' || parsed.mode === 'level' || parsed.mode === 'name' || parsed.mode === 'mixed') {
     return true;
   }
+  if (parsed.mode === 'role') {
+    return parsed.roles.some(tok => templateMatchesDutyRoleSearch(t, tok));
+  }
+  if (parsed.mode === 'region') {
+    return templateMatchesRegionSearch(t, parsed.regionId);
+  }
   const q = normalizeSearchQuery(raw);
-  return templateMatchesUniversalSearch(t, q);
+  return templateMatchesUniversalSearch(t, q, raw);
 }
 function normalizeLevelSearchToken(value) {
   return String(value ?? '').trim()
@@ -17043,6 +17209,8 @@ function parseTimelineSearch(query) {
   }
   if (/[\u4e00-\u9fff]/.test(raw)) {
     if (isKnownLevelSearchToken(raw)) return { mode: 'level', levels: [raw] };
+    const regionId = resolveRegionSearchId(raw);
+    if (regionId) return { mode: 'region', regionId };
     return { mode: 'name', text: raw };
   }
   if (/^BR/i.test(raw)) {
@@ -17050,6 +17218,7 @@ function parseTimelineSearch(query) {
   }
   if (/^[a-zA-Z0-9!*-]+$/.test(raw)) {
     if (resolveShiftKey(raw)) return { mode: 'shift', shifts: [raw] };
+    if (isKnownDutyRoleSearchToken(raw)) return { mode: 'role', roles: [normalizeDutyRoleSearchToken(raw)] };
     return { mode: 'level', levels: [raw] };
   }
   return { mode: 'name', text: raw };
@@ -17089,7 +17258,7 @@ function getPersonIndicesForTimelineSearch(query) {
 function scheduleItemMatchesTimelineSearch(item, query) {
   const q = normalizeSearchQuery(query);
   if (!q || !item) return true;
-  return scheduleItemMatchesUniversalSearch(item, q);
+  return scheduleItemMatchesUniversalSearch(item, q, query);
 }
 function applyTimelineFlightSearch(query, preferredAssignmentRow) {
   timelineFlightSearch = String(query || '').trim();
@@ -31410,12 +31579,24 @@ function syncAssignmentRowHeights() {
 }
 function assignmentRowMatchesUniversalSearch(tr, queryNorm) {
   if (!queryNorm || !tr) return false;
+  const raw = String(timelineFlightSearch || queryNorm).trim();
   const flight = tr.dataset.flight || tr.querySelector('td:first-child')?.textContent?.trim() || '';
+  const compound = parseCompoundSearchQuery(raw);
+  if (compound.mode === 'compound') {
+    return schedule.some(item => item.flight === flight && scheduleItemMatchesCompoundSearch(item, compound));
+  }
+  const parsed = parseTimelineSearch(raw);
+  if (parsed.mode === 'role') {
+    return schedule.some(item => item.flight === flight && parsed.roles.some(tok => scheduleItemMatchesDutyRoleSearch(item, tok)));
+  }
+  if (parsed.mode === 'region') {
+    return schedule.some(item => item.flight === flight && scheduleItemMatchesRegionSearch(item, parsed.regionId));
+  }
   const hay = String(flight).toLowerCase();
   if (hay.includes(queryNorm)) return true;
   const flightToken = normalizeFlightSearch(queryNorm);
   if (flightToken && normalizeFlightSearch(flight) === flightToken) return true;
-  return schedule.some(item => item.flight === flight && scheduleItemMatchesUniversalSearch(item, queryNorm));
+  return schedule.some(item => item.flight === flight && scheduleItemMatchesUniversalSearch(item, queryNorm, raw));
 }
 function updateAssignmentFlightHighlight(preferredRow, options = {}) {
   const q = normalizeSearchQuery(timelineFlightSearch);
