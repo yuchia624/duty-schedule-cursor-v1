@@ -1701,6 +1701,9 @@
     white-space: nowrap;
   }
   .row.flight-match-top .person-cell { background:#fffbea; }
+  .row.flight-match-top--full .shift-band {
+    background-color: #fffbea !important;
+  }
   .row.palette-drop-hover .person-cell,
   .board .row.palette-drop-hover .person-cell.rollcall-grid.shift-early,
   .board .row.palette-drop-hover .person-cell.rollcall-grid.shift-late,
@@ -6548,9 +6551,10 @@
 
     <div class="palette-tabs">
       <div class="palette-tabs__group">
-        <button class="tab-btn active" data-tab="byRole">duty 種類</button>
-        <button class="tab-btn" data-tab="byTime">時間先後</button>
-        <button class="tab-btn" data-tab="byFunction">功能區塊</button>
+        <button class="tab-btn active" data-tab="byRole">種類</button>
+        <button class="tab-btn" data-tab="byTime">時間</button>
+        <button class="tab-btn" data-tab="byRegion">區域</button>
+        <button class="tab-btn" data-tab="byFunction">功能</button>
         <button class="tab-btn" data-tab="deleted">最近刪除</button>
         <button type="button" id="addCustomDutyBtn" class="palette-add-duty-btn" aria-label="新增 duty 區塊" aria-expanded="false">
           <span class="palette-add-duty-btn__icon" aria-hidden="true">+</span>
@@ -6840,7 +6844,7 @@
         <input id="excelImportInput" type="file" accept=".xlsx,.xls" hidden />
         <input id="staffDbImportInput" type="file" accept=".xlsx,.xls" hidden />
       </div>
-      <div class="search-wrap"><input id="timelineFlightSearch" type="text" placeholder="搜尋航班、姓名、戰力、班別、自訂 duty…" /></div>
+      <div class="search-wrap"><input id="timelineFlightSearch" type="search" placeholder="搜尋" autocomplete="off" autocapitalize="off" spellcheck="false" /></div>
       <button type="button" class="toolbar-icon-btn" id="clearTimelineSearch" aria-label="清除搜尋">
         <span class="toolbar-icon-btn__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/><path d="M8 11h6"/></svg></span>
         <span class="toolbar-icon-btn__tip">清除搜尋</span>
@@ -9711,6 +9715,15 @@ function getShiftFilterKey(person) {
   if (isNonWorkAdjustedShiftStatus(getAdjustedShiftInputStatus(person?.adjustedShift))) return shift;
   return getEffectiveShift(person);
 }
+function getPersonDisplayShiftKey(person) {
+  if (!person) return '';
+  const shift = String(person?.shift || '').trim();
+  const adjusted = String(person?.adjustedShift || '').trim();
+  if (rollCallMode) return shift;
+  const status = getAdjustedShiftInputStatus(adjusted);
+  if (status === 'empty' || status === 'invalid') return shift;
+  return adjusted;
+}
 function getPersonShiftBounds(person) {
   return getShiftKeyTimeBounds(getEffectiveShift(person));
 }
@@ -10598,8 +10611,71 @@ const EARLY_VIEW_END_MIN = 17 * 60;
 let pxPerMinute = 1.4;
 let activePaletteTab = 'byRole';
 let activePaletteRoleCategory = null;
+let activePaletteRegionCategory = null;
 const PALETTE_ROLE_ORDER = ['RC', 'BG', 'ABG', '大件', 'BA', 'L1', 'G2', '接機RC', '接機C', '接飛', 'PPT', 'CKIN', 'PRE', 'TC', 'T', 'DIC', '其他'];
 const PALETTE_ROLE_CATEGORIES = PALETTE_ROLE_ORDER.map(role => ({ id: role, label: role, roles: [role] }));
+const PALETTE_REGION_CATEGORIES = [
+  { id: 'na', label: '美加' },
+  { id: 'hkmo', label: '港澳' },
+  { id: 'cn', label: '大陸' },
+  { id: 'jk', label: '日韓' },
+  { id: 'euau', label: '歐澳' },
+  { id: 'sea', label: '東南亞' },
+  { id: 'th', label: '泰國' },
+  { id: 'vn', label: '越南' },
+  { id: 'ph', label: '菲律賓' },
+  { id: 'id', label: '印尼' }
+];
+const PALETTE_REGION_FROM_GROUP = {
+  us: 'na', ca: 'na',
+  hkmo: 'hkmo',
+  cn: 'cn',
+  jp: 'jk', kr: 'jk',
+  eu: 'euau', au: 'euau',
+  sg: 'sea', kul: 'sea', kh: 'sea', sea: 'sea',
+  th: 'th', vn: 'vn', ph: 'ph', id: 'id'
+};
+const PALETTE_REGION_PRIORITY = ['th', 'vn', 'ph', 'id', 'hkmo', 'cn', 'jk', 'euau', 'na', 'sea'];
+function paletteRegionPriorityIndex(regionId) {
+  const idx = PALETTE_REGION_PRIORITY.indexOf(regionId);
+  return idx >= 0 ? idx : 999;
+}
+function resolvePaletteRegionFromGroupId(groupId) {
+  return PALETTE_REGION_FROM_GROUP[String(groupId || '').trim()] || '';
+}
+function buildPaletteRegionAirportMap() {
+  const map = new Map();
+  const groups = typeof DestClassRegistry !== 'undefined' && DestClassRegistry.hasAnyGroups?.()
+    ? DestClassRegistry.listGroups()
+    : (DestClassSeed?.GROUP_RULES || []);
+  groups.forEach(group => {
+    const regionId = resolvePaletteRegionFromGroupId(group.id);
+    if (!regionId) return;
+    (group.airports || []).forEach(iata => {
+      const code = String(iata || '').trim().toUpperCase();
+      if (!code) return;
+      const existing = map.get(code);
+      if (!existing || paletteRegionPriorityIndex(existing) > paletteRegionPriorityIndex(regionId)) {
+        map.set(code, regionId);
+      }
+    });
+  });
+  return map;
+}
+function resolvePaletteRegionForAirport(code) {
+  const iata = String(code || '').trim().toUpperCase();
+  if (!iata) return '';
+  return buildPaletteRegionAirportMap().get(iata) || '';
+}
+function getPaletteTemplateAirport(t) {
+  if (!t || isFunctionBlockPaletteTemplate(t)) return '';
+  const f = flightDefs.find(x => x.flight === t.flight && x.type === t.flightType);
+  if (!f) return '';
+  return f.type === 'DEP' ? getDepDestinationAirport(f) : getArrOriginAirport(f);
+}
+function resolvePaletteRegionForTemplate(t) {
+  return resolvePaletteRegionForAirport(getPaletteTemplateAirport(t));
+}
 let activeFlightEditorTab = 'DEP';
 const LS_PREFIX = 'cursor_v1';
 const LS_KEYS_GLOBAL = {
@@ -12203,7 +12279,7 @@ function normalizeStaffLevelFilterKey(levelRaw) {
   const raw = String(levelRaw || '').trim();
   if (!raw) return '';
   const stripped = raw.replace(/[\s*!\-]/g, '');
-  if (stripped === '見習' || stripped === '學生' || stripped === '業督' || stripped === '事務員') return stripped;
+  if (stripped === '見習' || stripped === '學生' || stripped === '業督' || stripped === '事務員' || stripped === '支援') return stripped;
   if (stripped === '見習DIC' || stripped.toUpperCase() === 'TRAINEEDIC') return 'DIC';
   if (stripped === 'M') return 'M';
   if (stripped === 'm') return 'm';
@@ -16563,8 +16639,7 @@ function personSearchHaystack(person) {
   return searchHaystackFromParts([
     person.name,
     person.code,
-    person.shift,
-    person.adjustedShift,
+    getPersonDisplayShiftKey(person),
     resolveFullName(person),
     found?.fullName,
     found?.code,
@@ -16590,19 +16665,197 @@ function templateMatchesUniversalSearch(t, queryNorm) {
 function personMatchesUniversalSearch(person, queryNorm, rawQuery) {
   if (!queryNorm || !person) return false;
   const raw = String(rawQuery ?? queryNorm).trim();
+  const compound = parseCompoundSearchQuery(raw);
+  if (compound.mode === 'compound') {
+    return personMatchesCompoundSearch(person, compound);
+  }
+  const parsed = parseTimelineSearch(raw);
+  if (parsed.mode === 'shift' || parsed.mode === 'level' || parsed.mode === 'mixed') {
+    return personMatchesParsedPersonSearch(person, parsed);
+  }
+  if (parsed.mode === 'name') {
+    return personMatchesNameSearch(person, parsed.text);
+  }
   if (personSearchHaystack(person).includes(queryNorm)) return true;
   if (personMatchesNameSearch(person, queryNorm)) return true;
   if (resolveShiftKey(queryNorm) && personMatchesShiftSearch(person, queryNorm)) return true;
-  const parsed = parseTimelineSearch(raw);
+  return false;
+}
+function splitSearchTopLevel(raw) {
+  const parts = [];
+  let buf = '';
+  let depth = 0;
+  for (let i = 0; i < raw.length; i++) {
+    const ch = raw[i];
+    if (ch === '(') { depth++; buf += ch; continue; }
+    if (ch === ')') { depth = Math.max(0, depth - 1); buf += ch; continue; }
+    if (depth === 0 && /[,，]/.test(ch)) {
+      const trimmed = buf.trim();
+      if (trimmed) parts.push(trimmed);
+      buf = '';
+      continue;
+    }
+    buf += ch;
+  }
+  const trimmed = buf.trim();
+  if (trimmed) parts.push(trimmed);
+  return parts;
+}
+function classifySearchTerm(token) {
+  let raw = String(token || '').trim();
+  if (!raw) return null;
+  let minTier = false;
+  if (raw.startsWith('>')) {
+    minTier = true;
+    raw = raw.slice(1).trim();
+  }
+  const t = normalizeLevelSearchToken(raw);
+  if (!t) return null;
+  const shiftKey = resolveShiftKey(t);
+  if (!minTier && shiftKey) return { kind: 'shift', token: shiftKey };
+  if (/^BR\d+$/i.test(t) || /^\d+$/.test(t)) return { kind: 'flight', token: normalizeFlightSearch(t) };
+  if (/^BR/i.test(t)) return { kind: 'flight', token: normalizeFlightSearch(t) };
+  if (/[\u4e00-\u9fff]/.test(t)) {
+    if (isKnownLevelSearchToken(t)) return { kind: 'level', token: t, minTier };
+    return { kind: 'name', token: t };
+  }
+  if (/^[a-zA-Z0-9!*-]+$/.test(t)) return { kind: 'level', token: t, minTier };
+  return { kind: 'name', token: t };
+}
+function parseCompoundAndSlot(slotRaw) {
+  const s = String(slotRaw || '').trim();
+  if (!s) return null;
+  const paren = s.match(/^\((.+)\)$/);
+  if (paren) {
+    const terms = paren[1].split(/[,，]+/).map(x => x.trim()).filter(Boolean).map(classifySearchTerm).filter(Boolean);
+    if (!terms.length) return null;
+    return { kind: 'or', terms };
+  }
+  return classifySearchTerm(s);
+}
+function parseCompoundSearchQuery(query) {
+  const raw = String(query || '').trim();
+  if (!raw) return { mode: 'none' };
+  const hasSlash = raw.includes('/');
+  const hasComma = /[,，]/.test(raw);
+  const hasParen = /[()]/.test(raw);
+  if (!hasSlash && !hasComma && !hasParen) return { mode: 'legacy' };
+  const orParts = splitSearchTopLevel(raw);
+  const orGroups = orParts.map(part => {
+    return part.split('/').map(s => s.trim()).filter(Boolean).map(parseCompoundAndSlot).filter(Boolean);
+  }).filter(g => g.length);
+  if (!orGroups.length) return { mode: 'legacy' };
+  return { mode: 'compound', orGroups };
+}
+function personLevelMatchesTier(person, levelToken, options = {}) {
+  const level = String(person?.level || resolveLevel(person) || '').trim();
+  const token = normalizeLevelSearchToken(levelToken);
+  if (!level || !token) return false;
+  if (options.minTier) {
+    const personRank = getLevelSearchCategoryRank(level);
+    const floorRank = getLevelSearchCategoryRank(token);
+    if (personRank >= 1000 || floorRank >= 1000) return false;
+    return personRank <= floorRank;
+  }
+  const personCat = normalizeStaffLevelFilterKey(level);
+  const tokenCat = normalizeStaffLevelFilterKey(token);
+  if (!personCat || !tokenCat) return false;
+  return personCat === tokenCat;
+}
+const LEVEL_SEARCH_CATEGORY_ORDER = ['M', 'm', '2A', '1A', '學生', '見習', 'DIC', '業督', '事務員', '支援'];
+function isKnownLevelSearchToken(token) {
+  const raw = normalizeLevelSearchToken(token);
+  if (!raw) return false;
+  if (resolveShiftKey(raw)) return false;
+  if (/^[a-zA-Z0-9!*-]+$/.test(raw)) return true;
+  const cat = normalizeStaffLevelFilterKey(raw);
+  return LEVEL_SEARCH_CATEGORY_ORDER.includes(cat);
+}
+function getLevelSearchCategoryRank(levelRaw) {
+  const cat = normalizeStaffLevelFilterKey(levelRaw);
+  const idx = LEVEL_SEARCH_CATEGORY_ORDER.indexOf(cat);
+  return idx >= 0 ? idx : 1000;
+}
+function personMatchesSearchTermExact(person, term) {
+  if (!term || !person) return false;
+  if (term.kind === 'or') return term.terms.some(t => personMatchesSearchTermExact(person, t));
+  switch (term.kind) {
+    case 'shift': return personMatchesShiftSearch(person, term.token);
+    case 'level': return personLevelMatchesTier(person, term.token, { minTier: !!term.minTier });
+    case 'name': return personMatchesNameSearch(person, term.token);
+    default: return false;
+  }
+}
+function personMatchesCompoundSearch(person, compound) {
+  return compound.orGroups.some(andGroup => andGroup.every(slot => personMatchesSearchTermExact(person, slot)));
+}
+function personMatchesParsedPersonSearch(person, parsed) {
+  if (parsed.mode === 'shift') {
+    return parsed.shifts.some(tok => personMatchesShiftSearch(person, tok));
+  }
   if (parsed.mode === 'level') {
-    return parsed.levels.some(tok => personLevelMatches(person, tok));
+    return parsed.levels.some(tok => personLevelMatchesTier(person, tok));
   }
   if (parsed.mode === 'mixed') {
     return (
       parsed.shifts.some(tok => personMatchesShiftSearch(person, tok)) ||
-      parsed.levels.some(tok => personLevelMatches(person, tok))
+      parsed.levels.some(tok => personLevelMatchesTier(person, tok))
     );
   }
+  return false;
+}
+function searchSlotIsFlight(slot) {
+  if (!slot) return false;
+  if (slot.kind === 'flight') return true;
+  if (slot.kind === 'or') return slot.terms.some(t => t.kind === 'flight');
+  return false;
+}
+function scheduleItemMatchesSearchSlot(item, slot) {
+  if (!item || !slot) return false;
+  if (slot.kind === 'flight') {
+    return scheduleItemMatchesFlightSearch(item, slot.token);
+  }
+  if (slot.kind === 'or') {
+    return slot.terms.some(t => t.kind === 'flight' && scheduleItemMatchesFlightSearch(item, t.token));
+  }
+  return false;
+}
+function andGroupIsFlightOnly(andGroup) {
+  return andGroup.length > 0 && andGroup.every(slot => {
+    if (!slot) return false;
+    if (slot.kind === 'or') return slot.terms.length > 0 && slot.terms.every(t => t.kind === 'flight');
+    return slot.kind === 'flight';
+  });
+}
+function scheduleItemMatchesCompoundSearch(item, compound) {
+  return compound.orGroups.some(andGroup => {
+    if (!andGroupIsFlightOnly(andGroup)) return false;
+    return andGroup.every(slot => scheduleItemMatchesSearchSlot(item, slot));
+  });
+}
+function compoundSearchTargetsPersonFields(compound) {
+  return compound.orGroups.some(group => group.some(slot => {
+    if (slot?.kind === 'or') return slot.terms.some(t => t.kind !== 'flight');
+    return slot?.kind !== 'flight';
+  }));
+}
+function compoundSearchIncludesFlight(compound) {
+  return compound.orGroups.some(group => group.some(searchSlotIsFlight));
+}
+function timelineSearchIsFlightMode(query) {
+  const raw = String(query || '').trim();
+  if (!raw) return false;
+  const compound = parseCompoundSearchQuery(raw);
+  if (compound.mode === 'compound') return compoundSearchIncludesFlight(compound);
+  return parseTimelineSearch(raw).mode === 'flight';
+}
+const SCHEDULE_SEARCH_FULL_ROW_HIGHLIGHT_LEVELS = new Set(['DIC', '業督', '支援', '見習']);
+function personHasSearchTimelineShiftHighlight(person) {
+  if (!person) return false;
+  const level = String(person.level || resolveLevel(person) || '').trim();
+  const cat = normalizeStaffLevelFilterKey(level);
+  if (SCHEDULE_SEARCH_FULL_ROW_HIGHLIGHT_LEVELS.has(cat)) return true;
+  if (personHasActiveScheduleTag(person, SCHEDULE_DAILY_SCHEDULE_TAG)) return true;
   return false;
 }
 let universalSearchSnap = null;
@@ -16617,12 +16870,22 @@ function rebuildUniversalSearchSnap(query) {
   people.forEach((p, idx) => {
     if (personMatchesUniversalSearch(p, q, query)) personIndices.add(idx);
   });
-  schedule.forEach(item => {
-    if (scheduleItemMatchesUniversalSearch(item, q)) {
-      blockUids.add(item.uid);
-      personIndices.add(item.personIndex);
-    }
-  });
+  const compound = parseCompoundSearchQuery(query);
+  if (compound.mode === 'compound') {
+    schedule.forEach(item => {
+      if (scheduleItemMatchesCompoundSearch(item, compound)) {
+        blockUids.add(item.uid);
+        personIndices.add(item.personIndex);
+      }
+    });
+  } else {
+    schedule.forEach(item => {
+      if (scheduleItemMatchesUniversalSearch(item, q)) {
+        blockUids.add(item.uid);
+        personIndices.add(item.personIndex);
+      }
+    });
+  }
   universalSearchSnap = { q, personIndices, blockUids };
 }
 function getUniversalSearchSnap() {
@@ -16631,6 +16894,12 @@ function getUniversalSearchSnap() {
 function templateMatchesTimelineSearch(t) {
   const raw = String(timelineFlightSearch || '').trim();
   if (!raw) return true;
+  const compound = parseCompoundSearchQuery(raw);
+  if (compound.mode === 'compound') {
+    if (compoundSearchTargetsPersonFields(compound)) return true;
+    const q = normalizeSearchQuery(raw);
+    return templateMatchesUniversalSearch(t, q);
+  }
   const parsed = parseTimelineSearch(raw);
   // 班別／戰力／姓名搜尋只篩管制表人員列，待排 palette 維持完整清單。
   if (parsed.mode === 'shift' || parsed.mode === 'level' || parsed.mode === 'name' || parsed.mode === 'mixed') {
@@ -16749,15 +17018,14 @@ function resolveShiftKey(token) {
 function personMatchesShiftSearch(person, token) {
   const key = resolveShiftKey(token);
   if (!key) return false;
-  const shift = String(person?.shift || '').trim();
-  const adjusted = String(person?.adjustedShift || '').trim();
-  return shift === key || adjusted === key;
+  const displayKey = resolveShiftKey(getPersonDisplayShiftKey(person));
+  return displayKey === key;
 }
 function parseTimelineSearch(query) {
   const raw = normalizeLevelSearchToken(query);
   if (!raw) return { mode: 'none' };
-  if (/[/,，、]/.test(raw)) {
-    const parts = raw.split(/[/,，、\s]+/).map(s => s.trim()).filter(Boolean);
+  if (/[,，]/.test(raw)) {
+    const parts = raw.split(/[,，]+/).map(s => s.trim()).filter(Boolean);
     if (parts.length) {
       const shifts = [];
       const levels = [];
@@ -16774,6 +17042,7 @@ function parseTimelineSearch(query) {
     return { mode: 'flight', flight: normalizeFlightSearch(raw) };
   }
   if (/[\u4e00-\u9fff]/.test(raw)) {
+    if (isKnownLevelSearchToken(raw)) return { mode: 'level', levels: [raw] };
     return { mode: 'name', text: raw };
   }
   if (/^BR/i.test(raw)) {
@@ -16791,13 +17060,17 @@ function getPersonIndicesForFlightSearch(query) {
   return [...new Set(schedule.filter(s => scheduleItemMatchesFlightSearch(s, normalized)).map(s => s.personIndex))];
 }
 function getPersonIndicesForTimelineSearch(query) {
+  const compound = parseCompoundSearchQuery(query);
+  if (compound.mode === 'compound') {
+    return people.map((p, idx) => idx).filter(idx => personMatchesCompoundSearch(people[idx], compound));
+  }
   const parsed = parseTimelineSearch(query);
   if (parsed.mode === 'none') return [];
   if (parsed.mode === 'flight') {
     return getPersonIndicesForFlightSearch(parsed.flight);
   }
   if (parsed.mode === 'level') {
-    return people.map((p, idx) => idx).filter(idx => parsed.levels.some(tok => personLevelMatches(people[idx], tok)));
+    return people.map((p, idx) => idx).filter(idx => parsed.levels.some(tok => personLevelMatchesTier(people[idx], tok)));
   }
   if (parsed.mode === 'shift') {
     return people.map((p, idx) => idx).filter(idx => parsed.shifts.some(tok => personMatchesShiftSearch(people[idx], tok)));
@@ -16805,7 +17078,7 @@ function getPersonIndicesForTimelineSearch(query) {
   if (parsed.mode === 'mixed') {
     return people.map((p, idx) => idx).filter(idx =>
       parsed.shifts.some(tok => personMatchesShiftSearch(people[idx], tok)) ||
-      parsed.levels.some(tok => personLevelMatches(people[idx], tok))
+      parsed.levels.some(tok => personLevelMatchesTier(people[idx], tok))
     );
   }
   if (parsed.mode === 'name') {
@@ -29091,6 +29364,14 @@ function groupTemplatesByPaletteRole(tabItems) {
   });
   return grouped;
 }
+function groupTemplatesByPaletteRegion(tabItems) {
+  const grouped = Object.fromEntries(PALETTE_REGION_CATEGORIES.map(cat => [cat.id, []]));
+  tabItems.forEach(t => {
+    const regionId = resolvePaletteRegionForTemplate(t);
+    if (regionId && grouped[regionId]) grouped[regionId].push(t);
+  });
+  return grouped;
+}
 function sortDicPaletteTemplates(list) {
   const order = DIC_DUTY_DEFS.map(d => d.label);
   return list.slice().sort((a, b) =>
@@ -29360,6 +29641,47 @@ function renderPaletteRoleFilters(palette, grouped) {
     bar.appendChild(btn);
   });
   palette.appendChild(bar);
+}
+function renderPaletteRegionFilters(palette, grouped) {
+  const bar = document.createElement('div');
+  bar.className = 'palette-role-filters';
+  const allBtn = document.createElement('button');
+  allBtn.type = 'button';
+  allBtn.className = 'palette-role-filter' + (!activePaletteRegionCategory ? ' active' : '');
+  allBtn.textContent = '全部';
+  allBtn.addEventListener('click', () => {
+    if (!activePaletteRegionCategory) return;
+    activePaletteRegionCategory = null;
+    renderPalette();
+  });
+  bar.appendChild(allBtn);
+  PALETTE_REGION_CATEGORIES.forEach(cat => {
+    const catItems = grouped[cat.id] || [];
+    if (!catItems.length) return;
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'palette-role-filter' + (cat.id === activePaletteRegionCategory ? ' active' : '');
+    btn.textContent = cat.label;
+    btn.dataset.regionCategory = cat.id;
+    btn.addEventListener('click', () => {
+      if (activePaletteRegionCategory === cat.id) return;
+      activePaletteRegionCategory = cat.id;
+      renderPalette();
+    });
+    bar.appendChild(btn);
+  });
+  palette.appendChild(bar);
+}
+function renderPaletteRegionGroups(palette, grouped) {
+  PALETTE_REGION_CATEGORIES.forEach(cat => {
+    const list = sortPaletteTemplates(grouped[cat.id] || []);
+    if (!list.length) return;
+    const title = document.createElement('div');
+    title.className = 'group-title';
+    title.textContent = cat.label;
+    palette.appendChild(title);
+    list.forEach(t => palette.appendChild(makeChip(t)));
+  });
 }
 function sortTcPaletteTemplates(list) {
   const order = TC_KIND_DEFS.map(d => d.kind);
@@ -29974,9 +30296,9 @@ function renderPalette() {
     return;
   }
   if (!hasImportedFlights()) return;
-  const flightSearchActive = parseTimelineSearch(timelineFlightSearch).mode === 'flight';
+  const flightSearchActive = timelineSearchIsFlightMode(timelineFlightSearch);
   const items = filteredUnscheduledTemplates();
-  const tabItems = (activePaletteTab === 'byRole' || activePaletteTab === 'byTime')
+  const tabItems = (activePaletteTab === 'byRole' || activePaletteTab === 'byTime' || activePaletteTab === 'byRegion')
     ? items.filter(isFlightSchedulePaletteTemplate)
     : items;
   if (!tabItems.length) {
@@ -30009,6 +30331,22 @@ function renderPalette() {
     } else {
       sortPaletteTemplates(grouped[roleCategory]).forEach(t => palette.appendChild(makeChip(t)));
     }
+    scheduleFitDutyChipLabels(palette);
+  } else if (activePaletteTab === 'byRegion') {
+    const grouped = groupTemplatesByPaletteRegion(tabItems);
+    const regionCategory = (grouped[activePaletteRegionCategory] || []).length
+      ? activePaletteRegionCategory
+      : null;
+    if (activePaletteRegionCategory && !regionCategory) {
+      activePaletteRegionCategory = null;
+    }
+    renderPaletteRegionFilters(palette, grouped);
+    if (!regionCategory) {
+      renderPaletteRegionGroups(palette, grouped);
+      scheduleFitDutyChipLabels(palette);
+      return;
+    }
+    sortPaletteTemplates(grouped[regionCategory]).forEach(t => palette.appendChild(makeChip(t)));
     scheduleFitDutyChipLabels(palette);
   } else if (activePaletteTab === 'byFunction') {
     const title = document.createElement('div');
@@ -30608,7 +30946,12 @@ function renderRows() {
   displayRows.forEach((rowInfo, displayIdx) => {
     const row = document.createElement('div');
     row.className = 'row';
-    if (rowInfo.matchedRow) row.classList.add('flight-match-top');
+    if (rowInfo.matchedRow) {
+      row.classList.add('flight-match-top');
+      if (personHasSearchTimelineShiftHighlight(rowInfo.person)) {
+        row.classList.add('flight-match-top--full');
+      }
+    }
     if (isTempControlRow(rowInfo.person) && rollCallMode) row.classList.add('row--temp-row');
 
     const left = document.createElement('div');
@@ -31243,6 +31586,8 @@ document.getElementById('clearDutySearchBtn').addEventListener('click', () => {
   document.getElementById('searchInput').value = '';
   if (activePaletteTab === 'byRole') {
     activePaletteRoleCategory = null;
+  } else if (activePaletteTab === 'byRegion') {
+    activePaletteRegionCategory = null;
   }
   renderPalette();
 });
@@ -31256,6 +31601,8 @@ document.querySelectorAll('.editor-tab-btn').forEach(btn => {
 document.querySelectorAll('.tab-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     activePaletteTab = btn.dataset.tab;
+    if (activePaletteTab !== 'byRole') activePaletteRoleCategory = null;
+    if (activePaletteTab !== 'byRegion') activePaletteRegionCategory = null;
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b === btn));
     renderPalette();
   });
