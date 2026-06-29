@@ -1852,6 +1852,29 @@
     white-space: nowrap;
   }
   .timeline-gap-tip.hidden { display: none; }
+  .schedule-brief-toast {
+    position: fixed;
+    left: 50%;
+    bottom: 28px;
+    transform: translateX(-50%) translateY(8px);
+    z-index: 12000;
+    max-width: min(92vw, 420px);
+    padding: 10px 16px;
+    border-radius: 8px;
+    background: rgba(127, 29, 29, 0.96);
+    color: #fff;
+    font-size: 14px;
+    line-height: 1.45;
+    text-align: center;
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.2);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.15s ease, transform 0.15s ease;
+  }
+  .schedule-brief-toast.is-visible {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
   .block-duty-info-popover {
     position: fixed;
     z-index: 10001;
@@ -17843,6 +17866,12 @@ function personLevelMatches(person, levelToken) {
 function normalizeLevelTier(person) {
   const raw = String(person?.level || resolveLevel(person) || '').trim();
   if (!raw) return '';
+  const key = normalizeStaffLevelFilterKey(raw);
+  if (key === '學生' || key === '見習') return key;
+  if (key === 'M') return 'M';
+  if (key === 'm') return 'm';
+  if (key === '2A') return '2A';
+  if (key === '1A') return '1A';
   if (raw === 'M') return 'M';
   const stripped = raw.replace(/[*!\-]/g, '');
   if (stripped === 'm') return 'm';
@@ -17852,20 +17881,113 @@ function normalizeLevelTier(person) {
   if (core === 'M') return 'M';
   return core;
 }
+const SCHEDULE_ONE_A_LEVEL_RANK = SCHEDULE_BLOCK_A_LEVEL_ORDER.indexOf('1A');
 function isOzFlight(flight) {
   return String(flight || '').trim().toUpperCase().startsWith('OZ');
+}
+function getPersonLevelFilterKey(person) {
+  return normalizeStaffLevelFilterKey(String(person?.level || resolveLevel(person) || '').trim());
+}
+function isPersonLevelAtOrAboveM(person) {
+  const tier = normalizeLevelTier(person);
+  return tier === 'M' || tier === 'm';
+}
+function getDicQualificationHardFailure(person, duty) {
+  if (!duty || duty.role !== 'DIC') return '';
+  const dicKind = String(duty.dicKind || duty.label || duty.compactLabel || '').trim();
+  const levelLabel = String(person?.level || resolveLevel(person) || '').trim() || '此人員';
+  const dutyLabel = dicKind || getDutyDisplayLabel(duty) || 'DIC';
+  const levelKey = getPersonLevelFilterKey(person);
+  if (dicKind === '業督') {
+    if (levelKey !== '業督') return `${levelLabel} 不可排 ${dutyLabel}（僅業督戰力可排）`;
+    return '';
+  }
+  if (dicKind === '小天使') {
+    if (!isPersonLevelAtOrAboveM(person)) return `${levelLabel} 不可排 ${dutyLabel}（僅 m 以上戰力可排）`;
+    return '';
+  }
+  if (levelKey !== 'DIC') return `${levelLabel} 不可排 ${dutyLabel}（僅 DIC 戰力可排）`;
+  return '';
 }
 function dutyRequiresPersonQualification(duty) {
   if (!duty) return false;
   const role = duty.role;
   return role && role !== '休' && role !== 'DIC' && role !== '其他' && role !== '自訂';
 }
-function personQualifiesForDuty(person, duty) {
+function getFlightDefForDuty(duty) {
+  if (!duty?.flight) return null;
+  const flightType = duty.flightType || 'DEP';
+  return flightDefs.find(f => f.flight === duty.flight && f.type === flightType) || null;
+}
+function isOzGuidePptDuty(duty) {
+  if (duty?.role !== 'PPT') return false;
+  return !!ForeignDutyRules?.getOzGuideConfig?.(getFlightDefForDuty(duty));
+}
+function dutyInvolvesForeignFlight(duty) {
+  if (!duty) return false;
+  const isForeign = f => !!(f && ForeignDutyRules?.isForeignFlightDef?.(f));
+  if (duty.connectingDuty) {
+    const arrFlight = String(duty.arrFlight || '').trim();
+    const depFlight = String(duty.depFlight || duty.flight || '').trim();
+    const arrDef = arrFlight ? flightDefs.find(f => f.flight === arrFlight && f.type === 'ARR') : null;
+    const depDef = depFlight ? flightDefs.find(f => f.flight === depFlight && f.type === 'DEP') : null;
+    return isForeign(arrDef) || isForeign(depDef);
+  }
+  return isForeign(getFlightDefForDuty(duty));
+}
+function personTierCanPerformDutyTierRules(tier, duty) {
+  if (!dutyRequiresPersonQualification(duty)) return true;
+  const role = duty.role;
+  const flightType = duty.flightType;
+  const flight = duty.flight;
+  if (role === 'PRE') {
+    return tier === 'M' || tier === 'm' || tier === '2A' || tier === '1A';
+  }
+  if (tier === 'M') return true;
+  if (tier === 'm') {
+    if (isOzFlight(flight) && (role === 'RC' || role === '接機RC')) return false;
+    return true;
+  }
+  if (tier === '2A' || tier === '1A') {
+    if (flightType === 'DEP' && role === 'RC') return false;
+    if (tier === '1A' && flightType === 'DEP' && role === 'BG') return false;
+    return true;
+  }
+  return false;
+}
+function getDutyMinimumQualificationRank(duty) {
+  if (!dutyRequiresPersonQualification(duty)) return SCHEDULE_ONE_A_LEVEL_RANK;
+  const order = ['M', 'm', '2A', '1A'];
+  for (let i = order.length - 1; i >= 0; i--) {
+    if (personTierCanPerformDutyTierRules(order[i], duty)) {
+      return getScheduleBlockALevelRank(order[i]);
+    }
+  }
+  return SCHEDULE_ONE_A_LEVEL_RANK;
+}
+function isDutyAtOrBelow1ALevel(duty) {
+  return getDutyMinimumQualificationRank(duty) >= SCHEDULE_ONE_A_LEVEL_RANK;
+}
+function getStudentQualificationHardFailure(person, duty) {
+  const tier = normalizeLevelTier(person);
+  if (tier !== '學生') return '';
+  const levelLabel = String(person.level || resolveLevel(person) || tier).trim() || tier;
+  const role = duty.role;
+  if (role === '接機RC') return `${levelLabel} 不可當接機 RC`;
+  if (role === 'T' && duty.tMode !== 'tc') return `${levelLabel} 不可辦 T`;
+  if (dutyInvolvesForeignFlight(duty) && !isOzGuidePptDuty(duty)) {
+    return `${levelLabel} 不可排外家航班`;
+  }
+  return '';
+}
+function personMeetsBaseTierQualification(person, duty) {
   if (!person || !duty) return false;
   if (!dutyRequiresPersonQualification(duty)) return true;
   const tier = normalizeLevelTier(person);
   const role = duty.role;
   if (role === 'PRE') {
+    if (tier === '學生') return false;
+    if (tier === '見習') return true;
     return tier === 'M' || tier === 'm' || tier === '2A' || tier === '1A';
   }
   const flightType = duty.flightType;
@@ -17880,7 +18002,98 @@ function personQualifiesForDuty(person, duty) {
     if (tier === '1A' && flightType === 'DEP' && role === 'BG') return false;
     return true;
   }
+  if (tier === '學生' || tier === '見習') return true;
   return true;
+}
+function getBaseTierQualificationFailureMessage(person, duty) {
+  const tier = normalizeLevelTier(person);
+  const levelLabel = String(person.level || resolveLevel(person) || tier || '').trim() || tier || '此人員';
+  const role = duty.role;
+  const flightType = duty.flightType || 'DEP';
+  if (role === 'PRE') return `${levelLabel} 戰力不可排 PRE-FILING`;
+  if (tier === 'm' && isOzFlight(duty.flight) && (role === 'RC' || role === '接機RC')) {
+    return `${levelLabel} 不可排 OZ 航班 RC`;
+  }
+  if ((tier === '2A' || tier === '1A') && flightType === 'DEP' && role === 'RC') {
+    return `${levelLabel} 不可排出境 RC`;
+  }
+  if (tier === '1A' && flightType === 'DEP' && role === 'BG') {
+    return `${levelLabel} 不可排出境 BG`;
+  }
+  const dutyLabel = getDutyDisplayLabel(duty) || role;
+  return `${levelLabel} 不符合 ${dutyLabel} 戰力限制`;
+}
+function getInternQualificationHardFailure(person, duty) {
+  const tier = normalizeLevelTier(person);
+  if (tier !== '見習') return '';
+  if (!dutyRequiresPersonQualification(duty)) return '';
+  if (isDutyAtOrBelow1ALevel(duty)) return '';
+  const levelLabel = String(person.level || resolveLevel(person) || tier).trim() || tier;
+  const dutyLabel = getDutyDisplayLabel(duty) || duty.role || '此 duty';
+  return `${levelLabel} 不可排 ${dutyLabel}（見習僅可排 1A 以下 duty）`;
+}
+function getInternQualificationSoftFailure(person, duty) {
+  const tier = normalizeLevelTier(person);
+  if (tier !== '見習') return '';
+  const role = duty?.role;
+  if (!role || role === '休') return '';
+  const levelLabel = String(person.level || resolveLevel(person) || tier).trim() || tier;
+  const dutyLabel = getDutyDisplayLabel(duty) || role || '此 duty';
+  const message = `${levelLabel} 戰力為見習，是否仍要排入 ${dutyLabel}？`;
+  if (!dutyRequiresPersonQualification(duty)) return message;
+  if (!isDutyAtOrBelow1ALevel(duty)) return '';
+  return message;
+}
+function evaluatePersonDutyQualification(person, duty) {
+  if (!person || !duty) return { ok: false, kind: 'hard', message: '' };
+  const dicFail = getDicQualificationHardFailure(person, duty);
+  if (dicFail) return { ok: false, kind: 'hard', message: dicFail };
+  if (!dutyRequiresPersonQualification(duty)) {
+    const internSoftFail = getInternQualificationSoftFailure(person, duty);
+    if (internSoftFail) return { ok: false, kind: 'soft', message: internSoftFail };
+    return { ok: true, kind: 'ok', message: '' };
+  }
+  if (!personMeetsBaseTierQualification(person, duty)) {
+    return { ok: false, kind: 'hard', message: getBaseTierQualificationFailureMessage(person, duty) };
+  }
+  const studentFail = getStudentQualificationHardFailure(person, duty);
+  if (studentFail) return { ok: false, kind: 'hard', message: studentFail };
+  const internHardFail = getInternQualificationHardFailure(person, duty);
+  if (internHardFail) return { ok: false, kind: 'hard', message: internHardFail };
+  const internSoftFail = getInternQualificationSoftFailure(person, duty);
+  if (internSoftFail) return { ok: false, kind: 'soft', message: internSoftFail };
+  return { ok: true, kind: 'ok', message: '' };
+}
+function personQualifiesForDuty(person, duty) {
+  return evaluatePersonDutyQualification(person, duty).ok;
+}
+function getPersonDutyQualificationFailureMessage(person, duty) {
+  const issue = evaluatePersonDutyQualification(person, duty);
+  return issue.ok ? '' : issue.message;
+}
+let scheduleBriefToastTimer = 0;
+function showScheduleBriefToast(message, durationMs = 1000) {
+  const text = String(message || '').trim();
+  if (!text) return;
+  let el = document.getElementById('scheduleBriefToast');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'scheduleBriefToast';
+    el.className = 'schedule-brief-toast';
+    el.setAttribute('role', 'status');
+    el.setAttribute('aria-live', 'polite');
+    document.body.appendChild(el);
+  }
+  if (scheduleBriefToastTimer) {
+    clearTimeout(scheduleBriefToastTimer);
+    scheduleBriefToastTimer = 0;
+  }
+  el.textContent = text;
+  el.classList.add('is-visible');
+  scheduleBriefToastTimer = window.setTimeout(() => {
+    el.classList.remove('is-visible');
+    scheduleBriefToastTimer = 0;
+  }, Math.max(500, Number(durationMs) || 1000));
 }
 function getPaletteDragTemplate() {
   if (!paletteDragTemplateId) return null;
@@ -29726,7 +29939,10 @@ function switchScheduleDate(newDate) {
   if (typeof renderWorkbenchDashboard === 'function') renderWorkbenchDashboard();
 }
 function confirmConflict(personIndex, itemUid, start, end, duty) {
-  if (duty && dutyRequiresPersonQualification(duty) && !personQualifiesForDuty(people[personIndex], duty)) return false;
+  if (duty) {
+    const issue = evaluatePersonDutyQualification(people[personIndex], duty);
+    if (!issue.ok && issue.kind === 'hard') return false;
+  }
   const tcKind = duty?.tcKind || schedule.find(x => x.uid === itemUid)?.tcKind;
   if (tcKind && !validateTcPersonAssignment(personIndex, tcKind, itemUid)) return false;
   return true;
@@ -31731,7 +31947,7 @@ function fitAllBlockLabels() {
   });
 }
 
-function handleTimelinePaletteDrop(e, timeline) {
+async function handleTimelinePaletteDrop(e, timeline) {
   if (!e.dataTransfer.types.includes('text/template')) return;
   e.preventDefault();
   timeline.classList.remove('drag-over');
@@ -31823,7 +32039,19 @@ function handleTimelinePaletteDrop(e, timeline) {
     }
   }
 
-  if (!personQualifiesForDuty(people[targetPersonIndex], tpl)) return;
+  const qualIssue = evaluatePersonDutyQualification(people[targetPersonIndex], tpl);
+  if (!qualIssue.ok) {
+    if (qualIssue.kind === 'hard') {
+      if (qualIssue.message) showScheduleBriefToast(qualIssue.message);
+      endPaletteDragSession();
+      return;
+    }
+    const ok = await appConfirm(qualIssue.message, { title: '戰力警示', confirmText: '確定' });
+    if (!ok) {
+      endPaletteDragSession();
+      return;
+    }
+  }
   if (tpl.role === 'T' && tpl.tMode === 'tc') return;
   if (tpl.role === 'TC' && !validateTcPersonAssignment(targetPersonIndex, tpl.tcKind)) {
     appAlert('此人不可同時排互斥的 TC（例如早 TC 與午 TC、晚 TC 與接晚 TC 休）。', '無法排入', 'info');
@@ -32263,7 +32491,28 @@ function startMoveBlock(e, item, options = {}) {
     document.removeEventListener('mouseup', onUp);
     endBlockMoveSession();
     if (!undoPushed) return;
-    if (!personQualifiesForDuty(people[item.personIndex], item) || !confirmConflict(item.personIndex, item.uid, item.start, item.end, item)) {
+    const qualIssue = evaluatePersonDutyQualification(people[item.personIndex], item);
+    if (!qualIssue.ok) {
+      if (qualIssue.kind === 'hard') {
+        if (qualIssue.message) showScheduleBriefToast(qualIssue.message);
+        item.personIndex = originalPersonIndex;
+        item.start = originalStart;
+        item.end = originalEnd;
+        renderRows();
+        selectBlock(item.uid);
+        return;
+      }
+      const ok = await appConfirm(qualIssue.message, { title: '戰力警示', confirmText: '確定' });
+      if (!ok) {
+        item.personIndex = originalPersonIndex;
+        item.start = originalStart;
+        item.end = originalEnd;
+        renderRows();
+        selectBlock(item.uid);
+        return;
+      }
+    }
+    if (!confirmConflict(item.personIndex, item.uid, item.start, item.end, item)) {
       if (item.role === 'TC' && !validateTcPersonAssignment(item.personIndex, item.tcKind, item.uid)) {
         appAlert('此人不可同時排互斥的 TC（例如早 TC 與午 TC、晚 TC 與接晚 TC 休）。', '無法移動', 'info');
       }
