@@ -10902,7 +10902,7 @@ function ensureBlockDutyInfoPopoverEl() {
     document.addEventListener('click', e => {
       if (!blockDutyInfoPopoverEl || blockDutyInfoPopoverEl.classList.contains('hidden')) return;
       if (Date.now() < blockDutyInfoPopoverSkipDismissUntil) return;
-      if (e.target.closest('.block-duty-info-popover, .block')) return;
+      if (e.target.closest('.block-duty-info-popover, .block, .duty-chip')) return;
       hideBlockDutyInfoPopover();
     });
     document.addEventListener('keydown', e => {
@@ -11157,10 +11157,16 @@ function renderBlockDutyInfoPopoverHtml(content) {
   if (!content.rows?.length) return titleHtml || '';
   return titleHtml + renderBlockDutyInfoDutySection(content.rows);
 }
+function getBlockDutyInfoPopoverKey(item, slice) {
+  const start = slice?.start ?? item.start;
+  const end = slice?.end ?? item.end;
+  const id = item.uid != null ? item.uid : (item.id || item.templateId || '');
+  return `${id}:${start}:${end}`;
+}
 function showBlockDutyInfoPopover(blockEl, item, slice) {
   closeAbgPaxPopover();
   const pop = ensureBlockDutyInfoPopoverEl();
-  const uidKey = `${item.uid}:${slice?.start ?? item.start}:${slice?.end ?? item.end}`;
+  const uidKey = getBlockDutyInfoPopoverKey(item, slice);
   if (blockDutyInfoPopoverUid === uidKey && !pop.classList.contains('hidden')) {
     hideBlockDutyInfoPopover();
     return;
@@ -11188,6 +11194,35 @@ function showBlockDutyInfoPopover(blockEl, item, slice) {
   pop.style.top = `${top}px`;
   pop.style.visibility = '';
   blockDutyInfoPopoverSkipDismissUntil = Date.now() + 250;
+}
+function bindPaletteChipDutyInfoClick(chip, tpl, options = {}) {
+  if (options.skip) return;
+  chip.addEventListener('mousedown', e => {
+    if (e.button !== 0) return;
+    if (e.target.closest('.duty-chip-delete-btn, .duty-chip-edit-btn')) return;
+    const startX = e.clientX;
+    const startY = e.clientY;
+    let dragging = false;
+    function onMove(ev) {
+      if (dragging) return;
+      if (Math.abs(ev.clientX - startX) < 4 && Math.abs(ev.clientY - startY) < 4) return;
+      dragging = true;
+      cleanup();
+    }
+    function onUp() {
+      cleanup();
+      if (dragging) return;
+      e.stopPropagation();
+      const slice = tpl.start != null && tpl.end != null ? { start: tpl.start, end: tpl.end } : null;
+      showBlockDutyInfoPopover(chip, tpl, slice);
+    }
+    function cleanup() {
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+    }
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  });
 }
 function formatGapDurationText(minutes) {
   const total = Math.max(0, Math.round(Number(minutes) || 0));
@@ -31172,13 +31207,7 @@ function makeChip(t, paletteRoleContext = '') {
       chip.classList.add('duty-chip--abg-pax');
       const paxRow = lookupHomelinePaxForScheduleFlight(t.flight);
       const slotText = `目前 ${getAbgSlotsForTemplate(t)} 人`;
-      chip.title = paxRow ? `點擊查看訂位 · ${slotText}` : `點擊查看訂位（無 EDW 資料）· ${slotText}`;
-      chip.addEventListener('click', e => {
-        if (e.target.closest('.duty-chip-edit-btn')) return;
-        e.stopPropagation();
-        e.preventDefault();
-        toggleAbgPaxPopover(chip, t, 'ABG');
-      });
+      chip.title = paxRow ? `點擊查看航班資訊 · ${slotText}` : `點擊查看航班資訊（無 EDW 資料）· ${slotText}`;
     }
     if (t.role === 'ABG' && abgRemain > 0) {
       const hint = `尚可排 ${abgRemain} 人`;
@@ -31191,13 +31220,7 @@ function makeChip(t, paletteRoleContext = '') {
       chip.classList.add('duty-chip--bulky-pax');
       const paxRow = lookupHomelinePaxForScheduleFlight(t.flight);
       const slotText = `目前 ${bulkySlots} 人`;
-      chip.title = paxRow ? `點擊查看訂位 · ${slotText}` : `點擊查看訂位（無 EDW 資料）· ${slotText}`;
-      chip.addEventListener('click', e => {
-        if (e.target.closest('.duty-chip-edit-btn')) return;
-        e.stopPropagation();
-        e.preventDefault();
-        toggleAbgPaxPopover(chip, t, '大件');
-      });
+      chip.title = paxRow ? `點擊查看航班資訊 · ${slotText}` : `點擊查看航班資訊（無 EDW 資料）· ${slotText}`;
     }
     if (t.role === '大件' && bulkyRemain > 0) {
       const hint = `尚可排 ${bulkyRemain} 人`;
@@ -31212,7 +31235,11 @@ function makeChip(t, paletteRoleContext = '') {
     }
   }
 
+  const skipPaletteDutyInfoClick = t.role === 'T' && t.tMode === 'tc' && !chip.draggable;
+  bindPaletteChipDutyInfoClick(chip, t, { skip: skipPaletteDutyInfoClick });
+
   chip.addEventListener('dragstart', e => {
+    hideBlockDutyInfoPopover();
     closeAbgPaxPopover();
     if (!chip.draggable) { e.preventDefault(); return; }
     if (e.target.closest('.duty-chip-delete-btn') || e.target.closest('.duty-chip-edit-btn')) { e.preventDefault(); return; }
