@@ -9611,7 +9611,9 @@ function onScheduleRowDeleteClick(e) {
 }
 function buildPersonDisplaySeqMap() {
   const map = new Map();
-  getDisplaySortedRows().forEach((row, idx) => map.set(row.originalIndex, idx + 1));
+  getDisplaySortedRows()
+    .filter(row => personMatchesShiftView(row.person))
+    .forEach((row, idx) => map.set(row.originalIndex, idx + 1));
   return map;
 }
 function buildTempRollCallShiftHtml(shift) {
@@ -9987,7 +9989,7 @@ function getDutyDisplayLabel(item) {
   return item.compactLabel || compactDutyLabel(item.flight, item.role);
 }
 function getItemOvertimeRanges(item, person) {
-  if (!person || item.role === '休' || item.role === 'DIC' || item.role === '其他' || item.role === 'PRE') return [];
+  if (!person || item.role === '休') return [];
   const bounds = getPersonShiftBounds(person);
   if (!bounds) return [];
   const ranges = [];
@@ -10366,9 +10368,9 @@ function getAssignmentAbgCellText(flight) {
   if (fDef?.status === 'CANX') return '';
   const bulkyText = formatAssignmentBulkyCellText(flight);
   const parts = [
+    ...(bulkyText ? [bulkyText] : []),
     ...getAssignmentL1Codes(flight).map(code => `L1:${code}`),
     ...getAssignmentBaCodes(flight).map(code => `BA:${code}`),
-    ...(bulkyText ? [bulkyText] : []),
     ...getAssignmentAbgCodes(flight)
   ];
   return parts.join(' \u2009');
@@ -10391,6 +10393,12 @@ function appendAssignmentBulkyRoleSpans(parent, items, className) {
 function renderAssignmentAbgCell(cell, flight) {
   const segments = [
     {
+      items: schedule.filter(item => item.flight === flight && item.role === '大件'),
+      wrapClass: 'assignment-abg-bulky',
+      codeClass: 'assignment-abg-bulky-code',
+      prefix: '大:'
+    },
+    {
       items: schedule.filter(item => item.flight === flight && item.role === 'L1'),
       wrapClass: 'assignment-abg-l1',
       codeClass: 'assignment-abg-l1-code',
@@ -10401,12 +10409,6 @@ function renderAssignmentAbgCell(cell, flight) {
       wrapClass: 'assignment-abg-ba',
       codeClass: 'assignment-abg-ba-code',
       prefix: 'BA:'
-    },
-    {
-      items: schedule.filter(item => item.flight === flight && item.role === '大件'),
-      wrapClass: 'assignment-abg-bulky',
-      codeClass: 'assignment-abg-bulky-code',
-      prefix: '大:'
     },
     {
       items: schedule.filter(item => item.flight === flight && item.role === 'ABG'),
@@ -17254,6 +17256,9 @@ function isFlightTemplateFullyScheduled(t) {
     if (isOtherUnlimitedTemplate(t)) return false;
     if (isOtherMultiSlotTemplate(t)) {
       return countOtherAssignmentsForTemplate(t) >= getOtherSlotsForTemplate(t);
+    }
+    if (t.otherSlotKey) {
+      return schedule.some(x => x.role === '其他' && x.otherKind === t.otherKind && x.otherSlotKey === t.otherSlotKey);
     }
     return schedule.some(x => x.role === '其他' && x.otherKind === t.otherKind);
   }
@@ -25831,22 +25836,33 @@ function createDicDutyTemplates() {
   });
 }
 const OTHER_DUTY_DEFS = [
-  { label: '抄Load', duration: 60, shiftScope: 'early', defaultSlots: 1, assignmentKey: '抄LOAD', paletteSortMinutes: 600 },
+  { label: '抄Load', duration: 60, shiftScope: 'early', defaultSlots: 1, assignmentKey: '抄LOAD', fixedStart: 600, fixedEnd: 660, paletteSortMinutes: 600, showPaletteTime: true, allowScheduleTimeMove: true, warnOnOutOfDefaultTime: true },
   { label: '入境通報', duration: 90, shiftScope: 'late', defaultSlots: 2, adjustableSlots: true, assignmentKey: '入境通報', assignmentSep: 'space', paletteSortMinutes: 990 },
   { label: '設備', duration: 30, defaultSlots: 2, adjustableSlots: true, paletteSortMinutes: 240 },
   { label: '關單', duration: 30, defaultSlots: 4, adjustableSlots: true, assignmentKey: '抓關單', assignmentSep: 'space', paletteSortMinutes: 240 },
   { label: '備品', duration: 30, defaultSlots: 6, adjustableSlots: true, paletteSortMinutes: 660 },
   { label: '查房員', duration: 60, shiftScope: 'early', defaultSlots: 1, assignmentKey: '查房員', paletteSortMinutes: 660 },
   { label: '遺失物', duration: 60, shiftScope: 'early', defaultSlots: 2, adjustableSlots: true, assignmentKey: '遺失物', assignmentSep: 'space', paletteSortMinutes: 630 },
-  { label: 'C5R指引', duration: 60, shiftScope: 'early', defaultSlots: 2, adjustableSlots: true, assignmentTimeSlots: [
+  { label: 'C5R指引', duration: 60, shiftScope: 'early', defaultSlots: 1, adjustableSlots: true, assignmentTimeSlots: [
     { key: 'C5R(6-7)', start: 360, end: 420 },
     { key: 'C5R(7-8)', start: 420, end: 480 }
-  ], paletteSortMinutes: 360 },
-  { label: 'SSBD', duration: 60, shiftScope: 'early', defaultSlots: 2, adjustableSlots: true, assignmentKey: 'SSBD', assignmentSep: 'space', paletteSortMinutes: 720 },
-  { label: 'UA P/F', duration: 90, shiftScope: 'late', defaultSlots: 1, assignmentKey: 'UA P/F', paletteSortMinutes: 990 },
+  ], paletteTimeSlots: [
+    { start: 360, end: 420 },
+    { start: 420, end: 480 }
+  ], paletteSortMinutes: 360, showPaletteTime: true },
+  { label: 'SSBD', duration: 90, shiftScope: 'early', defaultSlots: 2, adjustableSlots: true, assignmentKey: 'SSBD', assignmentSep: 'space', fixedStart: 720, fixedEnd: 810, paletteSortMinutes: 720, showPaletteTime: true },
+  { label: 'UA P/F', duration: 90, shiftScope: 'late', defaultSlots: 1, assignmentKey: 'UA P/F', fixedStart: 990, fixedEnd: 1080, paletteSortMinutes: 990, showPaletteTime: true, allowScheduleTimeMove: true, warnOnOutOfDefaultTime: true },
   { label: '值日生', duration: 30, defaultSlots: 4, adjustableSlots: true, assignmentKey: '值日生', assignmentSep: 'space', paletteSortMinutes: 720 },
   { label: '漏查單', duration: 30, shiftScope: 'late', defaultSlots: 1, assignmentKey: '漏查單', paletteSortMinutes: 24 * 60 },
-  { label: '客服', duration: 60, defaultSlots: 7, adjustableSlots: true, assignmentShiftRole: '客服專員', paletteSortMinutes: 600 },
+  { label: '客服', duration: 60, defaultSlots: 1, adjustableSlots: true, assignmentShiftRole: '客服專員', paletteSortMinutes: 600, paletteTimeSlots: [
+    { start: 600, end: 660 },
+    { start: 660, end: 720 },
+    { start: 720, end: 780 },
+    { start: 780, end: 840 },
+    { start: 840, end: 900 },
+    { start: 900, end: 960 },
+    { start: 960, end: 1020 }
+  ], showPaletteTime: true },
   { label: 'Q2', duration: 60, defaultSlots: 1, assignmentShiftRole: 'Q2', paletteSortMinutes: 420 },
   { label: 'TA', duration: 60, unlimited: true, assignmentShiftRole: 'TA', functionOnly: true },
   { label: 'S', duration: 60, unlimited: true, functionOnly: true },
@@ -25891,6 +25907,13 @@ function countOtherAssignments(otherKind) {
 }
 function countOtherAssignmentsForTemplate(t) {
   if (!isOtherDuty(t)) return 0;
+  if (t.otherSlotKey) {
+    return schedule.filter(x =>
+      x.role === '其他'
+      && x.otherKind === t.otherKind
+      && x.otherSlotKey === t.otherSlotKey
+    ).length;
+  }
   return countOtherAssignments(t.otherKind);
 }
 function personHasOtherAssignment(personIndex, otherKind) {
@@ -25928,28 +25951,50 @@ function getFuncChipDurationClass(duration) {
   return 'func-chip-60';
 }
 function createOtherDutyTemplates() {
-  return OTHER_DUTY_DEFS.filter(def => !def.requireNzFlights || hasNzFlightsOnDay()).map(def => {
+  return OTHER_DUTY_DEFS
+    .filter(def => !def.requireNzFlights || hasNzFlightsOnDay())
+    .flatMap(def => {
     const slug = def.label.replace(/\s+/g, '_');
-    return {
-      id: `OTHER_${slug}`,
-      label: def.label,
-      compactLabel: def.label,
-      flight: `OTHER_${slug}`,
-      role: '其他',
-      flightType: 'FUNC',
-      otherKind: def.label,
-      otherShiftScope: def.shiftScope || 'both',
-      otherSlots: def.unlimited ? null : (def.adjustableSlots ? getOtherSlotsForKind(def.label) : def.defaultSlots || 1),
-      assignmentShiftRole: def.assignmentShiftRole || '',
-      start: Number.isFinite(def.fixedStart) ? def.fixedStart : null,
-      end: Number.isFinite(def.fixedEnd) ? def.fixedEnd : null,
-      duration: def.duration,
-      freeTimeDrag: !Number.isFinite(def.fixedStart),
-      isFunction: true,
-      isOtherDuty: true,
-      isFunctionListOnly: !!def.functionOnly,
-      paletteSortMinutes: Number.isFinite(def.paletteSortMinutes) ? def.paletteSortMinutes : null
-    };
+    const slots = Array.isArray(def.paletteTimeSlots) && def.paletteTimeSlots.length
+      ? def.paletteTimeSlots
+      : [null];
+    return slots.map((slot, slotIdx) => {
+      const start = slot && Number.isFinite(slot.start)
+        ? Number(slot.start)
+        : (Number.isFinite(def.fixedStart) ? Number(def.fixedStart) : null);
+      const end = slot && Number.isFinite(slot.end)
+        ? Number(slot.end)
+        : (Number.isFinite(def.fixedEnd) ? Number(def.fixedEnd) : null);
+      const slotKey = slot ? `${start}-${end}` : '';
+      const paletteTimeLabel = (def.showPaletteTime && start != null && end != null)
+        ? `${minutesToTime(start)}~${minutesToTime(end)}`
+        : '';
+      return {
+        id: `OTHER_${slug}${slot ? `_${slotIdx + 1}` : ''}`,
+        label: def.label,
+        compactLabel: def.label,
+        flight: `OTHER_${slug}${slot ? `_${slotIdx + 1}` : ''}`,
+        role: '其他',
+        flightType: 'FUNC',
+        otherKind: def.label,
+        otherSlotKey: slotKey,
+        otherShiftScope: def.shiftScope || 'both',
+        otherSlots: def.unlimited ? null : (def.adjustableSlots ? getOtherSlotsForKind(def.label) : def.defaultSlots || 1),
+        assignmentShiftRole: def.assignmentShiftRole || '',
+        start,
+        end,
+        duration: def.duration,
+        freeTimeDrag: (start == null) || !!def.allowScheduleTimeMove,
+        useDefaultDropTime: start != null,
+        isFunction: true,
+        isOtherDuty: true,
+        isFunctionListOnly: !!def.functionOnly,
+        paletteSortMinutes: Number.isFinite(def.paletteSortMinutes)
+          ? Number(def.paletteSortMinutes) + slotIdx
+          : (start != null ? start : null),
+        paletteTimeLabel
+      };
+    });
   });
 }
 function sortOtherPaletteTemplates(list) {
@@ -25958,6 +26003,13 @@ function sortOtherPaletteTemplates(list) {
     order.indexOf(a.otherKind) - order.indexOf(b.otherKind) ||
     String(a.label || '').localeCompare(String(b.label || ''), 'zh-Hant')
   );
+}
+function shouldWarnOtherDutyMovedOutOfDefault(item) {
+  if (!item || item.role !== '其他') return false;
+  const def = getOtherDutyDef(item.otherKind);
+  if (!def || !def.warnOnOutOfDefaultTime) return false;
+  if (!Number.isFinite(def.fixedStart) || !Number.isFinite(def.fixedEnd)) return false;
+  return Number(item.start) !== Number(def.fixedStart) || Number(item.end) !== Number(def.fixedEnd);
 }
 function getOtherPaletteTemplates(list) {
   return sortOtherPaletteTemplates((list || []).filter(isOtherDuty));
@@ -30938,9 +30990,10 @@ function makeChip(t, paletteRoleContext = '') {
     }
   } else if (t.role === '其他') {
     chip.classList.add(getFuncChipDurationClass(t.duration));
+    const timeLine = t.paletteTimeLabel ? `<small>${escapeHtml(t.paletteTimeLabel)}</small>` : '';
     if (isOtherMultiSlotTemplate(t)) {
       const remain = getOtherSlotsRemaining(t);
-      chip.innerHTML = `<button type="button" class="duty-chip-edit-btn" title="調整人數">${EDIT_GEAR_ICON_HTML}</button><strong>${escapeHtml(t.label)}</strong>`;
+      chip.innerHTML = `<button type="button" class="duty-chip-edit-btn" title="調整人數">${EDIT_GEAR_ICON_HTML}</button><strong>${escapeHtml(t.label)}</strong>${timeLine}`;
       chip.querySelector('.duty-chip-edit-btn')?.addEventListener('click', e => {
         e.stopPropagation();
         e.preventDefault();
@@ -30952,7 +31005,7 @@ function makeChip(t, paletteRoleContext = '') {
         appendDutyChipSlotBadge(chip, remain, `尚可排 ${remain} 人`);
       }
     } else {
-      chip.innerHTML = `<strong>${escapeHtml(t.label)}</strong>`;
+      chip.innerHTML = `<strong>${escapeHtml(t.label)}</strong>${timeLine}`;
     }
   } else if (t.role === 'PRE') {
     const stdLine = t.paletteSortLabel
@@ -31672,6 +31725,7 @@ function handleTimelinePaletteDrop(e, timeline) {
         /* 無數量限制 */
       } else if (isOtherMultiSlotTemplate(tpl)) {
         if (countOtherAssignmentsForTemplate(tpl) >= getOtherSlotsForTemplate(tpl)) return;
+        if (tpl.otherSlotKey && schedule.some(x => x.role === '其他' && x.otherKind === tpl.otherKind && x.otherSlotKey === tpl.otherSlotKey)) return;
         if (personHasOtherAssignment(targetPersonIndex, tpl.otherKind)) return;
       } else if (schedule.some(x => x.role === '其他' && x.otherKind === tpl.otherKind)) {
         return;
@@ -31711,7 +31765,8 @@ function handleTimelinePaletteDrop(e, timeline) {
   let compactLabel = tpl.compactLabel;
   let flight = tpl.flight;
 
-  if (isPaletteFreeTimeDrag(tpl)) {
+  const useFreeTimeDrop = isPaletteFreeTimeDrag(tpl) && !tpl.useDefaultDropTime;
+  if (useFreeTimeDrop) {
     const rect = timeline.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const mins = snap5(getViewStartMin() + Math.max(0, x / pxPerMinute));
@@ -31799,6 +31854,7 @@ function handleTimelinePaletteDrop(e, timeline) {
     dicKind: tpl.dicKind || '',
     dicShiftScope: tpl.dicShiftScope || '',
     otherKind: tpl.otherKind || '',
+    otherSlotKey: tpl.otherSlotKey || '',
     otherShiftScope: tpl.otherShiftScope || '',
     assignmentShiftRole: tpl.assignmentShiftRole || '',
     freeTimeDrag: tpl.freeTimeDrag !== false,
@@ -32119,6 +32175,17 @@ function startMoveBlock(e, item, options = {}) {
   const originalPersonIndex = item.personIndex;
   const originalStart = item.start;
   const originalEnd = item.end;
+  const dragStartX = Number(e?.clientX);
+  const otherDef = item.role === '其他' ? getOtherDutyDef(item.otherKind) : null;
+  const lockDefaultTimeUntilHorizontalMove = !!(
+    otherDef
+    && otherDef.warnOnOutOfDefaultTime
+    && Number.isFinite(otherDef.fixedStart)
+    && Number.isFinite(otherDef.fixedEnd)
+    && Number(originalStart) === Number(otherDef.fixedStart)
+    && Number(originalEnd) === Number(otherDef.fixedEnd)
+  );
+  const DEFAULT_TIME_MOVE_UNLOCK_PX = 18;
   let undoPushed = false;
   let lastPreviewKey = '';
   let moveRaf = 0;
@@ -32132,6 +32199,12 @@ function startMoveBlock(e, item, options = {}) {
     if (personIdx != null) item.personIndex = personIdx;
 
     if ((isMovableTimeDuty(item) && item.freeTimeDrag !== false) || item.role === 'PRE') {
+      const horizontalMovedEnough = Number.isFinite(dragStartX) && Math.abs(ev.clientX - dragStartX) >= DEFAULT_TIME_MOVE_UNLOCK_PX;
+      const canAdjustTime = !lockDefaultTimeUntilHorizontalMove || horizontalMovedEnough;
+      if (!canAdjustTime) {
+        item.start = originalStart;
+        item.end = originalEnd;
+      } else {
       const targetTimeline = document.querySelector(`.timeline[data-original-index="${item.personIndex}"]`) || originTimeline;
       const rect = targetTimeline.getBoundingClientRect();
       const raw = getViewStartMin() + ((ev.clientX - rect.left) / pxPerMinute);
@@ -32140,6 +32213,7 @@ function startMoveBlock(e, item, options = {}) {
       const nextStart = item.role === 'PRE' ? enforcePrefilingStartMin(item, snapped) : snapped;
       item.start = nextStart;
       item.end = nextStart + duration;
+      }
     }
     setPaletteDropHover(item.personIndex);
 
@@ -32153,7 +32227,7 @@ function startMoveBlock(e, item, options = {}) {
       selectBlock(item.uid);
     });
   }
-  function onUp() {
+  async function onUp() {
     if (moveRaf) {
       cancelAnimationFrame(moveRaf);
       moveRaf = 0;
@@ -32177,6 +32251,21 @@ function startMoveBlock(e, item, options = {}) {
       const placement = validateFuncDutyPlacement(getFuncShiftScope(item), item.start, item.end);
       if (!placement.ok) {
         appAlert(placement.message, '無法移動', 'info');
+        item.personIndex = originalPersonIndex;
+        item.start = originalStart;
+        item.end = originalEnd;
+        renderRows();
+        selectBlock(item.uid);
+        return;
+      }
+    }
+    if (shouldWarnOtherDutyMovedOutOfDefault(item)) {
+      const dutyLabel = getDutyDisplayLabel(item);
+      const ok = await appConfirm('已移出預設就位時間，是否仍要套用此調整？', {
+        title: `${dutyLabel} 時段變更`,
+        confirmText: '確定移動'
+      });
+      if (!ok) {
         item.personIndex = originalPersonIndex;
         item.start = originalStart;
         item.end = originalEnd;
