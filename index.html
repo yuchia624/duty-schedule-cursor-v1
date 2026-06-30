@@ -9357,6 +9357,23 @@ function tempRowStaffAlreadyOnRoster(entry, excludeIndex) {
     return false;
   });
 }
+function lookupStaffDirectoryEntryForTempRowName(name) {
+  const key = normalizeText(String(name || '').trim());
+  if (!key) return null;
+  if (!staffDirectory.length) rebuildStaffDirectoryCache(getScheduleReferenceDate());
+  return staffDirectory.find(x => normalizeText(x.fullName) === key || normalizeText(x.code) === key) || null;
+}
+function applyTempRowStaffDirectoryLink(person, name) {
+  const entry = lookupStaffDirectoryEntryForTempRowName(name);
+  if (entry) {
+    person.personnelId = String(entry.personnelId || '').trim();
+    const staffCode = String(entry.code || '').trim();
+    if (staffCode) person.code = staffCode;
+    if (entry.level) person.level = String(entry.level).trim();
+  } else {
+    person.personnelId = '';
+  }
+}
 function applyStaffSuggestionToTempRow(personIndex, entry, personCell) {
   if (!entry || !people[personIndex]) return;
   if (tempRowStaffAlreadyOnRoster(entry, personIndex)) {
@@ -9371,6 +9388,8 @@ function applyStaffSuggestionToTempRow(personIndex, entry, personCell) {
   }
   person.personnelId = String(entry.personnelId || '').trim();
   person.name = name;
+  const staffCode = String(entry.code || '').trim();
+  if (staffCode) person.code = staffCode;
   if (entry.level) person.level = String(entry.level).trim();
   const cell = personCell || document.querySelector(`.person-cell[data-original-index="${personIndex}"]`);
   if (cell && rollCallMode) {
@@ -9416,7 +9435,11 @@ function syncTempRowIdentity(personIndex, name) {
     return false;
   }
   person.name = v;
-  person.personnelId = '';
+  if (!v) {
+    person.personnelId = '';
+    return true;
+  }
+  applyTempRowStaffDirectoryLink(person, v);
   return true;
 }
 function syncTempRowShiftTypeClass(left, personIndex) {
@@ -9717,6 +9740,9 @@ function bindTempRowEditorEvents(left, personIndex) {
         nameInput.value = prev;
         return;
       }
+      const levelSelect = left.querySelector('.temp-row-level-select');
+      const nextLevel = String(people[personIndex]?.level || '').trim();
+      if (levelSelect && nextLevel) levelSelect.value = nextLevel;
       markUnsynced();
     };
     nameInput.addEventListener('input', () => {
@@ -9782,29 +9808,54 @@ function bindTempRowEditorEvents(left, personIndex) {
     });
   }
 }
-function addTempControlRow() {
-  pushUndoSnapshot();
-  const personIndex = people.length;
+function createTempControlRowPerson() {
   const label = nextTempControlRowCode();
-  people.push(normalizePerson({
+  return normalizePerson({
     isTempRow: true,
     code: label,
-    name: label,
+    name: '',
     level: '支援',
     shift: '',
     personnelId: '',
     adjustedShift: '',
     tempRowView: activeShiftView
-  }));
-  insertTempRowIntoDisplayOrder(personIndex);
+  });
+}
+function addTempControlRows(count = 1) {
+  const n = Math.min(20, Math.max(1, Math.floor(Number(count) || 1)));
+  pushUndoSnapshot();
+  const firstIndex = people.length;
+  for (let i = 0; i < n; i++) {
+    const personIndex = people.length;
+    people.push(createTempControlRowPerson());
+    insertTempRowIntoDisplayOrder(personIndex);
+  }
   renderRows();
   markUnsynced();
   if (rollCallMode) {
-    appSuccess('已新增臨時列', '臨時列');
+    appSuccess(n > 1 ? `已新增 ${n} 筆臨時列` : '已新增臨時列', '臨時列');
   } else {
-    appAlert('已新增臨時列。請開啟點名功能來編輯。', '臨時列');
+    appAlert(
+      n > 1 ? `已新增 ${n} 筆臨時列。請開啟點名功能來編輯。` : '已新增臨時列。請開啟點名功能來編輯。',
+      '臨時列'
+    );
   }
-  requestAnimationFrame(() => focusPersonInSchedule(personIndex));
+  requestAnimationFrame(() => focusPersonInSchedule(firstIndex));
+}
+async function promptAddTempControlRows() {
+  const count = await appPromptNumber('請輸入要新增至管制表的臨時列數。', {
+    title: '新增臨時列',
+    min: 1,
+    max: 20,
+    defaultValue: 1,
+    confirmText: '確定新增',
+    invalidTitle: '無法新增'
+  });
+  if (count == null) return;
+  addTempControlRows(count);
+}
+function addTempControlRow() {
+  addTempControlRows(1);
 }
 function mergePreservedTempRowsAfterRollCallImport(oldPeople, newPeople) {
   const tempEntries = [];
@@ -10305,7 +10356,12 @@ function getScheduleExportDateText() {
 function getAssignmentPersonCode(item) {
   const p = people[item.personIndex];
   if (!p) return '';
-  if (isTempControlRow(p)) return String(p.name || p.code || '').trim();
+  if (isTempControlRow(p)) {
+    const code = String(p.code || '').trim();
+    const name = String(p.name || '').trim();
+    if (code && !/^CTR\d+$/i.test(code)) return code;
+    return name || code;
+  }
   return String(p.code || p.name || '').trim();
 }
 function bindAssignmentCodeClick(span, personIndex) {
@@ -10556,20 +10612,23 @@ function formatPersonDutyTimelineText(personIndex) {
     .filter(Boolean)
     .join('、');
 }
-function buildPersonDutyTimelineSheetRows(orderedRows) {
+function buildPersonDutyTimelineSheetRows(orderedRows, shiftLabel = '') {
   const rows = [
     ['日期', getScheduleExportDateText()],
     ['匯出時間', new Date().toLocaleString('zh-TW', { hour12: false })],
-    [],
-    ['序', '代號', '姓名', '戰力', '班別', '調班班別', '隔日班別', '行程']
   ];
+  if (shiftLabel) rows.push(['班別', shiftLabel]);
+  rows.push([], ['序', '代號', '姓名', '戰力', '班別', '調班班別', '隔日班別', '行程']);
   orderedRows.forEach((rowInfo, displayIdx) => {
     const person = rowInfo.person;
     const personIndex = rowInfo.originalIndex;
+    const isTempRow = isTempControlRow(person);
+    const code = String(person.code || '').trim();
+    const exportCode = isTempRow && (!code || /^CTR\d+$/i.test(code)) ? '' : code;
     rows.push([
       displayIdx + 1,
-      excelCell(person.code),
-      excelCell(resolveFullName(person) || person.name),
+      excelCell(exportCode),
+      excelCell(isTempRow ? String(person.name || '').trim() : (resolveFullName(person) || person.name)),
       excelCell(person.level || resolveLevel(person)),
       excelCell(person.shift || ''),
       excelCell(person.adjustedShift || ''),
@@ -10579,7 +10638,7 @@ function buildPersonDutyTimelineSheetRows(orderedRows) {
   });
   return rows;
 }
-function buildControlScheduleSheetRows(orderedRows) {
+function buildControlScheduleSheetRows(orderedRows, shiftLabel = '') {
   const slotStep = 15;
   const gridStart = START_MIN;
   const gridEnd = 24 * 60 + 5 * 60;
@@ -10591,19 +10650,17 @@ function buildControlScheduleSheetRows(orderedRows) {
   const rows = [
     ['日期', getScheduleExportDateText()],
     ['匯出時間', new Date().toLocaleString('zh-TW', { hour12: false })],
-    [],
-    ['序', '代號', '姓名', '戰力', '班別', ...timeSlots]
   ];
+  if (shiftLabel) rows.push(['班別', shiftLabel]);
+  rows.push([], ['序', '代號', '姓名', '戰力', '班別', ...timeSlots]);
   orderedRows.forEach((rowInfo, displayIdx) => {
     const person = rowInfo.person;
     const personIndex = rowInfo.originalIndex;
-    const tempLabel = isTempControlRow(person)
-      ? String(person.name || person.code || '').trim()
-      : '';
+    const isTempRow = isTempControlRow(person);
     const row = [
       displayIdx + 1,
-      excelCell(isTempControlRow(person) ? tempLabel : person.code),
-      excelCell(isTempControlRow(person) ? tempLabel : (resolveFullName(person) || person.name)),
+      excelCell(isTempRow ? String(person.code || '').trim() : person.code),
+      excelCell(isTempRow ? String(person.name || '').trim() : (resolveFullName(person) || person.name)),
       excelCell(person.level || resolveLevel(person)),
       excelCell(getShiftFilterKey(person) || person.shift),
       ...timeSlots.map(() => '')
@@ -10749,7 +10806,25 @@ function exportScheduleWorkbookExcel() {
   const wb = XLSX.utils.book_new();
   if (people.length) {
     const orderedRows = getDisplaySortedRows();
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(buildPersonDutyTimelineSheetRows(orderedRows)), '人員行程');
+    const earlyRows = orderedRows.filter(row => personBelongsToShiftView(row.person, 'early'));
+    const lateRows = orderedRows.filter(row => personBelongsToShiftView(row.person, 'late'));
+    if (earlyRows.length) {
+      XLSX.utils.book_append_sheet(
+        wb,
+        XLSX.utils.aoa_to_sheet(buildPersonDutyTimelineSheetRows(earlyRows, '早班')),
+        '早班管制表'
+      );
+    }
+    if (lateRows.length) {
+      XLSX.utils.book_append_sheet(
+        wb,
+        XLSX.utils.aoa_to_sheet(buildPersonDutyTimelineSheetRows(lateRows, '晚班')),
+        '晚班管制表'
+      );
+    }
+    if (!earlyRows.length && !lateRows.length) {
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(buildPersonDutyTimelineSheetRows(orderedRows)), '人員行程');
+    }
   }
   const assignmentFullRows = buildAssignmentFullSheetRows();
   if (assignmentFullRows.length) {
@@ -10791,16 +10866,19 @@ function getPersonShiftBand(person) {
   }
   return getShiftType(getShiftFilterKey(person)) || '';
 }
-function personMatchesShiftView(person) {
+function personBelongsToShiftView(person, shiftView) {
   if (isTempControlRow(person)) {
     const shiftKey = String(getShiftFilterKey(person) || '').trim();
     if (shiftKey) {
       const shiftType = getShiftType(shiftKey);
-      if (shiftType) return shiftType === activeShiftView;
+      if (shiftType) return shiftType === shiftView;
     }
-    return getTempRowPinnedShiftView(person) === activeShiftView;
+    return getTempRowPinnedShiftView(person) === shiftView;
   }
-  return getShiftType(getShiftFilterKey(person)) === activeShiftView;
+  return getShiftType(getShiftFilterKey(person)) === shiftView;
+}
+function personMatchesShiftView(person) {
+  return personBelongsToShiftView(person, activeShiftView);
 }
 function getPersonCellShiftType(person) {
   const fromShift = getShiftType(getShiftFilterKey(person));
@@ -23207,6 +23285,70 @@ function appConfirm(message, opts = {}) {
   });
 }
 
+function appPromptNumber(message, opts = {}) {
+  const o = typeof opts === 'object' && opts !== null ? opts : {};
+  const min = Number.isFinite(o.min) ? o.min : 1;
+  const max = Number.isFinite(o.max) ? o.max : 20;
+  const def = Number.isFinite(o.defaultValue) ? o.defaultValue : 1;
+  const inputId = 'appNoticePromptInput';
+  const messageHtml = `${buildAppNoticeMessageHtml(message, o.highlight)}<label class="app-notice-prompt-field" for="${inputId}" style="display:flex;align-items:center;gap:8px;margin-top:14px;font-size:14px;color:#334155">列數 <input type="number" id="${inputId}" min="${min}" max="${max}" value="${def}" style="width:80px;padding:6px 8px;border:1px solid #cbd5e1;border-radius:6px;font-size:14px" /></label>`;
+  initAppNoticeDialog();
+  const dlg = document.getElementById('appNoticeDialog');
+  const titleEl = document.getElementById('appNoticeTitle');
+  const msgEl = document.getElementById('appNoticeMessage');
+  const iconEl = document.getElementById('appNoticeIcon');
+  const detailsEl = document.getElementById('appNoticeDetails');
+  const cancelBtn = document.getElementById('appNoticeCancelBtn');
+  const confirmBtn = document.getElementById('appNoticeConfirmBtn');
+  const exportBtn = document.getElementById('appNoticeExportBtn');
+  if (!dlg || !titleEl || !msgEl) return Promise.resolve(null);
+  return new Promise(resolve => {
+    appNoticeResolve = confirmed => {
+      appNoticeResolve = null;
+      dlg.hidden = true;
+      if (!confirmed) {
+        resolve(null);
+        return;
+      }
+      const raw = document.getElementById(inputId)?.value;
+      const n = parseInt(String(raw ?? '').trim(), 10);
+      if (!Number.isFinite(n) || n < min || n > max) {
+        appAlert(`請輸入有效列數（${min}–${max}）。`, o.invalidTitle || '無法新增');
+        resolve(null);
+        return;
+      }
+      resolve(n);
+    };
+    appNoticeExportHandler = null;
+    dlg.classList.remove('is-success', 'is-info');
+    dlg.classList.add('is-warning');
+    if (iconEl) iconEl.innerHTML = APP_NOTICE_ICONS.warning;
+    titleEl.textContent = o.title || '請輸入';
+    msgEl.innerHTML = messageHtml;
+    if (detailsEl) {
+      detailsEl.innerHTML = '';
+      detailsEl.hidden = true;
+    }
+    appNoticeIgnoreEnterUntil = Date.now() + 400;
+    if (cancelBtn) {
+      cancelBtn.hidden = false;
+      cancelBtn.textContent = o.cancelText || '取消';
+    }
+    if (confirmBtn) confirmBtn.textContent = o.confirmText || '確定';
+    if (exportBtn) exportBtn.hidden = true;
+    dlg.hidden = false;
+    requestAnimationFrame(() => {
+      const input = document.getElementById(inputId);
+      if (input) {
+        input.focus();
+        input.select();
+      } else {
+        confirmBtn?.focus();
+      }
+    });
+  });
+}
+
 const ASSIGNMENT_FIXED_DUTIES = [
   { label: '入境通報', slots: 2 },
   { label: '抄LOAD', slots: 1 },
@@ -32981,7 +33123,7 @@ document.getElementById('importStaffDbBtn').addEventListener('click', () => {
   openRollCallStaffImportModal();
 });
 document.getElementById('addTempControlRowBtn')?.addEventListener('click', () => {
-  addTempControlRow();
+  promptAddTempControlRows();
 });
 document.getElementById('excelImportInput').addEventListener('change', async (e) => {
   const input = e.target;
