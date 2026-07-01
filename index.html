@@ -9216,6 +9216,10 @@ function buildRestStatusHtml(opts) {
   }
   if (opts.clockedOut) return '<span class="clocked-out-rest">已下班</span>';
   if (opts.hasRest) return '';
+  const requiresRest = opts.requiresRest != null
+    ? opts.requiresRest
+    : (opts.person ? personRequiresScheduledRest(opts.person) : true);
+  if (!requiresRest) return '';
   if (isNonWorkAdjustedShiftStatus(getAdjustedShiftInputStatus(opts.adjustedShift))) return '';
   return '<span class="pending-rest">待排休</span>';
 }
@@ -10116,7 +10120,8 @@ function buildTempRollCallCoreHtml(opts) {
     hasRest: opts.hasRest,
     hasDutyOverlap: !!opts.hasDutyOverlap,
     useRestCell: true,
-    adjustedShift: opts.adjustedShift
+    adjustedShift: opts.adjustedShift,
+    requiresRest: opts.requiresRest
   });
   return [
     buildScheduleRowSeqHtml(opts.seqNo, opts.person, !!opts.showRowDelete, opts.seqOpts),
@@ -10294,7 +10299,9 @@ function refreshRestStatusDisplay(cell, personIndex) {
     hasRest: hasRestForPerson(personIndex),
     hasDutyOverlap: personHasOverlappingDutyBlocks(personIndex),
     useRestCell: !!cell.querySelector('.rest-stack'),
-    adjustedShift: person.adjustedShift
+    adjustedShift: person.adjustedShift,
+    requiresRest: personRequiresScheduledRest(person),
+    person
   });
   const stack = cell.querySelector('.rest-stack, .rest-out-stack');
   if (!stack) return;
@@ -10317,7 +10324,8 @@ function buildPersonRowCoreHtml(opts) {
     hasRest: opts.hasRest,
     hasDutyOverlap: !!opts.hasDutyOverlap,
     useRestCell: true,
-    adjustedShift: opts.adjustedShift
+    adjustedShift: opts.adjustedShift,
+    requiresRest: opts.requiresRest
   });
   return [
     buildScheduleRowSeqHtml(opts.seqNo, opts.person, !!opts.showRowDelete, opts.seqOpts),
@@ -10393,7 +10401,8 @@ function buildNormalRowHtml(opts) {
     hasRest: opts.hasRest,
     hasDutyOverlap: !!opts.hasDutyOverlap,
     useRestCell: false,
-    adjustedShift: opts.adjustedShift
+    adjustedShift: opts.adjustedShift,
+    requiresRest: opts.requiresRest
   });
   const statusAlert = opts.staffStatusAlert
     ? `<span class="staff-status-alert">${escapeHtml(opts.staffStatusAlert)}</span>`
@@ -25729,6 +25738,7 @@ function rebuildAfterExcelImport(newFlightDefs, newPeople) {
   selectedBlockId = null;
   blockSeq = 1;
   rebuildTemplates();
+  ensureDefaultRestBreaks();
   markUnsynced();
   renderTimeHeader();
   renderFlightEditor();
@@ -26406,6 +26416,7 @@ function applyRollCallAppendDicImport(preview) {
     applyRollCallNextDayShiftFromTomorrowPreviews(state.tomorrowAgentRaw, state.tomorrowDicRaw);
   }
   resetPeopleDisplayOrderToAutoSort();
+  ensureDefaultRestBreaks();
   rollCallStaffImportApplied = true;
   markUnsynced();
   renderRows();
@@ -26632,6 +26643,7 @@ function applyRollCallStaffImport() {
   people = mergePreservedTempRowsAfterRollCallImport(oldPeople, newPeople);
   resetPeopleDisplayOrderToAutoSort();
   restoreTempRowsDisplayOrderBeforeDic();
+  ensureDefaultRestBreaks();
   rollCallStaffImportApplied = true;
   markUnsynced();
   renderRows();
@@ -27993,6 +28005,80 @@ function normalizeFlightDefsInPlace() {
   });
 }
 function hasRestForPerson(personIndex) { return schedule.some(x => x.personIndex === personIndex && x.role === '休'); }
+const DEFAULT_REST_DURATION_MINUTES = 60;
+function personRequiresScheduledRest(person) {
+  if (!person) return false;
+  if (getPersonLevelFilterKey(person) === '支援') return false;
+  if (isPersonFourHourShift(person)) return false;
+  if (isNonWorkAdjustedShiftStatus(getAdjustedShiftInputStatus(person.adjustedShift))) return false;
+  const bounds = getPersonShiftBounds(person);
+  if (!bounds) return false;
+  return bounds.endMin - bounds.startMin > DEFAULT_REST_DURATION_MINUTES;
+}
+function findDefaultRestWindow(personIndex) {
+  const person = people[personIndex];
+  const bounds = getPersonShiftBounds(person);
+  if (!person || !bounds) return null;
+  const duration = DEFAULT_REST_DURATION_MINUTES;
+  const shiftDuration = bounds.endMin - bounds.startMin;
+  if (shiftDuration <= duration) return null;
+  const center = bounds.startMin + shiftDuration / 2;
+  const segments = getPersonWorkDutySegments(personIndex);
+  const overlaps = (start, end) => segments.some(seg => seg.start < end && seg.end > start);
+  const gaps = [];
+  let prevEnd = bounds.startMin;
+  segments.forEach(seg => {
+    if (seg.start > prevEnd) gaps.push({ start: prevEnd, end: seg.start });
+    prevEnd = Math.max(prevEnd, seg.end);
+  });
+  if (bounds.endMin > prevEnd) gaps.push({ start: prevEnd, end: bounds.endMin });
+  let best = null;
+  let bestDist = Infinity;
+  gaps.forEach(gap => {
+    const gapLen = gap.end - gap.start;
+    if (gapLen < duration) return;
+    let restStart = snap5(Math.round(gap.start + (gapLen - duration) / 2));
+    restStart = Math.max(gap.start, Math.min(restStart, gap.end - duration));
+    const restEnd = restStart + duration;
+    if (overlaps(restStart, restEnd)) return;
+    const dist = Math.abs((restStart + duration / 2) - center);
+    if (dist < bestDist) {
+      bestDist = dist;
+      best = { start: restStart, end: restEnd };
+    }
+  });
+  return best;
+}
+function createDefaultRestScheduleItem(personIndex, start, end) {
+  const uid = blockSeq++;
+  return {
+    uid,
+    label: '休 1 hr',
+    compactLabel: '休',
+    role: '休',
+    flight: `REST60_AUTO_${personIndex}_${uid}`,
+    flightType: 'FUNC',
+    templateId: 'REST_60',
+    personIndex,
+    start,
+    end,
+    freeTimeDrag: true,
+    isFunction: true
+  };
+}
+function ensureDefaultRestBreaks(options = {}) {
+  let changed = false;
+  people.forEach((person, personIndex) => {
+    if (!personRequiresScheduledRest(person)) return;
+    if (hasRestForPerson(personIndex)) return;
+    const window = findDefaultRestWindow(personIndex);
+    if (!window) return;
+    schedule.push(createDefaultRestScheduleItem(personIndex, window.start, window.end));
+    changed = true;
+  });
+  if (changed && !options.skipMark) markUnsynced();
+  return changed;
+}
 function getPersonDutyBlockSegments(personIndex) {
   const segments = [];
   schedule.filter(s => s.personIndex === personIndex).forEach(item => {
@@ -34564,6 +34650,7 @@ function renderRows() {
     if (rollCallMode && radioNo && !clockedOut) left.classList.add('on-duty-by-radio');
     if (clockedOut) row.classList.add('clocked-out');
     const hasDutyOverlap = personHasOverlappingDutyBlocks(rowInfo.originalIndex);
+    const requiresRest = personRequiresScheduledRest(rowInfo.person);
     const rowSeqOpts = {
       pinned: !!rowInfo.pinned,
       originalIndex: rowInfo.originalIndex,
@@ -34582,6 +34669,7 @@ function renderRows() {
           adjustedShift,
           hasRest: hasRestForPerson(rowInfo.originalIndex),
           hasDutyOverlap,
+          requiresRest,
           radioNo,
           ircsNo,
           nextDayShift,
@@ -34599,6 +34687,7 @@ function renderRows() {
           adjustedShift,
           hasRest: hasRestForPerson(rowInfo.originalIndex),
           hasDutyOverlap,
+          requiresRest,
           radioNo,
           ircsNo,
           nextDayShift,
@@ -34617,6 +34706,7 @@ function renderRows() {
         adjustedShift,
         hasRest: hasRestForPerson(rowInfo.originalIndex),
         hasDutyOverlap,
+        requiresRest,
         clockedOut,
         staffStatusAlert: isTempRow ? '' : getStaffStatusAlert(rowInfo.person, getScheduleReferenceDate()),
         seqOpts: rowSeqOpts,
@@ -35224,6 +35314,7 @@ function bootLoadDayState() {
   blockSeq = schedule.length ? Math.max(...schedule.map(x => Number(x.uid) || 0)) + 1 : 1;
   editorExpanded = false;
   rebuildTemplates();
+  ensureDefaultRestBreaks({ skipMark: true });
 }
 function bootBindEvents() {
 bindTBoundaryDiffModalOnce();
