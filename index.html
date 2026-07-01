@@ -21,7 +21,7 @@
 <title>今天的完整拖拉管制表 v2</title>
 <style>
   :root {
-    --sidebar-width: 420px;
+    --sidebar-width: 480px;
     --header-height: 44px;
     --row-height: 46px;
     --name-col-width: 240px;
@@ -30,7 +30,7 @@
     --bg: #f5f7fb;
     --line: #d6dbe6;
     --duty-block-radius: 6px;
-    --palette-content-width: 380px;
+    --palette-content-width: 440px;
     --text: #1f2937;
     --assignment-titlebar-h: 38px;
     --assign-section-head-h: 30px;
@@ -40,7 +40,7 @@
   body { margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang TC","Microsoft JhengHei",sans-serif; color:var(--text); background:var(--bg); }
   .app { display:grid; grid-template-columns:var(--sidebar-width) 1fr; height:100vh; }
   .sidebar {
-    border-right:1px solid var(--line); background:#fff; display:flex; flex-direction:column; min-width:420px;
+    border-right:1px solid var(--line); background:#fff; display:flex; flex-direction:column; min-width:var(--sidebar-width);
     position: sticky; top: 0; height: 100vh; overflow: hidden;
   }
   .sidebar .panel-title {
@@ -117,23 +117,36 @@
     max-width: var(--palette-content-width);
     margin-inline: auto;
     flex: 0 0 auto;
-    padding: 6px 20px 0;
-    gap: 5px;
+    padding: 6px 10px 0;
+    gap: 6px;
     flex-wrap: nowrap;
+    align-items: center;
+    justify-content: flex-start;
     box-sizing: border-box;
   }
   .sidebar .palette-tabs__group {
+    flex: 0 1 auto;
+    min-width: 0;
     flex-wrap: nowrap;
-    gap: 5px;
+    gap: 6px;
   }
   .sidebar .palette-add-duty-btn {
-    padding: 5px 8px;
-    font-size: 11px;
-    min-height: 28px;
+    flex: 0 0 auto;
+    padding: 6px 12px;
+    font-size: 12px;
+    min-height: 0;
   }
   .sidebar .tab-btn {
-    padding: 5px 8px;
-    font-size: 11px;
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px 12px;
+    font-size: 12px;
+    line-height: 1.2;
+    white-space: nowrap;
+    text-align: center;
+    box-sizing: border-box;
   }
   .sidebar .palette-view {
     flex: 1 1 auto;
@@ -307,11 +320,12 @@
     display: flex;
     flex-wrap: nowrap;
     align-items: center;
+    justify-content: flex-start;
     gap: 6px;
     width: 100%;
     max-width: var(--palette-content-width);
     margin-inline: auto;
-    padding: 10px 20px 0;
+    padding: 8px 20px 0;
     border-top: 1px solid var(--line);
     background: #fff;
     flex: 0 0 auto;
@@ -322,15 +336,21 @@
     flex-wrap: nowrap;
     align-items: center;
     gap: 6px;
-    flex: 1 1 auto;
+    flex: 0 1 auto;
     min-width: 0;
   }
   .palette-tabs__group .tab-btn {
-    flex: 0 1 auto;
-    min-width: 0;
-    padding: 7px 10px;
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px 12px;
     font-size: 12px;
+    font-weight: 700;
+    line-height: 1.2;
     white-space: nowrap;
+    text-align: center;
+    box-sizing: border-box;
   }
   .palette-add-duty-btn {
     flex: 0 0 auto;
@@ -338,7 +358,7 @@
     display: inline-flex;
     align-items: center;
     gap: 4px;
-    padding: 7px 10px;
+    padding: 6px 12px;
     border: 1px solid #cfd6e4;
     border-radius: 999px;
     background: #fff;
@@ -355,7 +375,22 @@
     font-weight: 800;
     line-height: 1;
   }
-  .tab-btn { border:1px solid #cfd6e4; background:#fff; border-radius:999px; padding:8px 12px; font-size:13px; }
+  .tab-btn {
+    border: 1px solid #cfd6e4;
+    background: #fff;
+    border-radius: 999px;
+    padding: 6px 12px;
+    font-size: 12px;
+    font-weight: 700;
+    color: #334155;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1.2;
+    white-space: nowrap;
+    text-align: center;
+    box-sizing: border-box;
+  }
   .tab-btn.active { background:#111827; color:#fff; border-color:#111827; }
   .palette-view { overflow:auto; padding:10px 20px 16px; flex:1 1 auto; min-height:0; }
   .group-title { margin:12px 4px 8px; font-weight:800; font-size:13px; color:#374151; }
@@ -1496,7 +1531,21 @@
   .rollcall-grid .rc-col .person-rollcall-check input { width:14px; height:14px; margin:0; }
   .rollcall-grid .rc-col .drag-icon { font-size:14px; line-height:1; }
   #toggleRollCallBtn.active { background:#dbeafe; border-color:#2563eb; color:#1d4ed8; }
-  .person-cell.dragging { opacity:.5; } .person-cell.over { background:#eef6ff; }
+  .person-cell.dragging { opacity:.5; }
+  .row.row-reorder-drop-above::before,
+  .row.row-reorder-drop-below::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: #2563eb;
+    box-shadow: 0 0 0 1px rgba(37, 99, 235, 0.12);
+    pointer-events: none;
+    z-index: 25;
+  }
+  .row.row-reorder-drop-above::before { top: 0; transform: translateY(-50%); }
+  .row.row-reorder-drop-below::after { bottom: 0; transform: translateY(50%); }
   .drag-icon { color:#9ca3af; font-size:16px; flex:0 0 auto; }
   .badge {
     flex: 0 0 auto;
@@ -1747,6 +1796,42 @@
   .row.flight-match-top .person-cell { background:#fffbea; }
   .row.flight-match-top--full .shift-band {
     background-color: #fffbea !important;
+  }
+  .row.flight-match-pinned .person-cell { background:#fff8e1; }
+  .row.flight-match-pinned.flight-match-top .person-cell { background:#fff3c4; }
+  .row-pin-divider {
+    flex:0 0 auto;
+    width:100%;
+    height:7px;
+    border-bottom:1px solid #e2e8f0;
+    background:#f8fafc;
+    pointer-events:none;
+  }
+  .row-grip-btn {
+    display:inline-flex;
+    align-items:center;
+    flex:0 0 auto;
+    cursor:grab;
+    user-select:none;
+    touch-action:none;
+    line-height:1;
+  }
+  .row-grip-btn:active { cursor:grabbing; }
+  .row-grip-btn--pinned {
+    cursor:pointer;
+    background:transparent;
+    padding:0;
+    border:none;
+    color:#eab308;
+  }
+  .row-grip-btn--pinned:active { cursor:pointer; }
+  .row-grip-btn--pinned .row-pin-img {
+    display:block;
+    width:18px;
+    height:22px;
+    flex:0 0 auto;
+    pointer-events:none;
+    user-select:none;
   }
   .row.palette-drop-hover .person-cell,
   .board .row.palette-drop-hover .person-cell.rollcall-grid.shift-early,
@@ -4296,7 +4381,7 @@
     gap: 6px;
   }
   .tab-btn {
-    padding: 7px 10px;
+    padding: 7px 11px;
     font-size: 12px;
   }
   .palette-view {
@@ -4430,8 +4515,8 @@
     box-shadow: 0 2px 8px rgba(239,68,68,.22);
   }
   @media (max-width: 900px) {
-    :root { --sidebar-width: 360px; }
-    .sidebar { min-width: 360px; }
+    :root { --sidebar-width: 400px; --palette-content-width: 360px; }
+    .sidebar { min-width: var(--sidebar-width); }
     .custom-duty-grid { grid-template-columns: 1fr 76px 70px auto; }
     .toolbar .search-wrap { width: 180px; }
   }
@@ -6890,13 +6975,14 @@
         <button class="tab-btn active" data-tab="byRole">種類</button>
         <button class="tab-btn" data-tab="byTime">時間</button>
         <button class="tab-btn" data-tab="byRegion">區域</button>
+        <button class="tab-btn" data-tab="byGate">航廈</button>
         <button class="tab-btn" data-tab="byFunction">功能</button>
         <button class="tab-btn" data-tab="deleted">最近刪除</button>
-        <button type="button" id="addCustomDutyBtn" class="palette-add-duty-btn" aria-label="新增 duty 區塊" aria-expanded="false">
-          <span class="palette-add-duty-btn__icon" aria-hidden="true">+</span>
-          <span>新增</span>
-        </button>
       </div>
+      <button type="button" id="addCustomDutyBtn" class="palette-add-duty-btn" aria-label="新增 duty 區塊" aria-expanded="false">
+        <span class="palette-add-duty-btn__icon" aria-hidden="true">+</span>
+        <span>新增</span>
+      </button>
     </div>
     <div class="custom-duty-box" id="customDutyBox">
       <div class="custom-duty-title">自訂義 duty 區塊</div>
@@ -7200,6 +7286,10 @@
       <button type="button" class="toolbar-icon-btn" id="undoBtn" disabled aria-label="復原上一步（Ctrl+Z）">
         <span class="toolbar-icon-btn__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10H9"/></svg></span>
         <span class="toolbar-icon-btn__tip">復原</span>
+      </button>
+      <button type="button" class="toolbar-icon-btn" id="redoBtn" disabled aria-label="重做下一步（Ctrl+Shift+Z）">
+        <span class="toolbar-icon-btn__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 14l5-5-5-5"/><path d="M20 9H9a5 5 0 0 0 0 10h2"/></svg></span>
+        <span class="toolbar-icon-btn__tip">重做</span>
       </button>
       <button type="button" class="toolbar-icon-btn cloud-sync-btn" id="saveBtn" aria-label="同步">
         <span class="toolbar-icon-btn__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-7.07L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 7.07L3 16"/></svg></span>
@@ -9284,16 +9374,18 @@ function getDisplaySortedRows() {
 function getOrderedAllRows() {
   return getDisplaySortedRows();
 }
-function reorderDisplayRows(fromOriginalIndex, toOriginalIndex) {
-  if (fromOriginalIndex === toOriginalIndex) return;
-  pushUndoSnapshot();
+function reorderDisplayRows(fromOriginalIndex, toOriginalIndex, insertAfter = false) {
   ensurePeopleDisplayOrder();
   const fromPos = peopleDisplayOrder.indexOf(fromOriginalIndex);
   const toPos = peopleDisplayOrder.indexOf(toOriginalIndex);
   if (fromPos < 0 || toPos < 0) return;
+  let insertPos = insertAfter ? toPos + 1 : toPos;
   const next = peopleDisplayOrder.slice();
   next.splice(fromPos, 1);
-  next.splice(toPos, 0, fromOriginalIndex);
+  if (fromPos < insertPos) insertPos--;
+  next.splice(insertPos, 0, fromOriginalIndex);
+  if (next.every((v, i) => v === peopleDisplayOrder[i])) return;
+  pushUndoSnapshot();
   peopleDisplayOrder = next;
   renderRows();
   markUnsynced();
@@ -9571,9 +9663,182 @@ function buildScheduleRowDeleteBtnHtml(person) {
   const payload = encodePersonDeleteToken(token);
   return `<button type="button" class="schedule-row-delete-btn" data-delete-token="${payload}" title="刪除此人員" aria-label="刪除此人員"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M6 6l1.2 14h9.6L18 6"/></svg></button>`;
 }
-function buildScheduleRowSeqHtml(seqNo, person, showDelete) {
+const ROW_PIN_ICON = '<svg class="row-pin-img" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path fill="currentColor" d="M4.146.146A.5.5 0 0 1 4.5 0h7a.5.5 0 0 1 .5.5c0 .68-.342 1.174-.646 1.479-.126.125-.25.224-.354.298v4.431l.078.048c.203.127.476.314.751.555C12.36 7.775 13 8.527 13 9.5a.5.5 0 0 1-.5.5h-4v4.5c0 .276-.224 1.5-.5 1.5s-.5-1.224-.5-1.5V10h-4a.5.5 0 0 1-.5-.5c0-.973.64-1.725 1.17-2.189A6 6 0 0 1 5 6.708V2.277a3 3 0 0 1-.354-.298C4.342 1.674 4 1.179 4 .5a.5.5 0 0 1 .146-.354"/></svg>';
+const ROW_GRIP_DRAG_THRESHOLD_PX = 5;
+let rowGripPress = null;
+let rowReorderDragFromIndex = null;
+let rowReorderDropState = null;
+function normalizePersonPinToken(token) {
+  if (!token || typeof token !== 'object') return null;
+  if (token.kind === 'temp') {
+    const code = String(token.code || '').trim();
+    return code ? { kind: 'temp', code } : null;
+  }
+  if (token.kind === 'formal') {
+    const personnelId = String(token.personnelId || '').trim();
+    if (personnelId) return { kind: 'formal', personnelId };
+    const code = String(token.code || '').trim();
+    const name = String(token.name || '').trim();
+    if (code || name) return { kind: 'formal', code, name };
+  }
+  return null;
+}
+function personPinTokenEquals(a, b) {
+  const ta = normalizePersonPinToken(a);
+  const tb = normalizePersonPinToken(b);
+  if (!ta || !tb || ta.kind !== tb.kind) return false;
+  if (ta.kind === 'temp') return ta.code === tb.code;
+  if (ta.personnelId && tb.personnelId) return ta.personnelId === tb.personnelId;
+  return ta.code === tb.code && ta.name === tb.name;
+}
+function getPersonPinToken(person) {
+  return getPersonDeleteToken(person);
+}
+function rebuildTimelinePinnedPersonOrder() {
+  timelinePinnedPersonOrder = timelinePinnedPersonTokens
+    .map(token => resolvePersonDeleteIndex(token))
+    .filter(idx => idx >= 0);
+}
+function loadTimelinePinnedPersonTokens(raw) {
+  timelinePinnedPersonTokens = Array.isArray(raw)
+    ? raw.map(normalizePersonPinToken).filter(Boolean)
+    : [];
+  rebuildTimelinePinnedPersonOrder();
+}
+function saveTimelinePinnedPersonTokens() {
+  const k = dayStorageKeys(selectedDate);
+  localStorage.setItem(k.timelinePinnedPersonTokens, JSON.stringify(timelinePinnedPersonTokens));
+}
+function removeTimelinePinForPersonIndex(personIndex) {
+  const token = getPersonPinToken(people[personIndex]);
+  if (!token) return;
+  timelinePinnedPersonTokens = timelinePinnedPersonTokens.filter(t => !personPinTokenEquals(t, token));
+  rebuildTimelinePinnedPersonOrder();
+}
+function isTimelineSearchActive() {
+  return !!String(timelineFlightSearch || '').trim();
+}
+function hasTimelinePersonPins() {
+  return timelinePinnedPersonOrder.length > 0;
+}
+function isTimelinePersonPinned(originalIndex) {
+  return timelinePinnedPersonOrder.includes(originalIndex);
+}
+function clearTimelinePersonPins() {
+  timelinePinnedPersonTokens = [];
+  timelinePinnedPersonOrder = [];
+}
+function reindexTimelinePinsAfterPersonRemoved(removedIndex) {
+  removeTimelinePinForPersonIndex(removedIndex);
+}
+function buildRowGripHtml(originalIndex, pinned = false) {
+  if (pinned) {
+    return `<span class="row-grip-btn row-grip-btn--pinned" data-grip-index="${originalIndex}" role="button" tabindex="0" title="取消釘選" aria-label="取消釘選" aria-pressed="true">${ROW_PIN_ICON}</span>`;
+  }
+  return `<span class="row-grip-btn" draggable="true" data-grip-index="${originalIndex}" role="button" tabindex="0" title="拖曳排序；點一下釘選" aria-label="拖曳排序；點一下釘選"><span class="drag-icon">⋮⋮</span></span>`;
+}
+function buildRowSeqColInnerHtml(seqNo, seqOpts = {}) {
+  const { pinned = false, originalIndex = null, showGrip = true } = seqOpts;
+  const grip = showGrip && originalIndex != null ? buildRowGripHtml(originalIndex, pinned) : '';
+  return `${grip}<span class="person-seq">${seqNo}</span>`;
+}
+function buildRowGripColHtml(originalIndex, pinned = false) {
+  return `<div class="rc-col rc-grip">${buildRowGripHtml(originalIndex, pinned)}</div>`;
+}
+function toggleTimelinePersonPin(originalIndex) {
+  if (!Number.isFinite(originalIndex)) return;
+  const token = getPersonPinToken(people[originalIndex]);
+  if (!token) return;
+  const pos = timelinePinnedPersonTokens.findIndex(t => personPinTokenEquals(t, token));
+  if (pos >= 0) timelinePinnedPersonTokens = timelinePinnedPersonTokens.filter((_, i) => i !== pos);
+  else timelinePinnedPersonTokens = [...timelinePinnedPersonTokens, token];
+  rebuildTimelinePinnedPersonOrder();
+  saveTimelinePinnedPersonTokens();
+  invalidateLiveCloudFingerprint();
+  markUnsynced();
+  const scrollHost = getScheduleScrollHost();
+  const savedScrollTop = scrollHost?.scrollTop ?? null;
+  renderRows();
+  if (scrollHost != null && savedScrollTop != null) scrollHost.scrollTop = savedScrollTop;
+}
+function initTimelineRowPinHandlers() {
+  const rowsHost = document.getElementById('rows');
+  if (!rowsHost || rowsHost.dataset.pinBound === '1') return;
+  rowsHost.dataset.pinBound = '1';
+
+  rowsHost.addEventListener('mousedown', e => {
+    const grip = e.target.closest('.row-grip-btn');
+    if (!grip) return;
+    rowGripPress = {
+      index: Number(grip.dataset.gripIndex),
+      x: e.clientX,
+      y: e.clientY,
+      dragStarted: false,
+      isPinned: grip.classList.contains('row-grip-btn--pinned')
+    };
+  });
+
+  rowsHost.addEventListener('dragstart', e => {
+    const grip = e.target.closest('.row-grip-btn');
+    if (!grip || grip.classList.contains('row-grip-btn--pinned')) return;
+    const index = Number(grip.dataset.gripIndex);
+    if (!Number.isFinite(index)) return;
+    if (rowGripPress) rowGripPress.dragStarted = true;
+    else rowGripPress = { index, dragStarted: true };
+    rowReorderDragFromIndex = index;
+    e.dataTransfer.setData('text/person-row', String(index));
+    e.dataTransfer.effectAllowed = 'move';
+    grip.closest('.person-cell')?.classList.add('dragging');
+  });
+
+  rowsHost.addEventListener('dragover', e => {
+    if (!e.dataTransfer.types.includes('text/person-row')) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    updateRowReorderDropIndicator(e.clientY, rowReorderDragFromIndex);
+  });
+
+  rowsHost.addEventListener('drop', e => {
+    if (!e.dataTransfer.types.includes('text/person-row')) return;
+    e.preventDefault();
+    const fromIdx = Number(e.dataTransfer.getData('text/person-row'));
+    const target = rowReorderDropState || resolveRowReorderDropTarget(e.clientY);
+    if (!Number.isFinite(fromIdx) || !target) return;
+    reorderDisplayRows(fromIdx, target.toIdx, target.insertAfter);
+    clearHoverStates();
+  });
+
+  rowsHost.addEventListener('dragend', e => {
+    const grip = e.target.closest('.row-grip-btn');
+    if (!grip) return;
+    grip.closest('.person-cell')?.classList.remove('dragging');
+    rowGripPress = null;
+    rowReorderDragFromIndex = null;
+    clearHoverStates();
+  });
+
+  if (!initTimelineRowPinHandlers._docBound) {
+    initTimelineRowPinHandlers._docBound = true;
+    document.addEventListener('mousemove', e => {
+      if (!rowGripPress || rowGripPress.dragStarted || rowGripPress.isPinned) return;
+      const dx = Math.abs(e.clientX - rowGripPress.x);
+      const dy = Math.abs(e.clientY - rowGripPress.y);
+      if (dx > ROW_GRIP_DRAG_THRESHOLD_PX || dy > ROW_GRIP_DRAG_THRESHOLD_PX) {
+        rowGripPress.dragStarted = true;
+      }
+    });
+    document.addEventListener('mouseup', () => {
+      if (!rowGripPress) return;
+      if (!rowGripPress.dragStarted && Number.isFinite(rowGripPress.index)) {
+        toggleTimelinePersonPin(rowGripPress.index);
+      }
+      rowGripPress = null;
+    });
+  }
+}
+function buildScheduleRowSeqHtml(seqNo, person, showDelete, seqOpts = {}) {
   const deleteBtn = showDelete && person ? buildScheduleRowDeleteBtnHtml(person) : '';
-  return `<div class="rc-col rc-seq"><span class="person-seq">${seqNo}</span>${deleteBtn}</div>`;
+  return `<div class="rc-col rc-seq">${buildRowSeqColInnerHtml(seqNo, seqOpts)}${deleteBtn}</div>`;
 }
 function encodePersonDeleteToken(token) {
   return encodeURIComponent(JSON.stringify(token));
@@ -9686,6 +9951,7 @@ function applySchedulePersonDelete(token) {
   reindexScheduleAfterPersonRemoved(personIndex);
   people.splice(personIndex, 1);
   reindexPeopleDisplayOrderAfterPersonRemoved(personIndex);
+  reindexTimelinePinsAfterPersonRemoved(personIndex);
   rebuildTemplates();
   renderPalette();
   renderRows();
@@ -9782,8 +10048,8 @@ function buildTempRollCallCoreHtml(opts) {
     adjustedShift: opts.adjustedShift
   });
   return [
-    buildScheduleRowSeqHtml(opts.seqNo, opts.person, !!opts.showRowDelete),
-    '<div class="rc-col rc-grip"><span class="drag-icon">⋮⋮</span></div>',
+    buildScheduleRowSeqHtml(opts.seqNo, opts.person, !!opts.showRowDelete, opts.seqOpts),
+    buildRowGripColHtml(opts.originalIndex, !!opts.seqOpts?.pinned),
     `<div class="rc-col rc-level"><select class="temp-row-level-select" aria-label="戰力">${buildTempRowLevelOptions(opts.displayLevel)}</select></div>`,
     `<div class="rc-col rc-name"><div class="temp-row-name-wrap name-field-wrap"><input type="text" class="temp-row-name-input" placeholder="姓名" aria-label="姓名" autocomplete="off" value="${escapeHtml(opts.displayName || '')}" /></div></div>`,
     `<div class="rc-col rc-shift">${buildTempRollCallShiftHtml(opts.shift)}</div>`,
@@ -9983,8 +10249,8 @@ function buildPersonRowCoreHtml(opts) {
     adjustedShift: opts.adjustedShift
   });
   return [
-    buildScheduleRowSeqHtml(opts.seqNo, opts.person, !!opts.showRowDelete),
-    '<div class="rc-col rc-grip"><span class="drag-icon">⋮⋮</span></div>',
+    buildScheduleRowSeqHtml(opts.seqNo, opts.person, !!opts.showRowDelete, opts.seqOpts),
+    buildRowGripColHtml(opts.originalIndex, !!opts.seqOpts?.pinned),
     `<div class="rc-col rc-level"><span class="badge">${escapeHtml(opts.displayLevel)}</span></div>`,
     buildPersonNameCellHtml(opts.displayName, opts),
     `<div class="rc-col rc-shift">${renderShiftLabel(opts.shift, opts.adjustedShift)}</div>`,
@@ -10062,7 +10328,7 @@ function buildNormalRowHtml(opts) {
     ? `<span class="staff-status-alert">${escapeHtml(opts.staffStatusAlert)}</span>`
     : '';
   return [
-    `<div class="rc-col rc-seq"><span class="drag-icon">⋮⋮</span><span class="person-seq">${opts.seqNo}</span></div>`,
+    `<div class="rc-col rc-seq">${buildRowSeqColInnerHtml(opts.seqNo, opts.seqOpts)}</div>`,
     `<div class="rc-col rc-level"><span class="badge">${escapeHtml(opts.displayLevel)}</span>${statusAlert}</div>`,
     buildPersonNameCellHtml(opts.displayName, opts),
     `<div class="rc-col rc-shift"><span class="normal-shift-tail">${renderShiftLabel(opts.shift, opts.adjustedShift)}<span class="rest-out-stack">${restBit}</span></span></div>`
@@ -11379,6 +11645,52 @@ function getScheduleItemGateBadgeHtml(item) {
 function normalizeGateCode(gate) {
   return String(gate ?? '').trim().toUpperCase();
 }
+function resolvePaletteGateZoneCategory(gate) {
+  const g = normalizeGateCode(gate);
+  if (!g) return '';
+  if (/^\d+$/.test(g)) return 'gate-remote';
+  if (g === 'C5R' || g === 'D5R') return 'gate-remote';
+  if (/^D(1[1-8])$/.test(g)) return 'gate-t3';
+  if (/^D([1-9]|10)$/.test(g)) return 'gate-ad';
+  if (/^A[1-9]$/.test(g)) return 'gate-ad';
+  if (/^C([1-9]|10)$/.test(g)) return 'gate-c';
+  if (/^B[1-9]$/.test(g)) return 'gate-b';
+  return '';
+}
+function getDutyGateDefs(itemOrTpl) {
+  if (!itemOrTpl) return { arrGate: '', depGate: '' };
+  if (itemOrTpl.connectingDuty) {
+    const arrFlight = String(itemOrTpl.arrFlight || '').trim();
+    const depFlight = String(itemOrTpl.depFlight || itemOrTpl.flight || '').trim();
+    const arrDef = arrFlight
+      ? flightDefs.find(f => f.flight === arrFlight && f.type === 'ARR')
+      : null;
+    const depDef = depFlight
+      ? flightDefs.find(f => f.flight === depFlight && f.type === 'DEP')
+      : null;
+    return {
+      arrGate: String(arrDef?.arrGate || '').trim(),
+      depGate: String(depDef?.depGate || '').trim()
+    };
+  }
+  const fDef = flightDefs.find(f => f.flight === itemOrTpl.flight && f.type === (itemOrTpl.flightType || 'DEP'));
+  if (!fDef) return { arrGate: '', depGate: '' };
+  if (fDef.type === 'DEP') return { arrGate: '', depGate: String(fDef.depGate || '').trim() };
+  return { arrGate: String(fDef.arrGate || '').trim(), depGate: '' };
+}
+function getPrimaryGateForDuty(itemOrTpl) {
+  const { arrGate, depGate } = getDutyGateDefs(itemOrTpl);
+  const role = itemOrTpl?.role || '';
+  if (itemOrTpl?.connectingDuty) {
+    if (role === 'RC' || role === '接機RC' || role === 'G2') return arrGate || depGate;
+    if (role === 'BG' || role === '接機C' || role === 'ABG' || role === '大件') return depGate || arrGate;
+    return depGate || arrGate;
+  }
+  return (itemOrTpl?.flightType || 'DEP') === 'DEP' ? depGate : arrGate;
+}
+function resolvePaletteGateZoneForTemplate(t) {
+  return resolvePaletteGateZoneCategory(getPrimaryGateForDuty(t));
+}
 function getGateZoneLevel(gate) {
   const g = normalizeGateCode(gate);
   if (!g) return 0;
@@ -11798,6 +12110,7 @@ let pxPerMinute = 1.4;
 let activePaletteTab = 'byRole';
 let activePaletteRoleCategory = null;
 let activePaletteRegionCategory = null;
+let activePaletteGateCategory = null;
 const PALETTE_ROLE_ORDER = ['RC', 'BG', 'ABG', '大件', 'BA', 'L1', 'G2', '接機RC', '接機C', '接飛', 'PPT', 'CKIN', 'PRE', 'TC', 'T', 'DIC', '其他'];
 const PALETTE_ROLE_CATEGORIES = PALETTE_ROLE_ORDER.map(role => ({ id: role, label: role, roles: [role] }));
 const PALETTE_REGION_CATEGORIES = [
@@ -11811,6 +12124,13 @@ const PALETTE_REGION_CATEGORIES = [
   { id: 'vn', label: '越南' },
   { id: 'ph', label: '菲律賓' },
   { id: 'id', label: '印尼' }
+];
+const PALETTE_GATE_ZONE_CATEGORIES = [
+  { id: 'gate-t3', label: 'T3' },
+  { id: 'gate-ad', label: 'A/D區' },
+  { id: 'gate-c', label: 'C區' },
+  { id: 'gate-b', label: 'B區' },
+  { id: 'gate-remote', label: '接駁坪' }
 ];
 const PALETTE_REGION_FROM_GROUP = {
   us: 'na', ca: 'na',
@@ -11895,6 +12215,9 @@ function getRegionSearchEntries() {
   PALETTE_REGION_CATEGORIES.forEach(cat => {
     byId.set(cat.id, new Set([cat.label]));
   });
+  PALETTE_GATE_ZONE_CATEGORIES.forEach(cat => {
+    byId.set(cat.id, new Set([cat.label]));
+  });
   Object.entries(REGION_SEARCH_EXTRA_ALIASES).forEach(([id, terms]) => {
     if (!byId.has(id)) byId.set(id, new Set());
     terms.forEach(term => byId.get(id).add(term));
@@ -11966,6 +12289,14 @@ function scheduleItemMatchesRegionSearch(item, regionId) {
 }
 function templateMatchesRegionSearch(t, regionId) {
   return resolvePaletteRegionForTemplate(t) === String(regionId || '').trim();
+}
+function templateMatchesGateZoneSearch(t, gateZoneId) {
+  return resolvePaletteGateZoneForTemplate(t) === String(gateZoneId || '').trim();
+}
+function scheduleItemMatchesGateZoneSearch(item, gateZoneId) {
+  const id = String(gateZoneId || '').trim();
+  if (!id || !item) return false;
+  return resolvePaletteGateZoneCategory(getPrimaryGateForDuty(item)) === id;
 }
 let activeFlightEditorTab = 'DEP';
 const LS_PREFIX = 'cursor_v1';
@@ -12203,7 +12534,8 @@ function dayStorageKeys(dateStr) {
     overtimeOverrides: `${LS_PREFIX}_day_${d}_overtime_overrides`,
     dicOvertimeApprovals: `${LS_PREFIX}_day_${d}_dic_ot`,
     funcSlotOverrides: `${LS_PREFIX}_day_${d}_func_slot_overrides`,
-    paletteCopyTemplates: `${LS_PREFIX}_day_${d}_palette_copy_templates`
+    paletteCopyTemplates: `${LS_PREFIX}_day_${d}_palette_copy_templates`,
+    timelinePinnedPersonTokens: `${LS_PREFIX}_day_${d}_timeline_pinned_person_tokens`
   };
 }
 let selectedDate = localStorage.getItem(LS_KEYS_GLOBAL.selectedDate) || getLocalDateISO();
@@ -15382,6 +15714,8 @@ function createCustomTemplate(name, startHHMM, duration) {
 }
 
 let timelineFlightSearch = '';
+let timelinePinnedPersonTokens = [];
+let timelinePinnedPersonOrder = [];
 let timelineSearchDebounceTimer = null;
 let timelineSearchParseCache = null;
 const TIMELINE_SEARCH_DEBOUNCE_MS = 180;
@@ -15449,6 +15783,7 @@ let remoteSharedEditorMeta = null;
 const LS_SYNC_CLIENT_ID = `${LS_PREFIX}_sync_client_id`;
 const UNDO_MAX = 50;
 let undoStack = [];
+let redoStack = [];
 let undoRestoring = false;
 
 function setCloudStatus(text, mode = '', scope = 'day') {
@@ -15634,7 +15969,8 @@ function getLiveCloudFingerprint() {
     homelineConnectingDutyModes: normalizeHomelineConnectingDutyModesForCloud(homelineConnectingDutyModes),
     overtimeHourOverrides,
     dicOvertimeApprovals,
-    flightsImported
+    flightsImported,
+    timelinePinnedPersonTokens
   });
   liveCloudFingerprintDirty = false;
   return liveCloudFingerprintCache;
@@ -15663,7 +15999,8 @@ function cloudStatePayload(data) {
     homelineConnectingDutyModes: normalizeHomelineConnectingDutyModesForCloud(data.homelineConnectingDutyModes),
     overtimeHourOverrides: data.overtimeHourOverrides,
     dicOvertimeApprovals: data.dicOvertimeApprovals,
-    flightsImported: data.flightsImported === true
+    flightsImported: data.flightsImported === true,
+    timelinePinnedPersonTokens: Array.isArray(data.timelinePinnedPersonTokens) ? data.timelinePinnedPersonTokens : []
   };
 }
 function cloudStateFingerprint(data) {
@@ -16445,7 +16782,8 @@ function getCloudState() {
     homelineConnectingDutyModes: normalizeHomelineConnectingDutyModesForCloud(homelineConnectingDutyModes),
       overtimeHourOverrides,
       dicOvertimeApprovals,
-      flightsImported
+      flightsImported,
+      timelinePinnedPersonTokens
     }),
     ...getSyncMeta()
   };
@@ -16556,6 +16894,11 @@ function applyCloudState(data) {
   dicOvertimeApprovals = data.dicOvertimeApprovals && typeof data.dicOvertimeApprovals === 'object'
     ? data.dicOvertimeApprovals
     : {};
+  loadTimelinePinnedPersonTokens(
+    Array.isArray(data.timelinePinnedPersonTokens)
+      ? data.timelinePinnedPersonTokens
+      : readJsonLS(dayStorageKeys(selectedDate).timelinePinnedPersonTokens, [])
+  );
   selectedBlockId = null;
   blockSeq = schedule.length ? Math.max(...schedule.map(x => Number(x.uid) || 0)) + 1 : 1;
   rebuildTemplates();
@@ -16579,6 +16922,7 @@ function applyCloudState(data) {
   saveHomelineConnectingDutyModes();
   saveOvertimeOverrides();
   saveDicOvertimeApprovals();
+  saveTimelinePinnedPersonTokens();
 
   if (typeof renderTimeHeader === 'function') renderTimeHeader();
   if (typeof renderAssignmentTableFromFlightDefs === 'function') renderAssignmentTableFromFlightDefs();
@@ -18253,6 +18597,7 @@ function focusPaletteTemplateChip(templateId) {
     activePaletteTab = 'byRole';
     activePaletteRoleCategory = null;
     activePaletteRegionCategory = null;
+    activePaletteGateCategory = null;
     document.querySelectorAll('.palette-tabs .tab-btn').forEach(btn => {
       btn.classList.toggle('active', btn.dataset.tab === 'byRole');
     });
@@ -19365,9 +19710,11 @@ function updateTimelineSearchDisplay(options = {}) {
   });
 
   displayRows.forEach(rowInfo => {
+    if (rowInfo.isPinDivider) return;
     const rowEl = rowByIndex.get(rowInfo.originalIndex);
     if (!rowEl) return;
     rowsHost.appendChild(rowEl);
+    rowEl.classList.toggle('flight-match-pinned', !!rowInfo.pinned);
     rowEl.classList.toggle('flight-match-top', !!rowInfo.matchedRow);
     rowEl.classList.toggle(
       'flight-match-top--full',
@@ -19438,6 +19785,7 @@ function scheduleTimelineFlightSearch(query, preferredAssignmentRow, options = {
   }, TIMELINE_SEARCH_DEBOUNCE_MS);
 }
 function applyTimelineFlightSearch(query, preferredAssignmentRow, options = {}) {
+  const hadSearch = isTimelineSearchActive();
   timelineFlightSearch = String(query || '').trim();
   rebuildUniversalSearchSnap(timelineFlightSearch);
   const input = document.getElementById('timelineFlightSearch');
@@ -19446,8 +19794,10 @@ function applyTimelineFlightSearch(query, preferredAssignmentRow, options = {}) 
   const rowsHost = document.getElementById('rows');
   const hasRows = !!rowsHost?.querySelector('.row');
   const paletteNeedsRefresh = !timelineFlightSearch || timelineSearchIsFlightMode(timelineFlightSearch);
+  const hasSearch = isTimelineSearchActive();
+  const needsPinRender = hadSearch || hasSearch || hasTimelinePersonPins();
 
-  if (hasRows && !options.forceFullRender) {
+  if (hasRows && !options.forceFullRender && !needsPinRender) {
     const updated = updateTimelineSearchDisplay({
       preferredAssignmentRow,
       skipScroll: true
@@ -30864,6 +31214,7 @@ function loadDayDataFromLocalStorage(dateStr) {
   peopleDisplayOrder = readJsonLS(k.peopleDisplayOrder, null);
   if (!isValidPeopleDisplayOrder(peopleDisplayOrder)) resetPeopleDisplayOrderToAutoSort();
   maybeRefreshPeopleDisplayOrderForSortRevision(dateStr);
+  loadTimelinePinnedPersonTokens(readJsonLS(k.timelinePinnedPersonTokens, []));
   clearUndoHistory();
 }
 function shiftScheduleISODate(iso, deltaDays) {
@@ -31712,23 +32063,24 @@ function captureUndoState() {
   };
 }
 function updateUndoButtonState() {
-  const btn = document.getElementById('undoBtn');
-  if (btn) btn.disabled = undoStack.length === 0;
+  const undoBtn = document.getElementById('undoBtn');
+  const redoBtn = document.getElementById('redoBtn');
+  if (undoBtn) undoBtn.disabled = undoStack.length === 0;
+  if (redoBtn) redoBtn.disabled = redoStack.length === 0;
 }
 function clearUndoHistory() {
   undoStack = [];
+  redoStack = [];
   updateUndoButtonState();
 }
 function pushUndoSnapshot() {
   if (undoRestoring || applyingRemote) return;
   undoStack.push(captureUndoState());
   if (undoStack.length > UNDO_MAX) undoStack.shift();
+  redoStack = [];
   updateUndoButtonState();
 }
-function undoLastChange() {
-  if (!undoStack.length || undoRestoring) return;
-  undoRestoring = true;
-  const snap = undoStack.pop();
+function applyUndoState(snap) {
   schedule = snap.schedule;
   people = snap.people.map(normalizePerson);
   if (staffDirectory.length && people.length) people = mergePeopleWithStaffDirectory(people);
@@ -31751,6 +32103,22 @@ function undoLastChange() {
   renderOvertimePanel();
   if (typeof syncAssignmentTableFromSchedule === 'function') syncAssignmentTableFromSchedule();
   markUnsynced();
+}
+function undoLastChange() {
+  if (!undoStack.length || undoRestoring) return;
+  undoRestoring = true;
+  redoStack.push(captureUndoState());
+  if (redoStack.length > UNDO_MAX) redoStack.shift();
+  applyUndoState(undoStack.pop());
+  undoRestoring = false;
+  updateUndoButtonState();
+}
+function redoLastChange() {
+  if (!redoStack.length || undoRestoring) return;
+  undoRestoring = true;
+  undoStack.push(captureUndoState());
+  if (undoStack.length > UNDO_MAX) undoStack.shift();
+  applyUndoState(redoStack.pop());
   undoRestoring = false;
   updateUndoButtonState();
 }
@@ -31805,11 +32173,68 @@ function saveLocal() {
   saveHomelineConnectingDutyModes();
   saveDicSlotOverrides();
   saveStaffDirectory();
+  saveTimelinePinnedPersonTokens();
   } finally {
     console.timeEnd('saveLocal');
   }
 }
-function clearHoverStates() { document.querySelectorAll('.person-cell').forEach(el => el.classList.remove('over', 'dragging')); }
+function clearRowReorderDropIndicator() {
+  document.querySelectorAll('.row.row-reorder-drop-above, .row.row-reorder-drop-below').forEach(el => {
+    el.classList.remove('row-reorder-drop-above', 'row-reorder-drop-below');
+  });
+  rowReorderDropState = null;
+}
+function resolveRowReorderDropTarget(clientY) {
+  const rowsHost = document.getElementById('rows');
+  if (!rowsHost) return null;
+  const rowEls = [...rowsHost.querySelectorAll('.row')];
+  if (!rowEls.length) return null;
+  for (const rowEl of rowEls) {
+    const rect = rowEl.getBoundingClientRect();
+    if (clientY >= rect.top && clientY <= rect.bottom) {
+      const toIdx = Number(rowEl.querySelector('.person-cell[data-original-index]')?.dataset.originalIndex);
+      if (!Number.isFinite(toIdx)) return null;
+      const insertAfter = clientY >= rect.top + rect.height / 2;
+      return { rowEl, toIdx, insertAfter };
+    }
+  }
+  const firstRect = rowEls[0].getBoundingClientRect();
+  const lastRect = rowEls[rowEls.length - 1].getBoundingClientRect();
+  if (clientY < firstRect.top) {
+    const toIdx = Number(rowEls[0].querySelector('.person-cell[data-original-index]')?.dataset.originalIndex);
+    return Number.isFinite(toIdx) ? { rowEl: rowEls[0], toIdx, insertAfter: false } : null;
+  }
+  if (clientY > lastRect.bottom) {
+    const last = rowEls[rowEls.length - 1];
+    const toIdx = Number(last.querySelector('.person-cell[data-original-index]')?.dataset.originalIndex);
+    return Number.isFinite(toIdx) ? { rowEl: last, toIdx, insertAfter: true } : null;
+  }
+  return null;
+}
+function wouldRowReorderChange(fromIdx, toIdx, insertAfter) {
+  if (!Number.isFinite(fromIdx) || !Number.isFinite(toIdx)) return false;
+  ensurePeopleDisplayOrder();
+  const fromPos = peopleDisplayOrder.indexOf(fromIdx);
+  const toPos = peopleDisplayOrder.indexOf(toIdx);
+  if (fromPos < 0 || toPos < 0) return false;
+  let insertPos = insertAfter ? toPos + 1 : toPos;
+  const next = peopleDisplayOrder.slice();
+  next.splice(fromPos, 1);
+  if (fromPos < insertPos) insertPos--;
+  next.splice(insertPos, 0, fromIdx);
+  return next.some((v, i) => v !== peopleDisplayOrder[i]);
+}
+function updateRowReorderDropIndicator(clientY, fromIdx) {
+  const target = resolveRowReorderDropTarget(clientY);
+  clearRowReorderDropIndicator();
+  if (!target || !wouldRowReorderChange(fromIdx, target.toIdx, target.insertAfter)) return;
+  target.rowEl.classList.add(target.insertAfter ? 'row-reorder-drop-below' : 'row-reorder-drop-above');
+  rowReorderDropState = { toIdx: target.toIdx, insertAfter: target.insertAfter };
+}
+function clearHoverStates() {
+  document.querySelectorAll('.person-cell').forEach(el => el.classList.remove('over', 'dragging'));
+  clearRowReorderDropIndicator();
+}
 
 function isCustomDutyTemplate(t) {
   return !!t && (t.role === '自訂' || t.isCustom);
@@ -31915,6 +32340,14 @@ function groupTemplatesByPaletteRegion(tabItems) {
   tabItems.forEach(t => {
     const regionId = resolvePaletteRegionForTemplate(t);
     if (regionId && grouped[regionId]) grouped[regionId].push(t);
+  });
+  return grouped;
+}
+function groupTemplatesByPaletteGateZone(tabItems) {
+  const grouped = Object.fromEntries(PALETTE_GATE_ZONE_CATEGORIES.map(cat => [cat.id, []]));
+  tabItems.forEach(t => {
+    const gateZoneId = resolvePaletteGateZoneForTemplate(t);
+    if (gateZoneId && grouped[gateZoneId]) grouped[gateZoneId].push(t);
   });
   return grouped;
 }
@@ -32223,8 +32656,49 @@ function renderPaletteRegionFilters(palette, grouped) {
   });
   palette.appendChild(bar);
 }
+function renderPaletteGateFilters(palette, grouped) {
+  const bar = document.createElement('div');
+  bar.className = 'palette-role-filters';
+  const allBtn = document.createElement('button');
+  allBtn.type = 'button';
+  allBtn.className = 'palette-role-filter' + (!activePaletteGateCategory ? ' active' : '');
+  allBtn.textContent = '全部';
+  allBtn.addEventListener('click', () => {
+    if (!activePaletteGateCategory) return;
+    activePaletteGateCategory = null;
+    renderPalette();
+  });
+  bar.appendChild(allBtn);
+  PALETTE_GATE_ZONE_CATEGORIES.forEach(cat => {
+    const catItems = grouped[cat.id] || [];
+    if (!catItems.length) return;
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'palette-role-filter' + (cat.id === activePaletteGateCategory ? ' active' : '');
+    btn.textContent = cat.label;
+    btn.dataset.gateCategory = cat.id;
+    btn.addEventListener('click', () => {
+      if (activePaletteGateCategory === cat.id) return;
+      activePaletteGateCategory = cat.id;
+      renderPalette();
+    });
+    bar.appendChild(btn);
+  });
+  palette.appendChild(bar);
+}
 function renderPaletteRegionGroups(palette, grouped) {
   PALETTE_REGION_CATEGORIES.forEach(cat => {
+    const list = sortPaletteTemplates(grouped[cat.id] || []);
+    if (!list.length) return;
+    const title = document.createElement('div');
+    title.className = 'group-title';
+    title.textContent = cat.label;
+    palette.appendChild(title);
+    list.forEach(t => palette.appendChild(makeChip(t)));
+  });
+}
+function renderPaletteGateGroups(palette, grouped) {
+  PALETTE_GATE_ZONE_CATEGORIES.forEach(cat => {
     const list = sortPaletteTemplates(grouped[cat.id] || []);
     if (!list.length) return;
     const title = document.createElement('div');
@@ -32849,7 +33323,7 @@ function renderPalette() {
   if (!hasImportedFlights()) return;
   const flightSearchActive = timelineSearchIsFlightMode(timelineFlightSearch);
   const items = filteredUnscheduledTemplates();
-  const tabItems = (activePaletteTab === 'byRole' || activePaletteTab === 'byTime' || activePaletteTab === 'byRegion')
+  const tabItems = (activePaletteTab === 'byRole' || activePaletteTab === 'byTime' || activePaletteTab === 'byRegion' || activePaletteTab === 'byGate')
     ? items.filter(isFlightSchedulePaletteTemplate)
     : items;
   if (!tabItems.length) {
@@ -32898,6 +33372,22 @@ function renderPalette() {
       return;
     }
     sortPaletteTemplates(grouped[regionCategory]).forEach(t => palette.appendChild(makeChip(t)));
+    scheduleFitDutyChipLabels(palette);
+  } else if (activePaletteTab === 'byGate') {
+    const grouped = groupTemplatesByPaletteGateZone(tabItems);
+    const gateCategory = (grouped[activePaletteGateCategory] || []).length
+      ? activePaletteGateCategory
+      : null;
+    if (activePaletteGateCategory && !gateCategory) {
+      activePaletteGateCategory = null;
+    }
+    renderPaletteGateFilters(palette, grouped);
+    if (!gateCategory) {
+      renderPaletteGateGroups(palette, grouped);
+      scheduleFitDutyChipLabels(palette);
+      return;
+    }
+    sortPaletteTemplates(grouped[gateCategory]).forEach(t => palette.appendChild(makeChip(t)));
     scheduleFitDutyChipLabels(palette);
   } else if (activePaletteTab === 'byFunction') {
     palette.classList.add('palette-view--function');
@@ -33062,21 +33552,45 @@ function selectBlock(uid) {
 
 function getDisplayRows() {
   const sortedRows = getDisplaySortedRows();
-  const filterShift = rows => rows.filter(row => personMatchesShiftView(row.person));
-  const shiftRows = rows => filterShift(rows);
+  const allShiftRows = sortedRows.filter(row => personMatchesShiftView(row.person));
+  const pinnedSet = new Set(timelinePinnedPersonOrder);
+  const hasPins = hasTimelinePersonPins();
   const query = String(timelineFlightSearch || '').trim();
-  if (!query) return shiftRows(sortedRows);
-  const snap = getUniversalSearchSnap();
-  if (!snap) return shiftRows(sortedRows);
-  const topRows = [];
-  const restRows = [];
-  filterShift(sortedRows).forEach(row => {
-    const hit = snap.personIndices.has(row.originalIndex);
-    const entry = { person: row.person, originalIndex: row.originalIndex, matchedRow: hit };
-    if (hit) topRows.push(entry);
-    else restRows.push(entry);
+
+  const makeEntry = (row, extras = {}) => ({
+    person: row.person,
+    originalIndex: row.originalIndex,
+    matchedRow: false,
+    pinned: false,
+    isPinDivider: false,
+    ...extras
   });
-  return [...topRows, ...restRows];
+
+  const pinnedRows = [];
+  timelinePinnedPersonOrder.forEach(idx => {
+    const row = allShiftRows.find(r => r.originalIndex === idx);
+    if (row) pinnedRows.push(makeEntry(row, { pinned: true }));
+  });
+
+  const bodyRows = [];
+  const matchRows = [];
+  const otherRows = [];
+  const snap = query ? getUniversalSearchSnap() : null;
+  allShiftRows.forEach(row => {
+    if (pinnedSet.has(row.originalIndex)) return;
+    if (snap && snap.personIndices.has(row.originalIndex)) {
+      matchRows.push(makeEntry(row, { matchedRow: true }));
+    } else {
+      otherRows.push(makeEntry(row));
+    }
+  });
+  bodyRows.push(...matchRows, ...otherRows);
+
+  const result = [...pinnedRows];
+  if (hasPins && pinnedRows.length && bodyRows.length) {
+    result.push({ isPinDivider: true });
+  }
+  return [...result, ...bodyRows];
 }
 
 function buildBlockElForSlice(item, slice, normalizedSearch, options = {}) {
@@ -33563,8 +34077,16 @@ function renderRows() {
   }
 
   displayRows.forEach((rowInfo, displayIdx) => {
+    if (rowInfo.isPinDivider) {
+      const divider = document.createElement('div');
+      divider.className = 'row-pin-divider';
+      divider.setAttribute('aria-hidden', 'true');
+      rows.appendChild(divider);
+      return;
+    }
     const row = document.createElement('div');
     row.className = 'row';
+    if (rowInfo.pinned) row.classList.add('flight-match-pinned');
     if (rowInfo.matchedRow) {
       row.classList.add('flight-match-top');
       if (personHasSearchTimelineShiftHighlight(rowInfo.person)) {
@@ -33575,7 +34097,6 @@ function renderRows() {
 
     const left = document.createElement('div');
     left.className = 'person-cell';
-    left.draggable = true;
     left.dataset.originalIndex = rowInfo.originalIndex;
     const shift = rowInfo.person.shift || '';
     const adjustedShift = rowInfo.person.adjustedShift || '';
@@ -33604,6 +34125,11 @@ function renderRows() {
     if (rollCallMode && radioNo && !clockedOut) left.classList.add('on-duty-by-radio');
     if (clockedOut) row.classList.add('clocked-out');
     const hasDutyOverlap = personHasOverlappingDutyBlocks(rowInfo.originalIndex);
+    const rowSeqOpts = {
+      pinned: !!rowInfo.pinned,
+      originalIndex: rowInfo.originalIndex,
+      showGrip: !rollCallMode
+    };
     if (rollCallMode) {
       left.classList.add('rollcall-grid');
       left.innerHTML = isTempRow
@@ -33620,7 +34146,9 @@ function renderRows() {
           radioNo,
           ircsNo,
           nextDayShift,
-          clockedOut
+          clockedOut,
+          originalIndex: rowInfo.originalIndex,
+          seqOpts: rowSeqOpts
         })
         : buildRollCallRowHtml({
           seqNo,
@@ -33636,6 +34164,8 @@ function renderRows() {
           ircsNo,
           nextDayShift,
           clockedOut,
+          originalIndex: rowInfo.originalIndex,
+          seqOpts: rowSeqOpts,
           ...searchPersonOpts
         });
     } else {
@@ -33650,25 +34180,10 @@ function renderRows() {
         hasDutyOverlap,
         clockedOut,
         staffStatusAlert: isTempRow ? '' : getStaffStatusAlert(rowInfo.person, getScheduleReferenceDate()),
+        seqOpts: rowSeqOpts,
         ...searchPersonOpts
       }).join('');
     }
-    left.addEventListener('dragstart', e => {
-      e.dataTransfer.setData('text/person-row', rowInfo.originalIndex);
-      left.classList.add('dragging');
-    });
-    left.addEventListener('dragend', () => clearHoverStates());
-    left.addEventListener('dragover', e => {
-      if (!e.dataTransfer.types.includes('text/person-row')) return;
-      e.preventDefault(); left.classList.add('over');
-    });
-    left.addEventListener('dragleave', () => left.classList.remove('over'));
-    left.addEventListener('drop', e => {
-      const fromIdx = Number(e.dataTransfer.getData('text/person-row'));
-      const toIdx = Number(left.dataset.originalIndex);
-      if (Number.isNaN(fromIdx) || Number.isNaN(toIdx) || fromIdx === toIdx) return;
-      reorderDisplayRows(fromIdx, toIdx); clearHoverStates();
-    });
     if (rollCallMode) {
       const adjustedShiftInput = left.querySelector('.adjusted-shift-input');
       const adjWrap = left.querySelector('.shift-field-wrap');
@@ -34255,6 +34770,7 @@ function bootLoadDayState() {
   peopleDisplayOrder = readJsonLS(dayK.peopleDisplayOrder, null);
   if (!isValidPeopleDisplayOrder(peopleDisplayOrder)) resetPeopleDisplayOrderToAutoSort();
   maybeRefreshPeopleDisplayOrderForSortRevision(selectedDate);
+  loadTimelinePinnedPersonTokens(readJsonLS(dayK.timelinePinnedPersonTokens, []));
   schedule = readJsonLS(dayK.schedule, []);
   if (!Array.isArray(schedule)) schedule = [];
   flightDefs = readJsonLS(dayK.flightDefs, null);
@@ -34305,6 +34821,8 @@ document.getElementById('clearDutySearchBtn').addEventListener('click', () => {
     activePaletteRoleCategory = null;
   } else if (activePaletteTab === 'byRegion') {
     activePaletteRegionCategory = null;
+  } else if (activePaletteTab === 'byGate') {
+    activePaletteGateCategory = null;
   }
   renderPalette();
 });
@@ -34320,6 +34838,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     activePaletteTab = btn.dataset.tab;
     if (activePaletteTab !== 'byRole') activePaletteRoleCategory = null;
     if (activePaletteTab !== 'byRegion') activePaletteRegionCategory = null;
+    if (activePaletteTab !== 'byGate') activePaletteGateCategory = null;
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b === btn));
     renderPalette();
   });
@@ -34503,6 +35022,7 @@ document.getElementById('staffDbImportInput').addEventListener('change', async (
   e.target.value = '';
 });
 document.getElementById('undoBtn')?.addEventListener('click', () => undoLastChange());
+document.getElementById('redoBtn')?.addEventListener('click', () => redoLastChange());
 document.getElementById('resetBtn').addEventListener('click', () => setClearDataModalOpen(true));
 document.getElementById('toggleOvertimeBtn')?.addEventListener('click', toggleOvertimePanel);
 document.getElementById('toggleOvertimeToolbarBtn')?.addEventListener('click', toggleOvertimePanel);
@@ -34595,6 +35115,18 @@ document.addEventListener('keydown', e => {
     return;
   }
 
+  if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'z' || e.key === 'Z')) {
+    e.preventDefault();
+    redoLastChange();
+    return;
+  }
+
+  if ((e.ctrlKey || e.metaKey) && !e.shiftKey && (e.key === 'y' || e.key === 'Y')) {
+    e.preventDefault();
+    redoLastChange();
+    return;
+  }
+
   if ((e.key === 'Delete' || e.key === 'Backspace') && selectedBlockId !== null) {
     e.preventDefault();
     pushUndoSnapshot();
@@ -34623,6 +35155,7 @@ updateNameColHeader();
 initLeaveDutyOverlayTooltip();
 initTimelineGapClick();
 initClearDataModal();
+initTimelineRowPinHandlers();
 initRollCallStaffImportModal();
 initAssignmentTableFieldEditors();
 renderRows();
