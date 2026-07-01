@@ -15795,6 +15795,13 @@ function createCustomTemplate(name, startHHMM, duration) {
 
 let timelineFlightSearch = '';
 const PERSONNEL_RECOMMEND_GAP_OPTIONS = [
+  { value: 5, label: '5 分鐘' },
+  { value: 10, label: '10 分鐘' },
+  { value: 15, label: '15 分鐘' },
+  { value: 20, label: '20 分鐘' },
+  { value: 'gt20', label: '20 以上' }
+];
+const PERSONNEL_RECOMMEND_GAP_OPTIONS_TA_S = [
   { value: 40, label: '40 分鐘' },
   { value: 45, label: '45 分鐘' },
   { value: 50, label: '50 分鐘' },
@@ -15803,9 +15810,14 @@ const PERSONNEL_RECOMMEND_GAP_OPTIONS = [
   { value: 'gt60', label: '60 以上' }
 ];
 const LS_PERSONNEL_RECOMMEND_MIN_GAP = `${LS_PREFIX}_personnel_recommend_min_gap`;
-let personnelRecommendMinGap = localStorage.getItem(LS_PERSONNEL_RECOMMEND_MIN_GAP) || '60';
+const LS_PERSONNEL_RECOMMEND_MIN_GAP_TA_S = `${LS_PREFIX}_personnel_recommend_min_gap_ta_s`;
+let personnelRecommendMinGap = localStorage.getItem(LS_PERSONNEL_RECOMMEND_MIN_GAP) || '20';
 if (!PERSONNEL_RECOMMEND_GAP_OPTIONS.some(opt => String(opt.value) === String(personnelRecommendMinGap))) {
-  personnelRecommendMinGap = '60';
+  personnelRecommendMinGap = '20';
+}
+let personnelRecommendMinGapTaS = localStorage.getItem(LS_PERSONNEL_RECOMMEND_MIN_GAP_TA_S) || '60';
+if (!PERSONNEL_RECOMMEND_GAP_OPTIONS_TA_S.some(opt => String(opt.value) === String(personnelRecommendMinGapTaS))) {
+  personnelRecommendMinGapTaS = '60';
 }
 let personnelRecommendFilter = null;
 let timelinePinnedPersonTokens = [];
@@ -18571,21 +18583,40 @@ function getPersonDisplayOrderRank(personIndex) {
 }
 function gapMeetsRecommendMinimum(gapMinutes, minGapSetting) {
   if (gapMinutes == null || !Number.isFinite(gapMinutes)) return false;
+  if (String(minGapSetting) === 'gt20') return gapMinutes > 20;
   if (String(minGapSetting) === 'gt60') return gapMinutes > 60;
   return gapMinutes >= Math.max(0, Number(minGapSetting) || 0);
 }
 function formatPersonnelRecommendGapLabel(minGapSetting) {
-  const opt = PERSONNEL_RECOMMEND_GAP_OPTIONS.find(item => String(item.value) === String(minGapSetting));
+  const allOptions = [...PERSONNEL_RECOMMEND_GAP_OPTIONS, ...PERSONNEL_RECOMMEND_GAP_OPTIONS_TA_S];
+  const opt = allOptions.find(item => String(item.value) === String(minGapSetting));
   if (opt) return opt.label;
+  if (String(minGapSetting) === 'gt20') return '20 以上';
   if (String(minGapSetting) === 'gt60') return '60 以上';
   const minutes = Number(minGapSetting);
-  return Number.isFinite(minutes) ? `${minutes} 分鐘` : '60 分鐘';
+  return Number.isFinite(minutes) ? `${minutes} 分鐘` : '20 分鐘';
 }
 function shouldRecommendByMaxShiftGap(tpl) {
   if (!tpl) return false;
   if (!isOtherDuty(tpl)) return false;
   const kind = String(getFuncDutyKind(tpl) || tpl.otherKind || tpl.label || '').trim().toUpperCase();
   return kind === 'TA' || kind === 'S';
+}
+function getRecommendGapOptionsForTemplate(tpl) {
+  return shouldRecommendByMaxShiftGap(tpl) ? PERSONNEL_RECOMMEND_GAP_OPTIONS_TA_S : PERSONNEL_RECOMMEND_GAP_OPTIONS;
+}
+function getRecommendGapSettingForTemplate(tpl) {
+  return shouldRecommendByMaxShiftGap(tpl) ? personnelRecommendMinGapTaS : personnelRecommendMinGap;
+}
+function setRecommendGapSettingForTemplate(tpl, value) {
+  const next = String(value);
+  if (shouldRecommendByMaxShiftGap(tpl)) {
+    personnelRecommendMinGapTaS = next;
+    localStorage.setItem(LS_PERSONNEL_RECOMMEND_MIN_GAP_TA_S, personnelRecommendMinGapTaS);
+    return;
+  }
+  personnelRecommendMinGap = next;
+  localStorage.setItem(LS_PERSONNEL_RECOMMEND_MIN_GAP, personnelRecommendMinGap);
 }
 function recommendPersonnelForPaletteTemplate(tpl, minGapMinutes) {
   const { start, end } = getPaletteTemplateDutyWindow(tpl);
@@ -18658,14 +18689,13 @@ function applyPersonnelRecommendFilter(tpl, minGapMinutes) {
     showScheduleBriefToast(`沒有符合條件的人員（空檔至少 ${formatPersonnelRecommendGapLabel(minGapMinutes)}）`, 1600);
     return;
   }
-  personnelRecommendMinGap = String(minGapMinutes);
-  localStorage.setItem(LS_PERSONNEL_RECOMMEND_MIN_GAP, personnelRecommendMinGap);
+  setRecommendGapSettingForTemplate(tpl, minGapMinutes);
   const rankMap = new Map();
   ranked.forEach((item, idx) => rankMap.set(item.personIndex, idx));
   personnelRecommendFilter = {
     templateId: tpl.id,
     label: getPaletteChipDisplayLabel(tpl) || tpl.label || tpl.role || '勤務',
-    minGapMinutes: personnelRecommendMinGap,
+    minGapMinutes: String(minGapMinutes),
     personIndices: new Set(ranked.map(item => item.personIndex)),
     secondaryIndices: new Set(ranked.filter(item => item.secondary).map(item => item.personIndex)),
     rankMap,
@@ -18691,11 +18721,13 @@ function showPaletteChipContextMenu(e, t) {
   const gapSelect = document.createElement('select');
   gapSelect.className = 'schedule-block-context-menu__gap-select';
   gapSelect.setAttribute('aria-label', '空檔至少分鐘數');
-  PERSONNEL_RECOMMEND_GAP_OPTIONS.forEach(opt => {
+  const gapOptions = getRecommendGapOptionsForTemplate(t);
+  const gapValue = getRecommendGapSettingForTemplate(t);
+  gapOptions.forEach(opt => {
     const optionEl = document.createElement('option');
     optionEl.value = String(opt.value);
     optionEl.textContent = opt.label;
-    if (String(opt.value) === String(personnelRecommendMinGap)) optionEl.selected = true;
+    if (String(opt.value) === String(gapValue)) optionEl.selected = true;
     gapSelect.appendChild(optionEl);
   });
   recommendRow.append(gapLabel, gapSelect);
