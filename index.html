@@ -18416,11 +18416,18 @@ function getPersonWorkDutySegments(personIndex) {
   segments.sort((a, b) => a.start - b.start || a.end - b.end);
   return segments;
 }
+function dutyFitsPersonShiftBounds(person, start, end) {
+  if (!person || !Number.isFinite(start) || !Number.isFinite(end) || end <= start) return false;
+  const bounds = getPersonShiftBounds(person);
+  if (!bounds) return false;
+  return start >= bounds.startMin && end <= bounds.endMin;
+}
 function getGapMinutesBeforeTime(personIndex, minute) {
   if (!Number.isFinite(minute)) return null;
-  const segments = getPersonWorkDutySegments(personIndex);
   const person = people[personIndex];
   const shiftBounds = person ? getPersonShiftBounds(person) : null;
+  if (shiftBounds && (minute < shiftBounds.startMin || minute > shiftBounds.endMin)) return null;
+  const segments = getPersonWorkDutySegments(personIndex);
   let prevEnd = shiftBounds?.startMin ?? getViewStartMin();
   for (const seg of segments) {
     if (seg.end <= minute) prevEnd = Math.max(prevEnd, seg.end);
@@ -18430,6 +18437,8 @@ function getGapMinutesBeforeTime(personIndex, minute) {
 }
 function personTimelineFitsDutyWindow(personIndex, start, end) {
   if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start) return false;
+  const person = people[personIndex];
+  if (person && !dutyFitsPersonShiftBounds(person, start, end)) return false;
   return !getPersonWorkDutySegments(personIndex).some(seg => seg.start < end && seg.end > start);
 }
 function getPaletteTemplateDutyWindow(tpl) {
@@ -18506,6 +18515,7 @@ function canAssignPaletteTemplateToPerson(tpl, personIndex) {
   }
   const { start, end } = getPaletteTemplateDutyWindow(tpl);
   if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start) return tpl.role === '休' || tpl.role === '自訂';
+  if (!dutyFitsPersonShiftBounds(people[personIndex], start, end)) return false;
   if (isFuncPaletteDuty(tpl)) {
     const placement = validateFuncDutyPlacement(getFuncShiftScope(tpl), start, end);
     if (!placement.ok) return false;
