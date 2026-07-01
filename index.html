@@ -8,6 +8,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
 <script src="staff-personnel-seed.js"></script>
 <script src="fis-flight-parser.js"></script>
+<script src="airline-data-gate-parser.js"></script>
 <script src="foreign-schedule-parser.js?v=20260618-from-till"></script>
 <script src="foreign-schedule-registry.js?v=20260620-cloud-v1"></script>
 <script src="flight-assignment-utils.js"></script>
@@ -1606,8 +1607,8 @@
   }
   .timeline-drag-ghost {
     position: absolute;
-    top: 5px;
-    height: calc(var(--row-height) - 10px);
+    top: 2px;
+    height: calc(var(--row-height) - 4px);
     box-sizing: border-box;
     background: transparent;
     border: 1px dashed rgba(37, 99, 235, 0.38);
@@ -1640,8 +1641,8 @@
   }
   .block {
     position: absolute;
-    top: 5px;
-    height: calc(var(--row-height) - 10px);
+    top: 2px;
+    height: calc(var(--row-height) - 4px);
     border-radius: var(--duty-block-radius);
     border: 1px solid #cbd5e1;
     display: flex;
@@ -1653,6 +1654,9 @@
     user-select: none;
     box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
     overflow: visible;
+  }
+  .block:has(.block-gate-badge) {
+    padding-bottom: 11px;
   }
   .block .label {
     white-space: nowrap;
@@ -1705,6 +1709,40 @@
     pointer-events: none;
     z-index: 6;
     white-space: nowrap;
+  }
+  .block-gate-badge {
+    position: absolute;
+    bottom: 3px;
+    right: 4px;
+    font-size: 10px;
+    font-weight: 800;
+    color: #475569;
+    line-height: 1;
+    pointer-events: none;
+    z-index: 4;
+    white-space: nowrap;
+  }
+  .block-gate-badge--arr {
+    left: 4px;
+    right: auto;
+  }
+  .block.block-gate-zone-red::before,
+  .block.block-gate-zone-yellow::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    border-radius: var(--duty-block-radius) 0 0 var(--duty-block-radius);
+    pointer-events: none;
+    z-index: 1;
+  }
+  .block.block-gate-zone-red::before {
+    background: #ef4444;
+  }
+  .block.block-gate-zone-yellow::before {
+    background: #eab308;
   }
   .row.flight-match-top .person-cell { background:#fffbea; }
   .row.flight-match-top--full .shift-band {
@@ -4376,8 +4414,8 @@
     height: 28px;
   }
   .block {
-    height: calc(var(--row-height) - 12px);
-    top: 6px;
+    height: calc(var(--row-height) - 4px);
+    top: 2px;
     border-radius: var(--duty-block-radius);
   }
   .block .label {
@@ -8164,6 +8202,10 @@
         <input type="radio" name="flightImportHubOption" value="fis-diff" />
         <span>再次匯入 FIS 資料比對<small>重匯 FIS，只列出目前班表沒有的航班供追加（不影響已排 duty）</small></span>
       </label>
+      <label class="flight-import-hub-option">
+        <input type="radio" name="flightImportHubOption" value="airline-gate" />
+        <span>匯入登機門（AirlineData）<small>讀取 AirlineData 第一頁，更新現有班表入境／出境登機門（需先匯入 FIS）</small></span>
+      </label>
     </div>
     <div class="rollcall-import-actions">
       <button type="button" class="rollcall-import-btn rollcall-import-btn--ghost" id="flightImportHubCancel">取消</button>
@@ -11301,6 +11343,87 @@ function getScheduleItemFlightDef(item) {
   const type = item.flightType || 'DEP';
   return flightDefs.find(f => f.flight === item.flight && f.type === type) || null;
 }
+function getScheduleItemGateBadgeHtml(item) {
+  if (!item) return '';
+  if (item.role === '休' || item.role === 'DIC' || item.role === 'TC' || item.role === 'T' || item.role === '自訂' || item.role === '其他') return '';
+  if (item.connectingDuty) {
+    const arrFlight = String(item.arrFlight || '').trim();
+    const depFlight = String(item.depFlight || item.flight || '').trim();
+    const arrDef = arrFlight
+      ? flightDefs.find(f => f.flight === arrFlight && f.type === 'ARR')
+      : null;
+    const depDef = depFlight
+      ? flightDefs.find(f => f.flight === depFlight && f.type === 'DEP')
+      : null;
+    const arrGate = String(arrDef?.arrGate || '').trim();
+    const depGate = String(depDef?.depGate || '').trim();
+    if (!arrGate && !depGate) return '';
+    const parts = [];
+    if (arrGate) {
+      parts.push(`<span class="block-gate-badge block-gate-badge--arr" title="入境登機門">${escapeHtml(arrGate)}</span>`);
+    }
+    if (depGate) {
+      parts.push(`<span class="block-gate-badge block-gate-badge--dep" title="出境登機門">${escapeHtml(depGate)}</span>`);
+    }
+    return parts.join('');
+  }
+  const fDef = getScheduleItemFlightDef(item);
+  if (!fDef) return '';
+  const gate = fDef.type === 'DEP'
+    ? String(fDef.depGate || '').trim()
+    : String(fDef.arrGate || '').trim();
+  if (!gate) return '';
+  const title = fDef.type === 'DEP' ? '出境登機門' : '入境登機門';
+  return `<span class="block-gate-badge" title="${escapeHtml(title)}">${escapeHtml(gate)}</span>`;
+}
+function normalizeGateCode(gate) {
+  return String(gate ?? '').trim().toUpperCase();
+}
+function getGateZoneLevel(gate) {
+  const g = normalizeGateCode(gate);
+  if (!g) return 0;
+  if (/^D(1[1-8])$/.test(g)) return 2;
+  if (/^A[1-9]$/.test(g)) return 2;
+  if (/^B[1-5]$/.test(g)) return 2;
+  if (/^D([1-9]|10)$/.test(g)) return 1;
+  return 0;
+}
+function getScheduleItemGateZoneClass(item) {
+  if (!item) return '';
+  if (item.role === '休' || item.role === 'DIC' || item.role === 'TC' || item.role === 'T' || item.role === '自訂' || item.role === '其他') return '';
+  const gates = [];
+  if (item.connectingDuty) {
+    const arrFlight = String(item.arrFlight || '').trim();
+    const depFlight = String(item.depFlight || item.flight || '').trim();
+    const arrDef = arrFlight
+      ? flightDefs.find(f => f.flight === arrFlight && f.type === 'ARR')
+      : null;
+    const depDef = depFlight
+      ? flightDefs.find(f => f.flight === depFlight && f.type === 'DEP')
+      : null;
+    const arrGate = String(arrDef?.arrGate || '').trim();
+    const depGate = String(depDef?.depGate || '').trim();
+    if (arrGate) gates.push(arrGate);
+    if (depGate) gates.push(depGate);
+  } else {
+    const fDef = getScheduleItemFlightDef(item);
+    if (!fDef) return '';
+    const gate = fDef.type === 'DEP' ? fDef.depGate : fDef.arrGate;
+    if (gate) gates.push(String(gate).trim());
+  }
+  let maxLevel = 0;
+  gates.forEach(g => { maxLevel = Math.max(maxLevel, getGateZoneLevel(g)); });
+  if (maxLevel === 2) return 'block-gate-zone-red';
+  if (maxLevel === 1) return 'block-gate-zone-yellow';
+  return '';
+}
+function appendFlightDefGateRow(rows, fDef, type) {
+  if (!fDef || !rows) return;
+  const gate = type === 'DEP'
+    ? String(fDef.depGate || '').trim()
+    : String(fDef.arrGate || '').trim();
+  if (gate) rows.push(['登機門', gate]);
+}
 function formatBlockDutyTimeRange(start, end) {
   const range = formatPersonDutyTimelineTimeRange(start, end);
   return range ? range.replace('-', '~') : '';
@@ -11357,6 +11480,7 @@ function buildBlockDutyInfoContent(item, slice) {
         const eta = normalizeImportedTime(etaRaw);
         if (eta) arrRows.push(['ETA', eta]);
       }
+      appendFlightDefGateRow(arrRows, arrDef, 'ARR');
     }
     if (depFlight) {
       const row = formatBlockDutyFlightRow('出境', depFlight);
@@ -11365,6 +11489,7 @@ function buildBlockDutyInfoContent(item, slice) {
     if (depDef) {
       const std = formatDepStdDisplay(depDef);
       if (std) depRows.push(['STD', std]);
+      appendFlightDefGateRow(depRows, depDef, 'DEP');
     }
     const titleAcType = getFlightDefAcType(arrDef) || getFlightDefAcType(depDef);
     return { title, titleAcType, layout: 'connecting', arrRows, depRows, dutyRange };
@@ -11394,6 +11519,7 @@ function buildBlockDutyInfoContent(item, slice) {
         if (eta) rows.push(['ETA', eta]);
       }
     }
+    appendFlightDefGateRow(rows, fDef, fDef.type);
   }
   if (dutyRange) rows.push(['就位時間', dutyRange]);
   if (item.role === 'ABG' || item.role === '大件') {
@@ -22527,6 +22653,10 @@ function initFlightImportModals() {
       openFlightManualAddModal();
       return;
     }
+    if (mode === 'airline-gate') {
+      triggerExcelImport('airline-gate');
+      return;
+    }
     triggerExcelImport(mode === 'fis-diff' ? 'fis-diff' : 'fis-full');
   });
 
@@ -22658,6 +22788,46 @@ function initFlightImportModals() {
 
 function initForeignFlightPreviewModal() {
   initFlightImportModals();
+}
+
+async function applyAirlineGateImport(workbook, inputEl) {
+  if (!flightsImported || !Array.isArray(flightDefs) || !flightDefs.length) {
+    appAlert('請先匯入當日航班（FIS），再匯入登機門。', '無法匯入', 'info');
+    if (inputEl) inputEl.value = '';
+    return;
+  }
+  if (typeof AirlineDataGateParser === 'undefined') {
+    appAlert('登機門匯入模組尚未載入，請重新整理頁面。', '無法匯入');
+    if (inputEl) inputEl.value = '';
+    return;
+  }
+  const parsed = AirlineDataGateParser.parseAirlineGateWorkbook(workbook, {
+    normalizeFlightNo: normalizeImportedFlightNo
+  });
+  if (parsed.error) {
+    appAlert(parsed.error, '無法匯入');
+    if (inputEl) inputEl.value = '';
+    return;
+  }
+  const result = AirlineDataGateParser.applyGateUpdates(flightDefs, parsed.updates, {
+    normalizeFlightNo: normalizeImportedFlightNo
+  });
+  if (typeof FlightAssignmentUtils !== 'undefined') {
+    FlightAssignmentUtils.ensureFlightDefIds(flightDefs);
+    flightDefs.forEach(f => FlightAssignmentUtils.stripGateBaselineEdits(f));
+  }
+  pushUndoSnapshot();
+  renderAssignmentTableFromFlightDefs();
+  if (typeof syncAssignmentTableFromSchedule === 'function') syncAssignmentTableFromSchedule();
+  markUnsynced();
+  if (inputEl) inputEl.value = '';
+  const unmatchedNote = result.unmatched.length
+    ? `\n\n有 ${result.unmatched.length} 筆在班表找不到對應航班（略過）。`
+    : '';
+  appSuccess(
+    `登機門已更新：入境 ${result.applied.arr} 筆、出境 ${result.applied.dep} 筆（來源 ${parsed.stats.total} 筆機坪資料）。${unmatchedNote}`,
+    '匯入完成'
+  );
 }
 
 async function finalizeFisOnlyImport(parsed, inputEl) {
@@ -32914,6 +33084,8 @@ function buildBlockElForSlice(item, slice, normalizedSearch, options = {}) {
   const block = document.createElement('div');
   block.className = 'block';
   applyRoleClass(block, item.role);
+  const gateZoneClass = getScheduleItemGateZoneClass(item);
+  if (gateZoneClass) block.classList.add(gateZoneClass);
   if (item.role === 'T' && isTOrphanAssignmentItem(item)) block.classList.add('block--t-orphan');
   if (item.role === 'T' && isTScheduleItemInconsistent(item)) block.classList.add('block--t-inconsistent');
   if (normalizedSearch) {
@@ -32929,6 +33101,7 @@ function buildBlockElForSlice(item, slice, normalizedSearch, options = {}) {
   if (otRanges.length) block.classList.add('block-overtime');
   if (item.connectingFlightStale) block.classList.add('block-connecting-stale');
   const otBadge = otRanges.length ? '<span class="block-overtime-badge">加班</span>' : '';
+  const gateBadge = getScheduleItemGateBadgeHtml(item);
   const staleBadge = item.connectingFlightStale
     ? '<span class="block-connecting-stale-badge" title="接飛已變更，請點飛機圖示調整此合併區塊">!</span>'
     : '';
@@ -32952,6 +33125,7 @@ function buildBlockElForSlice(item, slice, normalizedSearch, options = {}) {
   block.innerHTML = `
     ${editBtn}
     ${labelHtml}
+    ${gateBadge}
     ${staleBadge}
     ${inconsistentBadge}
     ${otBadge}
@@ -34218,6 +34392,12 @@ document.getElementById('excelImportInput').addEventListener('change', async (e)
   const importMode = input.dataset.mode || excelImportMode || 'fis-full';
   const buffer = await file.arrayBuffer();
   const workbook = XLSX.read(buffer, { type: 'array' });
+
+  if (importMode === 'airline-gate') {
+    await applyAirlineGateImport(workbook, input);
+    return;
+  }
+
   const parsed = FisFlightParser.parseFisWorkbook(workbook, selectedDate, {
     normalizeFlightNo: normalizeImportedFlightNo
   });
