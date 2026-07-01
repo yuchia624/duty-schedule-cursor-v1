@@ -15795,16 +15795,17 @@ function createCustomTemplate(name, startHHMM, duration) {
 
 let timelineFlightSearch = '';
 const PERSONNEL_RECOMMEND_GAP_OPTIONS = [
-  { value: 5, label: '5 分鐘' },
-  { value: 10, label: '10 分鐘' },
-  { value: 15, label: '15 分鐘' },
-  { value: 20, label: '20 分鐘' },
-  { value: 'gt20', label: '20 以上' }
+  { value: 40, label: '40 分鐘' },
+  { value: 45, label: '45 分鐘' },
+  { value: 50, label: '50 分鐘' },
+  { value: 55, label: '55 分鐘' },
+  { value: 60, label: '60 分鐘' },
+  { value: 'gt60', label: '60 以上' }
 ];
 const LS_PERSONNEL_RECOMMEND_MIN_GAP = `${LS_PREFIX}_personnel_recommend_min_gap`;
-let personnelRecommendMinGap = localStorage.getItem(LS_PERSONNEL_RECOMMEND_MIN_GAP) || '20';
+let personnelRecommendMinGap = localStorage.getItem(LS_PERSONNEL_RECOMMEND_MIN_GAP) || '60';
 if (!PERSONNEL_RECOMMEND_GAP_OPTIONS.some(opt => String(opt.value) === String(personnelRecommendMinGap))) {
-  personnelRecommendMinGap = '20';
+  personnelRecommendMinGap = '60';
 }
 let personnelRecommendFilter = null;
 let timelinePinnedPersonTokens = [];
@@ -18445,6 +18446,30 @@ function getGapMinutesBeforeTime(personIndex, minute) {
   }
   return Math.max(0, minute - prevEnd);
 }
+function getPersonMaxGapMinutes(personIndex) {
+  const person = people[personIndex];
+  const shiftBounds = person ? getPersonShiftBounds(person) : null;
+  if (!shiftBounds) return null;
+  const segments = getPersonDutyBlockSegments(personIndex)
+    .map(seg => ({
+      start: Math.max(seg.start, shiftBounds.startMin),
+      end: Math.min(seg.end, shiftBounds.endMin)
+    }))
+    .filter(seg => seg.end > seg.start);
+  if (!segments.length) return 0;
+  let cursor = shiftBounds.startMin;
+  let maxGap = 0;
+  segments.forEach(seg => {
+    const segStart = seg.start;
+    const segEnd = seg.end;
+    if (segStart > cursor) maxGap = Math.max(maxGap, segStart - cursor);
+    cursor = Math.max(cursor, segEnd);
+  });
+  if (shiftBounds.endMin > cursor) {
+    maxGap = Math.max(maxGap, shiftBounds.endMin - cursor);
+  }
+  return maxGap;
+}
 function personTimelineFitsDutyWindow(personIndex, start, end) {
   if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start) return false;
   const person = people[personIndex];
@@ -18524,7 +18549,9 @@ function canAssignPaletteTemplateToPerson(tpl, personIndex) {
     }
   }
   const { start, end } = getPaletteTemplateDutyWindow(tpl);
-  if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start) return tpl.role === '休' || tpl.role === '自訂';
+  if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start) {
+    return tpl.role === '休' || tpl.role === '自訂' || shouldRecommendByMaxShiftGap(tpl);
+  }
   if (!dutyFitsPersonShiftBounds(people[personIndex], start, end)) return false;
   if (isFuncPaletteDuty(tpl)) {
     const placement = validateFuncDutyPlacement(getFuncShiftScope(tpl), start, end);
@@ -18544,27 +18571,40 @@ function getPersonDisplayOrderRank(personIndex) {
 }
 function gapMeetsRecommendMinimum(gapMinutes, minGapSetting) {
   if (gapMinutes == null || !Number.isFinite(gapMinutes)) return false;
-  if (String(minGapSetting) === 'gt20') return gapMinutes > 20;
+  if (String(minGapSetting) === 'gt60') return gapMinutes > 60;
   return gapMinutes >= Math.max(0, Number(minGapSetting) || 0);
 }
 function formatPersonnelRecommendGapLabel(minGapSetting) {
   const opt = PERSONNEL_RECOMMEND_GAP_OPTIONS.find(item => String(item.value) === String(minGapSetting));
   if (opt) return opt.label;
-  if (String(minGapSetting) === 'gt20') return '20 以上';
+  if (String(minGapSetting) === 'gt60') return '60 以上';
   const minutes = Number(minGapSetting);
-  return Number.isFinite(minutes) ? `${minutes} 分鐘` : '20 分鐘';
+  return Number.isFinite(minutes) ? `${minutes} 分鐘` : '60 分鐘';
+}
+function shouldRecommendByMaxShiftGap(tpl) {
+  if (!tpl) return false;
+  if (!isOtherDuty(tpl)) return false;
+  const kind = String(getFuncDutyKind(tpl) || tpl.otherKind || tpl.label || '').trim().toUpperCase();
+  return kind === 'TA' || kind === 'S';
 }
 function recommendPersonnelForPaletteTemplate(tpl, minGapMinutes) {
   const { start, end } = getPaletteTemplateDutyWindow(tpl);
-  if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start) return [];
+  const hasFixedWindow = Number.isFinite(start) && Number.isFinite(end) && end > start;
+  const supportsFlexibleRecommend = !hasFixedWindow && shouldRecommendByMaxShiftGap(tpl);
+  if (!hasFixedWindow && !supportsFlexibleRecommend) return [];
   const candidates = getDisplaySortedRows()
     .filter(row => personMatchesShiftView(row.person))
     .map(row => row.originalIndex);
   const results = [];
   candidates.forEach(personIndex => {
     if (!canAssignPaletteTemplateToPerson(tpl, personIndex)) return;
-    if (!personTimelineFitsDutyWindow(personIndex, start, end)) return;
-    const gapMinutes = getGapMinutesBeforeTime(personIndex, start);
+    let gapMinutes = null;
+    if (hasFixedWindow) {
+      if (!personTimelineFitsDutyWindow(personIndex, start, end)) return;
+      gapMinutes = getGapMinutesBeforeTime(personIndex, start);
+    } else {
+      gapMinutes = getPersonMaxGapMinutes(personIndex);
+    }
     if (!gapMeetsRecommendMinimum(gapMinutes, minGapMinutes)) return;
     const person = people[personIndex];
     const qual = evaluatePersonDutyQualification(person, tpl);
@@ -28280,6 +28320,8 @@ const OTHER_DUTY_DEFS = [
   { label: 'Q2', duration: 60, defaultSlots: 1, assignmentShiftRole: 'Q2', paletteSortMinutes: 420 },
   { label: 'TA', duration: 60, unlimited: true, assignmentShiftRole: 'TA', functionOnly: true },
   { label: 'S', duration: 60, unlimited: true, functionOnly: true },
+  { label: '特4hr', duration: 240, unlimited: true, functionOnly: true },
+  { label: '補4hr', duration: 240, unlimited: true, functionOnly: true },
   { label: 'B/F', duration: 30, unlimited: true, functionOnly: true, fixedStart: 600, fixedEnd: 630, assignmentKey: 'BRIEFING', assignmentSep: 'space' },
   { label: 'OJT', duration: 30, unlimited: true, functionOnly: true, fixedStart: 720, fixedEnd: 750 },
   { label: 'NZ人/件', duration: 60, defaultSlots: 1, assignmentKey: 'NZ人/件', requireNzFlights: true }
