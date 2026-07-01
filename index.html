@@ -18560,9 +18560,13 @@ function recommendPersonnelForPaletteTemplate(tpl, minGapMinutes) {
     const qual = evaluatePersonDutyQualification(person, tpl);
     if (!qual.ok && qual.kind === 'hard') return;
     if (isRcFamilyDuty(tpl) && !isInternCopyDuty(tpl)) {
-      const tier = normalizeLevelTier(person);
-      if (tier !== 'M' && tier !== 'm') return;
-      if (tier === 'm' && isOzRcDuty(tpl)) return;
+      if (isInboundRcDuty(tpl)) {
+        if (!personMeetsInboundRcQualification(person, tpl)) return;
+      } else {
+        const tier = normalizeLevelTier(person);
+        if (tier !== 'M' && tier !== 'm') return;
+        if (tier === 'm' && isOzRcDuty(tpl)) return;
+      }
     }
     if (isForeignBgDuty(tpl) && !personMeetsForeignBgQualification(person, tpl)) return;
     const isSecondary = !qual.ok && qual.kind === 'soft';
@@ -19714,6 +19718,23 @@ function isRcFamilyDuty(duty) {
   const role = duty?.role || '';
   return role === 'RC' || role === '接機RC';
 }
+const INBOUND_RC_BLOCKED_LEVEL_KEYS = new Set(['學生', '見習', '支援', '事務員']);
+function isInboundRcDuty(duty) {
+  return (duty?.role || '') === '接機RC';
+}
+function personMeetsInboundRcQualification(person, duty) {
+  if (!person || !isInboundRcDuty(duty)) return true;
+  const levelKey = getPersonLevelFilterKey(person);
+  if (INBOUND_RC_BLOCKED_LEVEL_KEYS.has(levelKey)) return false;
+  const tier = normalizeLevelTier(person);
+  return tier !== '學生' && tier !== '見習';
+}
+function getInboundRcQualificationHardFailure(person, duty) {
+  if (!isInboundRcDuty(duty) || personMeetsInboundRcQualification(person, duty)) return '';
+  const levelLabel = String(person?.level || resolveLevel(person) || '').trim() || '此人員';
+  const dutyLabel = getDutyDisplayLabel(duty) || '接機RC';
+  return `${levelLabel} 不可排 ${dutyLabel}`;
+}
 function isBgFamilyDuty(duty) {
   const role = duty?.role || '';
   return role === 'BG' || role === '接機C';
@@ -19750,6 +19771,9 @@ function getForeignBgQualificationHardFailure(person, duty) {
 function personTierCanPerformDutyTierRules(tier, duty) {
   if (!dutyRequiresPersonQualification(duty)) return true;
   if (isRcFamilyDuty(duty) && !isInternCopyDuty(duty)) {
+    if (isInboundRcDuty(duty)) {
+      return tier !== '學生' && tier !== '見習' && tier !== '支援' && tier !== '事務員';
+    }
     if (isOzRcDuty(duty)) return tier === 'M';
     return tier === 'M' || tier === 'm';
   }
@@ -19807,6 +19831,7 @@ function personMeetsBaseTierQualification(person, duty) {
     return tier === 'M' || tier === 'm' || tier === '2A' || tier === '1A';
   }
   if (isRcFamilyDuty(duty) && !isInternCopyDuty(duty)) {
+    if (isInboundRcDuty(duty)) return personMeetsInboundRcQualification(person, duty);
     if (isOzRcDuty(duty)) return tier === 'M';
     if (tier === 'm' && dutyInvolvesOzFlight(duty)) return false;
     return tier === 'M' || tier === 'm';
@@ -19835,11 +19860,13 @@ function getBaseTierQualificationFailureMessage(person, duty) {
   const role = duty.role;
   const flightType = duty.flightType || 'DEP';
   if (role === 'PRE') return `${levelLabel} 戰力不可排 PRE-FILING`;
+  const inboundRcFail = getInboundRcQualificationHardFailure(person, duty);
+  if (inboundRcFail) return inboundRcFail;
   if (isOzRcDuty(duty) && !isInternCopyDuty(duty) && tier !== 'M') {
     const dutyLabel = getDutyDisplayLabel(duty) || role;
     return `${levelLabel} 不可排 ${dutyLabel}（OZ RC 僅 M 戰力可排）`;
   }
-  if (isRcFamilyDuty(duty) && !isInternCopyDuty(duty) && tier !== 'M' && tier !== 'm') {
+  if (isRcFamilyDuty(duty) && !isInternCopyDuty(duty) && !isInboundRcDuty(duty) && tier !== 'M' && tier !== 'm') {
     const dutyLabel = getDutyDisplayLabel(duty) || role;
     return `${levelLabel} 不可排 ${dutyLabel}（RC 僅 M、m 戰力可排）`;
   }
