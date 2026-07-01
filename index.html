@@ -15256,6 +15256,9 @@ function createCustomTemplate(name, startHHMM, duration) {
 }
 
 let timelineFlightSearch = '';
+let timelineSearchDebounceTimer = null;
+let timelineSearchParseCache = null;
+const TIMELINE_SEARCH_DEBOUNCE_MS = 180;
 let people = [];
 let schedule = [];
 let flightDefs = [];
@@ -18445,11 +18448,12 @@ function personSearchHaystack(person) {
 function scheduleItemMatchesUniversalSearch(item, queryNorm, rawQuery) {
   if (!queryNorm || !item) return false;
   const raw = String(rawQuery ?? queryNorm).trim();
-  const compound = parseCompoundSearchQuery(raw);
+  const ctx = getTimelineSearchContext(raw);
+  const compound = ctx.compound;
   if (compound.mode === 'compound') {
     return scheduleItemMatchesCompoundSearch(item, compound);
   }
-  const parsed = parseTimelineSearch(raw);
+  const parsed = ctx.parsed;
   if (parsed.mode === 'role') {
     return parsed.roles.some(tok => scheduleItemMatchesDutyRoleSearch(item, tok));
   }
@@ -18469,11 +18473,12 @@ function scheduleItemMatchesUniversalSearch(item, queryNorm, rawQuery) {
 function templateMatchesUniversalSearch(t, queryNorm, rawQuery) {
   if (!queryNorm || !t) return false;
   const raw = String(rawQuery ?? queryNorm).trim();
-  const compound = parseCompoundSearchQuery(raw);
+  const ctx = getTimelineSearchContext(raw);
+  const compound = ctx.compound;
   if (compound.mode === 'compound') {
     return templateMatchesCompoundSearch(t, compound);
   }
-  const parsed = parseTimelineSearch(raw);
+  const parsed = ctx.parsed;
   if (parsed.mode === 'role') {
     return parsed.roles.some(tok => templateMatchesDutyRoleSearch(t, tok));
   }
@@ -18493,11 +18498,12 @@ function templateMatchesUniversalSearch(t, queryNorm, rawQuery) {
 function personMatchesUniversalSearch(person, queryNorm, rawQuery) {
   if (!queryNorm || !person) return false;
   const raw = String(rawQuery ?? queryNorm).trim();
-  const compound = parseCompoundSearchQuery(raw);
+  const ctx = getTimelineSearchContext(raw);
+  const compound = ctx.compound;
   if (compound.mode === 'compound') {
     return personMatchesCompoundSearch(person, compound);
   }
-  const parsed = parseTimelineSearch(raw);
+  const parsed = ctx.parsed;
   if (parsed.mode === 'shift' || parsed.mode === 'level' || parsed.mode === 'mixed') {
     return personMatchesParsedPersonSearch(person, parsed);
   }
@@ -18689,7 +18695,8 @@ function compoundSearchTargetsPersonFields(compound) {
 function timelineSearchIsFlightMode(query) {
   const raw = String(query || '').trim();
   if (!raw) return false;
-  const compound = parseCompoundSearchQuery(raw);
+  const ctx = getTimelineSearchContext(raw);
+  const compound = ctx.compound;
   if (compound.mode === 'compound') {
     return compound.orGroups.some(group => group.some(slot => {
       if (slot?.kind === 'or') {
@@ -18698,7 +18705,7 @@ function timelineSearchIsFlightMode(query) {
       return slot?.kind === 'flight' || slot?.kind === 'role' || slot?.kind === 'region';
     }));
   }
-  const parsed = parseTimelineSearch(raw);
+  const parsed = ctx.parsed;
   return parsed.mode === 'flight' || parsed.mode === 'role' || parsed.mode === 'region';
 }
 const SCHEDULE_SEARCH_FULL_ROW_HIGHLIGHT_LEVELS = new Set(['DIC', '業督', '支援', '見習']);
@@ -18711,8 +18718,23 @@ function personHasSearchTimelineShiftHighlight(person) {
   return false;
 }
 let universalSearchSnap = null;
+function getTimelineSearchContext(query) {
+  const raw = String(query ?? '').trim();
+  if (!raw) {
+    return { raw: '', q: '', compound: { mode: 'none' }, parsed: { mode: 'none' } };
+  }
+  if (timelineSearchParseCache && timelineSearchParseCache.raw === raw) {
+    return timelineSearchParseCache;
+  }
+  const q = normalizeSearchQuery(raw);
+  const compound = parseCompoundSearchQuery(raw);
+  const parsed = compound.mode === 'compound' ? { mode: 'compound' } : parseTimelineSearch(raw);
+  timelineSearchParseCache = { raw, q, compound, parsed };
+  return timelineSearchParseCache;
+}
 function rebuildUniversalSearchSnap(query) {
-  const q = normalizeSearchQuery(query);
+  const ctx = getTimelineSearchContext(query);
+  const q = ctx.q;
   if (!q) {
     universalSearchSnap = null;
     return;
@@ -18720,9 +18742,9 @@ function rebuildUniversalSearchSnap(query) {
   const personIndices = new Set();
   const blockUids = new Set();
   people.forEach((p, idx) => {
-    if (personMatchesUniversalSearch(p, q, query)) personIndices.add(idx);
+    if (personMatchesUniversalSearch(p, q, ctx.raw)) personIndices.add(idx);
   });
-  const compound = parseCompoundSearchQuery(query);
+  const compound = ctx.compound;
   if (compound.mode === 'compound') {
     schedule.forEach(item => {
       if (scheduleItemMatchesCompoundSearch(item, compound)) {
@@ -18732,7 +18754,7 @@ function rebuildUniversalSearchSnap(query) {
     });
   } else {
     schedule.forEach(item => {
-      if (scheduleItemMatchesUniversalSearch(item, q, query)) {
+      if (scheduleItemMatchesUniversalSearch(item, q, ctx.raw)) {
         blockUids.add(item.uid);
         personIndices.add(item.personIndex);
       }
@@ -18746,12 +18768,13 @@ function getUniversalSearchSnap() {
 function templateMatchesTimelineSearch(t) {
   const raw = String(timelineFlightSearch || '').trim();
   if (!raw) return true;
-  const compound = parseCompoundSearchQuery(raw);
+  const ctx = getTimelineSearchContext(raw);
+  const compound = ctx.compound;
   if (compound.mode === 'compound') {
     if (compoundSearchTargetsPersonFields(compound)) return true;
     return templateMatchesCompoundSearch(t, compound);
   }
-  const parsed = parseTimelineSearch(raw);
+  const parsed = ctx.parsed;
   // 班別／戰力／姓名搜尋只篩管制表人員列，待排 palette 維持完整清單。
   if (parsed.mode === 'shift' || parsed.mode === 'level' || parsed.mode === 'name' || parsed.mode === 'mixed') {
     return true;
@@ -19105,7 +19128,8 @@ function shouldShowPersonCodeSearchHighlight(person, rawQuery) {
   const q = normalizeSearchQuery(raw);
   if (!personMatchesUniversalSearch(person, q, raw)) return false;
   if (personCodeMatchesSearchQuery(person, raw)) return true;
-  const parsed = parseTimelineSearch(raw);
+  const ctx = getTimelineSearchContext(raw);
+  const parsed = ctx.parsed;
   if (parsed.mode === 'flight' || parsed.mode === 'shift') return false;
   if (parsed.mode === 'level') return false;
   return personMatchesNameSearch(person, raw);
@@ -19194,46 +19218,126 @@ function scheduleItemMatchesTimelineSearch(item, query) {
   if (!q || !item) return true;
   return scheduleItemMatchesUniversalSearch(item, q, query);
 }
-function applyTimelineFlightSearch(query, preferredAssignmentRow) {
-  timelineFlightSearch = String(query || '').trim();
-  rebuildUniversalSearchSnap(timelineFlightSearch);
-  const input = document.getElementById('timelineFlightSearch');
-  if (input) input.value = timelineFlightSearch;
-  renderRows();
-  renderPalette();
-  updateAssignmentFlightHighlight(preferredAssignmentRow, { skipScroll: true });
-  if (!preferredAssignmentRow && timelineFlightSearch) {
-    const snap = getUniversalSearchSnap();
-    if (!snap) return;
+function updateTimelineSearchDisplay(options = {}) {
+  const searchActive = !!String(timelineFlightSearch || '').trim();
+  const snap = getUniversalSearchSnap();
+  const displayRows = getDisplayRows();
+  const rowsHost = document.getElementById('rows');
+  if (!rowsHost) return false;
+
+  const scrollHost = getScheduleScrollHost();
+  const savedScrollTop = scrollHost?.scrollTop ?? null;
+
+  if (!displayRows.length && searchActive && snap && !snap.personIndices.size && activeShiftView === 'late') {
+    return false;
+  }
+
+  const rowByIndex = new Map();
+  rowsHost.querySelectorAll('.row').forEach(rowEl => {
+    const idx = Number(rowEl.querySelector('.timeline[data-original-index]')?.dataset.originalIndex);
+    if (Number.isFinite(idx)) rowByIndex.set(idx, rowEl);
+  });
+
+  displayRows.forEach(rowInfo => {
+    const rowEl = rowByIndex.get(rowInfo.originalIndex);
+    if (!rowEl) return;
+    rowsHost.appendChild(rowEl);
+    rowEl.classList.toggle('flight-match-top', !!rowInfo.matchedRow);
+    rowEl.classList.toggle(
+      'flight-match-top--full',
+      !!(rowInfo.matchedRow && personHasSearchTimelineShiftHighlight(rowInfo.person))
+    );
+  });
+
+  if (searchActive && snap) {
+    document.querySelectorAll('.block').forEach(blockEl => {
+      const uid = Number(blockEl.dataset.uid);
+      blockEl.classList.toggle('block-search-match', Number.isFinite(uid) && snap.blockUids.has(uid));
+    });
+  } else {
+    document.querySelectorAll('.block.block-search-match').forEach(el => el.classList.remove('block-search-match'));
+  }
+
+  updateAssignmentFlightHighlight(options.preferredAssignmentRow, { skipScroll: options.skipScroll !== false });
+
+  if (scrollHost != null && savedScrollTop != null) {
+    scrollHost.scrollTop = savedScrollTop;
+  }
+  return true;
+}
+function scheduleTimelineSearchFocusScroll(preferredAssignmentRow) {
+  if (preferredAssignmentRow || !timelineFlightSearch) return;
+  const snap = getUniversalSearchSnap();
+  if (!snap) return;
+  requestAnimationFrame(() => {
     requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        const matchedPersons = getSearchMatchedPersonIndicesInView(snap);
-        const blockItem = schedule.find(s => snap.blockUids.has(s.uid));
-        if (matchedPersons.length >= 2) {
-          scrollScheduleBoardToTop();
-          if (blockItem) {
-            scrollControlPanelToTimeRange(blockItem.start, blockItem.end, { center: true });
-            flashPersonInSchedule(blockItem.personIndex);
-            return;
-          }
-          flashPersonInSchedule(matchedPersons[0]);
-          return;
-        }
-        if (matchedPersons.length === 1) {
-          const personIdx = matchedPersons[0];
-          if (blockItem) {
-            scrollControlPanelToTimeRange(blockItem.start, blockItem.end, { center: true });
-          }
-          focusPersonInSchedule(personIdx);
-          return;
-        }
+      const matchedPersons = getSearchMatchedPersonIndicesInView(snap);
+      const blockItem = schedule.find(s => snap.blockUids.has(s.uid));
+      if (matchedPersons.length >= 2) {
+        scrollScheduleBoardToTop();
         if (blockItem) {
           scrollControlPanelToTimeRange(blockItem.start, blockItem.end, { center: true });
           flashPersonInSchedule(blockItem.personIndex);
+          return;
         }
-      });
+        flashPersonInSchedule(matchedPersons[0]);
+        return;
+      }
+      if (matchedPersons.length === 1) {
+        const personIdx = matchedPersons[0];
+        if (blockItem) {
+          scrollControlPanelToTimeRange(blockItem.start, blockItem.end, { center: true });
+        }
+        focusPersonInSchedule(personIdx);
+        return;
+      }
+      if (blockItem) {
+        scrollControlPanelToTimeRange(blockItem.start, blockItem.end, { center: true });
+        flashPersonInSchedule(blockItem.personIndex);
+      }
     });
+  });
+}
+function scheduleTimelineFlightSearch(query, preferredAssignmentRow, options = {}) {
+  if (options.immediate) {
+    clearTimeout(timelineSearchDebounceTimer);
+    timelineSearchDebounceTimer = null;
+    applyTimelineFlightSearch(query, preferredAssignmentRow, options);
+    return;
   }
+  clearTimeout(timelineSearchDebounceTimer);
+  timelineSearchDebounceTimer = setTimeout(() => {
+    timelineSearchDebounceTimer = null;
+    applyTimelineFlightSearch(query, preferredAssignmentRow, options);
+  }, TIMELINE_SEARCH_DEBOUNCE_MS);
+}
+function applyTimelineFlightSearch(query, preferredAssignmentRow, options = {}) {
+  timelineFlightSearch = String(query || '').trim();
+  rebuildUniversalSearchSnap(timelineFlightSearch);
+  const input = document.getElementById('timelineFlightSearch');
+  if (input && document.activeElement !== input) input.value = timelineFlightSearch;
+
+  const rowsHost = document.getElementById('rows');
+  const hasRows = !!rowsHost?.querySelector('.row');
+  const paletteNeedsRefresh = !timelineFlightSearch || timelineSearchIsFlightMode(timelineFlightSearch);
+
+  if (hasRows && !options.forceFullRender) {
+    const updated = updateTimelineSearchDisplay({
+      preferredAssignmentRow,
+      skipScroll: true
+    });
+    if (!updated) {
+      renderRows();
+      if (paletteNeedsRefresh) renderPalette();
+    } else if (paletteNeedsRefresh) {
+      renderPalette();
+    }
+  } else {
+    renderRows();
+    if (paletteNeedsRefresh) renderPalette();
+  }
+
+  scheduleTimelineSearchFocusScroll(preferredAssignmentRow);
 }
 function scrollAssignmentRowIntoView(row) {
   const scrollHost = document.querySelector('.assignment-scroll');
@@ -32566,7 +32670,6 @@ function renderPalette() {
   try {
   const palette = document.getElementById('palette');
   if (!palette) return;
-  if (String(timelineFlightSearch || '').trim()) rebuildUniversalSearchSnap(timelineFlightSearch);
   palette.innerHTML = '';
   palette.className = 'palette-view';
   if (activePaletteTab === 'deleted') {
@@ -33834,12 +33937,13 @@ function syncAssignmentRowHeights() {
 function assignmentRowMatchesUniversalSearch(tr, queryNorm) {
   if (!queryNorm || !tr) return false;
   const raw = String(timelineFlightSearch || queryNorm).trim();
+  const ctx = getTimelineSearchContext(raw);
   const flight = tr.dataset.flight || tr.querySelector('td:first-child')?.textContent?.trim() || '';
-  const compound = parseCompoundSearchQuery(raw);
+  const compound = ctx.compound;
   if (compound.mode === 'compound') {
     return schedule.some(item => item.flight === flight && scheduleItemMatchesCompoundSearch(item, compound));
   }
-  const parsed = parseTimelineSearch(raw);
+  const parsed = ctx.parsed;
   if (parsed.mode === 'role') {
     return schedule.some(item => item.flight === flight && parsed.roles.some(tok => scheduleItemMatchesDutyRoleSearch(item, tok)));
   }
@@ -34047,10 +34151,10 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
   });
 });
 document.getElementById('timelineFlightSearch').addEventListener('input', (e) => {
-  applyTimelineFlightSearch(e.target.value.trim());
+  scheduleTimelineFlightSearch(e.target.value);
 });
 document.getElementById('clearTimelineSearch').addEventListener('click', () => {
-  applyTimelineFlightSearch('');
+  scheduleTimelineFlightSearch('', null, { immediate: true });
 });
 document.querySelector('.assignment-scroll')?.addEventListener('click', e => {
   const cell = e.target.closest('.assignment-flight-no');
@@ -34058,7 +34162,7 @@ document.querySelector('.assignment-scroll')?.addEventListener('click', e => {
   const flight = cell.dataset.flight || cell.textContent.trim();
   const row = cell.closest('tr');
   if (!flight) return;
-  applyTimelineFlightSearch(flight, row);
+  scheduleTimelineFlightSearch(flight, row, { immediate: true });
 });
 function toggleEditorPanel() {
   setEditorExpanded(!editorExpanded);
