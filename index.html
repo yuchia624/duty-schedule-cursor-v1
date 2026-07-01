@@ -2285,6 +2285,73 @@
     color: #1d4ed8;
     outline: none;
   }
+  .schedule-block-context-menu--palette {
+    min-width: 196px;
+  }
+  .schedule-block-context-menu__recommend-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 4px 10px 8px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #64748b;
+  }
+  .schedule-block-context-menu__gap-select {
+    flex: 1 1 auto;
+    min-width: 0;
+    height: 30px;
+    padding: 2px 8px;
+    border: 1px solid #dbe3f0;
+    border-radius: 8px;
+    background: #fff;
+    color: #0f172a;
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .personnel-recommend-filter-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 8px 14px;
+    border-bottom: 1px solid #bfdbfe;
+    background: #eff6ff;
+    color: #1e3a8a;
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .personnel-recommend-filter-bar.hidden { display: none; }
+  .personnel-recommend-filter-bar__text { min-width: 0; }
+  .personnel-recommend-filter-bar__btn {
+    flex: 0 0 auto;
+    height: 30px;
+    padding: 0 12px;
+    border: 1px solid #93c5fd;
+    border-radius: 8px;
+    background: #fff;
+    color: #1d4ed8;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .personnel-recommend-filter-bar__btn:hover,
+  .personnel-recommend-filter-bar__btn:focus-visible {
+    background: #dbeafe;
+    outline: none;
+  }
+  .row.row-personnel-recommend-match .person-cell {
+    box-shadow: inset 3px 0 0 #2563eb;
+  }
+  .row.row-personnel-recommend-secondary .person-cell {
+    box-shadow: inset 3px 0 0 #d97706;
+    background: #fffbeb;
+  }
+  .row.row-personnel-recommend-secondary.flight-match-top .person-cell,
+  .row.row-personnel-recommend-secondary.flight-match-pinned .person-cell {
+    background: #fff7ed;
+  }
 
 
 
@@ -7309,6 +7376,10 @@
           <span class="toolbar-icon-btn__tip">展開人員分配表</span>
         </button>
       </div>
+    </div>
+    <div class="personnel-recommend-filter-bar hidden" id="personnelRecommendFilterBar" aria-live="polite">
+      <span class="personnel-recommend-filter-bar__text" id="personnelRecommendFilterLabel"></span>
+      <button type="button" class="personnel-recommend-filter-bar__btn" id="clearPersonnelRecommendFilter">取消篩選</button>
     </div>
     <div class="schedule-work-area">
     <div class="schedule-board-scroll">
@@ -15714,6 +15785,19 @@ function createCustomTemplate(name, startHHMM, duration) {
 }
 
 let timelineFlightSearch = '';
+const PERSONNEL_RECOMMEND_GAP_OPTIONS = [
+  { value: 5, label: '5 分鐘' },
+  { value: 10, label: '10 分鐘' },
+  { value: 15, label: '15 分鐘' },
+  { value: 20, label: '20 分鐘' },
+  { value: 'gt20', label: '20 以上' }
+];
+const LS_PERSONNEL_RECOMMEND_MIN_GAP = `${LS_PREFIX}_personnel_recommend_min_gap`;
+let personnelRecommendMinGap = localStorage.getItem(LS_PERSONNEL_RECOMMEND_MIN_GAP) || '20';
+if (!PERSONNEL_RECOMMEND_GAP_OPTIONS.some(opt => String(opt.value) === String(personnelRecommendMinGap))) {
+  personnelRecommendMinGap = '20';
+}
+let personnelRecommendFilter = null;
 let timelinePinnedPersonTokens = [];
 let timelinePinnedPersonOrder = [];
 let timelineSearchDebounceTimer = null;
@@ -18316,26 +18400,264 @@ function canShowPaletteTemplateContextMenu(t) {
   if (t.isPaletteCopy && canCopyHomelineAbgScheduleBlock(pseudo)) return false;
   return canAddInternCopyForDuty(pseudo);
 }
-function showPaletteTemplateContextMenu(e, t) {
-  if (!canShowPaletteTemplateContextMenu(t)) return;
+function getPersonWorkDutySegments(personIndex) {
+  const segments = [];
+  schedule.filter(s => s.personIndex === personIndex && s.role !== '休').forEach(item => {
+    if (item.role === 'TC') {
+      getTcItemSegments(item).forEach(seg => {
+        if (seg.end > seg.start) segments.push({ start: seg.start, end: seg.end });
+      });
+      return;
+    }
+    if (item.start != null && item.end != null && item.end > item.start) {
+      segments.push({ start: item.start, end: item.end });
+    }
+  });
+  segments.sort((a, b) => a.start - b.start || a.end - b.end);
+  return segments;
+}
+function getGapMinutesBeforeTime(personIndex, minute) {
+  if (!Number.isFinite(minute)) return null;
+  const segments = getPersonWorkDutySegments(personIndex);
+  const person = people[personIndex];
+  const shiftBounds = person ? getPersonShiftBounds(person) : null;
+  let prevEnd = shiftBounds?.startMin ?? getViewStartMin();
+  for (const seg of segments) {
+    if (seg.end <= minute) prevEnd = Math.max(prevEnd, seg.end);
+    else if (seg.start >= minute) break;
+  }
+  return Math.max(0, minute - prevEnd);
+}
+function personTimelineFitsDutyWindow(personIndex, start, end) {
+  if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start) return false;
+  return !getPersonWorkDutySegments(personIndex).some(seg => seg.start < end && seg.end > start);
+}
+function getPaletteTemplateDutyWindow(tpl) {
+  if (!tpl) return { start: null, end: null };
+  let start = tpl.start;
+  let end = tpl.end;
+  if (tpl.role === 'T' && tpl.tMode === 'staff') {
+    const flights = tpl.isTOrphan
+      ? (tpl.coveredFlights || []).map(normalizeTFlightKey).filter(Boolean)
+      : getDefaultCoveredFlightsForTDrag(tpl.tKind);
+    if (flights.length) {
+      const bounds = computeTBlockBoundsFromFlights(flights);
+      start = bounds.start;
+      end = bounds.end;
+    }
+  }
+  if (tpl.role === 'TC') {
+    const bounds = getTcBoundsFromSegments(tpl.segments || getTcKindSegments(tpl.tcKind));
+    start = bounds.start;
+    end = bounds.end;
+  }
+  return { start, end };
+}
+function canAssignPaletteTemplateToPerson(tpl, personIndex) {
+  if (!tpl || !Number.isFinite(personIndex) || personIndex < 0 || !people[personIndex]) return false;
+  if (tpl.isPaletteCopy && schedule.some(x => x.templateId === tpl.id)) return false;
+  if (tpl.paletteCopyIntern && !canAssignInternPaletteTemplate(tpl)) return false;
+  if (tpl.role === 'T' && tpl.tMode === 'tc') return false;
+  if (tpl.role !== '休' && tpl.role !== '自訂' && !tpl.isPaletteCopy) {
+    if (isDicDuty(tpl)) {
+      if (isDicMultiSlotTemplate(tpl)) {
+        if (countDicAssignmentsForTemplate(tpl) >= getDicSlotsForTemplate(tpl)) return false;
+        if (personHasDicAssignment(personIndex, tpl.dicKind)) return false;
+      } else if (hasFormalDicAssignmentForKind(tpl.dicKind)) {
+        return false;
+      }
+    } else if (isOtherDuty(tpl)) {
+      if (!isOtherUnlimitedTemplate(tpl)) {
+        if (isOtherMultiSlotTemplate(tpl)) {
+          if (countOtherAssignmentsForTemplate(tpl) >= getOtherSlotsForTemplate(tpl)) return false;
+          if (tpl.otherSlotKey && schedule.some(x => x.role === '其他' && x.otherKind === tpl.otherKind && x.otherSlotKey === tpl.otherSlotKey)) return false;
+          if (personHasOtherAssignment(personIndex, tpl.otherKind)) return false;
+        } else if (schedule.some(x => x.role === '其他' && x.otherKind === tpl.otherKind)) {
+          return false;
+        }
+      }
+    } else if (tpl.role === 'PPT') {
+      if (countPptAssignments(tpl.flight, tpl.flightType) >= getPptSlotsForTemplate(tpl)) return false;
+      if (personHasPptAssignment(personIndex, tpl.flight, tpl.flightType)) return false;
+    } else if (tpl.role === 'ABG') {
+      if (countAbgAssignmentsForTemplate(tpl) >= getAbgSlotsForTemplate(tpl)) return false;
+      if (personHasAbgAssignment(personIndex, tpl.flight, tpl.flightType)) return false;
+    } else if (tpl.role === '大件') {
+      if (countBulkyAssignmentsForTemplate(tpl) >= getBulkySlotsForTemplate(tpl)) return false;
+      if (personHasBulkyAssignment(personIndex, tpl.flight, tpl.flightType)) return false;
+    } else if (tpl.connectingDuty) {
+      if (tpl.role === 'ABG') {
+        if (countAbgAssignmentsForTemplate(tpl) >= getAbgSlotsForTemplate(tpl)) return false;
+        if (personHasAbgAssignment(personIndex, tpl.flight, tpl.flightType)) return false;
+      } else if (hasFormalScheduleAssignmentForTemplate(tpl)) {
+        return false;
+      }
+    } else if (tpl.role === 'TC') {
+      if (!tpl.paletteCopyIntern && hasFormalTcAssignmentForKind(tpl.tcKind)) return false;
+    } else if (tpl.role === 'T') {
+      if (tpl.isTOrphan) {
+        if (!tpl.coveredFlights?.length) return false;
+        if (getTOrphanStaffNeeded(tpl.tKind) <= 0) return false;
+        if (getTOrphanSlotsRemaining(tpl.tKind) <= 0) return false;
+      } else if (tpl.tMode === 'staff' && getTStaffSlotsRemaining(tpl.tKind) <= 0) return false;
+    } else if (schedule.some(x => scheduleItemMatchesTemplate(x, tpl))) {
+      return false;
+    }
+  }
+  const { start, end } = getPaletteTemplateDutyWindow(tpl);
+  if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start) return tpl.role === '休' || tpl.role === '自訂';
+  if (isFuncPaletteDuty(tpl)) {
+    const placement = validateFuncDutyPlacement(getFuncShiftScope(tpl), start, end);
+    if (!placement.ok) return false;
+  }
+  if (tpl.role === 'TC' && !validateTcPersonAssignment(personIndex, tpl.tcKind)) return false;
+  if (tpl.role === 'T' && tpl.tMode === 'staff') {
+    const existing = getTStaffScheduleBlocks(tpl.tKind).find(b => b.personIndex === personIndex);
+    if (existing) return false;
+  }
+  return true;
+}
+function getPersonDisplayOrderRank(personIndex) {
+  ensurePeopleDisplayOrder();
+  const pos = peopleDisplayOrder.indexOf(personIndex);
+  return pos >= 0 ? pos : Number.MAX_SAFE_INTEGER;
+}
+function gapMeetsRecommendMinimum(gapMinutes, minGapSetting) {
+  if (gapMinutes == null || !Number.isFinite(gapMinutes)) return false;
+  if (String(minGapSetting) === 'gt20') return gapMinutes > 20;
+  return gapMinutes >= Math.max(0, Number(minGapSetting) || 0);
+}
+function formatPersonnelRecommendGapLabel(minGapSetting) {
+  const opt = PERSONNEL_RECOMMEND_GAP_OPTIONS.find(item => String(item.value) === String(minGapSetting));
+  if (opt) return opt.label;
+  if (String(minGapSetting) === 'gt20') return '20 以上';
+  const minutes = Number(minGapSetting);
+  return Number.isFinite(minutes) ? `${minutes} 分鐘` : '20 分鐘';
+}
+function recommendPersonnelForPaletteTemplate(tpl, minGapMinutes) {
+  const { start, end } = getPaletteTemplateDutyWindow(tpl);
+  if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start) return [];
+  const candidates = getDisplaySortedRows()
+    .filter(row => personMatchesShiftView(row.person))
+    .map(row => row.originalIndex);
+  const results = [];
+  candidates.forEach(personIndex => {
+    if (!canAssignPaletteTemplateToPerson(tpl, personIndex)) return;
+    if (!personTimelineFitsDutyWindow(personIndex, start, end)) return;
+    const gapMinutes = getGapMinutesBeforeTime(personIndex, start);
+    if (!gapMeetsRecommendMinimum(gapMinutes, minGapMinutes)) return;
+    const person = people[personIndex];
+    const qual = evaluatePersonDutyQualification(person, tpl);
+    if (!qual.ok && qual.kind === 'hard') return;
+    if (isRcFamilyDuty(tpl) && !isInternCopyDuty(tpl)) {
+      const tier = normalizeLevelTier(person);
+      if (tier !== 'M' && tier !== 'm') return;
+      if (tier === 'm' && isOzRcDuty(tpl)) return;
+    }
+    if (isForeignBgDuty(tpl) && !personMeetsForeignBgQualification(person, tpl)) return;
+    const isSecondary = !qual.ok && qual.kind === 'soft';
+    if ((isRcFamilyDuty(tpl) || isForeignBgDuty(tpl)) && !isInternCopyDuty(tpl) && isSecondary) return;
+    results.push({
+      personIndex,
+      gapMinutes,
+      secondary: isSecondary,
+      softMessage: qual.kind === 'soft' ? qual.message : ''
+    });
+  });
+  results.sort((a, b) => getPersonDisplayOrderRank(a.personIndex) - getPersonDisplayOrderRank(b.personIndex));
+  return results;
+}
+function renderPersonnelRecommendFilterBar() {
+  const bar = document.getElementById('personnelRecommendFilterBar');
+  const labelEl = document.getElementById('personnelRecommendFilterLabel');
+  if (!bar || !labelEl) return;
+  if (!personnelRecommendFilter) {
+    bar.classList.add('hidden');
+    labelEl.textContent = '';
+    return;
+  }
+  const primaryCount = personnelRecommendFilter.ranked.filter(item => !item.secondary).length;
+  const secondaryCount = personnelRecommendFilter.ranked.length - primaryCount;
+  const secondaryHint = secondaryCount ? `，含 ${secondaryCount} 位次要` : '';
+  labelEl.textContent = `推薦人員篩選：${personnelRecommendFilter.label} · 空檔至少 ${formatPersonnelRecommendGapLabel(personnelRecommendFilter.minGapMinutes)} · ${personnelRecommendFilter.ranked.length} 人${secondaryHint}`;
+  bar.classList.remove('hidden');
+}
+function clearPersonnelRecommendFilter(options = {}) {
+  if (!personnelRecommendFilter) return;
+  personnelRecommendFilter = null;
+  renderPersonnelRecommendFilterBar();
+  if (!options.skipRender) renderRows();
+}
+function applyPersonnelRecommendFilter(tpl, minGapMinutes) {
+  const ranked = recommendPersonnelForPaletteTemplate(tpl, minGapMinutes);
+  if (!ranked.length) {
+    showScheduleBriefToast(`沒有符合條件的人員（空檔至少 ${formatPersonnelRecommendGapLabel(minGapMinutes)}）`, 1600);
+    return;
+  }
+  personnelRecommendMinGap = String(minGapMinutes);
+  localStorage.setItem(LS_PERSONNEL_RECOMMEND_MIN_GAP, personnelRecommendMinGap);
+  const rankMap = new Map();
+  ranked.forEach((item, idx) => rankMap.set(item.personIndex, idx));
+  personnelRecommendFilter = {
+    templateId: tpl.id,
+    label: getPaletteChipDisplayLabel(tpl) || tpl.label || tpl.role || '勤務',
+    minGapMinutes: personnelRecommendMinGap,
+    personIndices: new Set(ranked.map(item => item.personIndex)),
+    secondaryIndices: new Set(ranked.filter(item => item.secondary).map(item => item.personIndex)),
+    rankMap,
+    ranked
+  };
+  renderPersonnelRecommendFilterBar();
+  renderRows();
+  showScheduleBriefToast(`已篩選 ${ranked.length} 位符合人員`, 1200);
+}
+function showPaletteChipContextMenu(e, t) {
+  if (!t || activePaletteTab === 'deleted') return;
   e.preventDefault();
   e.stopPropagation();
   hideScheduleBlockContextMenu();
   ensureScheduleBlockContextMenuDismiss();
-  const pseudo = buildPseudoScheduleItemFromTemplate(t);
   const menu = document.createElement('div');
-  menu.className = 'schedule-block-context-menu';
+  menu.className = 'schedule-block-context-menu schedule-block-context-menu--palette';
   menu.setAttribute('role', 'menu');
-  const internBtn = document.createElement('button');
-  internBtn.type = 'button';
-  internBtn.className = 'schedule-block-context-menu__item';
-  internBtn.textContent = '複製區塊為「見習」';
-  internBtn.addEventListener('click', ev => {
+  const recommendRow = document.createElement('div');
+  recommendRow.className = 'schedule-block-context-menu__recommend-row';
+  const gapLabel = document.createElement('span');
+  gapLabel.textContent = '空檔至少';
+  const gapSelect = document.createElement('select');
+  gapSelect.className = 'schedule-block-context-menu__gap-select';
+  gapSelect.setAttribute('aria-label', '空檔至少分鐘數');
+  PERSONNEL_RECOMMEND_GAP_OPTIONS.forEach(opt => {
+    const optionEl = document.createElement('option');
+    optionEl.value = String(opt.value);
+    optionEl.textContent = opt.label;
+    if (String(opt.value) === String(personnelRecommendMinGap)) optionEl.selected = true;
+    gapSelect.appendChild(optionEl);
+  });
+  recommendRow.append(gapLabel, gapSelect);
+  menu.appendChild(recommendRow);
+  const recommendBtn = document.createElement('button');
+  recommendBtn.type = 'button';
+  recommendBtn.className = 'schedule-block-context-menu__item';
+  recommendBtn.textContent = '推薦人員';
+  recommendBtn.addEventListener('click', ev => {
     ev.stopPropagation();
     hideScheduleBlockContextMenu();
-    copyScheduleBlockAsInternToPalette(pseudo);
+    applyPersonnelRecommendFilter(t, gapSelect.value);
   });
-  menu.appendChild(internBtn);
+  menu.appendChild(recommendBtn);
+  if (canShowPaletteTemplateContextMenu(t)) {
+    const internBtn = document.createElement('button');
+    internBtn.type = 'button';
+    internBtn.className = 'schedule-block-context-menu__item';
+    internBtn.textContent = '複製區塊為「見習」';
+    internBtn.addEventListener('click', ev => {
+      ev.stopPropagation();
+      hideScheduleBlockContextMenu();
+      copyScheduleBlockAsInternToPalette(buildPseudoScheduleItemFromTemplate(t));
+    });
+    menu.appendChild(internBtn);
+  }
   document.body.appendChild(menu);
   scheduleBlockContextMenuEl = menu;
   const rect = menu.getBoundingClientRect();
@@ -18343,7 +18665,7 @@ function showPaletteTemplateContextMenu(e, t) {
   const y = Math.max(8, Math.min(e.clientY, window.innerHeight - rect.height - 8));
   menu.style.left = `${x}px`;
   menu.style.top = `${y}px`;
-  internBtn.focus();
+  recommendBtn.focus();
 }
 function buildPaletteCopyTemplateFromScheduleItem(item, opts = {}) {
   const { internCopy = false } = opts;
@@ -19378,9 +19700,49 @@ function dutyInvolvesForeignFlight(duty) {
   }
   return isForeign(getFlightDefForDuty(duty));
 }
+function isRcFamilyDuty(duty) {
+  const role = duty?.role || '';
+  return role === 'RC' || role === '接機RC';
+}
+function isBgFamilyDuty(duty) {
+  const role = duty?.role || '';
+  return role === 'BG' || role === '接機C';
+}
+function isPersonLevel2AStar(person) {
+  const raw = String(person?.level || resolveLevel(person) || '').trim();
+  return /2A\s*\*/i.test(raw);
+}
+function isForeignBgDuty(duty) {
+  if (!duty || isInternCopyDuty(duty) || !isBgFamilyDuty(duty)) return false;
+  return dutyInvolvesForeignFlight(duty);
+}
+function personMeetsForeignBgQualification(person, duty) {
+  if (!isForeignBgDuty(duty)) return true;
+  if (isPersonLevel2AStar(person)) return false;
+  const tier = normalizeLevelTier(person);
+  if (tier === '見習' || tier === '學生' || tier === '1A') return false;
+  return tier === 'M' || tier === 'm' || tier === '2A';
+}
+function getForeignBgQualificationHardFailure(person, duty) {
+  if (!isForeignBgDuty(duty)) return '';
+  if (personMeetsForeignBgQualification(person, duty)) return '';
+  const levelLabel = String(person?.level || resolveLevel(person) || '').trim() || '此人員';
+  const dutyLabel = getDutyDisplayLabel(duty) || duty.role || 'BG';
+  if (isPersonLevel2AStar(person)) {
+    return `${levelLabel} 不可排 ${dutyLabel}（2A* 僅可做本家 BG）`;
+  }
+  const tier = normalizeLevelTier(person);
+  if (tier === '1A' || tier === '見習' || tier === '學生') {
+    return `${levelLabel} 不可排 ${dutyLabel}（外家 BG 需 2A 以上戰力）`;
+  }
+  return `${levelLabel} 不可排 ${dutyLabel}（外家 BG 戰力限制）`;
+}
 function personTierCanPerformDutyTierRules(tier, duty) {
   if (!dutyRequiresPersonQualification(duty)) return true;
-  if (isOzRcDuty(duty) && !isInternCopyDuty(duty)) return tier === 'M';
+  if (isRcFamilyDuty(duty) && !isInternCopyDuty(duty)) {
+    if (isOzRcDuty(duty)) return tier === 'M';
+    return tier === 'M' || tier === 'm';
+  }
   const role = duty.role;
   const flightType = duty.flightType;
   const flight = duty.flight;
@@ -19393,7 +19755,6 @@ function personTierCanPerformDutyTierRules(tier, duty) {
     return true;
   }
   if (tier === '2A' || tier === '1A') {
-    if (flightType === 'DEP' && role === 'RC') return false;
     if (tier === '1A' && flightType === 'DEP' && role === 'BG') return false;
     return true;
   }
@@ -19401,6 +19762,7 @@ function personTierCanPerformDutyTierRules(tier, duty) {
 }
 function getDutyMinimumQualificationRank(duty) {
   if (!dutyRequiresPersonQualification(duty)) return SCHEDULE_ONE_A_LEVEL_RANK;
+  if (isForeignBgDuty(duty)) return SCHEDULE_BLOCK_A_LEVEL_ORDER.indexOf('2A');
   const order = ['M', 'm', '2A', '1A'];
   for (let i = order.length - 1; i >= 0; i--) {
     if (personTierCanPerformDutyTierRules(order[i], duty)) {
@@ -19417,7 +19779,7 @@ function getStudentQualificationHardFailure(person, duty) {
   if (tier !== '學生') return '';
   const levelLabel = String(person.level || resolveLevel(person) || tier).trim() || tier;
   const role = duty.role;
-  if (role === '接機RC') return `${levelLabel} 不可當接機 RC`;
+  if (role === 'RC' || role === '接機RC') return `${levelLabel} 不可排 RC`;
   if (role === 'T' && duty.tMode !== 'tc') return `${levelLabel} 不可辦 T`;
   if (dutyInvolvesForeignFlight(duty) && !isOzGuidePptDuty(duty)) {
     return `${levelLabel} 不可排外家航班`;
@@ -19434,7 +19796,14 @@ function personMeetsBaseTierQualification(person, duty) {
     if (tier === '見習') return true;
     return tier === 'M' || tier === 'm' || tier === '2A' || tier === '1A';
   }
-  if (isOzRcDuty(duty) && !isInternCopyDuty(duty)) return tier === 'M';
+  if (isRcFamilyDuty(duty) && !isInternCopyDuty(duty)) {
+    if (isOzRcDuty(duty)) return tier === 'M';
+    if (tier === 'm' && dutyInvolvesOzFlight(duty)) return false;
+    return tier === 'M' || tier === 'm';
+  }
+  if (isForeignBgDuty(duty)) {
+    return personMeetsForeignBgQualification(person, duty);
+  }
   const flightType = duty.flightType;
   const flight = duty.flight;
   if (tier === 'M') return true;
@@ -19443,12 +19812,12 @@ function personMeetsBaseTierQualification(person, duty) {
     return true;
   }
   if (tier === '2A' || tier === '1A') {
-    if (flightType === 'DEP' && role === 'RC') return false;
     if (tier === '1A' && flightType === 'DEP' && role === 'BG') return false;
     return true;
   }
-  if (tier === '學生' || tier === '見習') return true;
-  return true;
+  if (tier === '見習') return true;
+  if (tier === '學生') return personTierCanPerformDutyTierRules(tier, duty);
+  return personTierCanPerformDutyTierRules(tier, duty);
 }
 function getBaseTierQualificationFailureMessage(person, duty) {
   const tier = normalizeLevelTier(person);
@@ -19460,11 +19829,14 @@ function getBaseTierQualificationFailureMessage(person, duty) {
     const dutyLabel = getDutyDisplayLabel(duty) || role;
     return `${levelLabel} 不可排 ${dutyLabel}（OZ RC 僅 M 戰力可排）`;
   }
-  if (tier === 'm' && isOzFlight(duty.flight) && role === '接機RC') {
-    return `${levelLabel} 不可排 OZ 航班 RC`;
+  if (isRcFamilyDuty(duty) && !isInternCopyDuty(duty) && tier !== 'M' && tier !== 'm') {
+    const dutyLabel = getDutyDisplayLabel(duty) || role;
+    return `${levelLabel} 不可排 ${dutyLabel}（RC 僅 M、m 戰力可排）`;
   }
-  if ((tier === '2A' || tier === '1A') && flightType === 'DEP' && role === 'RC') {
-    return `${levelLabel} 不可排出境 RC`;
+  const foreignBgFail = getForeignBgQualificationHardFailure(person, duty);
+  if (foreignBgFail) return foreignBgFail;
+  if (tier === 'm' && dutyInvolvesOzFlight(duty) && isRcFamilyDuty(duty)) {
+    return `${levelLabel} 不可排 OZ 航班 RC`;
   }
   if (tier === '1A' && flightType === 'DEP' && role === 'BG') {
     return `${levelLabel} 不可排出境 BG`;
@@ -19520,6 +19892,8 @@ function evaluatePersonDutyQualification(person, duty) {
   }
   const dicFail = getDicQualificationHardFailure(person, duty);
   if (dicFail) return { ok: false, kind: 'hard', message: dicFail };
+  const foreignBgFail = getForeignBgQualificationHardFailure(person, duty);
+  if (foreignBgFail) return { ok: false, kind: 'hard', message: foreignBgFail };
   if (!dutyRequiresPersonQualification(duty)) {
     const internSoftFail = getInternQualificationSoftFailure(person, duty);
     if (internSoftFail) return { ok: false, kind: 'soft', message: internSoftFail };
@@ -31624,6 +31998,8 @@ function switchScheduleDate(newDate) {
   localStorage.setItem(LS_KEYS_GLOBAL.selectedDate, selectedDate);
   syncAllDatePickerDisplays();
   loadDayDataFromLocalStorage(selectedDate);
+  personnelRecommendFilter = null;
+  renderPersonnelRecommendFilterBar();
   refreshScheduleViewsAfterDateChange();
   attachFirebaseForSelectedDate();
   clearUndoHistory();
@@ -33275,12 +33651,10 @@ function makeChip(t, paletteRoleContext = '') {
   const skipPaletteDutyInfoClick = t.role === 'T' && t.tMode === 'tc' && !chip.draggable;
   bindPaletteChipDutyInfoClick(chip, t, { skip: skipPaletteDutyInfoClick });
 
-  if (canShowPaletteTemplateContextMenu(t)) {
-    chip.addEventListener('contextmenu', e => {
-      if (e.target.closest('.duty-chip-delete-btn, .duty-chip-edit-btn')) return;
-      showPaletteTemplateContextMenu(e, t);
-    });
-  }
+  chip.addEventListener('contextmenu', e => {
+    if (e.target.closest('.duty-chip-delete-btn, .duty-chip-edit-btn')) return;
+    showPaletteChipContextMenu(e, t);
+  });
 
   chip.addEventListener('dragstart', e => {
     hideBlockDutyInfoPopover();
@@ -33590,7 +33964,15 @@ function getDisplayRows() {
   if (hasPins && pinnedRows.length && bodyRows.length) {
     result.push({ isPinDivider: true });
   }
-  return [...result, ...bodyRows];
+  let finalRows = [...result, ...bodyRows];
+  if (personnelRecommendFilter) {
+    const allowed = personnelRecommendFilter.personIndices;
+    const rankMap = personnelRecommendFilter.rankMap;
+    finalRows = finalRows
+      .filter(row => !row.isPinDivider && allowed.has(row.originalIndex))
+      .sort((a, b) => (rankMap.get(a.originalIndex) ?? 999) - (rankMap.get(b.originalIndex) ?? 999));
+  }
+  return finalRows;
 }
 
 function buildBlockElForSlice(item, slice, normalizedSearch, options = {}) {
@@ -34067,6 +34449,14 @@ function renderRows() {
   const displayRows = getDisplayRows();
   const personSeqMap = buildPersonDisplaySeqMap();
   const searchSnap = getUniversalSearchSnap();
+  if (!displayRows.length && personnelRecommendFilter) {
+    const reminder = document.createElement('div');
+    reminder.className = 'shift-empty-reminder';
+    reminder.textContent = '目前沒有符合推薦條件的人員';
+    rows.appendChild(reminder);
+    syncAssignmentTableFromSchedule();
+    return;
+  }
   if (!displayRows.length && searchActive && searchSnap && !searchSnap.personIndices.size && activeShiftView === 'late') {
     const reminder = document.createElement('div');
     reminder.className = 'shift-empty-reminder';
@@ -34091,6 +34481,18 @@ function renderRows() {
       row.classList.add('flight-match-top');
       if (personHasSearchTimelineShiftHighlight(rowInfo.person)) {
         row.classList.add('flight-match-top--full');
+      }
+    }
+    if (personnelRecommendFilter?.personIndices?.has(rowInfo.originalIndex)) {
+      row.classList.add('row-personnel-recommend-match');
+      const ranked = personnelRecommendFilter.ranked.find(item => item.personIndex === rowInfo.originalIndex);
+      if (ranked) {
+        const prefix = ranked.secondary ? '推薦（次要）' : '推薦';
+        const softHint = ranked.softMessage ? ` · ${ranked.softMessage}` : '';
+        row.title = `${prefix} · 空檔 ${formatGapDurationText(ranked.gapMinutes)}${softHint}`;
+      }
+      if (personnelRecommendFilter.secondaryIndices.has(rowInfo.originalIndex)) {
+        row.classList.add('row-personnel-recommend-secondary');
       }
     }
     if (isTempControlRow(rowInfo.person) && rollCallMode) row.classList.add('row--temp-row');
@@ -34849,6 +35251,9 @@ document.getElementById('timelineFlightSearch').addEventListener('input', (e) =>
 document.getElementById('clearTimelineSearch').addEventListener('click', () => {
   scheduleTimelineFlightSearch('', null, { immediate: true });
 });
+document.getElementById('clearPersonnelRecommendFilter')?.addEventListener('click', () => {
+  clearPersonnelRecommendFilter();
+});
 document.querySelector('.assignment-scroll')?.addEventListener('click', e => {
   const cell = e.target.closest('.assignment-flight-no');
   if (!cell) return;
@@ -34869,6 +35274,7 @@ document.getElementById('toggleShiftViewBtn').addEventListener('click', () => {
   activeShiftView = activeShiftView === 'early' ? 'late' : 'early';
   localStorage.setItem(LS_KEYS_GLOBAL.shiftView, activeShiftView);
   updateShiftViewButtonLabel();
+  clearPersonnelRecommendFilter({ skipRender: true });
   renderTimeHeader();
   renderPalette();
   renderRows();
