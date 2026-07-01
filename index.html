@@ -16995,6 +16995,7 @@ function applyCloudState(data) {
   selectedBlockId = null;
   blockSeq = schedule.length ? Math.max(...schedule.map(x => Number(x.uid) || 0)) + 1 : 1;
   rebuildTemplates();
+  ensureDefaultRestBreaks({ skipMark: true });
 
   const k = dayStorageKeys(selectedDate);
   localStorage.setItem(k.schedule, JSON.stringify(schedule));
@@ -31705,6 +31706,7 @@ function loadDayDataFromLocalStorage(dateStr) {
   blockSeq = schedule.length ? Math.max(...schedule.map(x => Number(x.uid) || 0)) + 1 : 1;
   rebuildTemplates();
   syncScheduleWindows();
+  ensureDefaultRestBreaks({ skipMark: true });
   if (staffDirectory.length && people.length) {
     people = mergePeopleWithStaffDirectory(people);
   }
