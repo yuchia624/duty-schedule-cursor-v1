@@ -9515,6 +9515,17 @@ function nextTempControlRowCode() {
   }
   return candidate;
 }
+function createTempRowId() {
+  return `TMP_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+}
+function ensurePeopleTempRowIds(list = people) {
+  if (!Array.isArray(list)) return;
+  list.forEach(p => {
+    if (isTempControlRow(p) && !String(p.tempRowId || '').trim()) {
+      p.tempRowId = createTempRowId();
+    }
+  });
+}
 function buildShiftSuggestFieldHtml(className, value, ariaLabel) {
   const v = String(value || '');
   const invalid = getAdjustedShiftInputStatus(v) === 'invalid';
@@ -9733,10 +9744,15 @@ function buildTempRowLevelOptions(selectedLevel) {
   }).join('');
 }
 function buildScheduleRowDeleteBtnHtml(person) {
-  const token = getPersonDeleteToken(person);
-  if (!token) return '';
-  const payload = encodePersonDeleteToken(token);
-  return `<button type="button" class="schedule-row-delete-btn" data-delete-token="${payload}" title="刪除此人員" aria-label="刪除此人員"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M6 6l1.2 14h9.6L18 6"/></svg></button>`;
+  if (!person) return '';
+  if (isTempControlRow(person)) {
+    const tempRowId = String(person.tempRowId || '').trim();
+    if (!tempRowId) return '';
+    return `<button type="button" class="schedule-row-delete-btn" data-temp-row-id="${escapeHtml(tempRowId)}" title="刪除此人員" aria-label="刪除此人員"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M6 6l1.2 14h9.6L18 6"/></svg></button>`;
+  }
+  const personnelId = String(person.personnelId || '').trim() || resolvePersonnelId(person);
+  if (!personnelId) return '';
+  return `<button type="button" class="schedule-row-delete-btn" data-personnel-id="${escapeHtml(personnelId)}" title="刪除此人員" aria-label="刪除此人員"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M6 6l1.2 14h9.6L18 6"/></svg></button>`;
 }
 const ROW_PIN_ICON = '<svg class="row-pin-img" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path fill="currentColor" d="M4.146.146A.5.5 0 0 1 4.5 0h7a.5.5 0 0 1 .5.5c0 .68-.342 1.174-.646 1.479-.126.125-.25.224-.354.298v4.431l.078.048c.203.127.476.314.751.555C12.36 7.775 13 8.527 13 9.5a.5.5 0 0 1-.5.5h-4v4.5c0 .276-.224 1.5-.5 1.5s-.5-1.224-.5-1.5V10h-4a.5.5 0 0 1-.5-.5c0-.973.64-1.725 1.17-2.189A6 6 0 0 1 5 6.708V2.277a3 3 0 0 1-.354-.298C4.342 1.674 4 1.179 4 .5a.5.5 0 0 1 .146-.354"/></svg>';
 const ROW_GRIP_DRAG_THRESHOLD_PX = 5;
@@ -9746,8 +9762,8 @@ let rowReorderDropState = null;
 function normalizePersonPinToken(token) {
   if (!token || typeof token !== 'object') return null;
   if (token.kind === 'temp') {
-    const code = String(token.code || '').trim();
-    return code ? { kind: 'temp', code } : null;
+    const tempRowId = String(token.tempRowId || '').trim();
+    return tempRowId ? { kind: 'temp', tempRowId } : null;
   }
   if (token.kind === 'formal') {
     const personnelId = String(token.personnelId || '').trim();
@@ -9762,7 +9778,7 @@ function personPinTokenEquals(a, b) {
   const ta = normalizePersonPinToken(a);
   const tb = normalizePersonPinToken(b);
   if (!ta || !tb || ta.kind !== tb.kind) return false;
-  if (ta.kind === 'temp') return ta.code === tb.code;
+  if (ta.kind === 'temp') return ta.tempRowId && tb.tempRowId && ta.tempRowId === tb.tempRowId;
   if (ta.personnelId && tb.personnelId) return ta.personnelId === tb.personnelId;
   return ta.code === tb.code && ta.name === tb.name;
 }
@@ -9915,63 +9931,43 @@ function buildScheduleRowSeqHtml(seqNo, person, showDelete, seqOpts = {}) {
   const deleteBtn = showDelete && person ? buildScheduleRowDeleteBtnHtml(person) : '';
   return `<div class="rc-col rc-seq">${buildRowSeqColInnerHtml(seqNo, seqOpts)}${deleteBtn}</div>`;
 }
-function encodePersonDeleteToken(token) {
-  return encodeURIComponent(JSON.stringify(token));
-}
-function parsePersonDeleteToken(raw) {
-  if (!raw) return null;
-  try {
-    const token = JSON.parse(decodeURIComponent(raw));
-    if (!token || typeof token !== 'object') return null;
-    if (token.kind === 'temp') {
-      return { kind: 'temp', code: String(token.code || '').trim() };
-    }
-    if (token.kind === 'formal') {
-      const personnelId = String(token.personnelId || '').trim();
-      if (personnelId) return { kind: 'formal', personnelId };
-      return {
-        kind: 'formal',
-        code: String(token.code || '').trim(),
-        name: String(token.name || '').trim()
-      };
-    }
-    return null;
-  } catch {
-    return null;
-  }
-}
 function getPersonDeleteToken(person) {
   if (!person) return null;
   if (isTempControlRow(person)) {
-    return { kind: 'temp', code: String(person.code || person.name || '').trim() };
+    const tempRowId = String(person.tempRowId || '').trim();
+    return tempRowId ? { kind: 'temp', tempRowId } : null;
   }
   const personnelId = String(person.personnelId || '').trim() || resolvePersonnelId(person);
   if (personnelId) return { kind: 'formal', personnelId };
-  return {
-    kind: 'formal',
-    code: String(person.code || '').trim(),
-    name: String(resolveFullName(person) || person.name || person.code || '').trim()
-  };
+  return null;
 }
 function personMatchesDeleteToken(person, token) {
   if (!person || !token) return false;
   if (token.kind === 'temp') {
-    if (!isTempControlRow(person)) return false;
-    return normalizeText(person.code || person.name) === normalizeText(token.code);
+    if (!isTempControlRow(person) || !token.tempRowId) return false;
+    return String(person.tempRowId || '').trim() === token.tempRowId;
   }
-  if (token.kind !== 'formal' || isTempControlRow(person)) return false;
-  if (token.personnelId) {
-    const pid = String(resolvePersonnelId(person) || person.personnelId || '').trim();
-    return pid === token.personnelId;
-  }
-  if (!token.code || !token.name) return false;
-  const codeMatch = normalizeText(person.code) === normalizeText(token.code);
-  const nameMatch = normalizeText(resolveFullName(person) || person.name || person.code) === normalizeText(token.name);
-  return codeMatch && nameMatch;
+  if (token.kind !== 'formal' || isTempControlRow(person) || !token.personnelId) return false;
+  const pid = String(person.personnelId || '').trim() || String(resolvePersonnelId(person) || '').trim();
+  return pid === token.personnelId;
 }
 function resolvePersonDeleteIndex(token) {
   if (!token) return -1;
   return people.findIndex(p => personMatchesDeleteToken(p, token));
+}
+function resolveTempRowPersonIndex(tempRowId) {
+  const id = String(tempRowId || '').trim();
+  if (!id) return -1;
+  return people.findIndex(p => isTempControlRow(p) && String(p.tempRowId || '').trim() === id);
+}
+function resolveFormalPersonIndex(personnelId) {
+  const pid = String(personnelId || '').trim();
+  if (!pid) return -1;
+  return people.findIndex(p => {
+    if (isTempControlRow(p)) return false;
+    const personPid = String(p.personnelId || '').trim() || String(resolvePersonnelId(p) || '').trim();
+    return personPid === pid;
+  });
 }
 function reindexScheduleAfterPersonRemoved(removedIndex) {
   schedule = schedule.filter(s => s.personIndex !== removedIndex);
@@ -9982,17 +9978,10 @@ function reindexScheduleAfterPersonRemoved(removedIndex) {
 function logSchedulePersonDeleteDebug(phase, extra = {}) {
   console.log('[schedulePersonDelete]', phase, {
     peopleLength: people.length,
-    tempRows: people.filter(p => p.isTempRow).map(p => ({ code: p.code, name: p.name })),
-    peopleDisplayOrder: Array.isArray(peopleDisplayOrder) ? peopleDisplayOrder.slice() : peopleDisplayOrder,
-    displaySorted: getDisplaySortedRows().map(r => ({
-      idx: r.originalIndex,
-      code: r.person.code,
-      isTemp: !!r.person.isTempRow
-    })),
-    displayRows: getDisplayRows().map(r => ({
-      idx: r.originalIndex,
-      code: r.person.code,
-      isTemp: !!r.person.isTempRow
+    tempRows: people.filter(p => p.isTempRow).map(p => ({
+      tempRowId: p.tempRowId,
+      code: p.code,
+      name: p.name
     })),
     ...extra
   });
@@ -10000,7 +9989,6 @@ function logSchedulePersonDeleteDebug(phase, extra = {}) {
 function reindexPeopleDisplayOrderAfterPersonRemoved(removedIndex) {
   if (!Array.isArray(peopleDisplayOrder) || !peopleDisplayOrder.length) {
     peopleDisplayOrder = people.length ? computeAutoSortedPersonIndices() : [];
-    restoreTempRowsDisplayOrderBeforeDic();
     return;
   }
   peopleDisplayOrder = peopleDisplayOrder
@@ -10013,14 +10001,13 @@ function reindexPeopleDisplayOrderAfterPersonRemoved(removedIndex) {
   if (!isValidPeopleDisplayOrder(peopleDisplayOrder)) {
     peopleDisplayOrder = people.length ? computeAutoSortedPersonIndices() : [];
   }
-  restoreTempRowsDisplayOrderBeforeDic();
 }
-function applySchedulePersonDelete(token) {
-  const personIndex = resolvePersonDeleteIndex(token);
-  if (personIndex < 0) return false;
+function applySchedulePersonDelete(personIndex) {
+  if (!Number.isFinite(personIndex) || personIndex < 0) return false;
   const person = people[personIndex];
-  if (!person || !personMatchesDeleteToken(person, token)) return false;
+  if (!person) return false;
   const tempCountBefore = people.filter(p => p.isTempRow).length;
+  const token = getPersonDeleteToken(person);
   logSchedulePersonDeleteDebug('before', { token, deleteIndex: personIndex, deleteCode: person.code || person.name });
   pushUndoSnapshot();
   reindexScheduleAfterPersonRemoved(personIndex);
@@ -10033,7 +10020,7 @@ function applySchedulePersonDelete(token) {
   markUnsynced();
   if (typeof syncAssignmentTableFromSchedule === 'function') syncAssignmentTableFromSchedule();
   const tempCountAfter = people.filter(p => p.isTempRow).length;
-  if (token.kind === 'formal' && tempCountAfter < tempCountBefore) {
+  if (token?.kind === 'formal' && tempCountAfter < tempCountBefore) {
     console.warn('[schedulePersonDelete] temp row count dropped after formal delete', {
       tempCountBefore,
       tempCountAfter,
@@ -10066,9 +10053,22 @@ function onScheduleRowDeleteClick(e) {
   e.stopImmediatePropagation();
   if (schedulePersonDeleteInFlight || Date.now() < schedulePersonDeleteMutedUntil) return;
   schedulePersonDeleteMutedUntil = Date.now() + 800;
-  const token = parsePersonDeleteToken(btn.getAttribute('data-delete-token'));
-  if (!token) return;
-  deleteSchedulePersonRow(token);
+  const tempRowId = String(
+    btn.getAttribute('data-temp-row-id')
+    || btn.closest('[data-temp-row-id]')?.getAttribute('data-temp-row-id')
+    || ''
+  ).trim();
+  if (tempRowId) {
+    deleteSchedulePersonByTempRowId(tempRowId);
+    return;
+  }
+  const personnelId = String(btn.getAttribute('data-personnel-id') || '').trim();
+  if (personnelId) {
+    deleteSchedulePersonByPersonnelId(personnelId);
+    return;
+  }
+  console.warn('[schedulePersonDelete] delete button missing tempRowId/personnelId');
+  appAlert('無法刪除此人員：缺少識別資訊。', '無法刪除');
 }
 function buildPersonDisplaySeqMap() {
   const map = new Map();
@@ -10083,33 +10083,72 @@ function buildTempRollCallShiftHtml(shift) {
 function buildNextShiftFieldHtml(value) {
   return buildShiftSuggestFieldHtml('next-shift-input', value, '隔日班別');
 }
-async function deleteSchedulePersonRow(token) {
-  if (!token || schedulePersonDeleteInFlight) return;
+async function deleteSchedulePersonByTempRowId(tempRowId) {
+  if (!tempRowId || schedulePersonDeleteInFlight) return;
   schedulePersonDeleteInFlight = true;
   schedulePersonDeleteMutedUntil = Date.now() + 800;
   try {
-    const preIndex = resolvePersonDeleteIndex(token);
-    if (preIndex < 0) return;
-    const prePerson = people[preIndex];
-    if (!prePerson || !personMatchesDeleteToken(prePerson, token)) return;
-    const label = isTempControlRow(prePerson)
-      ? String(prePerson.name || prePerson.code || '').trim()
-      : String(resolveFullName(prePerson) || prePerson.name || prePerson.code || '').trim();
-    const displayLabel = label || '此人員';
+    const preIndex = resolveTempRowPersonIndex(tempRowId);
+    if (preIndex < 0) {
+      console.warn('[schedulePersonDelete] temp row not found on click', {
+        tempRowId,
+        tempRowIds: people.filter(p => p.isTempRow).map(p => p.tempRowId)
+      });
+      appAlert('找不到要刪除的臨時列。', '無法刪除');
+      return;
+    }
+    const person = people[preIndex];
+    const displayLabel = String(person.name || person.code || '').trim() || '此臨時列';
     const dutyCount = schedule.filter(s => s.personIndex === preIndex).length;
     const message = dutyCount
       ? `此人員已有 ${dutyCount} 筆 duty，刪除後將一併移除。確定刪除此人員？（${displayLabel}）`
       : `確定刪除此人員？（${displayLabel}）`;
     const ok = await appConfirm(message, { title: '刪除人員', confirmText: '刪除' });
     if (!ok) return;
-    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-    schedulePersonDeleteMutedUntil = Date.now() + 800;
-    const postIndex = resolvePersonDeleteIndex(token);
-    if (postIndex < 0) return;
-    const postPerson = people[postIndex];
-    if (!postPerson || !personMatchesDeleteToken(postPerson, token)) return;
-    if (!applySchedulePersonDelete(token)) return;
-    schedulePersonDeleteMutedUntil = Date.now() + 800;
+    const deleteIndex = resolveTempRowPersonIndex(tempRowId);
+    if (deleteIndex < 0) {
+      console.warn('[schedulePersonDelete] temp row not found after confirm', {
+        tempRowId,
+        tempRowIds: people.filter(p => p.isTempRow).map(p => p.tempRowId)
+      });
+      appAlert('找不到要刪除的臨時列，可能已被其他操作移除。', '無法刪除');
+      return;
+    }
+    if (!applySchedulePersonDelete(deleteIndex)) {
+      appAlert('刪除人員失敗，請重新整理後再試。', '無法刪除');
+    }
+  } finally {
+    schedulePersonDeleteInFlight = false;
+  }
+}
+async function deleteSchedulePersonByPersonnelId(personnelId) {
+  if (!personnelId || schedulePersonDeleteInFlight) return;
+  schedulePersonDeleteInFlight = true;
+  schedulePersonDeleteMutedUntil = Date.now() + 800;
+  try {
+    const preIndex = resolveFormalPersonIndex(personnelId);
+    if (preIndex < 0) {
+      console.warn('[schedulePersonDelete] formal person not found on click', { personnelId });
+      appAlert('找不到要刪除的人員。', '無法刪除');
+      return;
+    }
+    const person = people[preIndex];
+    const displayLabel = String(resolveFullName(person) || person.name || person.code || '').trim() || '此人員';
+    const dutyCount = schedule.filter(s => s.personIndex === preIndex).length;
+    const message = dutyCount
+      ? `此人員已有 ${dutyCount} 筆 duty，刪除後將一併移除。確定刪除此人員？（${displayLabel}）`
+      : `確定刪除此人員？（${displayLabel}）`;
+    const ok = await appConfirm(message, { title: '刪除人員', confirmText: '刪除' });
+    if (!ok) return;
+    const deleteIndex = resolveFormalPersonIndex(personnelId);
+    if (deleteIndex < 0) {
+      console.warn('[schedulePersonDelete] formal person not found after confirm', { personnelId });
+      appAlert('找不到要刪除的人員，可能已被其他操作移除。', '無法刪除');
+      return;
+    }
+    if (!applySchedulePersonDelete(deleteIndex)) {
+      appAlert('刪除人員失敗，請重新整理後再試。', '無法刪除');
+    }
   } finally {
     schedulePersonDeleteInFlight = false;
   }
@@ -10228,6 +10267,7 @@ function createTempControlRowPerson() {
   const label = nextTempControlRowCode();
   return normalizePerson({
     isTempRow: true,
+    tempRowId: createTempRowId(),
     code: label,
     name: '',
     level: '支援',
@@ -10279,7 +10319,7 @@ function mergePreservedTempRowsAfterRollCallImport(oldPeople, newPeople) {
     if (isTempControlRow(p)) tempEntries.push({ oldIdx: idx, person: p });
   });
   if (!tempEntries.length) return newPeople;
-  const merged = newPeople.concat(tempEntries.map(e => normalizePerson({ ...e.person, isTempRow: true })));
+  const merged = normalizePeopleList(newPeople.concat(tempEntries.map(e => normalizePerson({ ...e.person, isTempRow: true }))));
   const baseLen = newPeople.length;
   tempEntries.forEach((e, i) => {
     schedule.forEach(item => {
@@ -16954,7 +16994,7 @@ function applyCloudState(data) {
   if (!data) return;
   applyingRemote = true;
   invalidateLiveCloudFingerprint();
-  people = Array.isArray(data.people) ? data.people.map(normalizePerson) : people;
+  people = Array.isArray(data.people) ? normalizePeopleList(data.people) : people;
   if (staffDirectory.length && Array.isArray(people) && people.length) {
     people = mergePeopleWithStaffDirectory(people);
   }
@@ -17423,7 +17463,7 @@ function attachFirebaseHomelinePax() {
 
 function seedEmptyDayStateForCloud() {
   applyingRemote = true;
-  people = JSON.parse(JSON.stringify(initialPeople)).map(normalizePerson);
+  people = normalizePeopleList(JSON.parse(JSON.stringify(initialPeople)));
   if (staffDirectory.length) people = mergePeopleWithStaffDirectory(people);
   resetPeopleDisplayOrderToAutoSort();
   schedule = [];
@@ -25115,6 +25155,7 @@ function buildStaffDirectoryFromRows(rows) {
 }
 function normalizePerson(p) {
   const isTempRow = !!p.isTempRow;
+  const tempRowId = isTempRow ? String(p.tempRowId || '').trim() : '';
   return {
     ...p,
     code: p.code || p.name,
@@ -25126,8 +25167,16 @@ function normalizePerson(p) {
     nextDayShift: p.nextDayShift || '',
     clockedOut: !!p.clockedOut,
     isTempRow,
-    ...(isTempRow ? { tempRowView: p.tempRowView === 'late' ? 'late' : 'early' } : {})
+    ...(isTempRow ? {
+      tempRowView: p.tempRowView === 'late' ? 'late' : 'early',
+      ...(tempRowId ? { tempRowId } : {})
+    } : {})
   };
+}
+function normalizePeopleList(list) {
+  const arr = Array.isArray(list) ? list.map(normalizePerson) : [];
+  ensurePeopleTempRowIds(arr);
+  return arr;
 }
 function normalizeText(v) {
   return String(v || '').trim().toLowerCase().replace(/\s+/g, '');
@@ -25876,7 +25925,7 @@ function rebuildAfterExcelImport(newFlightDefs, newPeople) {
   flightDefs = newFlightDefs;
   normalizeFlightDefsInPlace();
   applyFlightFieldEditsAfterImport();
-  people = newPeople.map(normalizePerson);
+  people = normalizePeopleList(newPeople);
   if (staffDirectory.length) people = mergePeopleWithStaffDirectory(people);
   resetPeopleDisplayOrderToAutoSort();
   renderAssignmentTableFromFlightDefs();
@@ -31806,9 +31855,9 @@ function loadDayDataFromLocalStorage(dateStr) {
   const rawPeople = localStorage.getItem(k.peopleOrder);
   if (rawPeople) {
     const parsedPeople = readJsonLS(k.peopleOrder, null);
-    people = Array.isArray(parsedPeople) ? parsedPeople.map(normalizePerson) : JSON.parse(JSON.stringify(initialPeople)).map(normalizePerson);
+    people = Array.isArray(parsedPeople) ? normalizePeopleList(parsedPeople) : normalizePeopleList(JSON.parse(JSON.stringify(initialPeople)));
   } else {
-    people = JSON.parse(JSON.stringify(initialPeople)).map(normalizePerson);
+    people = normalizePeopleList(JSON.parse(JSON.stringify(initialPeople)));
   }
   schedule = readJsonLS(k.schedule, []);
   if (!Array.isArray(schedule)) schedule = [];
@@ -32730,7 +32779,7 @@ function pushUndoSnapshot() {
 }
 function applyUndoState(snap) {
   schedule = snap.schedule;
-  people = snap.people.map(normalizePerson);
+  people = normalizePeopleList(snap.people);
   if (staffDirectory.length && people.length) people = mergePeopleWithStaffDirectory(people);
   peopleDisplayOrder = Array.isArray(snap.peopleDisplayOrder) ? snap.peopleDisplayOrder.slice() : null;
   if (!isValidPeopleDisplayOrder(peopleDisplayOrder)) resetPeopleDisplayOrderToAutoSort();
@@ -34772,6 +34821,13 @@ function renderRows() {
     const left = document.createElement('div');
     left.className = 'person-cell';
     left.dataset.originalIndex = rowInfo.originalIndex;
+    if (isTempControlRow(rowInfo.person)) {
+      const tempRowId = String(rowInfo.person.tempRowId || '').trim();
+      if (tempRowId) {
+        row.dataset.tempRowId = tempRowId;
+        left.dataset.tempRowId = tempRowId;
+      }
+    }
     const shift = rowInfo.person.shift || '';
     const adjustedShift = rowInfo.person.adjustedShift || '';
     const radioNo = rowInfo.person.radioNo || '';
@@ -35442,7 +35498,7 @@ function bootLoadDayState() {
   const dayK = dayStorageKeys(selectedDate);
   people = readJsonLS(dayK.peopleOrder, null) || initialPeople;
   if (!Array.isArray(people)) people = initialPeople;
-  people = people.map(normalizePerson);
+  people = normalizePeopleList(people);
   initStaffPersonnelRegistry();
   if (staffDirectory.length) people = mergePeopleWithStaffDirectory(people);
   peopleDisplayOrder = readJsonLS(dayK.peopleDisplayOrder, null);
