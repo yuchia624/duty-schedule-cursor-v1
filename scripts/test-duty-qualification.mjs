@@ -16,7 +16,12 @@ global.getScheduleBlockALevelRank = levelRaw => {
   const raw = String(levelRaw || '').trim();
   return global.SCHEDULE_BLOCK_A_LEVEL_ORDER.indexOf(raw);
 };
-global.normalizeStaffLevelFilterKey = raw => String(raw || '').trim();
+global.normalizeStaffLevelFilterKey = raw => {
+  const stripped = String(raw || '').trim().replace(/[\s*!\-]/g, '');
+  if (stripped === '见習' || stripped === '见习') return '見習';
+  if (stripped === '学生') return '學生';
+  return stripped;
+};
 global.resolveLevel = person => String(person?.level || '').trim();
 global.getDutyDisplayLabel = duty => String(duty?.label || duty?.role || '').trim();
 global.isInternCopyDuty = duty => !!(duty?.paletteCopyIntern);
@@ -55,5 +60,23 @@ assert('2A* blocked foreign BG', !global.personMeetsForeignBgQualification(twoAS
 
 const soft = global.evaluatePersonDutyQualification({ level: '見習' }, { role: 'PRE' });
 assert('intern PRE soft fail', !soft.ok && soft.kind === 'soft');
+assert('intern PRE soft message warns', soft.message.includes('確定安排') && soft.message.includes('見習人員'));
+
+const internAbg = global.evaluatePersonDutyQualification({ level: '見習' }, { role: 'ABG', flight: 'BR123' });
+assert('intern ABG soft warn', !internAbg.ok && internAbg.kind === 'soft');
+assert('intern ABG can assign via personQualifiesForDuty', global.personQualifiesForDuty({ level: '見習' }, { role: 'ABG', flight: 'BR123' }));
+
+const internAbgSimplified = global.evaluatePersonDutyQualification({ level: '见習' }, { role: 'ABG', flight: 'BR123' });
+assert('intern simplified level ABG soft warn', !internAbgSimplified.ok && internAbgSimplified.kind === 'soft');
+
+const internInboundRc = global.evaluatePersonDutyQualification({ level: '見習' }, { role: '接機RC', flight: 'BR123', flightType: 'ARR' });
+assert('intern inbound RC hard block', !internInboundRc.ok && internInboundRc.kind === 'hard');
+
+const internHomelineC = global.evaluatePersonDutyQualification({ level: '見習' }, { role: '接機C', flight: 'BR123', flightType: 'ARR' });
+assert('intern homeline 接機C soft warn', !internHomelineC.ok && internHomelineC.kind === 'soft');
+
+const internTc = global.evaluatePersonDutyQualification({ level: '見習' }, { role: 'TC' });
+assert('intern TC hard block', !internTc.ok && internTc.kind === 'hard');
+assert('intern TC not assignable', !global.personQualifiesForDuty({ level: '見習' }, { role: 'TC' }));
 
 console.log('All duty-qualification smoke tests passed.');

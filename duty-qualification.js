@@ -63,6 +63,11 @@
     return '';
   }
 
+  function normalizeInternLevelAlias(stripped) {
+    if (stripped === '见習' || stripped === '见习') return '見習';
+    if (stripped === '学生') return '學生';
+    return stripped;
+  }
   function normalizeLevelTier(person) {
     const raw = String(person?.level || resolveLevel(person) || '').trim();
     if (!raw) return '';
@@ -279,6 +284,12 @@
   function isDutyAtOrBelow1ALevel(duty) {
     return getDutyMinimumQualificationRank(duty) >= getScheduleOneALevelRank();
   }
+  function isInternOneATierEligibleDuty(duty) {
+    if (!dutyRequiresPersonQualification(duty)) return true;
+    const role = duty?.role || '';
+    if (role === 'PRE') return true;
+    return personTierCanPerformDutyTierRules('1A', duty);
+  }
   const STUDENT_ALLOWED_FLIGHT_ROLES = new Set(['ABG', '大件', 'BA', 'L1', 'G2', '接機C', 'PPT']);
   const STUDENT_ALLOWED_OTHER_KINDS = new Set([
     '抄Load', '入境通報', '設備', '關單', '備品', '查房員', '遺失物', 'C5R指引', '值日生', 'Q2'
@@ -351,6 +362,13 @@
     }
     if (!dutyRequiresPersonQualification(duty)) return true;
     const tier = normalizeLevelTier(person);
+    if (tier === '見習') {
+      if (isInboundRcDuty(duty) && !personMeetsInboundRcQualification(person, duty)) return false;
+      if (isForeignBgDuty(duty) && !personMeetsForeignBgQualification(person, duty)) return false;
+      if (isRcFamilyDuty(duty) && !isInternCopyDuty(duty) && !isInboundRcDuty(duty)) return false;
+      if ((duty.role || '') === 'TC' && !isInternCopyDuty(duty)) return false;
+      return true;
+    }
     const role = duty.role;
     if (role === 'PRE') {
       if (tier === '學生') return false;
@@ -382,7 +400,6 @@
       if (tier === '1A' && flightType === 'DEP' && role === 'BG') return false;
       return true;
     }
-    if (tier === '見習') return true;
     if (tier === '學生') {
       if (!dutyRequiresPersonQualification(duty)) {
         return !isStudentBlockedOtherDuty(duty);
@@ -404,10 +421,13 @@
   function getInternQualificationHardFailure(person, duty) {
     const tier = normalizeLevelTier(person);
     if (tier !== '見習') return '';
-    if (!dutyRequiresPersonQualification(duty)) return '';
-    if (isDutyAtOrBelow1ALevel(duty)) return '';
     const levelLabel = String(person.level || resolveLevel(person) || tier).trim() || tier;
     const dutyLabel = getDutyDisplayLabel(duty) || duty.role || '此勤務';
+    if (isInboundRcDuty(duty) && !personMeetsInboundRcQualification(person, duty)) {
+      return `${levelLabel} 不可排 ${dutyLabel}`;
+    }
+    if (!dutyRequiresPersonQualification(duty)) return '';
+    if (isInternOneATierEligibleDuty(duty)) return '';
     return `${levelLabel} 不可排 ${dutyLabel}`;
   }
   function getInternQualificationSoftFailure(person, duty) {
@@ -415,13 +435,33 @@
     if (tier !== '見習') return '';
     const role = duty?.role;
     if (!role || role === '休') return '';
-    const levelLabel = String(person.level || resolveLevel(person) || tier).trim() || tier;
     const dutyLabel = getDutyDisplayLabel(duty) || role || '此勤務';
-    const message = `${levelLabel} 不可排 ${dutyLabel}？`;
+    const message = `確定安排 ${dutyLabel} 勤務給見習人員？`;
     if (role === 'PRE') return message;
     if (!dutyRequiresPersonQualification(duty)) return message;
-    if (!isDutyAtOrBelow1ALevel(duty)) return '';
+    if (!isInternOneATierEligibleDuty(duty)) return '';
     return message;
+  }
+  function evaluateInternPersonDutyQualification(person, duty) {
+    const studentFail = getStudentQualificationHardFailure(person, duty);
+    if (studentFail) return { ok: false, kind: 'hard', message: studentFail };
+    if (isForeignBgDuty(duty)) {
+      const foreignBgFail = getForeignBgQualificationHardFailure(person, duty);
+      if (foreignBgFail) return { ok: false, kind: 'hard', message: foreignBgFail };
+    }
+    if (!dutyRequiresPersonQualification(duty)) {
+      const internSoftFail = getInternQualificationSoftFailure(person, duty);
+      if (internSoftFail) return { ok: false, kind: 'soft', message: internSoftFail };
+      return { ok: true, kind: 'ok', message: '' };
+    }
+    const internHardFail = getInternQualificationHardFailure(person, duty);
+    if (internHardFail) return { ok: false, kind: 'hard', message: internHardFail };
+    const internSoftFail = getInternQualificationSoftFailure(person, duty);
+    if (internSoftFail) return { ok: false, kind: 'soft', message: internSoftFail };
+    if (!personMeetsBaseTierQualification(person, duty)) {
+      return { ok: false, kind: 'hard', message: getBaseTierQualificationFailureMessage(person, duty) };
+    }
+    return { ok: true, kind: 'ok', message: '' };
   }
   function evaluatePersonDutyQualification(person, duty) {
     if (!person || !duty) return { ok: false, kind: 'hard', message: '' };
@@ -443,6 +483,9 @@
     }
     const dicFail = getDicQualificationHardFailure(person, duty);
     if (dicFail) return { ok: false, kind: 'hard', message: dicFail };
+    if (normalizeLevelTier(person) === '見習') {
+      return evaluateInternPersonDutyQualification(person, duty);
+    }
     const foreignBgFail = getForeignBgQualificationHardFailure(person, duty);
     if (foreignBgFail) return { ok: false, kind: 'hard', message: foreignBgFail };
     if (!dutyRequiresPersonQualification(duty)) {
@@ -464,7 +507,8 @@
     return { ok: true, kind: 'ok', message: '' };
   }
   function personQualifiesForDuty(person, duty) {
-    return evaluatePersonDutyQualification(person, duty).ok;
+    const issue = evaluatePersonDutyQualification(person, duty);
+    return issue.ok || issue.kind === 'soft';
   }
   function getPersonDutyQualificationFailureMessage(person, duty) {
     const issue = evaluatePersonDutyQualification(person, duty);
@@ -506,6 +550,7 @@
     personTierCanPerformDutyTierRules,
     getDutyMinimumQualificationRank,
     isDutyAtOrBelow1ALevel,
+    isInternOneATierEligibleDuty,
     isStudentAllowedDuty,
     isStudentBlockedOtherDuty,
     getStudentQualificationHardFailure,

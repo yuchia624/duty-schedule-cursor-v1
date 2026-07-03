@@ -13,7 +13,7 @@
 <script src="foreign-schedule-registry.js?v=20260620-cloud-v1"></script>
 <script src="flight-assignment-utils.js"></script>
 <script src="foreign-duty-rules.js?v=20260613-oz-abg-label"></script>
-<script src="duty-qualification.js?v=20260703-v1"></script>
+<script src="duty-qualification.js?v=20260703-v4"></script>
 <script src="homeline-pax-parser.js?v=20260620-v4"></script>
 <script src="homeline-pax-registry.js?v=20260621-v3"></script>
 <script src="dest-class-registry.js?v=20260620-v4"></script>
@@ -13977,10 +13977,15 @@ function bindStaffFilterCheckAllBehavior(hostId) {
     }
   });
 }
+function normalizeInternLevelAlias(stripped) {
+  if (stripped === '见習' || stripped === '见习') return '見習';
+  if (stripped === '学生') return '學生';
+  return stripped;
+}
 function normalizeStaffLevelFilterKey(levelRaw) {
   const raw = String(levelRaw || '').trim();
   if (!raw) return '';
-  const stripped = raw.replace(/[\s*!\-]/g, '');
+  const stripped = normalizeInternLevelAlias(raw.replace(/[\s*!\-]/g, ''));
   if (stripped === '見習' || stripped === '學生' || stripped === '業督' || stripped === '事務員' || stripped === '支援') return stripped;
   if (stripped === '見習DIC' || stripped.toUpperCase() === 'TRAINEEDIC') return 'DIC';
   if (stripped === 'M') return 'M';
@@ -31883,6 +31888,21 @@ function confirmConflict(personIndex, itemUid, start, end, duty) {
   if (tcKind && !validateTcPersonAssignment(personIndex, tcKind, itemUid)) return false;
   return true;
 }
+async function confirmPersonDutyQualification(personIndex, duty) {
+  const person = people[personIndex];
+  if (!person || !duty) return true;
+  const qualIssue = evaluatePersonDutyQualification(person, duty);
+  if (qualIssue.ok) return true;
+  if (qualIssue.kind === 'hard') {
+    if (qualIssue.message) showScheduleBriefToast(qualIssue.message);
+    return false;
+  }
+  const ok = await appConfirm(qualIssue.message || '確定安排此勤務給見習人員？', {
+    title: '戰力警示',
+    confirmText: '確定'
+  });
+  return !!ok;
+}
 function safeRoleClass(role) { return 'role-' + role.replace(/[^\w\u4e00-\u9fff-]/g, ''); }
 function applyRoleClass(el, role) { el.classList.add(safeRoleClass(role)); }
 function timeToLeft(mins) { return (mins - getViewStartMin()) * pxPerMinute; }
@@ -34108,8 +34128,14 @@ async function handleTimelinePaletteDrop(e, timeline) {
       if (countPptAssignments(tpl.flight, tpl.flightType) >= getPptSlotsForTemplate(tpl)) return;
       if (personHasPptAssignment(targetPersonIndex, tpl.flight, tpl.flightType)) return;
     } else if (tpl.role === 'ABG') {
-      if (countAbgAssignmentsForTemplate(tpl) >= getAbgSlotsForTemplate(tpl)) return;
-      if (personHasAbgAssignment(targetPersonIndex, tpl.flight, tpl.flightType)) return;
+      if (countAbgAssignmentsForTemplate(tpl) >= getAbgSlotsForTemplate(tpl)) {
+        showScheduleBriefToast('此 ABG 名額已滿', 1200);
+        return;
+      }
+      if (personHasAbgAssignment(targetPersonIndex, tpl.flight, tpl.flightType)) {
+        showScheduleBriefToast('此人已排此 ABG', 1200);
+        return;
+      }
     } else if (tpl.role === '大件') {
       if (countBulkyAssignmentsForTemplate(tpl) >= getBulkySlotsForTemplate(tpl)) return;
       if (personHasBulkyAssignment(targetPersonIndex, tpl.flight, tpl.flightType)) return;
@@ -34129,6 +34155,7 @@ async function handleTimelinePaletteDrop(e, timeline) {
         return;
       } else if (tpl.tMode === 'staff' && getTStaffSlotsRemaining(tpl.tKind) <= 0) return;
     } else if (schedule.some(x => scheduleItemMatchesTemplate(x, tpl))) {
+      showScheduleBriefToast('此勤務已排入其他人員', 1200);
       return;
     }
   }
@@ -34162,6 +34189,8 @@ async function handleTimelinePaletteDrop(e, timeline) {
       return;
     }
   } else if (!dutyIntersectsView({ start, end })) {
+    showScheduleBriefToast('此勤務不在目前時間軸範圍內', 1400);
+    endPaletteDragSession();
     return;
   }
 
@@ -34174,18 +34203,10 @@ async function handleTimelinePaletteDrop(e, timeline) {
     }
   }
 
-  const qualIssue = evaluatePersonDutyQualification(people[targetPersonIndex], tpl);
-  if (!qualIssue.ok) {
-    if (qualIssue.kind === 'hard') {
-      if (qualIssue.message) showScheduleBriefToast(qualIssue.message);
-      endPaletteDragSession();
-      return;
-    }
-    const ok = await appConfirm(qualIssue.message, { title: '戰力警示', confirmText: '確定' });
-    if (!ok) {
-      endPaletteDragSession();
-      return;
-    }
+  const qualOk = await confirmPersonDutyQualification(targetPersonIndex, tpl);
+  if (!qualOk) {
+    endPaletteDragSession();
+    return;
   }
   if (tpl.role === 'T' && tpl.tMode === 'tc') return;
   if (tpl.role === 'TC' && !validateTcPersonAssignment(targetPersonIndex, tpl.tcKind)) {
@@ -34284,6 +34305,7 @@ async function handleTimelinePaletteDrop(e, timeline) {
   endPaletteDragSession();
   } finally {
     paletteDropCommitPending = false;
+    if (paletteDragSessionActive || paletteDragTemplateId) endPaletteDragSession();
   }
 }
 
@@ -34675,20 +34697,12 @@ function startMoveBlock(e, item, options = {}) {
     document.removeEventListener('mousemove', onMove);
     document.removeEventListener('mouseup', onUp);
     endBlockMoveSession();
-    if (!undoPushed) return;
-    const qualIssue = evaluatePersonDutyQualification(people[item.personIndex], item);
-    if (!qualIssue.ok) {
-      if (qualIssue.kind === 'hard') {
-        if (qualIssue.message) showScheduleBriefToast(qualIssue.message);
-        item.personIndex = originalPersonIndex;
-        item.start = originalStart;
-        item.end = originalEnd;
-        renderRows();
-        selectBlock(item.uid);
-        return;
-      }
-      const ok = await appConfirm(qualIssue.message, { title: '戰力警示', confirmText: '確定' });
-      if (!ok) {
+    const movedPerson = item.personIndex !== originalPersonIndex;
+    const movedTime = item.start !== originalStart || item.end !== originalEnd;
+    if (!undoPushed && !movedPerson && !movedTime) return;
+    if (movedPerson || movedTime) {
+      const qualOk = await confirmPersonDutyQualification(item.personIndex, item);
+      if (!qualOk) {
         item.personIndex = originalPersonIndex;
         item.start = originalStart;
         item.end = originalEnd;
