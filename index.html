@@ -27291,6 +27291,9 @@ function isHomelineConnectingMergedDutyItem(item) {
   }
   return getHomelineConnectingDutyMode(pair.arrFlight, pair.depFlight) === 'merged';
 }
+function getSplitConnectingLegDedupKey(item) {
+  return `${item.personIndex}|${normalizeImportedFlightNo(item.flight)}|${item.role}`;
+}
 function pruneConflictingHomelineConnectingScheduleItems() {
   const before = schedule.length;
   const mergedSlotCounts = new Map();
@@ -27348,7 +27351,7 @@ function pruneConflictingHomelineConnectingScheduleItems() {
         ? getHomelineConnectingDutyMode(pair.arrFlight, pair.depFlight, connRole)
         : getHomelineConnectingDutyMode(pair.arrFlight, pair.depFlight);
       if (mode === 'split' && (item.role === '接機RC' || item.role === '接機C')) {
-        const key = `${normalizeImportedFlightNo(item.flight)}|${item.role}`;
+        const key = getSplitConnectingLegDedupKey(item);
         if (seenSplitArrRoles.has(key)) return false;
         seenSplitArrRoles.add(key);
       }
@@ -27364,7 +27367,7 @@ function pruneConflictingHomelineConnectingScheduleItems() {
         ? getHomelineConnectingDutyMode(depPair.arrFlight, depPair.depFlight, item.role)
         : getHomelineConnectingDutyMode(depPair.arrFlight, depPair.depFlight);
       if (mode === 'split' && (item.role === 'RC' || item.role === 'BG')) {
-        const key = `${normalizeImportedFlightNo(item.flight)}|${item.role}`;
+        const key = getSplitConnectingLegDedupKey(item);
         if (seenSplitDepRoles.has(key)) return false;
         seenSplitDepRoles.add(key);
       }
@@ -31880,27 +31883,38 @@ function switchScheduleDate(newDate) {
   if (typeof renderWorkbenchDashboard === 'function') renderWorkbenchDashboard();
 }
 function confirmConflict(personIndex, itemUid, start, end, duty) {
-  if (duty) {
-    const issue = evaluatePersonDutyQualification(people[personIndex], duty);
-    if (!issue.ok && issue.kind === 'hard') return false;
-  }
   const tcKind = duty?.tcKind || schedule.find(x => x.uid === itemUid)?.tcKind;
   if (tcKind && !validateTcPersonAssignment(personIndex, tcKind, itemUid)) return false;
   return true;
 }
-async function confirmPersonDutyQualification(personIndex, duty) {
-  const person = people[personIndex];
+function resolvePersonForDutyQualification(personOrIndex) {
+  if (personOrIndex != null && typeof personOrIndex === 'object') {
+    return personOrIndex;
+  }
+  const personIndex = Number(personOrIndex);
+  if (!Number.isFinite(personIndex) || personIndex < 0) return null;
+  return people[personIndex] || null;
+}
+async function handleDutyQualificationBeforeAssign(personOrIndex, duty, options = {}) {
+  const person = resolvePersonForDutyQualification(personOrIndex);
   if (!person || !duty) return true;
-  const qualIssue = evaluatePersonDutyQualification(person, duty);
-  if (qualIssue.ok) return true;
-  if (qualIssue.kind === 'hard') {
-    if (qualIssue.message) showScheduleBriefToast(qualIssue.message);
+  const issue = evaluatePersonDutyQualification(person, duty);
+  if (issue.ok) return true;
+  if (issue.kind === 'hard') {
+    if (issue.message && options.showHardToast !== false) {
+      showScheduleBriefToast(issue.message);
+    }
     return false;
   }
-  const ok = await appConfirm(qualIssue.message || '確定安排此勤務給見習人員？', {
-    title: '戰力警示',
-    confirmText: '確定'
-  });
+  const ok = await appConfirm(
+    issue.message || options.softFallbackMessage || '確定安排此勤務給見習人員？',
+    {
+      title: options.confirmTitle || '戰力警示',
+      confirmText: options.confirmText || '確定',
+      cancelText: options.cancelText,
+      pauseEnterMs: options.pauseEnterMs
+    }
+  );
   return !!ok;
 }
 function safeRoleClass(role) { return 'role-' + role.replace(/[^\w\u4e00-\u9fff-]/g, ''); }
@@ -34203,7 +34217,7 @@ async function handleTimelinePaletteDrop(e, timeline) {
     }
   }
 
-  const qualOk = await confirmPersonDutyQualification(targetPersonIndex, tpl);
+  const qualOk = await handleDutyQualificationBeforeAssign(targetPersonIndex, tpl);
   if (!qualOk) {
     endPaletteDragSession();
     return;
@@ -34701,7 +34715,7 @@ function startMoveBlock(e, item, options = {}) {
     const movedTime = item.start !== originalStart || item.end !== originalEnd;
     if (!undoPushed && !movedPerson && !movedTime) return;
     if (movedPerson || movedTime) {
-      const qualOk = await confirmPersonDutyQualification(item.personIndex, item);
+      const qualOk = await handleDutyQualificationBeforeAssign(item.personIndex, item);
       if (!qualOk) {
         item.personIndex = originalPersonIndex;
         item.start = originalStart;
