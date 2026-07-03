@@ -18065,6 +18065,7 @@ function syncBulkySlotsFromHomelinePax() {
   flightDefs.forEach(f => {
     if (f.type !== 'DEP' || isMaintenanceDepFlight(f) || isFixedBulkyDepFlight(f)) return;
     if (!isBulkyEligibleRoute(f)) return;
+    if (isBulkySlotManualLocked(f.flight, f.type)) return;
     const row = lookupHomelinePaxForScheduleFlight(f.flight);
     const eligible = isBulkyEligiblePaxRow(row);
     if (eligible) return;
