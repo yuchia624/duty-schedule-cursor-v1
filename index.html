@@ -1798,6 +1798,11 @@
   .row.flight-match-top--full .shift-band {
     background-color: #fffbea !important;
   }
+  .row.flight-match-pinned {
+    position: sticky;
+    top: calc(var(--header-height) + (var(--pin-i, 0) * var(--row-height)));
+    z-index: 120;
+  }
   .row.flight-match-pinned .person-cell { background:#fff8e1; }
   .row.flight-match-pinned.flight-match-top .person-cell { background:#fff3c4; }
   .row-pin-divider {
@@ -19870,12 +19875,19 @@ function updateTimelineSearchDisplay(options = {}) {
     if (Number.isFinite(idx)) rowByIndex.set(idx, rowEl);
   });
 
+  let pinnedStackIndex = 0;
   displayRows.forEach(rowInfo => {
     if (rowInfo.isPinDivider) return;
     const rowEl = rowByIndex.get(rowInfo.originalIndex);
     if (!rowEl) return;
     rowsHost.appendChild(rowEl);
     rowEl.classList.toggle('flight-match-pinned', !!rowInfo.pinned);
+    if (rowInfo.pinned) {
+      rowEl.style.setProperty('--pin-i', String(pinnedStackIndex));
+      pinnedStackIndex += 1;
+    } else {
+      rowEl.style.removeProperty('--pin-i');
+    }
     rowEl.classList.toggle('flight-match-top', !!rowInfo.matchedRow);
     rowEl.classList.toggle(
       'flight-match-top--full',
@@ -34373,6 +34385,7 @@ function renderRows() {
     return;
   }
 
+  let pinnedStackIndex = 0;
   displayRows.forEach((rowInfo, displayIdx) => {
     if (rowInfo.isPinDivider) {
       const divider = document.createElement('div');
@@ -34383,7 +34396,11 @@ function renderRows() {
     }
     const row = document.createElement('div');
     row.className = 'row';
-    if (rowInfo.pinned) row.classList.add('flight-match-pinned');
+    if (rowInfo.pinned) {
+      row.classList.add('flight-match-pinned');
+      row.style.setProperty('--pin-i', String(pinnedStackIndex));
+      pinnedStackIndex += 1;
+    }
     if (rowInfo.matchedRow) {
       row.classList.add('flight-match-top');
       if (personHasSearchTimelineShiftHighlight(rowInfo.person)) {
