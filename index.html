@@ -1811,20 +1811,29 @@
   .row-grip-btn {
     display:inline-flex;
     align-items:center;
+    justify-content:center;
     flex:0 0 auto;
     cursor:grab;
     user-select:none;
+    -webkit-user-drag:none;
     touch-action:none;
     line-height:1;
+    box-sizing:border-box;
+    min-width:22px;
+    min-height:22px;
+    padding:6px;
+    margin:-6px;
+    border-radius:6px;
   }
+  .row-grip-btn:hover { background:rgba(148,163,184,0.18); }
   .row-grip-btn:active { cursor:grabbing; }
   .row-grip-btn--pinned {
     cursor:pointer;
     background:transparent;
-    padding:0;
     border:none;
     color:#eab308;
   }
+  .row-grip-btn--pinned:hover { background:rgba(234,179,8,0.18); }
   .row-grip-btn--pinned:active { cursor:pointer; }
   .row-grip-btn--pinned .row-pin-img {
     display:block;
@@ -9825,9 +9834,9 @@ function reindexTimelinePinsAfterPersonRemoved(removedIndex) {
 }
 function buildRowGripHtml(originalIndex, pinned = false) {
   if (pinned) {
-    return `<span class="row-grip-btn row-grip-btn--pinned" data-grip-index="${originalIndex}" role="button" tabindex="0" title="取消釘選" aria-label="取消釘選" aria-pressed="true">${ROW_PIN_ICON}</span>`;
+    return `<span class="row-grip-btn row-grip-btn--pinned" draggable="false" data-grip-index="${originalIndex}" role="button" tabindex="0" title="取消釘選" aria-label="取消釘選" aria-pressed="true">${ROW_PIN_ICON}</span>`;
   }
-  return `<span class="row-grip-btn" draggable="true" data-grip-index="${originalIndex}" role="button" tabindex="0" title="拖曳排序；點一下釘選" aria-label="拖曳排序；點一下釘選"><span class="drag-icon">⋮⋮</span></span>`;
+  return `<span class="row-grip-btn" draggable="false" data-grip-index="${originalIndex}" role="button" tabindex="0" title="拖曳排序；點一下釘選" aria-label="拖曳排序；點一下釘選"><span class="drag-icon">⋮⋮</span></span>`;
 }
 function buildRowSeqColInnerHtml(seqNo, seqOpts = {}) {
   const { pinned = false, originalIndex = null, showGrip = true } = seqOpts;
@@ -9858,73 +9867,66 @@ function initTimelineRowPinHandlers() {
   if (!rowsHost || rowsHost.dataset.pinBound === '1') return;
   rowsHost.dataset.pinBound = '1';
 
-  rowsHost.addEventListener('mousedown', e => {
+  rowsHost.addEventListener('pointerdown', e => {
+    if (e.button != null && e.button !== 0) return;
     const grip = e.target.closest('.row-grip-btn');
     if (!grip) return;
+    const index = Number(grip.dataset.gripIndex);
+    if (!Number.isFinite(index)) return;
     rowGripPress = {
-      index: Number(grip.dataset.gripIndex),
+      index,
       x: e.clientX,
       y: e.clientY,
       dragStarted: false,
-      isPinned: grip.classList.contains('row-grip-btn--pinned')
+      isPinned: grip.classList.contains('row-grip-btn--pinned'),
+      pointerId: e.pointerId,
+      grip
     };
-  });
-
-  rowsHost.addEventListener('dragstart', e => {
-    const grip = e.target.closest('.row-grip-btn');
-    if (!grip || grip.classList.contains('row-grip-btn--pinned')) return;
-    const index = Number(grip.dataset.gripIndex);
-    if (!Number.isFinite(index)) return;
-    if (rowGripPress) rowGripPress.dragStarted = true;
-    else rowGripPress = { index, dragStarted: true };
-    rowReorderDragFromIndex = index;
-    e.dataTransfer.setData('text/person-row', String(index));
-    e.dataTransfer.effectAllowed = 'move';
-    grip.closest('.person-cell')?.classList.add('dragging');
-  });
-
-  rowsHost.addEventListener('dragover', e => {
-    if (!e.dataTransfer.types.includes('text/person-row')) return;
     e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
-    updateRowReorderDropIndicator(e.clientY, rowReorderDragFromIndex);
-  });
-
-  rowsHost.addEventListener('drop', e => {
-    if (!e.dataTransfer.types.includes('text/person-row')) return;
-    e.preventDefault();
-    const fromIdx = Number(e.dataTransfer.getData('text/person-row'));
-    const target = rowReorderDropState || resolveRowReorderDropTarget(e.clientY);
-    if (!Number.isFinite(fromIdx) || !target) return;
-    reorderDisplayRows(fromIdx, target.toIdx, target.insertAfter);
-    clearHoverStates();
-  });
-
-  rowsHost.addEventListener('dragend', e => {
-    const grip = e.target.closest('.row-grip-btn');
-    if (!grip) return;
-    grip.closest('.person-cell')?.classList.remove('dragging');
-    rowGripPress = null;
-    rowReorderDragFromIndex = null;
-    clearHoverStates();
   });
 
   if (!initTimelineRowPinHandlers._docBound) {
     initTimelineRowPinHandlers._docBound = true;
-    document.addEventListener('mousemove', e => {
-      if (!rowGripPress || rowGripPress.dragStarted || rowGripPress.isPinned) return;
-      const dx = Math.abs(e.clientX - rowGripPress.x);
-      const dy = Math.abs(e.clientY - rowGripPress.y);
-      if (dx > ROW_GRIP_DRAG_THRESHOLD_PX || dy > ROW_GRIP_DRAG_THRESHOLD_PX) {
+
+    document.addEventListener('pointermove', e => {
+      if (!rowGripPress || rowGripPress.pointerId !== e.pointerId) return;
+      if (!rowGripPress.dragStarted) {
+        if (rowGripPress.isPinned) return;
+        const dx = Math.abs(e.clientX - rowGripPress.x);
+        const dy = Math.abs(e.clientY - rowGripPress.y);
+        if (dx <= ROW_GRIP_DRAG_THRESHOLD_PX && dy <= ROW_GRIP_DRAG_THRESHOLD_PX) return;
         rowGripPress.dragStarted = true;
+        rowReorderDragFromIndex = rowGripPress.index;
+        rowGripPress.grip?.closest('.person-cell')?.classList.add('dragging');
+        try { rowGripPress.grip?.setPointerCapture(e.pointerId); } catch (_) {}
+      }
+      updateRowReorderDropIndicator(e.clientY, rowReorderDragFromIndex);
+    });
+
+    document.addEventListener('pointerup', e => {
+      const press = rowGripPress;
+      if (!press || (e.pointerId != null && press.pointerId !== e.pointerId)) return;
+      rowGripPress = null;
+      try { press.grip?.releasePointerCapture(e.pointerId); } catch (_) {}
+      if (press.dragStarted) {
+        const target = rowReorderDropState || resolveRowReorderDropTarget(e.clientY);
+        if (Number.isFinite(rowReorderDragFromIndex) && target) {
+          reorderDisplayRows(rowReorderDragFromIndex, target.toIdx, target.insertAfter);
+        }
+        rowReorderDragFromIndex = null;
+        clearHoverStates();
+      } else if (Number.isFinite(press.index)) {
+        toggleTimelinePersonPin(press.index);
       }
     });
-    document.addEventListener('mouseup', () => {
-      if (!rowGripPress) return;
-      if (!rowGripPress.dragStarted && Number.isFinite(rowGripPress.index)) {
-        toggleTimelinePersonPin(rowGripPress.index);
-      }
+
+    document.addEventListener('pointercancel', e => {
+      const press = rowGripPress;
+      if (!press || (e.pointerId != null && press.pointerId !== e.pointerId)) return;
       rowGripPress = null;
+      rowReorderDragFromIndex = null;
+      try { press.grip?.releasePointerCapture(e.pointerId); } catch (_) {}
+      clearHoverStates();
     });
   }
 }
