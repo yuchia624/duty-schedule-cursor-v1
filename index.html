@@ -9892,6 +9892,9 @@ function initTimelineRowPinHandlers() {
 
   if (!initTimelineRowPinHandlers._docBound) {
     initTimelineRowPinHandlers._docBound = true;
+    const rowAutoScroll = createDragAutoScroll({
+      onTick: (x, y) => updateRowReorderDropIndicator(y, rowReorderDragFromIndex)
+    });
 
     document.addEventListener('pointermove', e => {
       if (!rowGripPress || rowGripPress.pointerId !== e.pointerId) return;
@@ -9906,12 +9909,14 @@ function initTimelineRowPinHandlers() {
         try { rowGripPress.grip?.setPointerCapture(e.pointerId); } catch (_) {}
       }
       updateRowReorderDropIndicator(e.clientY, rowReorderDragFromIndex);
+      rowAutoScroll.update(e.clientX, e.clientY);
     });
 
     document.addEventListener('pointerup', e => {
       const press = rowGripPress;
       if (!press || (e.pointerId != null && press.pointerId !== e.pointerId)) return;
       rowGripPress = null;
+      rowAutoScroll.stop();
       try { press.grip?.releasePointerCapture(e.pointerId); } catch (_) {}
       if (press.dragStarted) {
         const target = rowReorderDropState || resolveRowReorderDropTarget(e.clientY);
@@ -9929,6 +9934,7 @@ function initTimelineRowPinHandlers() {
       const press = rowGripPress;
       if (!press || (e.pointerId != null && press.pointerId !== e.pointerId)) return;
       rowGripPress = null;
+      rowAutoScroll.stop();
       rowReorderDragFromIndex = null;
       try { press.grip?.releasePointerCapture(e.pointerId); } catch (_) {}
       clearHoverStates();
@@ -34664,6 +34670,55 @@ function updateBlockMovePreview(item) {
   return true;
 }
 
+function createDragAutoScroll(options = {}) {
+  const getScrollHost = options.getScrollHost || getScheduleScrollHost;
+  const edgeSize = Number.isFinite(options.edgeSize) ? options.edgeSize : 64;
+  const maxSpeed = Number.isFinite(options.maxSpeed) ? options.maxSpeed : 18;
+  const onTick = typeof options.onTick === 'function' ? options.onTick : null;
+  let rafId = 0;
+  let lastX = 0;
+  let lastY = 0;
+
+  function edgeSpeed(distanceIntoEdge) {
+    const ratio = Math.min(1, Math.max(0, distanceIntoEdge / edgeSize));
+    return ratio * maxSpeed;
+  }
+  function loop() {
+    const host = getScrollHost?.();
+    if (!host) { rafId = 0; return; }
+    const rect = host.getBoundingClientRect();
+    const topZone = rect.top + edgeSize;
+    const bottomZone = rect.bottom - edgeSize;
+    let dy = 0;
+    if (lastY < topZone) dy = -edgeSpeed(topZone - lastY);
+    else if (lastY > bottomZone) dy = edgeSpeed(lastY - bottomZone);
+    if (dy !== 0) {
+      const before = host.scrollTop;
+      host.scrollTop = before + dy;
+      if (host.scrollTop !== before && onTick) onTick(lastX, lastY);
+    }
+    rafId = requestAnimationFrame(loop);
+  }
+  function stop() {
+    if (rafId) { cancelAnimationFrame(rafId); rafId = 0; }
+  }
+  return {
+    update(clientX, clientY) {
+      lastX = clientX;
+      lastY = clientY;
+      const host = getScrollHost?.();
+      if (!host) { stop(); return; }
+      const rect = host.getBoundingClientRect();
+      const nearEdge = clientY < rect.top + edgeSize || clientY > rect.bottom - edgeSize;
+      if (nearEdge) {
+        if (!rafId) rafId = requestAnimationFrame(loop);
+      } else {
+        stop();
+      }
+    },
+    stop
+  };
+}
 function startMoveBlock(e, item, options = {}) {
   hideBlockDutyInfoPopover();
   selectBlock(item.uid);
@@ -34685,6 +34740,9 @@ function startMoveBlock(e, item, options = {}) {
   let lastPreviewKey = '';
   let moveRaf = 0;
   const originTimeline = options.originTimeline || e.currentTarget?.parentElement;
+  const autoScroll = createDragAutoScroll({
+    onTick: (x, y) => onMove({ clientX: x, clientY: y })
+  });
   function onMove(ev) {
     if (!undoPushed) {
       pushUndoSnapshot();
@@ -34711,6 +34769,7 @@ function startMoveBlock(e, item, options = {}) {
       }
     }
     setPaletteDropHover(item.personIndex);
+    autoScroll.update(ev.clientX, ev.clientY);
 
     const previewKey = getBlockMovePreviewKey(item);
     if (previewKey === lastPreviewKey) return;
@@ -34723,6 +34782,7 @@ function startMoveBlock(e, item, options = {}) {
     });
   }
   async function onUp() {
+    autoScroll.stop();
     if (moveRaf) {
       cancelAnimationFrame(moveRaf);
       moveRaf = 0;
