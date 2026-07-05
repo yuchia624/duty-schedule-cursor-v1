@@ -15,6 +15,7 @@
 <script src="flight-assignment-utils.js"></script>
 <script src="foreign-duty-rules.js?v=20260613-oz-abg-label"></script>
 <script src="duty-qualification.js?v=20260703-v4"></script>
+<script src="flight-reconciliation.js?v=20260704-recon-v0"></script>
 <script src="homeline-pax-parser.js?v=20260620-v4"></script>
 <script src="homeline-pax-registry.js?v=20260621-v3"></script>
 <script src="dest-class-registry.js?v=20260620-v4"></script>
@@ -2691,6 +2692,93 @@
     cursor: pointer;
     padding: 0;
   }
+  /* ── Flight Import Reconciliation Review（唯讀核對視窗） ── */
+  #reconReviewModal.rollcall-import-dialog { z-index: 60000; }
+  #reconReviewModal .rollcall-import-panel { width: min(720px, 100%); }
+  #reconReviewModal .recon-review-summary {
+    margin: 2px 0 10px;
+    font-size: 13px;
+    color: #475569;
+  }
+  #reconReviewModal .recon-review-summary b { color: #0f172a; }
+  #reconReviewModal .recon-review-body {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  #reconReviewModal .recon-section {
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  #reconReviewModal .recon-section__head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background: #f8fafc;
+    border-bottom: 1px solid #eef2f7;
+    font-size: 13px;
+    font-weight: 800;
+    color: #0f172a;
+  }
+  #reconReviewModal .recon-section__count {
+    margin-left: auto;
+    font-size: 12px;
+    font-weight: 700;
+    color: #64748b;
+  }
+  #reconReviewModal .recon-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+  }
+  #reconReviewModal .recon-table th,
+  #reconReviewModal .recon-table td {
+    padding: 6px 10px;
+    text-align: left;
+    border-bottom: 1px solid #f1f5f9;
+    white-space: nowrap;
+    vertical-align: middle;
+  }
+  #reconReviewModal .recon-table tbody tr:last-child td { border-bottom: 0; }
+  #reconReviewModal .recon-table th {
+    background: #fff;
+    color: #64748b;
+    font-weight: 700;
+  }
+  #reconReviewModal .recon-duty-count {
+    display: inline-block;
+    min-width: 20px;
+    padding: 0 7px;
+    border-radius: 999px;
+    background: #fef3c7;
+    color: #b45309;
+    font-weight: 800;
+    text-align: center;
+  }
+  #reconReviewModal .recon-duty-count.is-zero {
+    background: #f1f5f9;
+    color: #94a3b8;
+  }
+  #reconReviewModal .recon-empty {
+    padding: 10px 12px;
+    color: #94a3b8;
+    font-size: 12px;
+  }
+  #reconReviewModal .recon-arrow { color: #94a3b8; padding: 0 2px; }
+  #reconReviewModal .recon-tag {
+    display: inline-block;
+    padding: 1px 6px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+  #reconReviewModal .recon-tag--dup { background: #fee2e2; color: #b91c1c; }
+  #reconReviewModal .recon-tag--split { background: #e0f2fe; color: #0369a1; }
+  #reconReviewModal .recon-tag--update { background: #dcfce7; color: #15803d; }
+  #reconReviewModal .recon-tag--manual { background: #ede9fe; color: #6d28d9; }
   .assignment-canx-cell {
     font-size: 11px;
     font-weight: 800;
@@ -8465,6 +8553,22 @@
     <div class="foreign-preview-actions rollcall-import-actions">
       <button type="button" class="rollcall-import-btn rollcall-import-btn--ghost" id="foreignFlightPreviewCancel">取消</button>
       <button type="button" class="rollcall-import-btn rollcall-import-btn--primary" id="foreignFlightPreviewConfirm">確認匯入</button>
+    </div>
+  </div>
+</div>
+
+<div id="reconReviewModal" class="rollcall-import-dialog" hidden>
+  <div class="rollcall-import-backdrop" data-recon-dismiss="1"></div>
+  <div class="rollcall-import-panel" role="dialog" aria-modal="true" aria-labelledby="reconReviewTitle">
+    <button type="button" class="rollcall-import-close" id="reconReviewClose" aria-label="關閉">×</button>
+    <div class="foreign-preview-head">
+      <h3 class="rollcall-import-title" id="reconReviewTitle">FIS 匯入核對</h3>
+      <p class="foreign-preview-subtitle" id="reconReviewSubtitle"></p>
+    </div>
+    <div class="recon-review-summary" id="reconReviewSummary"></div>
+    <div class="recon-review-body" id="reconReviewBody"></div>
+    <div class="rollcall-import-actions">
+      <button type="button" class="rollcall-import-btn rollcall-import-btn--primary" id="reconReviewConfirm">我已看過</button>
     </div>
   </div>
 </div>
@@ -17023,6 +17127,7 @@ function applyCloudState(data) {
   selectedBlockId = null;
   blockSeq = schedule.length ? Math.max(...schedule.map(x => Number(x.uid) || 0)) + 1 : 1;
   rebuildTemplates();
+  syncScheduleWindows();
   ensureDefaultRestBreaks({ skipMark: true });
 
   const k = dayStorageKeys(selectedDate);
@@ -17533,6 +17638,16 @@ const ARR_US_CANADA_ORIGIN_AIRPORTS = new Set([
   'LAX', 'SFO', 'SEA', 'ORD', 'JFK', 'IAH', 'DFW', 'IAD',
   'YYZ', 'YVR'
 ]);
+/** 本家出境 BG：美國線、加拿大線，STD 前 70 分鐘至 STD */
+const DEP_BG_US_CANADA_BEFORE_MIN = 70;
+const DEP_BG_DEFAULT_BEFORE_MIN = 60;
+const DEP_US_CANADA_GROUP_IDS = new Set(['us', 'ca']);
+/** DestClassRegistry 不可用時，以目的地機場 fallback（美加線） */
+const DEP_US_CANADA_DESTINATION_FALLBACK = new Set([
+  ...ARR_US_CANADA_ORIGIN_AIRPORTS,
+  'YUL', 'YEG', 'YWG', 'YOW',
+  'ANC', 'ATL', 'BOS', 'EWR', 'HNL', 'LAS', 'MIA', 'MSP', 'PHX', 'PDX', 'SAN', 'SLC'
+]);
 const ARR_DUTY_BEFORE_STA_MIN = 15;
 const ARR_DUTY_AFTER_STA_NA_MIN = 35;
 const ARR_DUTY_AFTER_STA_DEFAULT_MIN = 25;
@@ -17860,6 +17975,19 @@ function isBrOrB7DepFlight(f) {
   if (!f || f.type !== 'DEP') return false;
   const flight = String(f.flight || '').trim().toUpperCase();
   return flight.startsWith('BR') || flight.startsWith('B7');
+}
+function isDepUsCanadaHomelineFlight(f) {
+  if (!isBrOrB7DepFlight(f) || f.status === 'CANX') return false;
+  const dest = getDepDestinationAirport(f);
+  if (!dest) return false;
+  const groups = typeof DestClassRegistry !== 'undefined'
+    ? DestClassRegistry.lookupGroupsForAirport(dest)
+    : [];
+  if (groups.some(g => DEP_US_CANADA_GROUP_IDS.has(g.id))) return true;
+  return DEP_US_CANADA_DESTINATION_FALLBACK.has(dest);
+}
+function getDepBgBeforeMin(f) {
+  return isDepUsCanadaHomelineFlight(f) ? DEP_BG_US_CANADA_BEFORE_MIN : DEP_BG_DEFAULT_BEFORE_MIN;
 }
 function getAbgSlotOverrideKey(flight, flightType = 'DEP') {
   return `${String(flight || '').trim().toUpperCase()}_${flightType}`;
@@ -23284,6 +23412,7 @@ function initFlightImportModals() {
       if (pendingFlightPreview.mode === 'fis-diff') {
         console.log('merged.length', '(n/a in fis-diff mode)');
         const { fisParsed } = pendingFlightPreview;
+        const reconBaseline = (typeof FlightReconciliation !== 'undefined') ? captureFlightReconciliationSnapshot() : null;
         closeForeignFlightPreviewModal();
         const added = appendFlightDefs(selectedDefs);
         const dep = selectedDefs.filter(f => f.type === 'DEP').length;
@@ -23291,6 +23420,7 @@ function initFlightImportModals() {
         let successMsg = `FIS 比對追加完成（新增 ${added} 筆；出境 ${dep}、入境 ${arr}）。請按「同步」上傳雲端。`;
         if (fisParsed?.warnings?.length) successMsg += `\n\n${fisParsed.warnings.join('\n')}`;
         appSuccess(successMsg, '追加完成');
+        runFisReimportReconciliation(reconBaseline, fisParsed);
         return;
       }
 
@@ -25477,6 +25607,243 @@ function renderAssignmentTableFromFlightDefs() {
   }
 }
 
+// ── Flight Import Reconciliation (Import → Build Plan → Review；Phase 1 唯讀，不改落地行為) ──
+function captureFlightReconciliationSnapshot() {
+  return {
+    flights: flightDefs.map(f => ({
+      flight: f.flight,
+      type: f.type,
+      baseMinutes: f.baseMinutes,
+      baseTime: f.baseTime,
+      status: f.status || '',
+      manual: !!f.isManual
+    })),
+    connecting: flightDefs
+      .filter(f => f.type === 'ARR')
+      .map(f => ({ arr: f.flight, dep: f.connectingFlight || '', source: f.connectingSource || '' }))
+  };
+}
+function logFlightReconciliationPlan(plan) {
+  if (!plan) return;
+  try {
+    console.group(`[FIS 核對] source=${plan.meta.source || ''}｜有變更=${plan.meta.hasChanges}`);
+    console.log('counts', plan.meta.counts);
+    if (plan.added.length) { console.log('➕ 新增航班'); console.table(plan.added); }
+    if (plan.cancelled.length) {
+      console.log('🚫 取消/消失航班');
+      console.table(plan.cancelled.map(c => ({ flight: c.flight, type: c.type, reason: c.reason, 已排duty: c.affectedDuties.length })));
+    }
+    if (plan.timeChanged.length) {
+      console.log('🕒 STD/STA 異動');
+      console.table(plan.timeChanged.map(t => ({ flight: t.flight, type: t.type, field: t.field, from: t.from, to: t.to, 已排duty: t.affectedDuties.length })));
+    }
+    if (plan.connecting.length) {
+      console.log('🔗 接飛異動');
+      console.table(plan.connecting.map(c => ({ 入境: c.arrFlight, 原接飛: c.oldDep, 新接飛: c.newDep, 重複: c.duplicate, manual: c.manual, 建議: c.suggested, 已排duty: c.affectedDuties.length })));
+    }
+    console.groupEnd();
+  } catch (_) {}
+}
+// Build Plan：純比對，產生 ReconciliationPlan（不改任何落地資料）
+function computeReconciliationPlan(baseline, target, source) {
+  if (!baseline || !target || typeof FlightReconciliation === 'undefined') return null;
+  try {
+    const plan = FlightReconciliation.buildPlan(baseline, target, {
+      normalizeFlightNo: normalizeImportedFlightNo,
+      isWithinTwoHours: isHomelineConnectingWithinTwoHours,
+      scheduleItems: schedule,
+      source
+    });
+    window.__lastReconciliationPlan = plan;
+    return plan;
+  } catch (err) {
+    console.warn('[FIS 核對] build plan 失敗', err);
+    return null;
+  }
+}
+
+// 以「新讀入的 FIS」建立目標快照：接飛在 clone 上重算，不動全域 flightDefs
+function buildFisTargetSnapshot(fisParsed) {
+  const clone = (fisParsed?.flightDefs || []).map(f => ({ ...f }));
+  if (typeof FlightAssignmentUtils !== 'undefined' && typeof FlightAssignmentUtils.computeConnectingFlights === 'function') {
+    try {
+      FlightAssignmentUtils.computeConnectingFlights(clone, selectedDate, {
+        normalizeFlightNo: normalizeImportedFlightNo,
+        preserveManual: false
+      });
+    } catch (_) {}
+  }
+  return {
+    flights: clone.map(f => ({
+      flight: f.flight, type: f.type,
+      baseMinutes: f.baseMinutes, baseTime: f.baseTime,
+      status: f.status || ''
+    })),
+    connecting: clone
+      .filter(f => f.type === 'ARR')
+      .map(f => ({ arr: f.flight, dep: f.connectingFlight || '', source: f.connectingSource || '' }))
+  };
+}
+
+// 再匯入核對降噪：手動/外家新增(FIS 無)標示為保留；新航班的初始接飛不列為「異動」
+function refineFisDiffPlan(plan, baseline) {
+  if (!plan) return plan;
+  const norm = normalizeImportedFlightNo;
+  const baseArrKeys = new Set((baseline.flights || []).filter(f => f.type === 'ARR').map(f => norm(f.flight)));
+  const manualKeys = new Set((baseline.flights || []).filter(f => f.manual).map(f => norm(f.flight)));
+  plan.connecting = plan.connecting.filter(r => baseArrKeys.has(norm(r.arrFlight)));
+  plan.cancelled.forEach(r => {
+    if (manualKeys.has(norm(r.flight))) r.reason = 'manual-kept';
+  });
+  plan.meta.counts.connecting = plan.connecting.length;
+  plan.meta.hasChanges = !!(plan.added.length || plan.cancelled.length || plan.timeChanged.length || plan.connecting.length);
+  return plan;
+}
+
+// ── Review 視窗（Phase 1：唯讀，只顯示 Plan，不 Apply 任何變更） ──
+const ReconcileReview = (function () {
+  let resolver = null;
+  let bound = false;
+
+  const el = (id) => document.getElementById(id);
+
+  function bindOnce() {
+    if (bound) return;
+    const modal = el('reconReviewModal');
+    if (!modal) return;
+    bound = true;
+    const done = () => finish();
+    el('reconReviewClose')?.addEventListener('click', done);
+    el('reconReviewConfirm')?.addEventListener('click', done);
+    modal.querySelectorAll('[data-recon-dismiss]').forEach(x => x.addEventListener('click', done));
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && !modal.hidden) { e.preventDefault(); finish(); }
+    });
+  }
+
+  const dir = (type) => String(type || '').toUpperCase() === 'DEP' ? '出境' : '入境';
+  function fnum(x) {
+    const s = String(x || '').trim();
+    if (!s) return '—';
+    const label = (typeof compactDutyFlightNo === 'function' ? (compactDutyFlightNo(s) || s) : s);
+    return escapeHtml(label);
+  }
+  function dutyBadge(n) {
+    const cls = n > 0 ? 'recon-duty-count' : 'recon-duty-count is-zero';
+    return `<span class="${cls}">${n}</span>`;
+  }
+  function table(headers, rowsHtml) {
+    if (!rowsHtml) return `<div class="recon-empty">無</div>`;
+    const th = headers.map(h => `<th>${h}</th>`).join('');
+    return `<table class="recon-table"><thead><tr>${th}</tr></thead><tbody>${rowsHtml}</tbody></table>`;
+  }
+  function section(title, count, affected, innerHtml) {
+    return `<section class="recon-section">`
+      + `<div class="recon-section__head"><span>${title}</span>`
+      + `<span class="recon-section__count">${count} 筆・受影響 duty ${affected}</span></div>`
+      + innerHtml
+      + `</section>`;
+  }
+
+  const CONN_SUGGEST = {
+    'manual-skip': ['manual（本階段略過）', 'recon-tag--manual'],
+    'split': ['拆開接飛', 'recon-tag--split'],
+    'pick': ['需選擇保留', 'recon-tag--dup'],
+    'update': ['更新接飛', 'recon-tag--update']
+  };
+
+  function render(plan) {
+    const subtitle = el('reconReviewSubtitle');
+    const summary = el('reconReviewSummary');
+    const body = el('reconReviewBody');
+    if (!body) return;
+    const c = plan.meta.counts;
+
+    if (subtitle) subtitle.textContent = '以下為系統比對結果，僅供檢視。按「我已看過」不會套用任何變更。';
+    if (summary) {
+      summary.innerHTML = `新增 <b>${c.added}</b>・取消 <b>${c.cancelled}</b>・時間異動 <b>${c.timeChanged}</b>・接飛異動 <b>${c.connecting}</b>`;
+    }
+
+    const addedRows = plan.added.map(a =>
+      `<tr><td>${fnum(a.flight)}</td><td>${dir(a.type)}</td><td>${escapeHtml(a.time || '—')}</td></tr>`
+    ).join('');
+    const addedHtml = table(['航班', '方向', '時間'], addedRows);
+
+    const cancelledAffected = plan.cancelled.reduce((s, x) => s + x.affectedDuties.length, 0);
+    const CANCEL_REASON = {
+      'CANX': 'FIS 標記取消',
+      'manual-kept': '手動/外家新增（FIS 無，保留）',
+      'missing': 'FIS 已無此航班'
+    };
+    const cancelledRows = plan.cancelled.map(x => {
+      const reason = CANCEL_REASON[x.reason] || 'FIS 已無此航班';
+      return `<tr><td>${fnum(x.flight)}</td><td>${dir(x.type)}</td><td>${reason}</td><td>${dutyBadge(x.affectedDuties.length)}</td></tr>`;
+    }).join('');
+    const cancelledHtml = table(['航班', '方向', '原因', '受影響 duty'], cancelledRows);
+
+    const timeAffected = plan.timeChanged.reduce((s, x) => s + x.affectedDuties.length, 0);
+    const timeRows = plan.timeChanged.map(x =>
+      `<tr><td>${fnum(x.flight)}</td><td>${dir(x.type)}</td><td>${escapeHtml(x.field)}</td>`
+      + `<td>${escapeHtml(x.from || '—')} <span class="recon-arrow">→</span> ${escapeHtml(x.to || '—')}</td>`
+      + `<td>${dutyBadge(x.affectedDuties.length)}</td></tr>`
+    ).join('');
+    const timeHtml = table(['航班', '方向', '欄位', '原 → 新', '受影響 duty'], timeRows);
+
+    const connAffected = plan.connecting.reduce((s, x) => s + x.affectedDuties.length, 0);
+    const connRows = plan.connecting.map(x => {
+      const [label, cls] = CONN_SUGGEST[x.suggested] || [x.suggested || '', ''];
+      const dupTag = x.duplicate ? ` <span class="recon-tag recon-tag--dup">重複</span>` : '';
+      return `<tr><td>${fnum(x.arrFlight)}</td><td>${fnum(x.oldDep)}</td><td>${fnum(x.newDep)}${dupTag}</td>`
+        + `<td><span class="recon-tag ${cls}">${escapeHtml(label)}</span></td>`
+        + `<td>${dutyBadge(x.affectedDuties.length)}</td></tr>`;
+    }).join('');
+    const connHtml = table(['入境', '原接飛', '新接飛', '建議', '受影響 duty'], connRows);
+
+    body.innerHTML =
+      section('新增航班', c.added, 0, addedHtml) +
+      section('取消航班', c.cancelled, cancelledAffected, cancelledHtml) +
+      section('STD / STA 時間異動', c.timeChanged, timeAffected, timeHtml) +
+      section('接飛異動', c.connecting, connAffected, connHtml);
+  }
+
+  function finish() {
+    const modal = el('reconReviewModal');
+    if (modal) modal.hidden = true;
+    const r = resolver;
+    resolver = null;
+    if (r) r({ acknowledged: true });
+  }
+
+  function review(plan) {
+    return new Promise((resolve) => {
+      const modal = el('reconReviewModal');
+      if (!modal || !plan) { resolve({ acknowledged: false }); return; }
+      bindOnce();
+      render(plan);
+      resolver = resolve;
+      modal.hidden = false;
+    });
+  }
+
+  return { review };
+})();
+
+// 再次匯入 FIS 資料比對：Import → Build Plan → Review（Phase 1：唯讀，不做 Apply）
+async function runFisReimportReconciliation(baseline, fisParsed) {
+  if (!baseline || !fisParsed || typeof FlightReconciliation === 'undefined') return null;
+  const target = buildFisTargetSnapshot(fisParsed);
+  const plan = computeReconciliationPlan(baseline, target, 'fis-diff');
+  if (!plan) return null;
+  refineFisDiffPlan(plan, baseline);
+  logFlightReconciliationPlan(plan);
+  if (!plan.meta.hasChanges) return plan;
+  try {
+    await ReconcileReview.review(plan);
+  } catch (err) {
+    console.warn('[FIS 核對] Review 顯示失敗', err);
+  }
+  return plan;
+}
 function rebuildAfterFlightImport(newFlightDefs) {
   flightsImported = true;
   flightDefs = newFlightDefs;
@@ -27635,7 +28002,7 @@ function buildDepCoreDutyEntries(f, std, ext) {
       ]
     : [
         { role: 'RC', before: 70, end: depDutyEnd(std, ext) },
-        { role: 'BG', before: 60, end: depDutyEnd(std, ext) }
+        { role: 'BG', before: getDepBgBeforeMin(f), end: depDutyEnd(std, ext) }
       ];
   const entries = coreSpecs
     .filter(({ role }) => {
