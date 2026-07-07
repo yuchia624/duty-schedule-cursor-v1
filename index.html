@@ -11284,9 +11284,8 @@ function renderAssignmentGenericRoleCell(cell, items) {
 function getAssignmentRoleCodes(flight, role) {
   const fDef = flightDefs.find(f => f.flight === flight);
   if (fDef?.status === 'CANX') return '-';
-  const codes = schedule
-    .filter(item => item.flight === flight && item.role === role)
-    .map(getAssignmentPersonCode)
+  const codes = buildAssignmentDisplayEntries(getAssignmentItemsForCell(flight, role))
+    .map(entry => entry.text)
     .filter(Boolean);
   return codes.length ? codes.join(' ') : '';
 }
@@ -25475,16 +25474,15 @@ function assignmentShiftSlotToMinutes(slot) {
   if (parts.length !== 2 || parts.some(n => Number.isNaN(n))) return null;
   return { start: parts[0] * 60, end: parts[1] * 60 };
 }
-function getAssignmentShiftCellEntries(role, slot) {
+function getAssignmentShiftCellItems(role, slot) {
   const range = assignmentShiftSlotToMinutes(slot);
   if (!range) return [];
   const seen = new Set();
-  const entries = [];
+  const items = [];
   const pushItem = (item) => {
     if (seen.has(item.personIndex)) return;
     seen.add(item.personIndex);
-    const text = getAssignmentPersonCode(item);
-    if (text) entries.push({ text, personIndex: item.personIndex });
+    if (getAssignmentPersonCode(item)) items.push(item);
   };
   schedule.forEach(item => {
     if (item.role === 'TC') {
@@ -25501,10 +25499,13 @@ function getAssignmentShiftCellEntries(role, slot) {
       pushItem(item);
     }
   });
-  return entries;
+  return items;
+}
+function getAssignmentShiftCellEntries(role, slot) {
+  return buildAssignmentDisplayEntries(getAssignmentShiftCellItems(role, slot));
 }
 function getAssignmentShiftCellText(role, slot) {
-  return getAssignmentShiftCellEntries(role, slot).map(entry => entry.text).join(' / ');
+  return getAssignmentShiftCellEntries(role, slot).map(entry => entry.text).filter(Boolean).join(' ');
 }
 function renderAssignmentShiftRoleCell(cell, role, slot) {
   const entries = getAssignmentShiftCellEntries(role, slot);
@@ -25516,7 +25517,7 @@ function renderAssignmentShiftRoleCell(cell, role, slot) {
     return false;
   }
   if (entries.length === 1) {
-    cell.appendChild(makeAssignmentCodeSpan(entries[0].text, entries[0].personIndex));
+    appendAssignmentEntrySpan(cell, entries[0]);
   } else {
     const inner = document.createElement('span');
     inner.className = 'assignment-role-codes-inner assignment-shift-codes-inner';
@@ -25524,10 +25525,10 @@ function renderAssignmentShiftRoleCell(cell, role, slot) {
       if (idx > 0) {
         const sep = document.createElement('span');
         sep.className = 'assignment-shift-code-sep';
-        sep.textContent = ' / ';
+        sep.textContent = ' ';
         inner.appendChild(sep);
       }
-      inner.appendChild(makeAssignmentCodeSpan(entry.text, entry.personIndex));
+      appendAssignmentEntrySpan(inner, entry);
     });
     cell.appendChild(inner);
   }
@@ -30198,7 +30199,7 @@ function getAssignmentTransitCellText(flight) {
   const entries = getTransitAssignmentEntries(flight);
   if (!entries.length) return '';
   if (entries.length === 1 && entries[0].kind === 'x') return 'X';
-  return entries.map(entry => entry.text).join(' ');
+  return entries.map(entry => entry.text).join(' \u2009');
 }
 function renderAssignmentTransitCell(cell, flight) {
   const entries = getTransitAssignmentEntries(flight);
