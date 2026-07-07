@@ -9814,6 +9814,75 @@ function syncTempRowIdentity(personIndex, name) {
   applyTempRowStaffDirectoryLink(person, v);
   return true;
 }
+function syncFormalRowIdentity(personIndex, name) {
+  const person = people[personIndex];
+  if (!person || isTempControlRow(person)) return true;
+  const v = String(name ?? '').trim();
+  person.name = v;
+  if (!v) {
+    person.personnelId = '';
+    person.code = '';
+    return true;
+  }
+  const entry = lookupStaffDirectoryEntryForTempRowName(v);
+  if (entry && !tempRowStaffAlreadyOnRoster(entry, personIndex)) {
+    person.personnelId = String(entry.personnelId || '').trim();
+    person.code = String(entry.code || '').trim();
+    if (entry.level) person.level = String(entry.level).trim();
+  } else {
+    person.personnelId = '';
+    person.code = '';
+  }
+  return true;
+}
+function applyStaffSuggestionToFormalRow(personIndex, entry, personCell) {
+  const person = people[personIndex];
+  if (!entry || !person || isTempControlRow(person)) return;
+  if (tempRowStaffAlreadyOnRoster(entry, personIndex)) {
+    appAlert('此人已在今日管制表中，請勿重複加入。', '無法帶入');
+    return;
+  }
+  const name = String(entry.fullName || entry.code || '').trim();
+  person.personnelId = String(entry.personnelId || '').trim();
+  const staffCode = String(entry.code || '').trim();
+  if (staffCode) person.code = staffCode;
+  person.name = name;
+  if (entry.level) person.level = String(entry.level).trim();
+  const cell = personCell || document.querySelector(`.person-cell[data-original-index="${personIndex}"]`);
+  if (cell && rollCallMode) {
+    const nameInput = cell.querySelector('.temp-row-name-input');
+    if (nameInput) nameInput.value = name;
+    const badge = cell.querySelector('.rc-col.rc-level .badge');
+    if (badge && entry.level) badge.textContent = String(entry.level).trim();
+    nameInput?.focus({ preventScroll: true });
+  } else {
+    renderRows();
+  }
+  markUnsynced();
+}
+function showFormalRowNameSuggest(input, wrap, personIndex) {
+  if (!input || !wrap) return;
+  hideTempRowNameSuggest(wrap);
+  const items = filterTempRowStaffNameSuggestions(input.value);
+  if (!items.length) return;
+  const menu = document.createElement('div');
+  menu.className = 'shift-adjust-suggest temp-row-name-suggest';
+  items.forEach(entry => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    const code = String(entry.code || '').trim();
+    const name = String(entry.fullName || code).trim();
+    btn.textContent = code && name !== code ? `${name}（${code}）` : name;
+    btn.addEventListener('mousedown', e => {
+      e.preventDefault();
+      applyStaffSuggestionToFormalRow(personIndex, entry, wrap.closest('.person-cell'));
+      hideTempRowNameSuggest(wrap);
+    });
+    menu.appendChild(btn);
+  });
+  wrap.appendChild(menu);
+  setTempRowNameSuggestOpen(wrap, true);
+}
 function syncTempRowShiftTypeClass(left, personIndex) {
   if (!left) return;
   [...left.classList].filter(cls => cls.startsWith('shift-')).forEach(cls => left.classList.remove(cls));
@@ -10382,6 +10451,68 @@ function bindTempRowEditorEvents(left, personIndex) {
     });
   }
 }
+function bindFormalRowRollCallEditors(left, personIndex) {
+  const person = people[personIndex];
+  if (!person || isTempControlRow(person)) return;
+
+  const nameInput = left.querySelector('.temp-row-name-input');
+  const nameWrap = left.querySelector('.temp-row-name-wrap');
+  if (nameInput && nameWrap) {
+    const syncName = () => {
+      syncFormalRowIdentity(personIndex, nameInput.value);
+      markUnsynced();
+    };
+    nameInput.addEventListener('input', () => {
+      syncName();
+      const q = String(nameInput.value || '').trim();
+      if (q.length >= 1) showFormalRowNameSuggest(nameInput, nameWrap, personIndex);
+      else hideTempRowNameSuggest(nameWrap);
+    });
+    nameInput.addEventListener('compositionend', () => {
+      syncName();
+      if (String(nameInput.value || '').trim().length >= 1) showFormalRowNameSuggest(nameInput, nameWrap, personIndex);
+    });
+    nameInput.addEventListener('keydown', e => {
+      handleScheduleSuggestInputKeydown(e, nameWrap, hideTempRowNameSuggest);
+    });
+    nameInput.addEventListener('blur', e => {
+      if (e.relatedTarget?.closest?.('.temp-row-name-suggest')) return;
+      hideTempRowNameSuggest(nameWrap);
+    });
+  }
+
+  const shiftInput = left.querySelector('.temp-row-shift-input');
+  const shiftWrap = shiftInput?.closest('.shift-field-wrap');
+  if (shiftInput && shiftWrap) {
+    let shiftEditSnapshot = null;
+    bindShiftSuggestInput(shiftInput, shiftWrap, value => {
+      people[personIndex].shift = value;
+      syncTempRowShiftTypeClass(left, personIndex);
+      refreshRollCallShiftBand(left, personIndex);
+      refreshPersonTimelineOverlays(left.closest('.row')?.querySelector('.timeline'), personIndex);
+      refreshRestStatusDisplay(left, personIndex);
+      markUnsynced();
+    });
+    shiftInput.addEventListener('focus', () => {
+      const p = people[personIndex];
+      shiftEditSnapshot = {
+        band: getPersonShiftBand(p),
+        visible: personMatchesShiftView(p)
+      };
+    });
+    shiftInput.addEventListener('blur', e => {
+      if (e.relatedTarget?.closest?.('.shift-adjust-suggest')) return;
+      const p = people[personIndex];
+      if (!p || isTempControlRow(p)) return;
+      const band = getPersonShiftBand(p);
+      const visible = personMatchesShiftView(p);
+      const bandChanged = shiftEditSnapshot && shiftEditSnapshot.band !== band;
+      const visibilityChanged = shiftEditSnapshot && shiftEditSnapshot.visible !== visible;
+      if (bandChanged || visibilityChanged) renderRows();
+      shiftEditSnapshot = null;
+    });
+  }
+}
 function createTempControlRowPerson() {
   const label = nextTempControlRowCode();
   return normalizePerson({
@@ -10490,8 +10621,8 @@ function buildPersonRowCoreHtml(opts) {
     buildScheduleRowSeqHtml(opts.seqNo, opts.person, !!opts.showRowDelete, opts.seqOpts),
     buildRowGripColHtml(opts.originalIndex, !!opts.seqOpts?.pinned),
     `<div class="rc-col rc-level"><span class="badge">${escapeHtml(opts.displayLevel)}</span></div>`,
-    buildPersonNameCellHtml(opts.displayName, opts),
-    `<div class="rc-col rc-shift">${renderShiftLabel(opts.shift, opts.adjustedShift)}</div>`,
+    `<div class="rc-col rc-name"><div class="temp-row-name-wrap name-field-wrap"><input type="text" class="temp-row-name-input" placeholder="姓名" aria-label="姓名" autocomplete="off" value="${escapeHtml(opts.displayName || '')}" /></div></div>`,
+    `<div class="rc-col rc-shift">${buildTempRollCallShiftHtml(opts.shift)}</div>`,
     `<div class="rc-col rc-rest"><div class="rest-stack">${restCell}</div></div>`
   ];
 }
@@ -34897,7 +35028,7 @@ function renderRows() {
     }
     if (rollCallMode) {
       const adjustedShiftInput = left.querySelector('.adjusted-shift-input');
-      const adjWrap = left.querySelector('.shift-field-wrap');
+      const adjWrap = adjustedShiftInput?.closest('.shift-field-wrap');
       const syncAdjustedShift = value => {
         people[rowInfo.originalIndex].adjustedShift = value;
         syncAdjustedShiftInputUi(adjustedShiftInput, value);
@@ -34957,6 +35088,7 @@ function renderRows() {
       el.addEventListener('click', e => e.stopPropagation());
     });
     if (rollCallMode && isTempRow) bindTempRowEditorEvents(left, rowInfo.originalIndex);
+    else if (rollCallMode) bindFormalRowRollCallEditors(left, rowInfo.originalIndex);
     const timeline = document.createElement('div');
     timeline.className = 'timeline';
     timeline.dataset.originalIndex = rowInfo.originalIndex;
