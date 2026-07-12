@@ -2095,6 +2095,10 @@
   }
   .duty-pax-staff-inline strong.is-short { color: #ea580c; }
   .duty-pax-staff-inline strong.is-over { color: #dc2626; }
+  .duty-pax-staff-levels {
+    font-weight: 700;
+    color: #0f172a;
+  }
   .duty-pax-staff-sep {
     margin: 0 8px;
     color: #cbd5e1;
@@ -2108,6 +2112,28 @@
     margin-bottom: 0;
     padding-bottom: 8px;
     border-bottom: 1px solid #e2e8f0;
+  }
+  .duty-pax-staff-bar--assignment {
+    align-items: flex-start;
+  }
+  .duty-pax-staff-meta-col {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 4px;
+  }
+  .duty-pax-role-power-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 2px;
+  }
+  .duty-pax-role-power {
+    font-size: 11px;
+    font-weight: 600;
+    color: #64748b;
+    white-space: nowrap;
+    line-height: 1.3;
   }
   .duty-pax-staff-flight {
     font-size: 16px;
@@ -12084,12 +12110,96 @@ function formatBlockDutyFlightRow(label, flightNo) {
   const flight = String(flightNo || '').trim();
   return flight ? [label, flight] : null;
 }
+function getDepPaxDutyFlight(item) {
+  if (item?.connectingDuty) return item.depFlight || item.flight;
+  return item?.flight;
+}
+function isDepPaxDutyRole(item) {
+  if (!item) return false;
+  if (item.role === 'ABG' || item.role === '大件') return true;
+  if (item.role === 'RC' || item.role === 'BG') {
+    return item.flightType === 'DEP' || !!item.connectingDuty;
+  }
+  return false;
+}
+function buildDepPaxDutyFlightRows(item, dutyRange) {
+  const rows = [];
+  const flight = getDepPaxDutyFlight(item);
+  const fDef = flightDefs.find(f => f.flight === flight && f.type === 'DEP');
+  if (fDef) {
+    const flightRow = formatBlockDutyFlightRow('出境', fDef.flight);
+    if (flightRow) rows.push(flightRow);
+    const std = formatDepStdDisplay(fDef);
+    if (std) rows.push(['STD', std]);
+    appendFlightDefGateRow(rows, fDef, 'DEP');
+  }
+  if (dutyRange) rows.push(['就位時間', dutyRange]);
+  return rows;
+}
+function getAbgStaffMetricsForFlight(flight) {
+  const fDef = flightDefs.find(f => f.flight === flight && f.type === 'DEP');
+  const paxRow = lookupHomelinePaxForScheduleFlight(flight);
+  return {
+    suggestedSlots: fDef ? getAbgSlotsForFlightDef(fDef) : (paxRow ? getSuggestedAbgSlotsFromPaxRow(paxRow) : ABG_BR_B7_SLOTS),
+    assignedSlots: countAbgAssignments(flight, 'DEP'),
+    assignedLevels: getAbgAssignedLevels(flight, 'DEP')
+  };
+}
+function buildDepPaxDutyMetrics(item) {
+  const flight = getDepPaxDutyFlight(item);
+  const fDef = flightDefs.find(f => f.flight === flight && f.type === 'DEP') || getScheduleItemFlightDef(item);
+  const paxRow = lookupHomelinePaxForScheduleFlight(flight);
+  if (item.role === '大件') {
+    return {
+      dutyLabel: item.role,
+      paxRow,
+      suggestedSlots: fDef ? getBulkySlotsForFlightDef(fDef) : 0,
+      assignedSlots: countBulkyAssignments(flight, 'DEP'),
+      assignedLevels: getBulkyAssignedLevels(flight, 'DEP')
+    };
+  }
+  if (item.role === 'ABG') {
+    const abg = getAbgStaffMetricsForFlight(flight);
+    return {
+      dutyLabel: item.role,
+      paxRow,
+      ...abg
+    };
+  }
+  if (item.role === 'RC' || item.role === 'BG') {
+    const abg = getAbgStaffMetricsForFlight(flight);
+    return {
+      dutyLabel: item.role,
+      paxRow,
+      staffLabel: 'ABG',
+      ...abg
+    };
+  }
+  return null;
+}
 function buildBlockDutyInfoContent(item, slice) {
   const dutyStart = slice?.start ?? item.start;
   const dutyEnd = slice?.end ?? item.end;
   const dutyRange = formatBlockDutyTimeRange(dutyStart, dutyEnd);
   const rows = [];
   const title = getDutyDisplayLabel(item);
+  if (isDepPaxDutyRole(item)) {
+    const flight = getDepPaxDutyFlight(item);
+    const fDef = flightDefs.find(f => f.flight === flight && f.type === 'DEP') || getScheduleItemFlightDef(item);
+    const metrics = buildDepPaxDutyMetrics(item);
+    return {
+      title,
+      titleAcType: getFlightDefAcType(fDef),
+      layout: 'pax-duty',
+      dutyLabel: metrics.dutyLabel,
+      paxRow: metrics.paxRow,
+      suggestedSlots: metrics.suggestedSlots,
+      assignedSlots: metrics.assignedSlots,
+      assignedLevels: metrics.assignedLevels,
+      staffLabel: metrics.staffLabel || '',
+      rows: buildDepPaxDutyFlightRows(item, dutyRange)
+    };
+  }
   if (item.connectingDuty) {
     const arrFlight = String(item.arrFlight || '').trim();
     const depFlight = String(item.depFlight || item.flight || '').trim();
@@ -12155,43 +12265,45 @@ function buildBlockDutyInfoContent(item, slice) {
     appendFlightDefGateRow(rows, fDef, fDef.type);
   }
   if (dutyRange) rows.push(['就位時間', dutyRange]);
-  if (item.role === 'ABG' || item.role === '大件') {
-    const flightType = item.flightType || 'DEP';
-    const fDef = getScheduleItemFlightDef(item);
-    const paxRow = lookupHomelinePaxForScheduleFlight(item.flight);
-    let suggestedSlots;
-    let assignedSlots;
-    if (item.role === '大件') {
-      suggestedSlots = fDef ? getBulkySlotsForFlightDef(fDef) : 0;
-      assignedSlots = countBulkyAssignments(item.flight, flightType);
-    } else {
-      suggestedSlots = fDef ? getAbgSlotsForFlightDef(fDef) : (paxRow ? getSuggestedAbgSlotsFromPaxRow(paxRow) : ABG_BR_B7_SLOTS);
-      assignedSlots = countAbgAssignments(item.flight, flightType);
-    }
-    return {
-      title,
-      titleAcType,
-      layout: 'pax-duty',
-      dutyLabel: item.role,
-      paxRow,
-      suggestedSlots,
-      assignedSlots,
-      rows
-    };
-  }
   return { title, titleAcType, rows };
 }
-function buildDutyPaxStaffInlineHtml(suggestedSlots, assignedSlots) {
+function buildDutyPaxStaffInlineHtml(suggestedSlots, assignedSlots, assignedLevels, staffLabel = '') {
   const suggested = Number.isFinite(suggestedSlots) ? suggestedSlots : 0;
   const assigned = Number.isFinite(assignedSlots) ? assignedSlots : 0;
+  const levels = Array.isArray(assignedLevels) ? assignedLevels : [];
   const stateClass = assigned < suggested ? 'is-short' : (assigned > suggested ? 'is-over' : '');
-  return `<span class="duty-pax-staff-inline">` +
-    `建議 <strong>${suggested}</strong> 人<span class="duty-pax-staff-sep">|</span>` +
-    `已排 <strong${stateClass ? ` class="${stateClass}"` : ''}>${assigned}</strong> 人` +
-    `</span>`;
+  const suggestLabel = staffLabel ? `建議${escapeHtml(staffLabel)} ` : '建議 ';
+  let html = `<span class="duty-pax-staff-inline">` +
+    `${suggestLabel}<strong>${suggested}</strong> 人<span class="duty-pax-staff-sep">|</span>` +
+    `已排 <strong${stateClass ? ` class="${stateClass}"` : ''}>${assigned}</strong> 人`;
+  if (levels.length) {
+    const levelsHtml = levels.map(level => escapeHtml(String(level || '—'))).join(', ');
+    html += `<span class="duty-pax-staff-sep">|</span><span class="duty-pax-staff-levels">${levelsHtml}</span>`;
+  }
+  html += `</span>`;
+  return html;
 }
-function buildDutyPaxStaffBarHtml(flight, suggestedSlots, assignedSlots) {
-  const inline = buildDutyPaxStaffInlineHtml(suggestedSlots, assignedSlots);
+function formatAssignedLevelsText(levels) {
+  const list = Array.isArray(levels) ? levels : [];
+  if (!list.length) return '—';
+  return list.map(level => String(level || '—')).join(', ');
+}
+function buildDutyPaxRolePowerLinesHtml(flight) {
+  const levels = getAbgAssignedLevels(flight, 'DEP');
+  return `<div class="duty-pax-role-power-wrap">` +
+    `<div class="duty-pax-role-power">ABG戰力：${escapeHtml(formatAssignedLevelsText(levels))}</div>` +
+    `</div>`;
+}
+function buildAssignmentFlightPaxPopoverHeaderHtml(flight, std) {
+  const flightLabel = escapeHtml(formatHomelinePaxFlightLabel(flight));
+  const stdHtml = std ? `<div class="duty-pax-staff-std">STD ${escapeHtml(std)}</div>` : '';
+  return `<div class="duty-pax-staff-bar duty-pax-staff-bar--assignment">` +
+    `<div class="duty-pax-staff-flight">${flightLabel}</div>` +
+    `<div class="duty-pax-staff-meta-col">${stdHtml}${buildDutyPaxRolePowerLinesHtml(flight)}</div>` +
+    `</div>`;
+}
+function buildDutyPaxStaffBarHtml(flight, suggestedSlots, assignedSlots, assignedLevels) {
+  const inline = buildDutyPaxStaffInlineHtml(suggestedSlots, assignedSlots, assignedLevels);
   const flightLabel = escapeHtml(formatHomelinePaxFlightLabel(flight));
   return `<div class="duty-pax-staff-bar"><div class="duty-pax-staff-flight">${flightLabel}</div>${inline}</div>`;
 }
@@ -12265,14 +12377,19 @@ function renderBlockDutyInfoTitle(title, titleAcType, staffMetrics) {
       `<span class="block-duty-info-popover__title-text">${escapeHtml(title || '')}</span>${acHtml}</div>`
     : '';
   const staffHtml = staffMetrics
-    ? `<div class="block-duty-info-popover__head-meta">${buildDutyPaxStaffInlineHtml(staffMetrics.suggestedSlots, staffMetrics.assignedSlots)}</div>`
+    ? `<div class="block-duty-info-popover__head-meta">${buildDutyPaxStaffInlineHtml(staffMetrics.suggestedSlots, staffMetrics.assignedSlots, staffMetrics.assignedLevels, staffMetrics.staffLabel)}</div>`
     : '';
   if (!titleRow && !staffHtml) return '';
   return `<div class="block-duty-info-popover__head">${titleRow}${staffHtml}</div>`;
 }
 function renderBlockDutyInfoPopoverHtml(content) {
   const staffMetrics = content.layout === 'pax-duty'
-    ? { suggestedSlots: content.suggestedSlots, assignedSlots: content.assignedSlots }
+    ? {
+      suggestedSlots: content.suggestedSlots,
+      assignedSlots: content.assignedSlots,
+      assignedLevels: content.assignedLevels,
+      staffLabel: content.staffLabel || ''
+    }
     : null;
   const titleHtml = renderBlockDutyInfoTitle(content.title, content.titleAcType, staffMetrics);
   if (content.layout === 'connecting') {
@@ -18309,6 +18426,15 @@ function countBulkyAssignments(flight, flightType = 'DEP') {
     x.flight === flight && x.role === '大件' && x.flightType === flightType
   ).length;
 }
+function getBulkyAssignedLevels(flight, flightType = 'DEP') {
+  return getScheduleAssignedLevels(x =>
+    x.flight === flight && x.role === '大件' && x.flightType === flightType
+  );
+}
+function getBulkyAssignedLevelsForTemplate(t) {
+  if (!t || t.role !== '大件') return [];
+  return getBulkyAssignedLevels(t.flight, t.flightType);
+}
 function countBulkyAssignmentsForTemplate(t) {
   if (!t || t.role !== '大件') return 0;
   return countBulkyAssignments(t.flight, t.flightType);
@@ -18403,7 +18529,8 @@ function buildAbgPaxPopoverHtml(flight, row, options = {}) {
       ? 0
       : getSuggestedAbgSlotsFromPaxRow(row));
   const assignedSlots = options.assignedSlots != null ? options.assignedSlots : 0;
-  return buildDutyPaxStaffBarHtml(flight, suggestedSlots, assignedSlots) +
+  const assignedLevels = options.assignedLevels || [];
+  return buildDutyPaxStaffBarHtml(flight, suggestedSlots, assignedSlots, assignedLevels) +
     buildHomelinePaxStatsTableHtml(row);
 }
 function toggleAbgPaxPopover(anchor, template, dutyKind = 'ABG') {
@@ -18421,10 +18548,14 @@ function toggleAbgPaxPopover(anchor, template, dutyKind = 'ABG') {
   const assignedSlots = dutyKind === '大件'
     ? countBulkyAssignmentsForTemplate(template)
     : countAbgAssignmentsForTemplate(template);
+  const assignedLevels = dutyKind === '大件'
+    ? getBulkyAssignedLevelsForTemplate(template)
+    : getAbgAssignedLevelsForTemplate(template);
   pop.innerHTML = buildAbgPaxPopoverHtml(template.flight, row, {
     dutyLabel: dutyKind,
     suggestedSlots,
-    assignedSlots
+    assignedSlots,
+    assignedLevels
   });
   abgPaxPopoverTemplateId = template.id;
   abgPaxPopoverAnchor = anchor;
@@ -18444,9 +18575,7 @@ function toggleAssignmentFlightPaxPopover(anchor, flight) {
   }
   hideBlockDutyInfoPopover();
   const std = getAssignmentDepStdDisplayValue(f);
-  const flightLabel = escapeHtml(formatHomelinePaxFlightLabel(flight));
-  const stdHtml = std ? `<span class="duty-pax-staff-std">STD ${escapeHtml(std)}</span>` : '';
-  pop.innerHTML = `<div class="duty-pax-staff-bar"><div class="duty-pax-staff-flight">${flightLabel}</div>${stdHtml}</div>` +
+  pop.innerHTML = buildAssignmentFlightPaxPopoverHeaderHtml(flight, std) +
     buildHomelinePaxStatsTableHtml(row);
   abgPaxPopoverTemplateId = key;
   abgPaxPopoverAnchor = anchor;
@@ -19364,6 +19493,35 @@ function countAbgAssignments(flight, flightType = 'DEP') {
   return schedule.filter(x =>
     x.flight === flight && x.role === 'ABG' && x.flightType === flightType && !isInternScheduleDuty(x)
   ).length;
+}
+function getAssignedPersonLevel(personIndex) {
+  const person = people[personIndex];
+  if (!person) return '—';
+  const level = String(person.level || resolveLevel(person) || '').trim();
+  return level || '—';
+}
+function getScheduleAssignedLevels(predicate) {
+  return schedule
+    .filter(predicate)
+    .map(x => getAssignedPersonLevel(x.personIndex));
+}
+function getAbgAssignedLevels(flight, flightType = 'DEP') {
+  return getScheduleAssignedLevels(x =>
+    x.flight === flight && x.role === 'ABG' && x.flightType === flightType && !isInternScheduleDuty(x)
+  );
+}
+function getAbgAssignedLevelsForTemplate(t) {
+  if (!t || t.role !== 'ABG') return [];
+  if (t.abgSlotScoped) {
+    return getScheduleAssignedLevels(x => abgAssignmentMatchesTemplate(x, t) && !isInternScheduleDuty(x));
+  }
+  return getAbgAssignedLevels(t.flight, t.flightType);
+}
+function countRoleAssignments(flight, role) {
+  return getAssignmentItemsForCell(flight, role).length;
+}
+function getRoleAssignedLevels(flight, role) {
+  return getAssignmentItemsForCell(flight, role).map(x => getAssignedPersonLevel(x.personIndex));
 }
 function abgAssignmentMatchesTemplate(item, t) {
   if (!item || !t || item.role !== 'ABG' || t.role !== 'ABG') return false;
