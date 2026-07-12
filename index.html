@@ -15,12 +15,16 @@
 <script src="flight-assignment-utils.js"></script>
 <script src="foreign-duty-rules.js?v=20260613-oz-abg-label"></script>
 <script src="duty-qualification.js?v=20260703-v4"></script>
+<script src="duty-stats.js?v=20260712-v2"></script>
+<script src="schedule-level-control.js?v=20260712-v2"></script>
 <script src="flight-reconciliation.js?v=20260704-recon-v0"></script>
 <script src="homeline-pax-parser.js?v=20260620-v4"></script>
 <script src="homeline-pax-registry.js?v=20260621-v3"></script>
 <script src="dest-class-registry.js?v=20260620-v4"></script>
 <script src="dest-class-seed.js?v=20260620-v4"></script>
 <script src="dest-class-parser.js?v=20260620-v1"></script>
+<link rel="stylesheet" href="duty-stats.css?v=20260712-v2">
+<link rel="stylesheet" href="schedule-level-control.css?v=20260712-v1">
 <title>今天的完整拖拉管制表 v2</title>
 <style>
   :root {
@@ -7441,13 +7445,13 @@
         <span class="toolbar-icon-btn__tip">同步</span>
       </button>
       <div class="toolbar-schedule-side">
-        <button type="button" class="toolbar-icon-btn" id="toggleFlightEditorToolbarBtn" aria-label="航班時間調整">
-          <span class="toolbar-icon-btn__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg></span>
-          <span class="toolbar-icon-btn__tip">航班時間調整</span>
-        </button>
         <button type="button" class="toolbar-icon-btn" id="toggleOvertimeToolbarBtn" aria-label="今日加班">
           <span class="toolbar-icon-btn__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6"/><path d="M8 18h8"/><path d="M12 14v4"/></svg></span>
           <span class="toolbar-icon-btn__tip">今日加班</span>
+        </button>
+        <button type="button" class="toolbar-icon-btn" id="toggleDutyStatsBtn" aria-label="勤務統計" aria-pressed="false">
+          <span class="toolbar-icon-btn__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V5"/><path d="M4 15h4"/><path d="M10 19V9"/><path d="M10 13h4"/><path d="M16 19V5"/><path d="M16 11h4"/></svg></span>
+          <span class="toolbar-icon-btn__tip">勤務統計</span>
         </button>
         <button type="button" class="toolbar-icon-btn assignment-toggle-btn" id="assignmentToggleBtn" aria-label="展開人員分配表">
           <span class="toolbar-icon-btn__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18"/><path d="M10 4v16"/></svg></span>
@@ -7458,6 +7462,21 @@
     <div class="personnel-recommend-filter-bar hidden" id="personnelRecommendFilterBar" aria-live="polite">
       <span class="personnel-recommend-filter-bar__text" id="personnelRecommendFilterLabel"></span>
       <button type="button" class="personnel-recommend-filter-bar__btn" id="clearPersonnelRecommendFilter">取消篩選</button>
+    </div>
+    <div class="schedule-level-filter-bar hidden" id="scheduleLevelFilterBar" aria-live="polite">
+      <span id="scheduleLevelFilterLabel"></span>
+      <button type="button" class="schedule-level-filter-bar__btn" id="clearScheduleLevelFilter">清除</button>
+    </div>
+    <div class="duty-stats-filter-bar hidden" id="dutyStatsFilterBar" aria-live="polite">
+      <label class="duty-stats-filter-field">RC ≥ <input type="number" min="0" step="1" class="duty-stats-filter-input" data-filter="rcMin" inputmode="numeric" aria-label="RC 最小值" /></label>
+      <label class="duty-stats-filter-field">BG ≥ <input type="number" min="0" step="1" class="duty-stats-filter-input" data-filter="bgMin" inputmode="numeric" aria-label="BG 最小值" /></label>
+      <label class="duty-stats-filter-field">PPT ≥ <input type="number" min="0" step="1" class="duty-stats-filter-input" data-filter="pptMin" inputmode="numeric" aria-label="PPT 最小值" /></label>
+      <label class="duty-stats-filter-field">T ≥ <input type="number" min="0" step="1" class="duty-stats-filter-input" data-filter="tMin" inputmode="numeric" aria-label="T 最小值" /></label>
+      <label class="duty-stats-filter-field">勤 ≥ <input type="number" min="0" step="1" class="duty-stats-filter-input" data-filter="dutyMin" inputmode="numeric" aria-label="勤務最小值" /></label>
+      <div class="duty-stats-filter-actions">
+        <button type="button" class="duty-stats-filter-btn duty-stats-filter-btn--primary" id="dutyStatsFilterApply">套用</button>
+        <button type="button" class="duty-stats-filter-btn" id="dutyStatsFilterClear">清除</button>
+      </div>
     </div>
     <div class="schedule-work-area">
     <div class="schedule-board-scroll">
@@ -7478,31 +7497,6 @@
         <div class="overtime-body hidden" id="overtimeBody">
           <div class="overtime-list" id="overtimeList"></div>
           <button class="overtime-export-btn" id="exportOvertimeBtn" type="button" disabled>匯出加班 Excel</button>
-        </div>
-      </div>
-      <div class="flight-editor collapsed" id="flightEditorPanel">
-        <div class="editor-topbar">
-          <button type="button" class="collapse-btn" id="toggleEditorBtn" hidden>展開</button>
-          <div class="editor-title">航班時間調整</div>
-        </div>
-        <div class="editor-body hidden" id="editorBody">
-          <div class="editor-controls">
-            <input id="flightSearchInput" type="text" placeholder="搜尋航班，例如 BR49、49、BR8" />
-          </div>
-          <div class="editor-tabs">
-            <button class="editor-tab-btn active" type="button" data-flight-tab="DEP">出境</button>
-            <button class="editor-tab-btn" type="button" data-flight-tab="ARR">入境</button>
-          </div>
-          <div class="editor-flight-section" id="flightEditorDepSection">
-          <div class="editor-group-title">STD</div>
-          <div class="editor-head dep-editor-head"><div>航班</div><div>欄位</div><div>原始</div><div>改時</div><div>提早/延長(分)</div><div>目前</div></div>
-          <div id="flightEditorDep"></div>
-          </div>
-          <div class="editor-flight-section" id="flightEditorArrSection" hidden>
-          <div class="editor-group-title">STA</div>
-          <div class="editor-head arr-editor-head"><div>航班</div><div>STA</div><div>ETA</div></div>
-          <div id="flightEditorArr"></div>
-          </div>
         </div>
       </div>
     </div>
@@ -10652,12 +10646,17 @@ function buildRollCallHeaderHtml() {
   ].join('');
 }
 function buildNormalHeaderHtml() {
-  return [
+  const levelHeader = (typeof ScheduleLevelControl !== 'undefined')
+    ? ScheduleLevelControl.getLevelHeaderHtml()
+    : '<span class="rc-h">戰力</span>';
+  const cols = [
     '<div class="rc-col rc-seq"><span class="rc-h">序號</span></div>',
-    '<div class="rc-col rc-level"><span class="rc-h">戰力</span></div>',
+    `<div class="rc-col rc-level">${levelHeader}</div>`,
     '<div class="rc-col rc-name"><span class="rc-h">姓名</span></div>',
     '<div class="rc-col rc-shift"><span class="rc-h">班別</span></div>'
-  ].join('');
+  ];
+  if (typeof DutyStats !== 'undefined') cols.push(DutyStats.getHeaderHtml());
+  return cols.join('');
 }
 function buildNormalRowHtml(opts) {
   const restBit = buildRestStatusHtml({
@@ -10671,12 +10670,14 @@ function buildNormalRowHtml(opts) {
   const statusAlert = opts.staffStatusAlert
     ? `<span class="staff-status-alert">${escapeHtml(opts.staffStatusAlert)}</span>`
     : '';
-  return [
+  const cols = [
     `<div class="rc-col rc-seq">${buildRowSeqColInnerHtml(opts.seqNo, opts.seqOpts)}</div>`,
     `<div class="rc-col rc-level"><span class="badge">${escapeHtml(opts.displayLevel)}</span>${statusAlert}</div>`,
     buildPersonNameCellHtml(opts.displayName, opts),
     `<div class="rc-col rc-shift"><span class="normal-shift-tail">${renderShiftLabel(opts.shift, opts.adjustedShift)}<span class="rest-out-stack">${restBit}</span></span></div>`
   ];
+  if (typeof DutyStats !== 'undefined') cols.push(DutyStats.getRowHtml(opts.dutyStats));
+  return cols;
 }
 function buildRollCallRowHtml(opts) {
   const adjInvalid = getAdjustedShiftInputStatus(opts.adjustedShift) === 'invalid';
@@ -10701,6 +10702,8 @@ function updateNameColHeader() {
 }
 function syncRollCallBoardClass() {
   document.getElementById('scheduleBoard')?.classList.toggle('roll-call-mode', rollCallMode);
+  DutyStats?.notifyBoardModeChanged?.();
+  ScheduleLevelControl?.notifyBoardModeChanged?.();
 }
 function getEffectiveShift(person) {
   const shift = String(person?.shift || '').trim();
@@ -34392,6 +34395,13 @@ function getDisplayRows() {
       .filter(row => !row.isPinDivider && allowed.has(row.originalIndex))
       .sort((a, b) => (rankMap.get(a.originalIndex) ?? 999) - (rankMap.get(b.originalIndex) ?? 999));
   }
+  if (typeof ScheduleLevelControl !== 'undefined' && ScheduleLevelControl.hasActiveQuery()) {
+    finalRows = ScheduleLevelControl.applyToDisplayRows(finalRows);
+  }
+  if (typeof DutyStats !== 'undefined' && DutyStats.hasActiveQuery()) {
+    const statsMap = DutyStats.buildStatsMap(schedule, people);
+    finalRows = DutyStats.applyToDisplayRows(finalRows, statsMap);
+  }
   return finalRows;
 }
 
@@ -34868,6 +34878,9 @@ function renderRows() {
   const rows = document.getElementById('rows');
   if (!rows) return;
   rows.innerHTML = '';
+  const dutyStatsMap = typeof DutyStats !== 'undefined'
+    ? DutyStats.buildStatsMap(schedule, people)
+    : null;
   const displayRows = getDisplayRows();
   const personSeqMap = buildPersonDisplaySeqMap();
   const searchSnap = getUniversalSearchSnap();
@@ -34877,6 +34890,30 @@ function renderRows() {
     reminder.textContent = '目前沒有符合推薦條件的人員';
     rows.appendChild(reminder);
     syncAssignmentTableFromSchedule();
+    return;
+  }
+  if (!displayRows.length && typeof ScheduleLevelControl !== 'undefined' && ScheduleLevelControl.hasActiveQuery()) {
+    const reminder = document.createElement('div');
+    reminder.className = 'shift-empty-reminder';
+    const summary = ScheduleLevelControl.getSummaryText();
+    reminder.textContent = summary
+      ? `目前沒有符合戰力條件的人員（${summary}）`
+      : '目前沒有符合戰力條件的人員';
+    rows.appendChild(reminder);
+    syncAssignmentTableFromSchedule();
+    renderOvertimePanel();
+    return;
+  }
+  if (!displayRows.length && typeof DutyStats !== 'undefined' && DutyStats.hasActiveQuery()) {
+    const reminder = document.createElement('div');
+    reminder.className = 'shift-empty-reminder';
+    const summary = DutyStats.getFilterSummaryText();
+    reminder.textContent = summary
+      ? `目前沒有符合勤務統計條件的人員（${summary}）`
+      : '目前沒有符合勤務統計條件的人員';
+    rows.appendChild(reminder);
+    syncAssignmentTableFromSchedule();
+    renderOvertimePanel();
     return;
   }
   if (!displayRows.length && searchActive && searchSnap && !searchSnap.personIndices.size && activeShiftView === 'late') {
@@ -35021,6 +35058,7 @@ function renderRows() {
         clockedOut,
         staffStatusAlert: isTempRow ? '' : getStaffStatusAlert(rowInfo.person, getScheduleReferenceDate()),
         seqOpts: rowSeqOpts,
+        dutyStats: dutyStatsMap?.get(rowInfo.originalIndex),
         ...searchPersonOpts
       }).join('');
     }
@@ -35714,7 +35752,7 @@ document.getElementById('clearDutySearchBtn').addEventListener('click', () => {
   }
   renderPalette();
 });
-document.getElementById('flightSearchInput').addEventListener('input', renderFlightEditor);
+document.getElementById('flightSearchInput')?.addEventListener('input', renderFlightEditor);
 document.querySelectorAll('.editor-tab-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     activeFlightEditorTab = btn.dataset.flightTab;
@@ -36038,6 +36076,37 @@ document.addEventListener('keydown', e => {
 
 }
 function bootInitUI() {
+if (typeof ScheduleLevelControl !== 'undefined') {
+  ScheduleLevelControl.init({
+    onChange() {
+      updateNameColHeader();
+      ScheduleLevelControl.syncSummaryBar();
+      renderRows();
+    },
+    getPersonLevelRank(person) {
+      const level = String(person?.level || resolveLevel(person) || '').trim();
+      return getScheduleBlockALevelRank(level);
+    },
+    getPersonLevelKey(person) {
+      const level = String(person?.level || resolveLevel(person) || '').trim();
+      return normalizeStaffLevelFilterKey(level);
+    }
+  });
+}
+if (typeof DutyStats !== 'undefined') {
+  DutyStats.init({
+    onChange() {
+      updateNameColHeader();
+      DutyStats.syncFilterBar();
+      ScheduleLevelControl?.syncSummaryBar?.();
+      renderRows();
+    },
+    getPersonLevelRank(person) {
+      const level = String(person?.level || resolveLevel(person) || '').trim();
+      return getScheduleBlockALevelRank(level);
+    }
+  });
+}
 syncScheduleWindows();
 updateUndoButtonState();
 renderTimeHeader();
