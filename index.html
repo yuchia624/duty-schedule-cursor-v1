@@ -579,6 +579,7 @@
     min-width: 0;
     min-height: 0;
     overflow: auto;
+    overflow-anchor: none;
     -webkit-overflow-scrolling: touch;
   }
   .schedule-side-dock {
@@ -9257,6 +9258,62 @@ function restoreScheduleScrollTop(scrollHost, scrollTop) {
     requestAnimationFrame(() => { scrollHost.scrollTop = scrollTop; });
   });
 }
+function captureScheduleScrollAnchor(preferredPersonIndex = null) {
+  const scrollHost = getScheduleScrollHost();
+  if (!scrollHost) return null;
+  const hostRect = scrollHost.getBoundingClientRect();
+  let anchorIndex = Number.isFinite(preferredPersonIndex) ? preferredPersonIndex : null;
+  if (anchorIndex == null) {
+    const rowsHost = document.getElementById('rows');
+    if (!rowsHost) return { scrollTop: scrollHost.scrollTop };
+    for (const rowEl of rowsHost.querySelectorAll('.row')) {
+      const rect = rowEl.getBoundingClientRect();
+      if (rect.bottom <= hostRect.top) continue;
+      const idx = Number(rowEl.querySelector('.timeline[data-original-index]')?.dataset.originalIndex);
+      if (Number.isFinite(idx)) {
+        anchorIndex = idx;
+        break;
+      }
+    }
+  }
+  if (anchorIndex == null) return { scrollTop: scrollHost.scrollTop };
+  const cell = document.querySelector(`.person-cell[data-original-index="${anchorIndex}"]`);
+  const row = cell?.closest('.row');
+  if (!row) return { scrollTop: scrollHost.scrollTop };
+  const rowRect = row.getBoundingClientRect();
+  return { personIndex: anchorIndex, offsetTop: rowRect.top - hostRect.top };
+}
+function restoreScheduleScrollAnchor(anchor) {
+  if (!anchor) return;
+  const scrollHost = getScheduleScrollHost();
+  if (!scrollHost) return;
+  const apply = () => {
+    if (Number.isFinite(anchor.scrollTop)) {
+      scrollHost.scrollTop = anchor.scrollTop;
+      return true;
+    }
+    const cell = document.querySelector(`.person-cell[data-original-index="${anchor.personIndex}"]`);
+    const row = cell?.closest('.row');
+    if (!row) return false;
+    const hostRect = scrollHost.getBoundingClientRect();
+    const rowRect = row.getBoundingClientRect();
+    scrollHost.scrollTop += rowRect.top - hostRect.top - anchor.offsetTop;
+    return true;
+  };
+  apply();
+  requestAnimationFrame(() => {
+    apply();
+    requestAnimationFrame(apply);
+  });
+}
+function resolvePinScrollAnchorPersonIndex(originalIndex, willPin) {
+  if (!willPin) return originalIndex;
+  const displayRows = getDisplayRows().filter(row => !row.isPinDivider);
+  const displayIdx = displayRows.findIndex(row => row.originalIndex === originalIndex);
+  if (displayIdx > 0) return displayRows[displayIdx - 1].originalIndex;
+  if (displayIdx >= 0 && displayIdx + 1 < displayRows.length) return displayRows[displayIdx + 1].originalIndex;
+  return originalIndex;
+}
 function restoreScheduleEditFocusSnapshot(snap) {
   if (!snap?.personIndex || !snap.fieldClass) return;
   const input = document.querySelector(
@@ -10041,6 +10098,8 @@ function toggleTimelinePersonPin(originalIndex) {
   if (!Number.isFinite(originalIndex)) return;
   const token = getPersonPinToken(people[originalIndex]);
   if (!token) return;
+  const willPin = !isTimelinePersonPinned(originalIndex);
+  const scrollAnchor = captureScheduleScrollAnchor(resolvePinScrollAnchorPersonIndex(originalIndex, willPin));
   const pos = timelinePinnedPersonTokens.findIndex(t => personPinTokenEquals(t, token));
   if (pos >= 0) timelinePinnedPersonTokens = timelinePinnedPersonTokens.filter((_, i) => i !== pos);
   else timelinePinnedPersonTokens = [...timelinePinnedPersonTokens, token];
@@ -10048,10 +10107,7 @@ function toggleTimelinePersonPin(originalIndex) {
   saveTimelinePinnedPersonTokens();
   invalidateLiveCloudFingerprint();
   markUnsynced();
-  const scrollHost = getScheduleScrollHost();
-  const savedScrollTop = scrollHost?.scrollTop ?? null;
-  renderRows();
-  if (scrollHost != null && savedScrollTop != null) scrollHost.scrollTop = savedScrollTop;
+  renderRows({ scrollAnchor });
 }
 function initTimelineRowPinHandlers() {
   const rowsHost = document.getElementById('rows');
@@ -35165,12 +35221,12 @@ function bindTimelinePaletteDrop(timeline) {
   timeline.addEventListener('drop', e => handleTimelinePaletteDrop(e, timeline));
 }
 
-function renderRows() {
+function renderRows(options = {}) {
   console.time('renderRows');
   hideBlockDutyInfoPopover();
   const scrollHost = getScheduleScrollHost();
   const searchActive = !!String(timelineFlightSearch || '').trim();
-  const savedScrollTop = searchActive ? null : (scrollHost?.scrollTop ?? null);
+  const savedScrollTop = searchActive || options.scrollAnchor ? null : (scrollHost?.scrollTop ?? null);
   const focusSnapshot = getScheduleEditFocusSnapshot();
   try {
   refreshHomelineConnectingStaleFlags();
@@ -35456,7 +35512,8 @@ function renderRows() {
   fitAllBlockLabels();
   ScheduleDiff?.notifyRowsRendered?.();
   } finally {
-    if (scrollHost != null && savedScrollTop != null) restoreScheduleScrollTop(scrollHost, savedScrollTop);
+    if (options.scrollAnchor) restoreScheduleScrollAnchor(options.scrollAnchor);
+    else if (scrollHost != null && savedScrollTop != null) restoreScheduleScrollTop(scrollHost, savedScrollTop);
     restoreScheduleEditFocusSnapshot(focusSnapshot);
     console.timeEnd('renderRows');
   }
