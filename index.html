@@ -8469,7 +8469,7 @@
       </label>
       <label class="flight-import-hub-option">
         <input type="radio" name="flightImportHubOption" value="fis-diff" />
-        <span>再次匯入 FIS 資料比對<small>重匯 FIS，只列出目前班表沒有的航班供追加（不影響已排 duty）</small></span>
+        <span>再次匯入 FIS 資料比對<small>重匯 FIS，列出缺少航班供追加，並比對 STD/STA 與接飛異動（不影響已排 duty）</small></span>
       </label>
       <label class="flight-import-hub-option">
         <input type="radio" name="flightImportHubOption" value="airline-gate" />
@@ -23535,7 +23535,13 @@ function renderFlightPreviewModalContent() {
   if (summary) {
     if (mode === 'fis-diff') {
       const total = depItems.length + arrItems.length;
-      summary.innerHTML = `目前班表：<strong>出境 ${flightDefs.filter(f => f.type === 'DEP').length}</strong>、<strong>入境 ${flightDefs.filter(f => f.type === 'ARR').length}</strong>。<br>FIS 比對缺少：<strong>出境 ${depItems.length}</strong>、<strong>入境 ${arrItems.length}</strong>（共 ${total} 筆可追加）。`;
+      const recon = pendingFlightPreview.reconPlan;
+      const reconCounts = recon?.meta?.counts;
+      let reconLine = '';
+      if (reconCounts && (reconCounts.timeChanged || reconCounts.connecting || reconCounts.cancelled)) {
+        reconLine = `<br>FIS 比對異動：<strong>時間 ${reconCounts.timeChanged || 0}</strong>、<strong>接飛 ${reconCounts.connecting || 0}</strong>、<strong>取消/消失 ${reconCounts.cancelled || 0}</strong>（僅供檢視，不會自動套用）。`;
+      }
+      summary.innerHTML = `目前班表：<strong>出境 ${flightDefs.filter(f => f.type === 'DEP').length}</strong>、<strong>入境 ${flightDefs.filter(f => f.type === 'ARR').length}</strong>。<br>FIS 比對缺少：<strong>出境 ${depItems.length}</strong>、<strong>入境 ${arrItems.length}</strong>（共 ${total} 筆可追加）。${reconLine}`;
     } else if (fisParsed) {
       summary.innerHTML = `FIS 已讀取：<strong>出境 ${fisParsed.stats.dep}</strong>、<strong>入境 ${fisParsed.stats.arr}</strong>（共 ${fisParsed.stats.total} 筆）。<br>外家候選：<strong>出境 ${depItems.length}</strong>、<strong>入境 ${arrItems.length}</strong>（共 ${foreignParsed?.stats?.total || 0} 筆）。`;
     }
@@ -23601,12 +23607,15 @@ function openForeignFlightPreviewModal(fisParsed, foreignParsed) {
   renderFlightPreviewModalContent();
 }
 
-function openFisDiffPreviewModal(fisParsed) {
+function openFisDiffPreviewModal(fisParsed, reconPlan = null, reconBaseline = null) {
   const diffItems = previewItemsFromFisDiff(fisParsed.flightDefs || []);
   pendingFlightPreview = {
     mode: 'fis-diff',
     fisParsed,
     foreignParsed: null,
+    reconPlan,
+    reconBaseline,
+    reconReviewShown: !!reconPlan && planHasFisDiffReviewItems(reconPlan),
     depItems: diffItems.filter(item => item.type === 'DEP'),
     arrItems: diffItems.filter(item => item.type === 'ARR')
   };
@@ -23803,8 +23812,7 @@ function initFlightImportModals() {
 
       if (pendingFlightPreview.mode === 'fis-diff') {
         console.log('merged.length', '(n/a in fis-diff mode)');
-        const { fisParsed } = pendingFlightPreview;
-        const reconBaseline = (typeof FlightReconciliation !== 'undefined') ? captureFlightReconciliationSnapshot() : null;
+        const { fisParsed, reconReviewShown, reconBaseline } = pendingFlightPreview;
         closeForeignFlightPreviewModal();
         const added = appendFlightDefs(selectedDefs);
         const dep = selectedDefs.filter(f => f.type === 'DEP').length;
@@ -23812,7 +23820,9 @@ function initFlightImportModals() {
         let successMsg = `FIS 比對追加完成（新增 ${added} 筆；出境 ${dep}、入境 ${arr}）。請按「同步」上傳雲端。`;
         if (fisParsed?.warnings?.length) successMsg += `\n\n${fisParsed.warnings.join('\n')}`;
         appSuccess(successMsg, '追加完成');
-        runFisReimportReconciliation(reconBaseline, fisParsed);
+        if (!reconReviewShown && reconBaseline) {
+          runFisReimportReconciliation(reconBaseline, fisParsed);
+        }
         return;
       }
 
@@ -26127,6 +26137,28 @@ function buildFisTargetSnapshot(fisParsed) {
   };
 }
 
+function buildFisDiffReconciliationPlan(fisParsed, baseline = null) {
+  const snap = baseline || captureFlightReconciliationSnapshot();
+  const target = buildFisTargetSnapshot(fisParsed);
+  const plan = computeReconciliationPlan(snap, target, 'fis-diff');
+  if (!plan) return null;
+  return refineFisDiffPlan(plan, snap);
+}
+function planHasFisDiffReviewItems(plan) {
+  if (!plan) return false;
+  const cancelled = (plan.cancelled || []).filter(r => r.reason !== 'manual-kept');
+  return !!(plan.timeChanged?.length || plan.connecting?.length || cancelled.length);
+}
+async function showFisDiffReconciliationReview(plan) {
+  if (!plan || !planHasFisDiffReviewItems(plan)) return plan;
+  logFlightReconciliationPlan(plan);
+  try {
+    await ReconcileReview.review(plan);
+  } catch (err) {
+    console.warn('[FIS 比對] Review 顯示失敗', err);
+  }
+  return plan;
+}
 // 再匯入核對降噪：手動/外家新增(FIS 無)標示為保留；新航班的初始接飛不列為「異動」
 function refineFisDiffPlan(plan, baseline) {
   if (!plan) return plan;
@@ -26201,7 +26233,7 @@ const ReconcileReview = (function () {
     if (!body) return;
     const c = plan.meta.counts;
 
-    if (subtitle) subtitle.textContent = '以下為系統比對結果，僅供檢視。按「我已看過」不會套用任何變更。';
+    if (subtitle) subtitle.textContent = '以下為 FIS 與目前班表的比對結果，僅供檢視。按「我已看過」不會套用任何變更。';
     if (summary) {
       summary.innerHTML = `新增 <b>${c.added}</b>・取消 <b>${c.cancelled}</b>・時間異動 <b>${c.timeChanged}</b>・接飛異動 <b>${c.connecting}</b>`;
     }
@@ -26273,18 +26305,9 @@ const ReconcileReview = (function () {
 // 再次匯入 FIS 資料比對：Import → Build Plan → Review（Phase 1：唯讀，不做 Apply）
 async function runFisReimportReconciliation(baseline, fisParsed) {
   if (!baseline || !fisParsed || typeof FlightReconciliation === 'undefined') return null;
-  const target = buildFisTargetSnapshot(fisParsed);
-  const plan = computeReconciliationPlan(baseline, target, 'fis-diff');
+  const plan = buildFisDiffReconciliationPlan(fisParsed, baseline);
   if (!plan) return null;
-  refineFisDiffPlan(plan, baseline);
-  logFlightReconciliationPlan(plan);
-  if (!plan.meta.hasChanges) return plan;
-  try {
-    await ReconcileReview.review(plan);
-  } catch (err) {
-    console.warn('[FIS 核對] Review 顯示失敗', err);
-  }
-  return plan;
+  return showFisDiffReconciliationReview(plan);
 }
 function rebuildAfterFlightImport(newFlightDefs) {
   flightsImported = true;
@@ -36227,12 +36250,19 @@ document.getElementById('excelImportInput').addEventListener('change', async (e)
   input.value = '';
 
   if (importMode === 'fis-diff') {
-    const diffItems = previewItemsFromFisDiff(parsed.flightDefs);
-    if (!diffItems.length) {
-      appAlert('FIS 比對結果：目前班表已包含所有 FIS 航班，無需追加。', '比對完成');
+    const baseline = captureFlightReconciliationSnapshot();
+    const reconPlan = buildFisDiffReconciliationPlan(parsed, baseline);
+    const hasAppendable = !!(reconPlan?.added?.length);
+    const hasReviewItems = planHasFisDiffReviewItems(reconPlan);
+    if (!hasAppendable && !hasReviewItems) {
+      appAlert('FIS 比對結果：目前班表與 FIS 一致，無需追加也無異動。', '比對完成');
       return;
     }
-    openFisDiffPreviewModal(parsed);
+    if (hasReviewItems) await showFisDiffReconciliationReview(reconPlan);
+    if (hasAppendable) {
+      openFisDiffPreviewModal(parsed, reconPlan, baseline);
+      return;
+    }
     return;
   }
 
