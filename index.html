@@ -18635,6 +18635,37 @@ function hasMergedConnectingAssignmentOnSchedule(arrFlight, depFlight, connRole,
       && normalizeImportedFlightNo(item.depFlight || item.flight) === depNorm;
   });
 }
+function hasAnyScheduledSplitConnectingLegForPair(arrFlight, depFlight, connRole) {
+  const roles = getHomelineConnectingSplitRoles(connRole);
+  if (!roles) return false;
+  const arrNorm = normalizeImportedFlightNo(arrFlight);
+  const depNorm = normalizeImportedFlightNo(depFlight);
+  const hasDep = schedule.some(item =>
+    !item.connectingDuty
+    && !isInternScheduleDuty(item)
+    && item.flightType === 'DEP'
+    && item.role === roles.depRole
+    && normalizeImportedFlightNo(item.flight) === depNorm
+  );
+  if (!roles.arrRole) return hasDep;
+  const hasArr = schedule.some(item =>
+    !item.connectingDuty
+    && !isInternScheduleDuty(item)
+    && item.flightType === 'ARR'
+    && item.role === roles.arrRole
+    && normalizeImportedFlightNo(item.flight) === arrNorm
+  );
+  return hasDep || hasArr;
+}
+function isConnectingTemplateScheduledOnControlTable(tpl) {
+  if (!tpl?.connectingDuty) return false;
+  if (tpl.role === 'ABG' && getAbgSlotsForTemplate(tpl) > 1) {
+    return countAbgAssignmentsForTemplate(tpl) >= getAbgSlotsForTemplate(tpl);
+  }
+  if (schedule.some(x => scheduleItemMatchesTemplate(x, tpl) && !isInternScheduleDuty(x))) return true;
+  const depFlight = tpl.depFlight || tpl.flight;
+  return hasAnyScheduledSplitConnectingLegForPair(tpl.arrFlight, depFlight, tpl.role);
+}
 function hasFormalScheduleAssignmentForTemplate(tpl) {
   return schedule.some(x => scheduleItemMatchesTemplate(x, tpl) && !isInternScheduleDuty(x));
 }
@@ -18968,7 +18999,7 @@ function canAssignPaletteTemplateToPerson(tpl, personIndex) {
       if (tpl.role === 'ABG') {
         if (countAbgAssignmentsForTemplate(tpl) >= getAbgSlotsForTemplate(tpl)) return false;
         if (personHasAbgAssignment(personIndex, tpl.flight, tpl.flightType)) return false;
-      } else if (hasFormalScheduleAssignmentForTemplate(tpl)) {
+      } else if (isConnectingTemplateScheduledOnControlTable(tpl)) {
         return false;
       }
     } else if (tpl.role === 'TC') {
@@ -19615,12 +19646,9 @@ function isFlightTemplateFullyScheduled(t) {
     return countBulkyAssignmentsForTemplate(t) >= getBulkySlotsForTemplate(t);
   }
   if (t.connectingDuty) {
-    if (t.role === 'ABG' && getAbgSlotsForTemplate(t) > 1) {
-      return countAbgAssignmentsForTemplate(t) >= getAbgSlotsForTemplate(t);
-    }
-    return schedule.some(x => scheduleItemMatchesTemplate(x, t) && !isInternScheduleDuty(x));
+    return isConnectingTemplateScheduledOnControlTable(t);
   }
-  return schedule.some(x => `${x.flight}_${x.role}_${x.flightType}` === t.id && !isInternScheduleDuty(x));
+  return schedule.some(x => scheduleItemMatchesTemplate(x, t) && !isInternScheduleDuty(x));
 }
 function getPptSlotsRemaining(t) {
   if (!t || t.role !== 'PPT') return 0;
@@ -24218,6 +24246,59 @@ function migrateMergedConnectingScheduleToSplitOnUnlink(arrFlight, depFlight) {
   });
   return migrated;
 }
+function hasScheduledConnectingDutiesForPair(arrFlight, depFlight) {
+  const arrNorm = normalizeImportedFlightNo(arrFlight);
+  const depNorm = normalizeImportedFlightNo(depFlight);
+  if (!arrNorm || !depNorm) return false;
+
+  return schedule.some(item => {
+    if (isInternScheduleDuty(item)) return false;
+
+    if (item.connectingDuty && (item.homelineConnecting || item.foreignConnecting)) {
+      return normalizeImportedFlightNo(item.arrFlight) === arrNorm
+        && normalizeImportedFlightNo(item.depFlight || item.flight) === depNorm;
+    }
+
+    if (!item.connectingDuty && item.flightType === 'ARR') {
+      if (item.role !== '接機RC' && item.role !== '接機C') return false;
+      if (normalizeImportedFlightNo(item.flight) !== arrNorm) return false;
+      const connRole = item.role === '接機RC' ? 'RC' : 'BG';
+      const roles = getHomelineConnectingSplitRoles(connRole);
+      if (!roles?.depRole) return false;
+      return schedule.some(x =>
+        !x.connectingDuty
+        && x.flightType === 'DEP'
+        && x.role === roles.depRole
+        && normalizeImportedFlightNo(x.flight) === depNorm
+        && x.personIndex === item.personIndex
+      );
+    }
+
+    if (!item.connectingDuty && item.flightType === 'DEP') {
+      if (item.role !== 'RC' && item.role !== 'BG') return false;
+      if (normalizeImportedFlightNo(item.flight) !== depNorm) return false;
+      const roles = getHomelineConnectingSplitRoles(item.role);
+      if (!roles?.arrRole) return false;
+      return schedule.some(x =>
+        !x.connectingDuty
+        && x.flightType === 'ARR'
+        && x.role === roles.arrRole
+        && normalizeImportedFlightNo(x.flight) === arrNorm
+        && x.personIndex === item.personIndex
+      );
+    }
+
+    return false;
+  });
+}
+function splitConnectingScheduleOnDepChange(arrFlight, oldDepFlight) {
+  if (!arrFlight || !oldDepFlight) return;
+  if (!hasScheduledConnectingDutiesForPair(arrFlight, oldDepFlight)) {
+    clearHomelineConnectingDutyModeForPair(arrFlight, oldDepFlight);
+    return;
+  }
+  migrateMergedConnectingScheduleToSplitOnUnlink(arrFlight, oldDepFlight);
+}
 async function commitAssignmentConnectingFlightEdit(flightDefId, rawValue) {
   const f = findFlightDefById(flightDefId);
   if (!f || f.type !== 'ARR' || typeof FlightAssignmentUtils === 'undefined') return false;
@@ -24230,8 +24311,7 @@ async function commitAssignmentConnectingFlightEdit(flightDefId, rawValue) {
   if (!nextDep && !oldDep) return newVal === rawOld ? false : true;
   if (!nextDep) {
     if (oldDep) {
-      migrateMergedConnectingScheduleToSplitOnUnlink(f.flight, oldDep);
-      clearHomelineConnectingDutyModeForPair(f.flight, oldDep);
+      splitConnectingScheduleOnDepChange(f.flight, oldDep);
     }
     f.connectingFlight = '';
     f.connectingSource = '';
@@ -24267,8 +24347,7 @@ async function commitAssignmentConnectingFlightEdit(flightDefId, rawValue) {
     });
     if (!winner) return false;
     if (oldDep && oldDep !== nextDep && normalizeImportedFlightNo(f.flight) === normalizeImportedFlightNo(winner)) {
-      migrateMergedConnectingScheduleToSplitOnUnlink(f.flight, oldDep);
-      clearHomelineConnectingDutyModeForPair(f.flight, oldDep);
+      splitConnectingScheduleOnDepChange(f.flight, oldDep);
     }
     if (!applyConnectingFlightDuplicateWinner(depDef.flight, winner)) return false;
     refreshHomelineConnectingStaleFlags();
@@ -24277,8 +24356,7 @@ async function commitAssignmentConnectingFlightEdit(flightDefId, rawValue) {
   }
 
   if (oldDep && oldDep !== nextDep) {
-    migrateMergedConnectingScheduleToSplitOnUnlink(f.flight, oldDep);
-    clearHomelineConnectingDutyModeForPair(f.flight, oldDep);
+    splitConnectingScheduleOnDepChange(f.flight, oldDep);
   }
   f.connectingFlight = depDef.flight;
   f.connectingSource = 'manual';
@@ -24489,14 +24567,12 @@ async function commitAssignmentDepConnectingEdit(depFlightDefId, arrFlightRaw) {
     });
     if (!winner) return false;
     if (selectedOldDep && selectedOldDep !== depNorm && normalizeImportedFlightNo(winner) === newArrNorm) {
-      migrateMergedConnectingScheduleToSplitOnUnlink(newArrDef.flight, selectedOldDep);
-      clearHomelineConnectingDutyModeForPair(newArrDef.flight, selectedOldDep);
+      splitConnectingScheduleOnDepChange(newArrDef.flight, selectedOldDep);
     }
     if (!applyConnectingFlightDuplicateWinner(depDef.flight, winner)) return false;
   } else {
     if (selectedOldDep && selectedOldDep !== depNorm) {
-      migrateMergedConnectingScheduleToSplitOnUnlink(newArrDef.flight, selectedOldDep);
-      clearHomelineConnectingDutyModeForPair(newArrDef.flight, selectedOldDep);
+      splitConnectingScheduleOnDepChange(newArrDef.flight, selectedOldDep);
     }
     newArrDef.connectingFlight = depDef.flight;
     newArrDef.connectingSource = 'manual';
@@ -27571,15 +27647,18 @@ function getHomelineConnectingDutyModeKey(arrFlight, depFlight, connRole) {
   return base;
 }
 function getHomelineConnectingDutyMode(arrFlight, depFlight, connRole) {
+  const arrNorm = normalizeImportedFlightNo(arrFlight);
+  const depNorm = normalizeImportedFlightNo(depFlight);
+  if (connRole === 'RC' || connRole === 'BG') {
+    const roleKey = `${arrNorm}|${depNorm}|${connRole}`;
+    const storedRole = homelineConnectingDutyModes?.[roleKey];
+    if (storedRole === 'merged' || storedRole === 'split') return storedRole;
+  }
+  const legacyKey = `${arrNorm}|${depNorm}`;
+  const legacy = homelineConnectingDutyModes?.[legacyKey];
+  if (legacy === 'merged' || legacy === 'split') return legacy;
   const homelinePair = isHomelineConnectingPairFlights(arrFlight, depFlight);
   if (homelinePair && (connRole === 'RC' || connRole === 'BG')) {
-    const roleKey = getHomelineConnectingDutyModeKey(arrFlight, depFlight, connRole);
-    const stored = homelineConnectingDutyModes?.[roleKey];
-    if (stored === 'merged' || stored === 'split') return stored;
-    const legacyKey = `${normalizeImportedFlightNo(arrFlight)}|${normalizeImportedFlightNo(depFlight)}`;
-    const legacy = homelineConnectingDutyModes?.[legacyKey];
-    if (legacy === 'merged' || legacy === 'split') return legacy;
-    const arrNorm = normalizeImportedFlightNo(arrFlight);
     const arrDef = flightDefs.find(f => f.type === 'ARR' && normalizeImportedFlightNo(f.flight) === arrNorm);
     if (arrDef && ForeignDutyRules?.isHomelineFlight?.(arrDef.flight)) {
       return isHomelineConnectingWithinTwoHours(arrFlight, depFlight) ? 'merged' : 'split';
@@ -27587,7 +27666,6 @@ function getHomelineConnectingDutyMode(arrFlight, depFlight, connRole) {
     return 'merged';
   }
   const key = getHomelineConnectingDutyModeKey(arrFlight, depFlight);
-  const arrNorm = normalizeImportedFlightNo(arrFlight);
   const arrDef = flightDefs.find(f => f.type === 'ARR' && normalizeImportedFlightNo(f.flight) === arrNorm);
   if (arrDef && ForeignDutyRules?.isForeignFlightDef?.(arrDef)) return 'merged';
   const stored = homelineConnectingDutyModes?.[key];
@@ -27600,11 +27678,12 @@ function getHomelineConnectingDutyMode(arrFlight, depFlight, connRole) {
 function setHomelineConnectingDutyMode(arrFlight, depFlight, mode, connRole) {
   if (!homelineConnectingDutyModes || typeof homelineConnectingDutyModes !== 'object') homelineConnectingDutyModes = {};
   const arrNorm = normalizeImportedFlightNo(arrFlight);
+  const depNorm = normalizeImportedFlightNo(depFlight);
   const arrDef = flightDefs.find(f => f.type === 'ARR' && normalizeImportedFlightNo(f.flight) === arrNorm);
   if (mode === 'split' && arrDef && ForeignDutyRules?.isForeignFlightDef?.(arrDef)) return;
   const next = mode === 'split' ? 'split' : 'merged';
-  if (connRole && isHomelineConnectingPairFlights(arrFlight, depFlight)) {
-    homelineConnectingDutyModes[getHomelineConnectingDutyModeKey(arrFlight, depFlight, connRole)] = next;
+  if (connRole === 'RC' || connRole === 'BG') {
+    homelineConnectingDutyModes[`${arrNorm}|${depNorm}|${connRole}`] = next;
   } else {
     homelineConnectingDutyModes[getHomelineConnectingDutyModeKey(arrFlight, depFlight)] = next;
   }
@@ -27878,9 +27957,19 @@ function consolidateSplitSnapshotsToMerged(arrFlight, depFlight, connRole, forei
   if (uidsToRemove.size) schedule = schedule.filter(x => !uidsToRemove.has(x.uid));
   return count;
 }
-function consolidateConnectingSplitAssignments(arrFlight, depFlight, connRole, foreign) {
+function consolidateConnectingSplitToMerged(arrFlight, depFlight, connRole, foreign, options = {}) {
+  const initiatorPersonIndex = Number.isFinite(options.initiatorPersonIndex)
+    ? options.initiatorPersonIndex
+    : null;
+  if (initiatorPersonIndex != null) {
+    const initiatorSnapshots = buildInitiatorMergeSnapshots(arrFlight, depFlight, connRole, foreign, initiatorPersonIndex);
+    return consolidateInitiatorMergeSnapshots(arrFlight, depFlight, connRole, foreign, initiatorSnapshots);
+  }
   const snapshots = findSplitConnectingAssignments(arrFlight, depFlight, connRole, foreign);
   return consolidateSplitSnapshotsToMerged(arrFlight, depFlight, connRole, foreign, snapshots);
+}
+function consolidateConnectingSplitAssignments(arrFlight, depFlight, connRole, foreign) {
+  return consolidateConnectingSplitToMerged(arrFlight, depFlight, connRole, foreign);
 }
 function applyConnectingDutyModeChange(arrFlight, depFlight, connRole, nextMode, options = {}) {
   const foreign = options.foreign === true;
@@ -27889,35 +27978,52 @@ function applyConnectingDutyModeChange(arrFlight, depFlight, connRole, nextMode,
   const current = foreign
     ? getHomelineConnectingDutyMode(arrFlight, depFlight)
     : getHomelineConnectingDutyMode(arrFlight, depFlight, role);
-  if (current === nextMode) return;
+  const pendingMerged = nextMode === 'split'
+    ? findMergedConnectingScheduleItems(arrFlight, depFlight, role, foreign)
+    : [];
+  const pendingSplitMerge = nextMode === 'merged'
+    ? findSplitConnectingAssignments(arrFlight, depFlight, role, foreign)
+    : [];
+  if (current === nextMode) {
+    if (nextMode === 'split' && pendingMerged.length) {
+      refreshDutyTemplatesOnly();
+      pendingMerged.forEach(item => convertMergedConnectingItemToSplit(item));
+      pruneConflictingHomelineConnectingScheduleItems();
+      refreshHomelineConnectingStaleFlags();
+      if (selectedBlockId != null && !schedule.some(x => x.uid === selectedBlockId)) selectedBlockId = null;
+      if (refreshPalette) renderPalette();
+      renderRows();
+      syncAssignmentTableFromSchedule();
+      markUnsynced();
+      return;
+    }
+    if (nextMode === 'merged' && pendingSplitMerge.length) {
+      if (foreign) setHomelineConnectingDutyMode(arrFlight, depFlight, 'merged');
+      else setHomelineConnectingDutyMode(arrFlight, depFlight, 'merged', role);
+      rebuildTemplates();
+      consolidateConnectingSplitToMerged(arrFlight, depFlight, role, foreign, options);
+      pruneConflictingHomelineConnectingScheduleItems();
+      refreshHomelineConnectingStaleFlags();
+      if (selectedBlockId != null && !schedule.some(x => x.uid === selectedBlockId)) selectedBlockId = null;
+      if (refreshPalette) renderPalette();
+      renderRows();
+      syncAssignmentTableFromSchedule();
+      markUnsynced();
+      return;
+    }
+    return;
+  }
   if (nextMode === 'split') {
-    const mergedSnapshots = findMergedConnectingScheduleItems(arrFlight, depFlight, role, foreign).map(item => ({
-      uid: item.uid,
-      arrFlight: item.arrFlight,
-      depFlight: item.depFlight || item.flight,
-      role: item.role,
-      personIndex: item.personIndex
-    }));
     if (foreign) setHomelineConnectingDutyMode(arrFlight, depFlight, 'split');
     else setHomelineConnectingDutyMode(arrFlight, depFlight, 'split', role);
+    refreshDutyTemplatesOnly();
+    pendingMerged.forEach(item => convertMergedConnectingItemToSplit(item));
     rebuildTemplates();
-    mergedSnapshots.forEach(snap => convertMergedConnectingItemToSplit(snap));
   } else {
-    const initiatorPersonIndex = Number.isFinite(options.initiatorPersonIndex)
-      ? options.initiatorPersonIndex
-      : null;
-    const initiatorSnapshots = initiatorPersonIndex != null
-      ? buildInitiatorMergeSnapshots(arrFlight, depFlight, role, foreign, initiatorPersonIndex)
-      : null;
-    const splitSnapshots = initiatorSnapshots ?? findSplitConnectingAssignments(arrFlight, depFlight, role, foreign);
     if (foreign) setHomelineConnectingDutyMode(arrFlight, depFlight, 'merged');
     else setHomelineConnectingDutyMode(arrFlight, depFlight, 'merged', role);
     rebuildTemplates();
-    if (initiatorPersonIndex != null) {
-      consolidateInitiatorMergeSnapshots(arrFlight, depFlight, role, foreign, initiatorSnapshots);
-    } else {
-      consolidateSplitSnapshotsToMerged(arrFlight, depFlight, role, foreign, splitSnapshots);
-    }
+    consolidateConnectingSplitToMerged(arrFlight, depFlight, role, foreign, options);
   }
   pruneConflictingHomelineConnectingScheduleItems();
   refreshHomelineConnectingStaleFlags();
@@ -28178,8 +28284,15 @@ function getConnectingContextFromScheduleItem(item) {
 }
 function isConnectingDutyModeMerged(ctx) {
   if (!ctx) return false;
-  if (ctx.homeline) return getHomelineConnectingDutyMode(ctx.arrFlight, ctx.depFlight, ctx.connRole) === 'merged';
-  return getHomelineConnectingDutyMode(ctx.arrFlight, ctx.depFlight) === 'merged';
+  const { arrFlight, depFlight, connRole, homeline } = ctx;
+  if (hasMergedConnectingAssignmentOnSchedule(arrFlight, depFlight, connRole, !!homeline)) return true;
+  if (hasAnyScheduledSplitConnectingLegForPair(arrFlight, depFlight, connRole)) return false;
+  if (homeline) return getHomelineConnectingDutyMode(arrFlight, depFlight, connRole) === 'merged';
+  return getHomelineConnectingDutyMode(arrFlight, depFlight) === 'merged';
+}
+function getConnectingDutyEffectiveMode(arrFlight, depFlight, connRole, foreign) {
+  const ctx = { arrFlight, depFlight, connRole, homeline: !foreign };
+  return isConnectingDutyModeMerged(ctx) ? 'merged' : 'split';
 }
 function canToggleConnectingForTemplate(t) {
   const ctx = getConnectingContextFromTemplate(t);
@@ -28221,7 +28334,10 @@ function scheduleItemMatchesTemplate(item, tpl) {
       && normalizeImportedFlightNo(item.depFlight || item.flight) === normalizeImportedFlightNo(tpl.depFlight || tpl.flight)
     );
   }
-  return item.templateId === tpl.id || `${item.flight}_${item.role}_${item.flightType}` === tpl.id;
+  if (item.templateId && tpl.id && item.templateId === tpl.id) return true;
+  return normalizeImportedFlightNo(item.flight) === normalizeImportedFlightNo(tpl.flight)
+    && item.role === tpl.role
+    && (item.flightType || 'DEP') === (tpl.flightType || 'DEP');
 }
 function getAssignmentItemsForCell(flight, role) {
   const norm = normalizeImportedFlightNo(flight);
@@ -31899,11 +32015,14 @@ function pruneOrphanDutyScheduleItems() {
   if (selectedBlockId != null && !schedule.some(x => x.uid === selectedBlockId)) selectedBlockId = null;
   markUnsynced();
 }
-function rebuildTemplates() {
+function refreshDutyTemplatesOnly() {
   syncAbgSlotsFromHomelinePax({ silent: true });
   templates = hasImportedFlights()
     ? [...buildTemplates(), ...createRestTemplates(), ...createDicDutyTemplates(), ...createOtherDutyTemplates(), ...createTcTemplates(), ...createTTemplates(), ...customTemplates, ...paletteCopyTemplates]
     : [];
+}
+function rebuildTemplates() {
+  refreshDutyTemplatesOnly();
   pruneOrphanDutyScheduleItems();
 }
 
@@ -33959,10 +34078,8 @@ function openHomelineConnectingEditor(arrFlight, depFlight, connRole = 'RC', opt
     : (arrDef ? getHomelineConnectingPairForArr(arrDef) : null);
   if (!pair || normalizeImportedFlightNo(pair.depFlight) !== normalizeImportedFlightNo(depFlight)) return;
   const role = connRole === 'ABG' ? 'ABG' : (connRole === 'BG' ? 'BG' : 'RC');
-  const current = foreign
-    ? getHomelineConnectingDutyMode(arrFlight, depFlight)
-    : getHomelineConnectingDutyMode(arrFlight, depFlight, role);
-  const suggested = current === 'split' ? 'merged' : 'split';
+  const effectiveMode = getConnectingDutyEffectiveMode(arrFlight, depFlight, role, foreign);
+  const suggested = effectiveMode === 'split' ? 'merged' : 'split';
   let overlay = document.getElementById('homelineConnectingEditorOverlay');
   if (!overlay) {
     overlay = document.createElement('div');
@@ -33994,7 +34111,7 @@ function openHomelineConnectingEditor(arrFlight, depFlight, connRole = 'RC', opt
   overlay.querySelector('[data-hl-conn-save]')?.addEventListener('click', () => {
     const picked = overlay.querySelector('input[name="hl-conn-mode"]:checked')?.value;
     const next = picked === 'split' ? 'split' : 'merged';
-    if (next === current) { close(); return; }
+    if (next === effectiveMode) { close(); return; }
     pushUndoSnapshot();
     applyConnectingDutyModeChange(arrFlight, depFlight, role, next, {
       foreign,
