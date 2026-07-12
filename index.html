@@ -8572,6 +8572,7 @@
     <div class="recon-review-summary" id="reconReviewSummary"></div>
     <div class="recon-review-body" id="reconReviewBody"></div>
     <div class="rollcall-import-actions">
+      <button type="button" class="rollcall-import-btn rollcall-import-btn--ghost" id="reconReviewExport">匯出 Excel</button>
       <button type="button" class="rollcall-import-btn rollcall-import-btn--primary" id="reconReviewConfirm">我已看過</button>
     </div>
   </div>
@@ -26146,8 +26147,77 @@ function buildFisDiffReconciliationPlan(fisParsed, baseline = null) {
 }
 function planHasFisDiffReviewItems(plan) {
   if (!plan) return false;
-  const cancelled = (plan.cancelled || []).filter(r => r.reason !== 'manual-kept');
-  return !!(plan.timeChanged?.length || plan.connecting?.length || cancelled.length);
+  return !!(plan.added?.length || plan.cancelled?.length || plan.timeChanged?.length || plan.connecting?.length);
+}
+function buildFisOutOfScopeFlightKeys(baseline) {
+  const norm = normalizeImportedFlightNo;
+  const keys = new Set();
+  (baseline.flights || []).forEach(f => {
+    if (f.manual || isForeignPreviewFlight(f.flight)) {
+      keys.add(`${norm(f.flight)}|${String(f.type).toUpperCase()}`);
+    }
+  });
+  return keys;
+}
+function exportFisReconciliationPlanExcel(plan) {
+  if (!plan) return;
+  if (typeof XLSX === 'undefined') {
+    appAlert('Excel 套件尚未載入，請確認網路連線後重新整理頁面。', '無法匯出');
+    return;
+  }
+  const c = plan.meta?.counts || {};
+  const dirLabel = (type) => String(type || '').toUpperCase() === 'DEP' ? '出境' : '入境';
+  const flightLabel = (x) => {
+    const s = String(x || '').trim();
+    if (!s) return '-';
+    return (typeof compactDutyFlightNo === 'function' ? (compactDutyFlightNo(s) || s) : s);
+  };
+  const CANCEL_REASON = {
+    'CANX': 'FIS 標記取消',
+    'missing': 'FIS 已無此航班'
+  };
+  const CONN_SUGGEST = {
+    'manual-skip': 'manual（本階段略過）',
+    'split': '拆開接飛',
+    'pick': '需選擇保留',
+    'update': '更新接飛'
+  };
+  const rows = [
+    ['FIS 比對結果', excelCell(getScheduleExportDateText() || selectedDate || '')],
+    ['新增', c.added || 0, '取消', c.cancelled || 0, '時間異動', c.timeChanged || 0, '接飛異動', c.connecting || 0],
+    []
+  ];
+  rows.push(['新增航班'], ['航班', '方向', '時間']);
+  if (plan.added?.length) {
+    plan.added.forEach(a => rows.push([excelCell(flightLabel(a.flight)), excelCell(dirLabel(a.type)), excelCell(a.time || '-')]));
+  } else rows.push(['無']);
+  rows.push([]);
+  rows.push(['取消航班'], ['航班', '方向', '原因', '受影響 duty']);
+  if (plan.cancelled?.length) {
+    plan.cancelled.forEach(x => {
+      const reason = CANCEL_REASON[x.reason] || 'FIS 已無此航班';
+      rows.push([excelCell(flightLabel(x.flight)), excelCell(dirLabel(x.type)), excelCell(reason), excelCell(x.affectedDuties?.length || 0)]);
+    });
+  } else rows.push(['無']);
+  rows.push([]);
+  rows.push(['STD / STA 時間異動'], ['航班', '方向', '欄位', '原時間', '新時間', '受影響 duty']);
+  if (plan.timeChanged?.length) {
+    plan.timeChanged.forEach(x => {
+      rows.push([excelCell(flightLabel(x.flight)), excelCell(dirLabel(x.type)), excelCell(x.field), excelCell(x.from || '-'), excelCell(x.to || '-'), excelCell(x.affectedDuties?.length || 0)]);
+    });
+  } else rows.push(['無']);
+  rows.push([]);
+  rows.push(['接飛異動'], ['入境', '原接飛', '新接飛', '建議', '受影響 duty']);
+  if (plan.connecting?.length) {
+    plan.connecting.forEach(x => {
+      const label = CONN_SUGGEST[x.suggested] || x.suggested || '-';
+      rows.push([excelCell(flightLabel(x.arrFlight)), excelCell(flightLabel(x.oldDep)), excelCell(flightLabel(x.newDep)), excelCell(label), excelCell(x.affectedDuties?.length || 0)]);
+    });
+  } else rows.push(['無']);
+  const sheet = XLSX.utils.aoa_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, sheet, 'FIS比對');
+  XLSX.writeFile(wb, `fis_recon_diff_${getScheduleExportFileDate()}.xlsx`);
 }
 async function showFisDiffReconciliationReview(plan) {
   if (!plan || !planHasFisDiffReviewItems(plan)) return plan;
@@ -26159,16 +26229,26 @@ async function showFisDiffReconciliationReview(plan) {
   }
   return plan;
 }
-// 再匯入核對降噪：手動/外家新增(FIS 無)標示為保留；新航班的初始接飛不列為「異動」
+// 再匯入核對降噪：外家/手動航班不在 FIS 比對範圍，不列為異動；新航班的初始接飛不列為「異動」
 function refineFisDiffPlan(plan, baseline) {
   if (!plan) return plan;
   const norm = normalizeImportedFlightNo;
-  const baseArrKeys = new Set((baseline.flights || []).filter(f => f.type === 'ARR').map(f => norm(f.flight)));
-  const manualKeys = new Set((baseline.flights || []).filter(f => f.manual).map(f => norm(f.flight)));
-  plan.connecting = plan.connecting.filter(r => baseArrKeys.has(norm(r.arrFlight)));
-  plan.cancelled.forEach(r => {
-    if (manualKeys.has(norm(r.flight))) r.reason = 'manual-kept';
+  const outOfScopeKeys = buildFisOutOfScopeFlightKeys(baseline);
+  const baseArrKeys = new Set(
+    (baseline.flights || [])
+      .filter(f => f.type === 'ARR' && !isForeignPreviewFlight(f.flight))
+      .map(f => norm(f.flight))
+  );
+  plan.cancelled = plan.cancelled.filter(r => {
+    const key = `${norm(r.flight)}|${String(r.type).toUpperCase()}`;
+    return !outOfScopeKeys.has(key);
   });
+  plan.connecting = plan.connecting.filter(r => {
+    if (!baseArrKeys.has(norm(r.arrFlight))) return false;
+    if (isForeignPreviewFlight(r.arrFlight)) return false;
+    return true;
+  });
+  plan.meta.counts.cancelled = plan.cancelled.length;
   plan.meta.counts.connecting = plan.connecting.length;
   plan.meta.hasChanges = !!(plan.added.length || plan.cancelled.length || plan.timeChanged.length || plan.connecting.length);
   return plan;
@@ -26178,6 +26258,7 @@ function refineFisDiffPlan(plan, baseline) {
 const ReconcileReview = (function () {
   let resolver = null;
   let bound = false;
+  let currentPlan = null;
 
   const el = (id) => document.getElementById(id);
 
@@ -26189,6 +26270,9 @@ const ReconcileReview = (function () {
     const done = () => finish();
     el('reconReviewClose')?.addEventListener('click', done);
     el('reconReviewConfirm')?.addEventListener('click', done);
+    el('reconReviewExport')?.addEventListener('click', () => {
+      if (currentPlan) exportFisReconciliationPlanExcel(currentPlan);
+    });
     modal.querySelectorAll('[data-recon-dismiss]').forEach(x => x.addEventListener('click', done));
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape' && !modal.hidden) { e.preventDefault(); finish(); }
@@ -26246,7 +26330,6 @@ const ReconcileReview = (function () {
     const cancelledAffected = plan.cancelled.reduce((s, x) => s + x.affectedDuties.length, 0);
     const CANCEL_REASON = {
       'CANX': 'FIS 標記取消',
-      'manual-kept': '手動/外家新增（FIS 無，保留）',
       'missing': 'FIS 已無此航班'
     };
     const cancelledRows = plan.cancelled.map(x => {
@@ -26285,6 +26368,7 @@ const ReconcileReview = (function () {
     if (modal) modal.hidden = true;
     const r = resolver;
     resolver = null;
+    currentPlan = null;
     if (r) r({ acknowledged: true });
   }
 
@@ -26293,6 +26377,7 @@ const ReconcileReview = (function () {
       const modal = el('reconReviewModal');
       if (!modal || !plan) { resolve({ acknowledged: false }); return; }
       bindOnce();
+      currentPlan = plan;
       render(plan);
       resolver = resolve;
       modal.hidden = false;
