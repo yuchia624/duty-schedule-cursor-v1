@@ -17,6 +17,8 @@
 <script src="duty-qualification.js?v=20260703-v4"></script>
 <script src="duty-stats.js?v=20260712-v2"></script>
 <script src="schedule-level-control.js?v=20260712-v2"></script>
+<script src="schedule-diff-core.js?v=20260712-v8"></script>
+<script src="schedule-diff.js?v=20260712-v8"></script>
 <script src="flight-reconciliation.js?v=20260704-recon-v0"></script>
 <script src="homeline-pax-parser.js?v=20260620-v4"></script>
 <script src="homeline-pax-registry.js?v=20260621-v3"></script>
@@ -25,6 +27,7 @@
 <script src="dest-class-parser.js?v=20260620-v1"></script>
 <link rel="stylesheet" href="duty-stats.css?v=20260712-v2">
 <link rel="stylesheet" href="schedule-level-control.css?v=20260712-v1">
+<link rel="stylesheet" href="schedule-diff.css?v=20260712-v9">
 <title>今天的完整拖拉管制表 v2</title>
 <style>
   :root {
@@ -32400,6 +32403,7 @@ function switchScheduleDate(newDate) {
   refreshScheduleViewsAfterDateChange();
   attachFirebaseForSelectedDate();
   clearUndoHistory();
+  ScheduleDiff?.notifyDateChanged?.();
   if (typeof renderWorkbenchDashboard === 'function') renderWorkbenchDashboard();
 }
 function confirmConflict(personIndex, itemUid, start, end, duty) {
@@ -34402,6 +34406,9 @@ function getDisplayRows() {
     const statsMap = DutyStats.buildStatsMap(schedule, people);
     finalRows = DutyStats.applyToDisplayRows(finalRows, statsMap);
   }
+  if (typeof ScheduleDiff !== 'undefined' && ScheduleDiff.isDiffViewActive()) {
+    finalRows = ScheduleDiff.applyToDisplayRows(finalRows);
+  }
   return finalRows;
 }
 
@@ -34936,6 +34943,10 @@ function renderRows() {
     }
     const row = document.createElement('div');
     row.className = 'row';
+    if (typeof ScheduleDiff !== 'undefined' && ScheduleDiff.isDiffViewActive()
+      && ScheduleDiff.isPersonAffected(rowInfo.originalIndex)) {
+      row.classList.add('row-schedule-diff-affected');
+    }
     if (rowInfo.pinned) {
       row.classList.add('flight-match-pinned');
       row.style.setProperty('--pin-i', String(pinnedStackIndex));
@@ -35151,6 +35162,7 @@ function renderRows() {
   syncAssignmentTableFromSchedule();
   renderOvertimePanel();
   fitAllBlockLabels();
+  ScheduleDiff?.notifyRowsRendered?.();
   } finally {
     if (scrollHost != null && savedScrollTop != null) restoreScheduleScrollTop(scrollHost, savedScrollTop);
     restoreScheduleEditFocusSnapshot(focusSnapshot);
@@ -36105,6 +36117,35 @@ if (typeof DutyStats !== 'undefined') {
       const level = String(person?.level || resolveLevel(person) || '').trim();
       return getScheduleBlockALevelRank(level);
     }
+  });
+}
+if (typeof ScheduleDiff !== 'undefined') {
+  ScheduleDiff.init({
+    onChange() { renderRows(); },
+    getSnapshot: () => captureUndoState(),
+    getDutyLabel: (item) => getDutyDisplayLabel(item),
+    getPersonName(personIndex) {
+      const person = people[personIndex];
+      return String(person?.name || resolvePersonnelId(person) || `#${personIndex + 1}`).trim();
+    },
+    getPersonKey(personIndex) {
+      const person = people[personIndex];
+      return String(resolvePersonnelId(person) || person?.name || personIndex);
+    },
+    getPersonSeq(personIndex) {
+      return buildPersonDisplaySeqMap().get(personIndex) ?? null;
+    },
+    getBlockLayout(item) {
+      const slice = getVisibleDutySlice({ start: item.start, end: item.end });
+      if (!slice) return null;
+      return {
+        personIndex: item.personIndex,
+        left: timeToLeft(slice.start),
+        width: durationToWidth(slice.start, slice.end)
+      };
+    },
+    getExportFileDate: () => getScheduleExportFileDate(),
+    getExportDateText: () => getScheduleExportDateText()
   });
 }
 syncScheduleWindows();
