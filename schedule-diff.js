@@ -314,26 +314,40 @@
     document.body.appendChild(modal);
   }
 
+  const BASELINE_BTN_ICON = [
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">',
+    '<path d="m19 21-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>',
+    '<path d="M12 7v6"/>',
+    '<path d="M9 10h6"/>',
+    '</svg>'
+  ].join('');
+
   function ensureToolbarButtons() {
-    if (document.getElementById('scheduleDiffSetBaselineBtn')) return;
     const side = document.querySelector('.toolbar-schedule-side');
     if (!side) return;
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    btn.className = 'toolbar-icon-btn';
-    btn.id = 'scheduleDiffSetBaselineBtn';
-    btn.setAttribute('aria-label', '設為基準');
-    btn.setAttribute('aria-pressed', 'false');
-    btn.innerHTML = [
-      '<span class="toolbar-icon-btn__icon" aria-hidden="true">',
-      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">',
-      '<path d="M12 3v3"/><path d="M6.5 6.5 8.7 8.7"/><path d="M3 12h3"/><path d="M6.5 17.5 8.7 15.3"/><path d="M12 18v3"/><path d="M17.5 17.5 15.3 15.3"/><path d="M18 12h3"/><path d="M17.5 6.5 15.3 8.7"/>',
-      '<circle cx="12" cy="12" r="4"/>',
-      '</svg>',
-      '</span>',
-      '<span class="toolbar-icon-btn__tip">設為基準</span>'
-    ].join('');
-    side.insertBefore(btn, side.firstChild);
+    const overtimeBtn = document.getElementById('toggleOvertimeToolbarBtn');
+    let btn = document.getElementById('scheduleDiffSetBaselineBtn');
+    if (!btn) {
+      btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'toolbar-icon-btn';
+      btn.id = 'scheduleDiffSetBaselineBtn';
+      btn.setAttribute('aria-label', '設為基準');
+      btn.setAttribute('aria-pressed', 'false');
+      btn.innerHTML = [
+        '<span class="toolbar-icon-btn__icon" aria-hidden="true">',
+        BASELINE_BTN_ICON,
+        '</span>',
+        '<span class="toolbar-icon-btn__tip">設為基準</span>'
+      ].join('');
+      side.appendChild(btn);
+    } else {
+      const icon = btn.querySelector('.toolbar-icon-btn__icon');
+      if (icon) icon.innerHTML = BASELINE_BTN_ICON;
+    }
+    if (overtimeBtn && btn.previousElementSibling !== overtimeBtn) {
+      overtimeBtn.insertAdjacentElement('afterend', btn);
+    }
   }
 
   function syncToolbarBtn() {
