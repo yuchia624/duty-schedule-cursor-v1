@@ -2807,6 +2807,12 @@
     font-size: 12px;
   }
   #reconReviewModal .recon-arrow { color: #94a3b8; padding: 0 2px; }
+  #reconReviewModal .recon-conn-time {
+    color: #64748b;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    margin-left: 1px;
+  }
   #reconReviewModal .recon-tag {
     display: inline-block;
     padding: 1px 6px;
@@ -26118,7 +26124,17 @@ function logFlightReconciliationPlan(plan) {
     }
     if (plan.connecting.length) {
       console.log('🔗 接飛異動');
-      console.table(plan.connecting.map(c => ({ 入境: c.arrFlight, 原接飛: c.oldDep, 新接飛: c.newDep, 重複: c.duplicate, manual: c.manual, 建議: c.suggested, 已排duty: c.affectedDuties.length })));
+      console.table(plan.connecting.map(c => ({
+        入境: c.arrFlight,
+        原接飛: c.oldDep,
+        原接飛時間: c.oldConnMinutes != null ? c.oldConnMinutes : '',
+        新接飛: c.newDep,
+        新接飛時間: c.newConnMinutes != null ? c.newConnMinutes : '',
+        重複: c.duplicate,
+        manual: c.manual,
+        建議: c.suggested,
+        已排duty: c.affectedDuties.length
+      })));
     }
     console.groupEnd();
   } catch (_) {}
@@ -26175,6 +26191,25 @@ function planHasFisDiffReviewItems(plan) {
   if (!plan) return false;
   return !!(plan.added?.length || plan.cancelled?.length || plan.timeChanged?.length || plan.connecting?.length);
 }
+/** FIS 比對畫面／匯出用：保留航空公司代碼（勿用 compactDutyFlightNo，BR 會被去掉前綴） */
+function formatReconFlightNo(flight) {
+  const raw = String(flight || '').trim();
+  if (!raw) return '';
+  const normFn = typeof normalizeImportedFlightNo === 'function'
+    ? normalizeImportedFlightNo
+    : (v) => String(v || '').trim().toUpperCase();
+  const key = normFn(raw);
+  if (Array.isArray(flightDefs) && flightDefs.length) {
+    const hit = flightDefs.find(f => f && normFn(f.flight) === key);
+    if (hit?.flight) return String(hit.flight).trim();
+  }
+  const s = String(key || raw).toUpperCase();
+  const m = s.match(/^([A-Z]{2})(\d+)$/);
+  if (!m) return raw;
+  const trimmed = m[2].replace(/^0+/, '') || '0';
+  const num = trimmed.length === 1 ? trimmed.padStart(2, '0') : trimmed;
+  return `${m[1]}${num}`;
+}
 function buildFisOutOfScopeFlightKeys(baseline) {
   const norm = normalizeImportedFlightNo;
   const keys = new Set();
@@ -26193,11 +26228,7 @@ function exportFisReconciliationPlanExcel(plan) {
   }
   const c = plan.meta?.counts || {};
   const dirLabel = (type) => String(type || '').toUpperCase() === 'DEP' ? '出境' : '入境';
-  const flightLabel = (x) => {
-    const s = String(x || '').trim();
-    if (!s) return '-';
-    return (typeof compactDutyFlightNo === 'function' ? (compactDutyFlightNo(s) || s) : s);
-  };
+  const flightLabel = (x) => formatReconFlightNo(x) || '-';
   const CANCEL_REASON = {
     'CANX': 'FIS 標記取消',
     'missing': 'FIS 已無此航班'
@@ -26233,11 +26264,21 @@ function exportFisReconciliationPlanExcel(plan) {
     });
   } else rows.push(['無']);
   rows.push([]);
-  rows.push(['接飛異動'], ['入境', '原接飛', '新接飛', '建議', '受影響 duty']);
+  rows.push(['接飛異動'], ['入境', '原接飛', '原接飛時間(STD−STA)', '新接飛', '新接飛時間(STD−STA)', '建議', '受影響 duty']);
   if (plan.connecting?.length) {
     plan.connecting.forEach(x => {
       const label = CONN_SUGGEST[x.suggested] || x.suggested || '-';
-      rows.push([excelCell(flightLabel(x.arrFlight)), excelCell(flightLabel(x.oldDep)), excelCell(flightLabel(x.newDep)), excelCell(label), excelCell(x.affectedDuties?.length || 0)]);
+      const oldGap = x.oldConnMinutes != null ? formatGapDurationText(x.oldConnMinutes) : '-';
+      const newGap = x.newConnMinutes != null ? formatGapDurationText(x.newConnMinutes) : '-';
+      rows.push([
+        excelCell(flightLabel(x.arrFlight)),
+        excelCell(flightLabel(x.oldDep)),
+        excelCell(oldGap),
+        excelCell(flightLabel(x.newDep)),
+        excelCell(newGap),
+        excelCell(label),
+        excelCell(x.affectedDuties?.length || 0)
+      ]);
     });
   } else rows.push(['無']);
   const sheet = XLSX.utils.aoa_to_sheet(rows);
@@ -26307,10 +26348,17 @@ const ReconcileReview = (function () {
 
   const dir = (type) => String(type || '').toUpperCase() === 'DEP' ? '出境' : '入境';
   function fnum(x) {
-    const s = String(x || '').trim();
-    if (!s) return '—';
-    const label = (typeof compactDutyFlightNo === 'function' ? (compactDutyFlightNo(s) || s) : s);
-    return escapeHtml(label);
+    const label = formatReconFlightNo(x);
+    return label ? escapeHtml(label) : '—';
+  }
+  function connFlightCell(flight, connMinutes) {
+    const label = fnum(flight);
+    if (label === '—') return '—';
+    if (connMinutes == null || !Number.isFinite(Number(connMinutes))) return label;
+    const gap = typeof formatGapDurationText === 'function'
+      ? formatGapDurationText(connMinutes)
+      : `${Math.round(Number(connMinutes))}分`;
+    return `${label}<span class="recon-conn-time">（${escapeHtml(gap)}）</span>`;
   }
   function dutyBadge(n) {
     const cls = n > 0 ? 'recon-duty-count' : 'recon-duty-count is-zero';
@@ -26376,7 +26424,9 @@ const ReconcileReview = (function () {
     const connRows = plan.connecting.map(x => {
       const [label, cls] = CONN_SUGGEST[x.suggested] || [x.suggested || '', ''];
       const dupTag = x.duplicate ? ` <span class="recon-tag recon-tag--dup">重複</span>` : '';
-      return `<tr><td>${fnum(x.arrFlight)}</td><td>${fnum(x.oldDep)}</td><td>${fnum(x.newDep)}${dupTag}</td>`
+      return `<tr><td>${fnum(x.arrFlight)}</td>`
+        + `<td>${connFlightCell(x.oldDep, x.oldConnMinutes)}</td>`
+        + `<td>${connFlightCell(x.newDep, x.newConnMinutes)}${dupTag}</td>`
         + `<td><span class="recon-tag ${cls}">${escapeHtml(label)}</span></td>`
         + `<td>${dutyBadge(x.affectedDuties.length)}</td></tr>`;
     }).join('');

@@ -152,6 +152,8 @@
     const connecting = buildConnectingChanges({
       baseConn: connectingMap(base.connecting, norm),
       curConn: connectingMap(cur.connecting, norm),
+      baseFlights,
+      curFlights,
       norm,
       within2h,
       scheduleItems
@@ -176,7 +178,36 @@
     };
   }
 
-  function buildConnectingChanges({ baseConn, curConn, norm, within2h, scheduleItems }) {
+  function flightLookup(flightsMaps, flight, type, norm) {
+    if (!flight) return null;
+    const key = flightKey(flight, type, norm);
+    for (const map of flightsMaps) {
+      const f = map && map.get(key);
+      if (f) return f;
+    }
+    return null;
+  }
+
+  function depBaseTime(flightsMaps, dep, norm) {
+    const f = flightLookup(flightsMaps, dep, 'DEP', norm);
+    return f && f.baseTime ? String(f.baseTime) : '';
+  }
+
+  /** 接飛時間 = 出境 STD − 入境 STA（分鐘）；跨午夜時 +1440。 */
+  function connectingGapMinutes(arr, dep, arrMaps, depMaps, norm) {
+    if (!arr || !dep) return null;
+    const arrF = flightLookup(arrMaps, arr, 'ARR', norm);
+    const depF = flightLookup(depMaps, dep, 'DEP', norm);
+    if (!arrF || !depF) return null;
+    const arrMin = Number(arrF.baseMinutes);
+    const depMin = Number(depF.baseMinutes);
+    if (!Number.isFinite(arrMin) || !Number.isFinite(depMin)) return null;
+    let diff = depMin - arrMin;
+    if (diff <= 0) diff += 1440;
+    return diff;
+  }
+
+  function buildConnectingChanges({ baseConn, curConn, baseFlights, curFlights, norm, within2h, scheduleItems }) {
     // 新狀態下每個 DEP 被哪些 ARR 接（找重複）
     const depToArrs = new Map();
     curConn.forEach((info, arr) => {
@@ -188,6 +219,7 @@
     const rows = [];
     const seenArr = new Set();
     const arrKeys = new Set([...baseConn.keys(), ...curConn.keys()]);
+    const flightMaps = { baseFlights, curFlights };
 
     arrKeys.forEach((arr) => {
       const oldInfo = baseConn.get(arr) || { dep: '', source: '' };
@@ -200,7 +232,7 @@
       // 只納入「有變更」或「新狀態產生重複」
       if (oldDep === newDep && !dup) return;
 
-      rows.push(makeConnectingRow({ arr, oldDep, newDep, dup, isManual, within2h, scheduleItems, norm }));
+      rows.push(makeConnectingRow({ arr, oldDep, newDep, dup, isManual, within2h, scheduleItems, norm, flightMaps }));
       seenArr.add(arr);
     });
 
@@ -212,7 +244,9 @@
         const oldInfo = baseConn.get(arr) || { dep: '', source: '' };
         const newInfo = curConn.get(arr) || { dep: '', source: '' };
         const isManual = newInfo.source === 'manual' || oldInfo.source === 'manual';
-        rows.push(makeConnectingRow({ arr, oldDep: oldInfo.dep, newDep: dep, dup: true, isManual, within2h, scheduleItems, norm }));
+        rows.push(makeConnectingRow({
+          arr, oldDep: oldInfo.dep, newDep: dep, dup: true, isManual, within2h, scheduleItems, norm, flightMaps
+        }));
         seenArr.add(arr);
       });
     });
@@ -220,7 +254,7 @@
     return rows;
   }
 
-  function makeConnectingRow({ arr, oldDep, newDep, dup, isManual, within2h, scheduleItems, norm }) {
+  function makeConnectingRow({ arr, oldDep, newDep, dup, isManual, within2h, scheduleItems, norm, flightMaps }) {
     let suggested;
     if (isManual) {
       suggested = 'manual-skip';
@@ -233,10 +267,25 @@
     } else {
       suggested = 'update'; // 換 DEP 且 <=2h → 更新接飛
     }
+    const baseFlights = flightMaps?.baseFlights;
+    const curFlights = flightMaps?.curFlights;
+    // 原配對：優先用匯入前時間；新配對：優先用 FIS 新狀態（無→有時可直接看到 STD−STA）
+    const oldConnMinutes = connectingGapMinutes(
+      arr, oldDep, [baseFlights, curFlights], [baseFlights, curFlights], norm
+    );
+    const newConnMinutes = connectingGapMinutes(
+      arr, newDep, [curFlights, baseFlights], [curFlights, baseFlights], norm
+    );
+    const oldDepTime = depBaseTime([baseFlights, curFlights], oldDep, norm);
+    const newDepTime = depBaseTime([curFlights, baseFlights], newDep, norm);
     return {
       arrFlight: arr,
       oldDep,
       newDep,
+      oldDepTime,
+      newDepTime,
+      oldConnMinutes,
+      newConnMinutes,
       duplicate: dup,
       manual: isManual,
       suggested,
