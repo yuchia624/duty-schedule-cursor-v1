@@ -17582,13 +17582,16 @@ function saveCloudNow() {
   }
   const payload = getCloudState();
   const uploadedAtLocal = String(payload.updatedAtLocal || '');
+  // Lock the fingerprint we actually uploaded — do not re-read live state in then(),
+  // which can race with a stale onSnapshot and falsely "confirm" old content.
+  const uploadedJson = json;
   setCloudStatus('上傳中', 'saving');
   return scheduleDocRef.set({
     ...payload,
     updatedAt: firebase.firestore.FieldValue.serverTimestamp()
   }, { merge: true })
     .then(() => {
-      lastCloudJson = getLiveCloudFingerprint();
+      lastCloudJson = uploadedJson;
       lastCloudUpdatedAtLocal = uploadedAtLocal;
       setCloudStatus('已同步', 'synced');
       return true;
@@ -17655,11 +17658,6 @@ function processScheduleFirestoreSnapshot(doc) {
   const data = doc.data();
   remoteDayEditorMeta = captureRemoteEditorMeta(data);
   const remoteUpdated = String(data.updatedAtLocal || '');
-  if (remoteUpdated && remoteUpdated === lastCloudUpdatedAtLocal && lastCloudJson) {
-    setCloudStatus('已同步', 'synced');
-    cloudReady = true;
-    return;
-  }
   const remoteState = {
     people: data.people,
     peopleDisplayOrder: data.peopleDisplayOrder,
@@ -17679,9 +17677,21 @@ function processScheduleFirestoreSnapshot(doc) {
     overtimeHourOverrides: data.overtimeHourOverrides,
     dicOvertimeApprovals: data.dicOvertimeApprovals,
     flightsImported: data.flightsImported === true,
+    timelinePinnedPersonTokens: Array.isArray(data.timelinePinnedPersonTokens)
+      ? data.timelinePinnedPersonTokens
+      : [],
     updatedAtLocal: data.updatedAtLocal
   };
   const remoteJson = cloudStateFingerprint(remoteState);
+  // Echo: same write generation — only skip when content also matches our baseline.
+  // Matching updatedAtLocal alone can leave the UI stuck on a stale apply that raced the upload.
+  if (remoteUpdated && remoteUpdated === lastCloudUpdatedAtLocal && lastCloudJson) {
+    if (remoteJson === lastCloudJson) {
+      setCloudStatus('已同步', 'synced');
+      cloudReady = true;
+      return;
+    }
+  }
   if (remoteJson === lastCloudJson) {
     lastCloudUpdatedAtLocal = remoteUpdated;
     setCloudStatus('已同步', 'synced');
@@ -17694,6 +17704,22 @@ function processScheduleFirestoreSnapshot(doc) {
     lastCloudUpdatedAtLocal = remoteUpdated;
     setCloudStatus('已同步', 'synced');
     cloudReady = true;
+    return;
+  }
+  // Reject stale snapshots that arrive after a newer local upload (common with cache / race).
+  const remoteTs = Date.parse(remoteUpdated) || 0;
+  const lastTs = Date.parse(lastCloudUpdatedAtLocal) || 0;
+  if (lastCloudUpdatedAtLocal && remoteTs && remoteTs < lastTs) {
+    cloudReady = true;
+    return;
+  }
+  // Protect unsynced local edits (e.g. manual 接飛) from being wiped by older cloud data.
+  // Day schedule uses markUnsynced + manual Sync; local must win until upload completes.
+  if (lastCloudJson && localLiveJson !== lastCloudJson) {
+    cloudReady = true;
+    if (dayCloudStatus.mode !== 'saving') {
+      setCloudStatus('尚未同步', 'pending');
+    }
     return;
   }
   lastCloudJson = remoteJson;
