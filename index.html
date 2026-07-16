@@ -17579,6 +17579,16 @@ function scheduleSharedConfigSave() {
   sharedConfigSaveTimer = setTimeout(saveSharedConfigNow, 350);
 }
 
+function dayHasMeaningfulScheduleData() {
+  if (Array.isArray(schedule) && schedule.length > 0) return true;
+  if (flightsImported === true && Array.isArray(flightDefs) && flightDefs.length > 0) return true;
+  if (Array.isArray(people) && people.some(p => {
+    const shift = String(p?.adjustedShift || p?.shift || '').trim();
+    return !!shift;
+  })) return true;
+  return false;
+}
+
 function saveCloudNow() {
   if (!cloudReady || !scheduleDocRef || applyingRemote) return Promise.resolve(false);
   const json = getLiveCloudFingerprint();
@@ -17586,25 +17596,50 @@ function saveCloudNow() {
     setCloudStatus('已同步', 'synced');
     return Promise.resolve(true);
   }
+  // Refuse to upload an empty shell over a known non-empty cloud baseline.
+  // Empty shell = seed/default people with no shifts, no schedule, no flights.
+  if (!dayHasMeaningfulScheduleData() && lastCloudJson) {
+    try {
+      const prev = JSON.parse(lastCloudJson);
+      const prevMeaningful = !!(
+        (Array.isArray(prev.schedule) && prev.schedule.length) ||
+        (prev.flightsImported === true && Array.isArray(prev.flightDefs) && prev.flightDefs.length) ||
+        (Array.isArray(prev.people) && prev.people.some(p => String(p?.adjustedShift || p?.shift || '').trim()))
+      );
+      if (prevMeaningful) {
+        console.warn('[cloud] skip empty-shell upload that would wipe remote day data');
+        setCloudStatus('尚未同步', 'pending');
+        return Promise.resolve(false);
+      }
+    } catch (_) {}
+  }
   const payload = getCloudState();
   const uploadedAtLocal = String(payload.updatedAtLocal || '');
   // Lock the fingerprint we actually uploaded — do not re-read live state in then(),
   // which can race with a stale onSnapshot and falsely "confirm" old content.
   const uploadedJson = json;
+  // Capture date + doc for this write. switchScheduleDate may move us to another day
+  // before then() runs; never poison the new day's baseline with the old upload.
+  const uploadedDate = selectedDate;
+  const uploadedDocRef = scheduleDocRef;
   setCloudStatus('上傳中', 'saving');
-  return scheduleDocRef.set({
+  return uploadedDocRef.set({
     ...payload,
     updatedAt: firebase.firestore.FieldValue.serverTimestamp()
   }, { merge: true })
     .then(() => {
-      lastCloudJson = uploadedJson;
-      lastCloudUpdatedAtLocal = uploadedAtLocal;
-      setCloudStatus('已同步', 'synced');
+      if (selectedDate === uploadedDate && scheduleDocRef === uploadedDocRef) {
+        lastCloudJson = uploadedJson;
+        lastCloudUpdatedAtLocal = uploadedAtLocal;
+        setCloudStatus('已同步', 'synced');
+      }
       return true;
     })
     .catch(err => {
       console.error(err);
-      setCloudStatus('同步失敗', 'offline');
+      if (selectedDate === uploadedDate && scheduleDocRef === uploadedDocRef) {
+        setCloudStatus('同步失敗', 'offline');
+      }
       return false;
     });
 }
@@ -17623,6 +17658,7 @@ function detachFirebaseSync() {
   }
   scheduleDocRef = null;
   cloudReady = false;
+  lastCloudJson = '';
   lastCloudUpdatedAtLocal = '';
   if (cloudSaveTimer) {
     clearTimeout(cloudSaveTimer);
@@ -17639,14 +17675,20 @@ function processScheduleFirestoreSnapshot(doc) {
     if (hasLocal) {
       loadDayDataFromLocalStorage(selectedDate);
       cloudReady = true;
-      setCloudStatus('上傳本機資料至雲端', 'saving');
       if (typeof renderTimeHeader === 'function') renderTimeHeader();
       if (typeof renderAssignmentTableFromFlightDefs === 'function') renderAssignmentTableFromFlightDefs();
       if (typeof renderFlightEditor === 'function') renderFlightEditor();
       if (typeof renderPalette === 'function') renderPalette();
       if (typeof renderRows === 'function') renderRows();
       if (typeof syncAssignmentTableFromSchedule === 'function') syncAssignmentTableFromSchedule();
-      scheduleCloudSave();
+      // Only auto-upload meaningful local data; empty shells must not create/wipe cloud docs.
+      if (dayHasMeaningfulScheduleData()) {
+        setCloudStatus('上傳本機資料至雲端', 'saving');
+        scheduleCloudSave();
+      } else {
+        setCloudStatus('尚未同步', 'pending');
+        markUnsynced();
+      }
       return;
     }
     seedEmptyDayStateForCloud();
@@ -17713,15 +17755,18 @@ function processScheduleFirestoreSnapshot(doc) {
     return;
   }
   // Reject stale snapshots that arrive after a newer local upload (common with cache / race).
+  // Require lastCloudJson so a cross-date upload cannot block the first apply on a newly selected day.
+  // Never let an empty-shell local block a meaningful remote (would leave the day looking wiped).
   const remoteTs = Date.parse(remoteUpdated) || 0;
   const lastTs = Date.parse(lastCloudUpdatedAtLocal) || 0;
-  if (lastCloudUpdatedAtLocal && remoteTs && remoteTs < lastTs) {
+  const localIsEmptyShell = !dayHasMeaningfulScheduleData();
+  if (lastCloudJson && lastCloudUpdatedAtLocal && remoteTs && remoteTs < lastTs && !localIsEmptyShell) {
     cloudReady = true;
     return;
   }
   // Protect unsynced local edits (e.g. manual 接飛) from being wiped by older cloud data.
   // Day schedule uses markUnsynced + manual Sync; local must win until upload completes.
-  if (lastCloudJson && localLiveJson !== lastCloudJson) {
+  if (lastCloudJson && localLiveJson !== lastCloudJson && !localIsEmptyShell) {
     cloudReady = true;
     if (dayCloudStatus.mode !== 'saving') {
       setCloudStatus('尚未同步', 'pending');
@@ -32919,7 +32964,8 @@ function switchScheduleDate(newDate) {
     homelinePaxSaveTimer = null;
   }
   saveLocal();
-  saveCloudNow();
+  // Only push the leaving day when it has real content — empty seed/default must not wipe cloud.
+  if (dayHasMeaningfulScheduleData()) saveCloudNow();
   saveSharedConfigNow();
   if (firebaseUnsub) {
     firebaseUnsub();
