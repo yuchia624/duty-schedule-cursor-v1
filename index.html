@@ -12858,6 +12858,11 @@ const STAFF_IMPORT_BASELINE_FOREVER = '';
 const STAFF_LEGACY_ACTIVE_STATUS = '在職';
 const STAFF_STATUS_FORM_OPTIONS = [STAFF_LEGACY_ACTIVE_STATUS, '調入', '調出', '留停', '復職', '離職', '退休'];
 const STAFF_STATUS_SEARCH_KEYWORDS = ['調入', '調出', '留停', '復職', '離職', '退休'];
+/** 事件型狀態：篩選時要比對「基準日當天」發生該異動，而非僅當下快照仍為此狀態 */
+const STAFF_STATUS_ON_DATE_FILTERS = new Set(['調入', '調出', '留停', '復職', '離職', '退休']);
+function isStaffStatusOnDateFilter(status) {
+  return STAFF_STATUS_ON_DATE_FILTERS.has(String(status || '').trim());
+}
 const STAFF_LEVEL_FILTER_OPTIONS = [
   '見習', '學生', '1A', '2A', 'm', 'M', 'DIC', '業督', '事務員'
 ];
@@ -13880,6 +13885,9 @@ function getStaffCanonicalStatus(snap) {
 }
 function getStaffListColumnStatus(snap) {
   const st = getStaffCanonicalStatus(snap);
+  const statusSet = staffListFiltersApplied.statuses || [];
+  // 有勾選事件型狀態時，列表直接顯示該狀態（避免調入被收成「在職」）
+  if (statusSet.includes(st) && isStaffStatusOnDateFilter(st)) return st;
   if (getStaffListTabForStatus(st) === 'active') return STAFF_LEGACY_ACTIVE_STATUS;
   return st;
 }
@@ -13900,6 +13908,8 @@ function isStaffEquivalentActiveStatus(a, b) {
 }
 function isStaffMeaningfulStatusChange(prevSt, currSt) {
   if (!prevSt || !currSt || prevSt === currSt) return false;
+  // 調入／復職等同屬在職分頁，但仍是明確異動事件
+  if (isStaffStatusOnDateFilter(prevSt) || isStaffStatusOnDateFilter(currSt)) return true;
   return !isStaffEquivalentActiveStatus(prevSt, currSt);
 }
 function syncStaffStatusSelectOptions() {
@@ -15135,8 +15145,13 @@ function isStaffChangesScopeActive(scopes) {
   const set = scopes || staffListFiltersApplied.scopes || [];
   return set.length === 1 && set[0] === 'changes';
 }
+function staffListUsesOnDateAdjustmentSummary() {
+  if (isStaffChangesScopeActive()) return true;
+  const statuses = staffListFiltersApplied.statuses || [];
+  return statuses.some(isStaffStatusOnDateFilter);
+}
 function getStaffListAdjustmentSummary(rec, refDateISO) {
-  if (isStaffChangesScopeActive()) return getStaffRefDateAdjustmentSummary(rec, refDateISO);
+  if (staffListUsesOnDateAdjustmentSummary()) return getStaffRefDateAdjustmentSummary(rec, refDateISO);
   return getStaffLatestAdjustmentSummary(rec, refDateISO);
 }
 function getStaffLatestAdjustmentSummary(rec, refDateISO) {
@@ -15312,6 +15327,22 @@ function openStaffPersonnelEditor(personnelId, effectiveDate, options = {}) {
 function populateStaffFilterOptions() {
   populateStaffFilterGroupChecks();
 }
+function staffRowMatchesStatusFilters(rec, snap, statusSet, refDateISO) {
+  const statuses = Array.isArray(statusSet) ? statusSet : [];
+  if (!statuses.length) return true;
+  const ref = isValidISODate(refDateISO) ? refDateISO : getStaffListReferenceDate();
+  const snapSt = getStaffDisplayStatus(snap) || String(snap?.status || '').trim();
+  return statuses.some(st => {
+    if (isStaffStatusOnDateFilter(st)) {
+      // 調入／調出等：必須是基準日當天發生該狀態異動
+      return getStaffStatusEffectiveDate(rec.personnelId, st, ref) === ref;
+    }
+    if (st === STAFF_LEGACY_ACTIVE_STATUS) {
+      return getStaffListTabForStatus(snapSt) === 'active';
+    }
+    return snapSt === st;
+  });
+}
 function staffRowPassesFilters(rec, ref, options = {}) {
   const refDate = isValidISODate(ref) ? ref : getStaffListReferenceDate();
   const q = getStaffListSearchQuery();
@@ -15322,11 +15353,10 @@ function staffRowPassesFilters(rec, ref, options = {}) {
   if (!staffRowPassesScopeFilter(rec, refDate, undefined, options)) return false;
   if (!staffHasEffectiveRecordAtDate(rec.personnelId, refDate)) return false;
   const snap = getStaffSnapshotAtDate(rec.personnelId, refDate);
-  const st = getStaffDisplayStatus(snap) || snap.status || '';
   const statusSet = staffListFiltersApplied.statuses || [];
   const groupSet = staffListFiltersApplied.groups || [];
   const levelSet = staffListFiltersApplied.levels || [];
-  if (statusSet.length && !statusSet.includes(st)) return false;
+  if (!staffRowMatchesStatusFilters(rec, snap, statusSet, refDate)) return false;
   if (groupSet.length && !groupSet.includes(String(snap.group || '').trim())) return false;
   if (levelSet.length) {
     const tier = normalizeStaffLevelFilterKey(snap.level);
