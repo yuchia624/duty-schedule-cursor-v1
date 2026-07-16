@@ -193,6 +193,17 @@
     return f && f.baseTime ? String(f.baseTime) : '';
   }
 
+  function arrBaseMinutes(flightsMaps, arr, norm) {
+    const f = flightLookup(flightsMaps, arr, 'ARR', norm);
+    const m = f != null ? Number(f.baseMinutes) : NaN;
+    return Number.isFinite(m) ? m : null;
+  }
+
+  function arrBaseTime(flightsMaps, arr, norm) {
+    const f = flightLookup(flightsMaps, arr, 'ARR', norm);
+    return f && f.baseTime ? String(f.baseTime) : '';
+  }
+
   /** 接飛時間 = 出境 STD − 入境 STA（分鐘）；跨午夜時 +1440。 */
   function connectingGapMinutes(arr, dep, arrMaps, depMaps, norm) {
     if (!arr || !dep) return null;
@@ -251,6 +262,17 @@
       });
     });
 
+    // 依原本入境 STA 早→晚；無 STA 的排最後，同時間再比航班號
+    rows.sort((a, b) => {
+      const am = a.arrStaMinutes;
+      const bm = b.arrStaMinutes;
+      const aMissing = am == null || !Number.isFinite(Number(am));
+      const bMissing = bm == null || !Number.isFinite(Number(bm));
+      if (aMissing !== bMissing) return aMissing ? 1 : -1;
+      if (!aMissing && Number(am) !== Number(bm)) return Number(am) - Number(bm);
+      return String(a.arrFlight || '').localeCompare(String(b.arrFlight || ''), 'en', { numeric: true });
+    });
+
     return rows;
   }
 
@@ -278,12 +300,17 @@
     );
     const oldDepTime = depBaseTime([baseFlights, curFlights], oldDep, norm);
     const newDepTime = depBaseTime([curFlights, baseFlights], newDep, norm);
+    // 排序用：優先原本（匯入前）入境 STA
+    const arrStaMinutes = arrBaseMinutes([baseFlights, curFlights], arr, norm);
+    const arrStaTime = arrBaseTime([baseFlights, curFlights], arr, norm);
     return {
       arrFlight: arr,
       oldDep,
       newDep,
       oldDepTime,
       newDepTime,
+      arrStaMinutes,
+      arrStaTime,
       oldConnMinutes,
       newConnMinutes,
       duplicate: dup,
