@@ -13036,7 +13036,9 @@ function dayStorageKeys(dateStr) {
     dicOvertimeApprovals: `${LS_PREFIX}_day_${d}_dic_ot`,
     funcSlotOverrides: `${LS_PREFIX}_day_${d}_func_slot_overrides`,
     paletteCopyTemplates: `${LS_PREFIX}_day_${d}_palette_copy_templates`,
-    timelinePinnedPersonTokens: `${LS_PREFIX}_day_${d}_timeline_pinned_person_tokens`
+    timelinePinnedPersonTokens: `${LS_PREFIX}_day_${d}_timeline_pinned_person_tokens`,
+    cloudPending: `${LS_PREFIX}_day_${d}_cloud_pending`,
+    cloudClearIntent: `${LS_PREFIX}_day_${d}_cloud_clear_intent`
   };
 }
 let selectedDate = localStorage.getItem(LS_KEYS_GLOBAL.selectedDate) || getLocalDateISO();
@@ -17589,29 +17591,52 @@ function dayHasMeaningfulScheduleData() {
   return false;
 }
 
-function saveCloudNow() {
+function cloudFingerprintLooksMeaningful(json) {
+  if (!json) return false;
+  try {
+    const prev = JSON.parse(json);
+    return !!(
+      (Array.isArray(prev.schedule) && prev.schedule.length) ||
+      (prev.flightsImported === true && Array.isArray(prev.flightDefs) && prev.flightDefs.length) ||
+      (Array.isArray(prev.people) && prev.people.some(p => String(p?.adjustedShift || p?.shift || '').trim()))
+    );
+  } catch (_) {
+    return false;
+  }
+}
+
+function getDayCloudPendingFlag(dateStr = selectedDate) {
+  return localStorage.getItem(dayStorageKeys(dateStr).cloudPending) === '1';
+}
+function setDayCloudPendingFlag(dateStr = selectedDate, pending = true) {
+  const key = dayStorageKeys(dateStr).cloudPending;
+  if (pending) localStorage.setItem(key, '1');
+  else localStorage.removeItem(key);
+}
+function getDayCloudClearIntent(dateStr = selectedDate) {
+  return localStorage.getItem(dayStorageKeys(dateStr).cloudClearIntent) === '1';
+}
+function setDayCloudClearIntent(dateStr = selectedDate, on = true) {
+  const key = dayStorageKeys(dateStr).cloudClearIntent;
+  if (on) localStorage.setItem(key, '1');
+  else localStorage.removeItem(key);
+}
+
+function saveCloudNow(opts = {}) {
   if (!cloudReady || !scheduleDocRef || applyingRemote) return Promise.resolve(false);
+  const allowEmptyWipe = opts.allowEmptyWipe === true;
   const json = getLiveCloudFingerprint();
   if (json === lastCloudJson) {
+    setDayCloudPendingFlag(selectedDate, false);
+    setDayCloudClearIntent(selectedDate, false);
     setCloudStatus('已同步', 'synced');
     return Promise.resolve(true);
   }
-  // Refuse to upload an empty shell over a known non-empty cloud baseline.
-  // Empty shell = seed/default people with no shifts, no schedule, no flights.
-  if (!dayHasMeaningfulScheduleData() && lastCloudJson) {
-    try {
-      const prev = JSON.parse(lastCloudJson);
-      const prevMeaningful = !!(
-        (Array.isArray(prev.schedule) && prev.schedule.length) ||
-        (prev.flightsImported === true && Array.isArray(prev.flightDefs) && prev.flightDefs.length) ||
-        (Array.isArray(prev.people) && prev.people.some(p => String(p?.adjustedShift || p?.shift || '').trim()))
-      );
-      if (prevMeaningful) {
-        console.warn('[cloud] skip empty-shell upload that would wipe remote day data');
-        setCloudStatus('尚未同步', 'pending');
-        return Promise.resolve(false);
-      }
-    } catch (_) {}
+  // Refuse accidental empty-shell uploads — but allow after explicit clear + user confirm.
+  if (!allowEmptyWipe && !dayHasMeaningfulScheduleData() && cloudFingerprintLooksMeaningful(lastCloudJson)) {
+    console.warn('[cloud] skip empty-shell upload that would wipe remote day data');
+    setCloudStatus('尚未同步', 'pending');
+    return Promise.resolve({ ok: false, reason: 'empty-shell-blocked' });
   }
   const payload = getCloudState();
   const uploadedAtLocal = String(payload.updatedAtLocal || '');
@@ -17631,6 +17656,8 @@ function saveCloudNow() {
       if (selectedDate === uploadedDate && scheduleDocRef === uploadedDocRef) {
         lastCloudJson = uploadedJson;
         lastCloudUpdatedAtLocal = uploadedAtLocal;
+        setDayCloudPendingFlag(uploadedDate, false);
+        setDayCloudClearIntent(uploadedDate, false);
         setCloudStatus('已同步', 'synced');
       }
       return true;
@@ -17731,27 +17758,43 @@ function processScheduleFirestoreSnapshot(doc) {
     updatedAtLocal: data.updatedAtLocal
   };
   const remoteJson = cloudStateFingerprint(remoteState);
-  // Echo: same write generation — only skip when content also matches our baseline.
-  // Matching updatedAtLocal alone can leave the UI stuck on a stale apply that raced the upload.
+  const localLiveJson = getLiveCloudFingerprint();
+  // Echo: same write generation — only skip when content also matches our live local state.
+  // If local was cleared but lastCloudJson still matches remote, we must re-apply
+  // (unless user intentionally cleared and has not synced that clear yet).
   if (remoteUpdated && remoteUpdated === lastCloudUpdatedAtLocal && lastCloudJson) {
-    if (remoteJson === lastCloudJson) {
+    if (remoteJson === lastCloudJson && remoteJson === localLiveJson) {
       setCloudStatus('已同步', 'synced');
       cloudReady = true;
       return;
     }
   }
-  if (remoteJson === lastCloudJson) {
+  if (remoteJson === lastCloudJson && remoteJson === localLiveJson) {
     lastCloudUpdatedAtLocal = remoteUpdated;
+    setDayCloudPendingFlag(selectedDate, false);
     setCloudStatus('已同步', 'synced');
     cloudReady = true;
     return;
   }
-  const localLiveJson = getLiveCloudFingerprint();
   if (remoteJson === localLiveJson) {
     lastCloudJson = remoteJson;
     lastCloudUpdatedAtLocal = remoteUpdated;
+    setDayCloudPendingFlag(selectedDate, false);
+    setDayCloudClearIntent(selectedDate, false);
     setCloudStatus('已同步', 'synced');
     cloudReady = true;
+    return;
+  }
+  // Intentional local clear waiting for Sync: do not pull cloud back over the empty local state.
+  if (getDayCloudClearIntent(selectedDate)) {
+    cloudReady = true;
+    setCloudStatus('尚未同步', 'pending');
+    return;
+  }
+  // Local day has unsynced edits saved in localStorage — keep them until user presses Sync.
+  if (getDayCloudPendingFlag(selectedDate) && dayHasMeaningfulScheduleData()) {
+    cloudReady = true;
+    setCloudStatus('尚未同步', 'pending');
     return;
   }
   // Reject stale snapshots that arrive after a newer local upload (common with cache / race).
@@ -17776,6 +17819,8 @@ function processScheduleFirestoreSnapshot(doc) {
   lastCloudJson = remoteJson;
   lastCloudUpdatedAtLocal = remoteUpdated;
   applyCloudState(remoteState);
+  setDayCloudPendingFlag(selectedDate, false);
+  setDayCloudClearIntent(selectedDate, false);
   cloudReady = true;
   setCloudStatus('已同步', 'synced');
   } finally {
@@ -24363,7 +24408,8 @@ function applyConnectingFlightDuplicateWinner(depFlight, winnerArrFlight) {
     const oldDep = conn;
     migrateMergedConnectingScheduleToSplitOnUnlink(f.flight, oldDep);
     f.connectingFlight = '';
-    f.connectingSource = '';
+    // Keep manual so sync → computeConnectingFlights won't auto-pair this ARR back to the same DEP.
+    f.connectingSource = 'manual';
     if (oldDep) clearHomelineConnectingDutyModeForPair(f.flight, oldDep);
   });
 
@@ -24458,7 +24504,8 @@ async function commitAssignmentConnectingFlightEdit(flightDefId, rawValue) {
       splitConnectingScheduleOnDepChange(f.flight, oldDep);
     }
     f.connectingFlight = '';
-    f.connectingSource = '';
+    // Lock empty as manual so auto-pairing cannot revive the old connection after sync.
+    f.connectingSource = 'manual';
     refreshHomelineConnectingStaleFlags();
     applyFlightScheduleEdit();
     return true;
@@ -24674,7 +24721,8 @@ async function commitAssignmentDepConnectingEdit(depFlightDefId, arrFlightRaw) {
         clearHomelineConnectingDutyModeForPair(arrDef.flight, oldDep);
       }
       arrDef.connectingFlight = '';
-      arrDef.connectingSource = '';
+      // Lock empty as manual so auto-pairing cannot revive after sync / recompute.
+      arrDef.connectingSource = 'manual';
     });
     refreshHomelineConnectingStaleFlags();
     applyFlightScheduleEdit();
@@ -27557,7 +27605,10 @@ function applyClearDataFromModal() {
     renderTimeHeader();
     renderFlightEditor();
   }
+  // Intentional clear: keep empty local until user Syncs (optionally clearing cloud too).
+  setDayCloudClearIntent(selectedDate, true);
   markUnsynced();
+  saveLocal();
   renderRows();
   if (typeof syncAssignmentTableFromSchedule === 'function') syncAssignmentTableFromSchedule();
   renderOvertimePanel();
@@ -32964,8 +33015,13 @@ function switchScheduleDate(newDate) {
     homelinePaxSaveTimer = null;
   }
   saveLocal();
-  // Only push the leaving day when it has real content — empty seed/default must not wipe cloud.
-  if (dayHasMeaningfulScheduleData()) saveCloudNow();
+  // Day schedule is manual-sync only: never auto-upload on date switch.
+  // Persist a pending flag so returning to this day will not let cloud overwrite local edits.
+  if (lastCloudJson && getLiveCloudFingerprint() !== lastCloudJson) {
+    setDayCloudPendingFlag(selectedDate, true);
+  } else if (dayCloudStatus.mode === 'pending') {
+    setDayCloudPendingFlag(selectedDate, true);
+  }
   saveSharedConfigNow();
   if (firebaseUnsub) {
     firebaseUnsub();
@@ -33429,6 +33485,7 @@ function persistAndSync(opts = {}) {
 }
 function markUnsynced() {
   invalidateLiveCloudFingerprint();
+  setDayCloudPendingFlag(selectedDate, true);
   setCloudStatus('尚未同步', 'pending', 'day');
 }
 function captureUndoState() {
@@ -36560,11 +36617,32 @@ document.getElementById('exportScheduleExcelBtn')?.addEventListener('click', exp
 document.getElementById('saveBtn').addEventListener('click', () => {
   const active = document.activeElement;
   if (active && typeof active.blur === 'function') active.blur();
-  setTimeout(() => {
+  setTimeout(async () => {
     saveLocal();
     saveSharedConfigNow();
+    const emptyLocal = !dayHasMeaningfulScheduleData();
+    const cloudHadData = cloudFingerprintLooksMeaningful(lastCloudJson) || getDayCloudClearIntent(selectedDate);
+    if (emptyLocal && cloudHadData) {
+      const wipeCloud = await appConfirm(
+        '本機這天已清空。若按「確定」，會把雲端這天的資料一併清掉；按「取消」則只保留本機空白、不動雲端。',
+        { title: '確定清除雲端這天？', confirmText: '確定清除雲端', cancelText: '取消' }
+      );
+      if (!wipeCloud) {
+        setCloudStatus('尚未同步', 'pending');
+        appSuccess('已保留本機空白（雲端未改）', '未同步雲端');
+        return;
+      }
+      const ok = await Promise.resolve(saveCloudNow({ allowEmptyWipe: true }));
+      if (ok === true) {
+        setCloudStatus('已同步', 'synced');
+        appSuccess('已清除本機並同步清空雲端', '儲存完成');
+      } else {
+        appAlert('雲端清除失敗，請再試一次。', '同步失敗');
+      }
+      return;
+    }
     Promise.resolve(saveCloudNow()).then(ok => {
-      if (ok) {
+      if (ok === true) {
         setCloudStatus('已同步', 'synced');
         appSuccess('已儲存並同步', '儲存完成');
       } else {
