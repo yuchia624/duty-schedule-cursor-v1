@@ -1,0 +1,377 @@
+/**
+ * 手機班表瀏覽模式（≤768px）
+ * - 隱藏左側待排 duty
+ * - 分配表／管制表分頁（預設分配表）
+ * - 唯讀：隱藏匯入／清除／同步上傳／欄位解鎖等編輯控件
+ * - 縮窄姓名欄、隱藏分割拉桿、共用搜尋與縮放
+ */
+.schedule-browse-tabs,
+.schedule-browse-toolbar { display: none; }
+
+body.schedule-browse-mode .app {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 0;
+  height: auto !important;
+  min-height: 0;
+  overflow: hidden;
+}
+
+body.schedule-browse-mode #erpPageSchedule.active {
+  display: flex;
+  flex-direction: column;
+}
+
+body.schedule-browse-mode .sidebar {
+  flex: 0 0 auto;
+  width: 100%;
+  min-width: 0;
+  height: auto !important;
+  max-height: none;
+  border-right: 0;
+  border-bottom: 1px solid var(--line);
+}
+
+body.schedule-browse-mode .sidebar > *:not(.sidebar-date-head):not(.schedule-browse-tabs):not(.schedule-browse-toolbar) {
+  display: none !important;
+}
+
+body.schedule-browse-mode .sidebar-date-head {
+  padding: 8px 10px 4px;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+body.schedule-browse-mode .schedule-browse-tabs {
+  display: flex;
+  gap: 6px;
+  padding: 0 10px 6px;
+  background: #fff;
+}
+
+body.schedule-browse-mode .schedule-browse-tab {
+  flex: 1 1 0;
+  min-height: 40px;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  background: #f8fafc;
+  color: #475569;
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+  -webkit-tap-highlight-color: rgba(37, 99, 235, 0.12);
+}
+
+body.schedule-browse-mode .schedule-browse-tab.is-active {
+  background: #eff6ff;
+  border-color: #2563eb;
+  color: #1d4ed8;
+}
+
+body.schedule-browse-mode .schedule-browse-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 10px 8px;
+  background: #fff;
+}
+
+body.schedule-browse-mode .schedule-browse-search-wrap {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+body.schedule-browse-mode .schedule-browse-search-wrap input {
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 36px;
+  padding: 6px 10px;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  font-size: 14px;
+  background: #fff;
+}
+
+body.schedule-browse-mode .schedule-browse-zoom {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+body.schedule-browse-mode .schedule-browse-zoom-btn {
+  width: 36px;
+  height: 36px;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  background: #f8fafc;
+  color: #0f172a;
+  font-size: 18px;
+  font-weight: 800;
+  line-height: 1;
+  cursor: pointer;
+}
+
+body.schedule-browse-mode .schedule-browse-zoom-label {
+  min-width: 40px;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 700;
+  color: #64748b;
+}
+
+body.schedule-browse-mode .workspace {
+  flex: 1 1 0;
+  min-height: 0;
+  width: 100%;
+  height: auto !important;
+  overflow: hidden;
+}
+
+/* 隱藏桌機分配表高度拉桿與瀏覽時多餘控件（整列工具列拿掉，早晚班改放搜尋旁） */
+body.schedule-browse-mode .workspace-splitter,
+body.schedule-browse-mode .workspace--assignment-open .workspace-splitter,
+body.schedule-browse-mode #scheduleToolbar,
+body.schedule-browse-mode #scheduleToolbarActions,
+body.schedule-browse-mode #undoBtn,
+body.schedule-browse-mode #redoBtn,
+body.schedule-browse-mode #saveBtn,
+body.schedule-browse-mode #toggleRollCallBtn,
+body.schedule-browse-mode #toggleOvertimeToolbarBtn,
+body.schedule-browse-mode #assignmentToggleBtn,
+body.schedule-browse-mode #exportScheduleExcelBtn,
+body.schedule-browse-mode #toggleDutyStatsBtn,
+body.schedule-browse-mode #scheduleDiffSetBaselineBtn,
+body.schedule-browse-mode #dutyStatsFilterBar,
+body.schedule-browse-mode #scheduleDiffBaselineBar,
+body.schedule-browse-mode .assignment-col-edit-btn,
+body.schedule-browse-mode .block-delete-btn,
+body.schedule-browse-mode .block-edit-btn,
+body.schedule-browse-mode .control-panel .search-wrap,
+body.schedule-browse-mode #clearTimelineSearch {
+  display: none !important;
+}
+
+body.schedule-browse-mode .schedule-browse-shift-btn {
+  flex: 0 0 auto;
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+  padding: 0;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  background: #f8fafc;
+  color: #0f172a;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  -webkit-tap-highlight-color: rgba(37, 99, 235, 0.12);
+}
+
+body.schedule-browse-mode .schedule-browse-shift-btn .toolbar-icon-btn__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+body.schedule-browse-mode .schedule-browse-shift-btn .toolbar-icon-btn__text {
+  font-size: 15px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+body.schedule-browse-mode .schedule-browse-shift-btn .toolbar-icon-btn__tip {
+  display: none;
+}
+
+body.schedule-browse-mode.schedule-browse-view-assignment .control-panel {
+  display: none !important;
+}
+
+body.schedule-browse-mode.schedule-browse-view-assignment .assignment-overlay-panel,
+body.schedule-browse-mode.schedule-browse-view-assignment .workspace--assignment-open .assignment-overlay-panel {
+  display: flex !important;
+  flex-direction: column;
+  position: relative;
+  top: auto;
+  left: auto;
+  right: auto;
+  flex: 1 1 0 !important;
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  overflow: hidden;
+  z-index: auto;
+}
+
+body.schedule-browse-mode.schedule-browse-view-assignment .assignment-scroll {
+  flex: 1 1 0;
+  min-height: 0;
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+  /* 隱藏粗捲軸外觀（仍可滑動）；避免被誤認為高度拉桿 */
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 163, 184, 0.55) transparent;
+}
+
+body.schedule-browse-mode.schedule-browse-view-assignment .assignment-scroll::-webkit-scrollbar {
+  width: 3px;
+  height: 3px;
+}
+
+body.schedule-browse-mode.schedule-browse-view-assignment .assignment-scroll::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.55);
+  border-radius: 999px;
+}
+
+body.schedule-browse-mode.schedule-browse-view-assignment .assignment-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* zoom 放在內容層；主表＋下方固定勤務表一併縮放 */
+body.schedule-browse-mode.schedule-browse-view-assignment .assignment-grid,
+body.schedule-browse-mode.schedule-browse-view-assignment .assign-fixed-section {
+  zoom: var(--browse-zoom, 1);
+  transform-origin: top left;
+}
+
+body.schedule-browse-mode.schedule-browse-view-assignment .assignment-grid {
+  grid-template-columns: minmax(480px, 1fr) minmax(480px, 1fr);
+}
+
+body.schedule-browse-mode.schedule-browse-view-control .assignment-overlay-panel {
+  display: none !important;
+}
+
+body.schedule-browse-mode.schedule-browse-view-control .control-panel {
+  display: flex !important;
+  flex: 1 1 0 !important;
+  min-height: 0;
+  overflow: hidden;
+}
+
+body.schedule-browse-mode.schedule-browse-view-control .schedule-board-scroll,
+body.schedule-browse-mode.schedule-browse-view-control .board-scroll,
+body.schedule-browse-mode.schedule-browse-view-control #scheduleBoardScroll {
+  flex: 1 1 0;
+  min-height: 0;
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+  zoom: var(--browse-zoom, 1);
+  /* 隱藏底部粗捲動條視覺；仍可用手指滑動 */
+  scrollbar-width: thin;
+}
+
+body.schedule-browse-mode.schedule-browse-view-control .schedule-board-scroll::-webkit-scrollbar:horizontal {
+  height: 3px;
+}
+
+/* 管制表左側：姓名字級對齊 duty 區塊（16px／900）；欄寬含右內距，班別不貼框線 */
+body.schedule-browse-mode .board:not(.roll-call-mode) {
+  --name-col-width: 188px;
+  --normal-grid: 20px 30px 70px 40px;
+  --row-height: 42px;
+}
+
+body.schedule-browse-mode .board:not(.roll-call-mode) .normal-grid {
+  gap: 4px;
+  padding: 3px 8px 3px 6px !important;
+}
+
+body.schedule-browse-mode .board:not(.roll-call-mode) .person-cell.normal-grid,
+body.schedule-browse-mode .board:not(.roll-call-mode) .name-col.normal-grid {
+  padding-right: 8px !important;
+}
+
+body.schedule-browse-mode .board:not(.roll-call-mode) .normal-grid .rc-col.rc-shift {
+  justify-content: flex-start;
+  padding-right: 2px;
+  box-sizing: border-box;
+}
+
+body.schedule-browse-mode .board:not(.roll-call-mode) .normal-grid .person-shift-label {
+  min-width: 32px;
+  padding: 2px 4px;
+  font-size: 11px;
+  font-weight: 800;
+  margin-right: 1px;
+}
+
+body.schedule-browse-mode .row-grip-btn,
+body.schedule-browse-mode .drag-icon {
+  display: none !important;
+}
+
+body.schedule-browse-mode .normal-grid .rc-col.rc-seq {
+  min-width: 0;
+  justify-content: center;
+}
+
+body.schedule-browse-mode .normal-grid .rc-col.rc-seq .person-seq {
+  font-size: 12px;
+  font-weight: 800;
+}
+
+body.schedule-browse-mode .board:not(.roll-call-mode) .normal-grid .rc-col .badge {
+  width: 30px;
+  min-width: 30px;
+  padding: 2px 2px;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+body.schedule-browse-mode .normal-grid .rc-col.rc-name {
+  width: 70px !important;
+  min-width: 70px !important;
+  max-width: 70px !important;
+}
+
+body.schedule-browse-mode .board:not(.roll-call-mode) .normal-grid .person-name {
+  font-size: 16px;
+  font-weight: 900;
+  letter-spacing: 0.2px;
+  line-height: 1.15;
+  max-width: 100%;
+  color: #334155;
+}
+
+body.schedule-browse-mode .normal-grid .rc-col.rc-name .rc-h {
+  font-size: 12px;
+  font-weight: 700;
+}
+
+body.schedule-browse-mode .board:not(.roll-call-mode) .name-col.normal-grid {
+  font-size: 11px;
+  font-weight: 700;
+}
+
+body.schedule-browse-mode .timeline {
+  touch-action: pan-x pan-y;
+}
+
+/* 雙重保險：高度拉桿在瀏覽模式絕不出現（含 ::before 把手） */
+body.schedule-browse-mode #workspaceSplitter,
+body.schedule-browse-mode .workspace-splitter,
+body.schedule-browse-mode .workspace--assignment-open .workspace-splitter,
+body.schedule-browse-mode #workspaceSplitter::before,
+body.schedule-browse-mode .workspace-splitter::before {
+  display: none !important;
+  visibility: hidden !important;
+  height: 0 !important;
+  min-height: 0 !important;
+  max-height: 0 !important;
+  width: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  flex: 0 0 0 !important;
+  overflow: hidden !important;
+  pointer-events: none !important;
+  opacity: 0 !important;
+  content: none !important;
+}
