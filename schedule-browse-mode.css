@@ -30,6 +30,19 @@ body.schedule-browse-mode .sidebar {
   max-height: none;
   border-right: 0;
   border-bottom: 1px solid var(--line);
+  overflow: visible !important;
+  position: relative;
+  z-index: 50;
+}
+
+body.schedule-browse-mode .sidebar-date-head,
+body.schedule-browse-mode .schedule-date-picker,
+body.schedule-browse-mode .schedule-date-wrap {
+  overflow: visible !important;
+}
+
+body.schedule-browse-mode #scheduleDateDropPanel {
+  z-index: 5000 !important;
 }
 
 body.schedule-browse-mode .sidebar > *:not(.sidebar-date-head):not(.schedule-browse-tabs):not(.schedule-browse-toolbar) {

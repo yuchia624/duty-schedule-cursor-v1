@@ -28,8 +28,8 @@
 <link rel="stylesheet" href="duty-stats.css?v=20260712-v2">
 <link rel="stylesheet" href="schedule-level-control.css?v=20260712-v1">
 <link rel="stylesheet" href="schedule-diff.css?v=20260712-v9">
-<link rel="stylesheet" href="schedule-browse-mode.css?v=20260719-v15">
-<script src="schedule-browse-mode.js?v=20260719-v15"></script>
+<link rel="stylesheet" href="schedule-browse-mode.css?v=20260719-v16">
+<script src="schedule-browse-mode.js?v=20260719-v16"></script>
 <title>今天的完整拖拉管制表 v2</title>
 <style>
   :root {
@@ -13275,10 +13275,18 @@ function initInlineAppDateDrop(cfg) {
     const width = maxPanelWidth > 0 ? Math.min(measuredWidth, maxPanelWidth) : measuredWidth;
     if (cfg.fixed) {
       const r = trigger.getBoundingClientRect();
+      // fixed 面板掛到 body，避免手機 overflow:hidden 祖先裁切月曆
+      if (panel.parentElement !== document.body) {
+        document.body.appendChild(panel);
+      }
       const ph = panel.offsetHeight || 340;
       const spaceBelow = window.innerHeight - r.bottom - pad;
       const spaceAbove = r.top - pad;
-      const openBelow = spaceBelow >= ph + gap ? true : spaceAbove < ph + gap ? false : spaceBelow >= spaceAbove;
+      const openBelow = spaceBelow >= Math.min(ph, 280) + gap
+        ? true
+        : spaceAbove < Math.min(ph, 280) + gap
+          ? false
+          : spaceBelow >= spaceAbove;
       const safeWidth = Math.min(width, window.innerWidth - pad * 2);
       // 先嘗試右對齊觸發欄位（右側側欄最穩定），再做視窗邊界夾擠
       let left = r.right - safeWidth;
@@ -13287,9 +13295,11 @@ function initInlineAppDateDrop(cfg) {
       panel.style.position = 'fixed';
       panel.style.width = `${safeWidth}px`;
       panel.style.maxWidth = `calc(100vw - ${pad * 2}px)`;
+      panel.style.maxHeight = `calc(100vh - ${pad * 2}px)`;
+      panel.style.overflowY = 'auto';
       panel.style.left = `${left}px`;
       panel.style.right = 'auto';
-      panel.style.zIndex = '1300';
+      panel.style.zIndex = '5000';
       panel.style.marginBottom = '';
       panel.style.marginTop = '';
       if (openBelow) {
