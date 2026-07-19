@@ -139,6 +139,7 @@ body.schedule-browse-mode .workspace {
   width: 100%;
   height: auto !important;
   overflow: hidden;
+  touch-action: pan-x pan-y;
 }
 
 /* 隱藏桌機分配表高度拉桿與瀏覽時多餘控件（整列工具列拿掉，早晚班改放搜尋旁） */
@@ -163,6 +164,34 @@ body.schedule-browse-mode .block-edit-btn,
 body.schedule-browse-mode .control-panel .search-wrap,
 body.schedule-browse-mode #clearTimelineSearch {
   display: none !important;
+}
+
+body.schedule-browse-mode .schedule-browse-clear-btn {
+  flex: 0 0 auto;
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+  padding: 0;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  background: #f8fafc;
+  color: #0f172a;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  -webkit-tap-highlight-color: rgba(37, 99, 235, 0.12);
+}
+
+body.schedule-browse-mode .schedule-browse-clear-btn svg {
+  width: 18px;
+  height: 18px;
+  display: block;
+}
+
+body.schedule-browse-mode .schedule-browse-clear-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
 }
 
 body.schedule-browse-mode .schedule-browse-shift-btn {

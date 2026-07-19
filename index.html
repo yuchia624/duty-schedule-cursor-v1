@@ -28,8 +28,8 @@
 <link rel="stylesheet" href="duty-stats.css?v=20260712-v2">
 <link rel="stylesheet" href="schedule-level-control.css?v=20260712-v1">
 <link rel="stylesheet" href="schedule-diff.css?v=20260712-v9">
-<link rel="stylesheet" href="schedule-browse-mode.css?v=20260719-v16">
-<script src="schedule-browse-mode.js?v=20260719-v16"></script>
+<link rel="stylesheet" href="schedule-browse-mode.css?v=20260719-v17">
+<script src="schedule-browse-mode.js?v=20260719-v17"></script>
 <title>今天的完整拖拉管制表 v2</title>
 <style>
   :root {
@@ -7195,6 +7195,9 @@
       <div class="schedule-browse-search-wrap">
         <input type="search" id="scheduleBrowseSearch" placeholder="搜尋航班／姓名…" autocomplete="off" autocapitalize="off" spellcheck="false" />
       </div>
+      <button type="button" class="schedule-browse-clear-btn" id="scheduleBrowseClearSearch" aria-label="清除搜尋" title="清除搜尋">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/><path d="M8 11h6"/></svg>
+      </button>
       <button type="button" class="schedule-browse-shift-btn toolbar-icon-btn js-erp-proxy-shift" id="scheduleBrowseShiftBtn" aria-label="顯示：早班" title="顯示：早班">
         <span class="toolbar-icon-btn__icon" aria-hidden="true"><span class="toolbar-icon-btn__text">晚</span></span>
         <span class="toolbar-icon-btn__tip">顯示：早班</span>
@@ -20818,6 +20821,8 @@ function applyTimelineFlightSearch(query, preferredAssignmentRow, options = {}) 
   if (input && document.activeElement !== input) input.value = timelineFlightSearch;
   const browseInput = document.getElementById('scheduleBrowseSearch');
   if (browseInput && document.activeElement !== browseInput) browseInput.value = timelineFlightSearch;
+  const browseClear = document.getElementById('scheduleBrowseClearSearch');
+  if (browseClear) browseClear.disabled = !String(timelineFlightSearch || '').trim();
 
   const rowsHost = document.getElementById('rows');
   const hasRows = !!rowsHost?.querySelector('.row');

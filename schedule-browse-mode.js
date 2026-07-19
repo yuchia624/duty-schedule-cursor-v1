@@ -85,10 +85,11 @@
     splitter.style.cssText = 'display:none!important;height:0!important;margin:0!important;padding:0!important;border:0!important;flex:0 0 0!important;overflow:hidden!important;pointer-events:none!important;visibility:hidden!important;';
   }
 
-  function clampZoom(z) {
+  function clampZoom(z, snap) {
     const n = Number(z);
     if (!Number.isFinite(n)) return 1;
-    return Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, Math.round(n * 10) / 10));
+    const clamped = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, n));
+    return snap ? Math.round(clamped * 10) / 10 : clamped;
   }
 
   function syncZoomLabel() {
@@ -100,8 +101,9 @@
     if (inBtn) inBtn.disabled = browseZoom >= ZOOM_MAX - 1e-6;
   }
 
-  function setScheduleBrowseZoom(next) {
-    browseZoom = clampZoom(next);
+  function setScheduleBrowseZoom(next, opts) {
+    const snap = !(opts && opts.snap === false);
+    browseZoom = clampZoom(next, snap);
     document.documentElement.style.setProperty('--browse-zoom', String(browseZoom));
     syncZoomLabel();
     if (typeof deps.onZoomChange === 'function') deps.onZoomChange(browseZoom);
@@ -117,6 +119,7 @@
     if (!browseInput) return;
     const v = timelineInput ? String(timelineInput.value || '') : '';
     if (document.activeElement !== browseInput) browseInput.value = v;
+    syncBrowseClearSearchBtn();
   }
 
   function setScheduleBrowseView(view) {
@@ -158,6 +161,69 @@
     if (!wasOn && typeof global.renderRows === 'function') global.renderRows();
   }
 
+  function syncBrowseClearSearchBtn() {
+    const btn = document.getElementById('scheduleBrowseClearSearch');
+    if (!btn) return;
+    const q = String(document.getElementById('scheduleBrowseSearch')?.value || '').trim()
+      || String(document.getElementById('timelineFlightSearch')?.value || '').trim();
+    btn.disabled = !q;
+  }
+
+  function clearBrowseSearch() {
+    const browseInput = document.getElementById('scheduleBrowseSearch');
+    const timelineInput = document.getElementById('timelineFlightSearch');
+    if (browseInput) browseInput.value = '';
+    if (timelineInput) timelineInput.value = '';
+    if (typeof deps.onSearch === 'function') deps.onSearch('');
+    else if (typeof global.scheduleTimelineFlightSearch === 'function') {
+      global.scheduleTimelineFlightSearch('', null, { immediate: true });
+    }
+    syncBrowseClearSearchBtn();
+  }
+
+  function bindPinchZoom() {
+    if (bindPinchZoom._done) return;
+    bindPinchZoom._done = true;
+    let pinch = null;
+
+    const touchDist = (touches) => {
+      const a = touches[0];
+      const b = touches[1];
+      return Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
+    };
+
+    const onStart = (e) => {
+      if (!isScheduleBrowseMode() || e.touches.length !== 2) {
+        if (e.touches.length < 2) pinch = null;
+        return;
+      }
+      const dist = touchDist(e.touches);
+      if (dist < 10) return;
+      pinch = { startDist: dist, startZoom: browseZoom };
+    };
+
+    const onMove = (e) => {
+      if (!pinch || !isScheduleBrowseMode() || e.touches.length !== 2) return;
+      e.preventDefault();
+      const dist = touchDist(e.touches);
+      if (!(pinch.startDist > 0)) return;
+      setScheduleBrowseZoom(pinch.startZoom * (dist / pinch.startDist), { snap: false });
+    };
+
+    const onEnd = (e) => {
+      if (e.touches.length < 2) {
+        if (pinch) setScheduleBrowseZoom(browseZoom); // snap to 10% steps
+        pinch = null;
+      }
+    };
+
+    const opts = { passive: false, capture: true };
+    document.addEventListener('touchstart', onStart, opts);
+    document.addEventListener('touchmove', onMove, opts);
+    document.addEventListener('touchend', onEnd, opts);
+    document.addEventListener('touchcancel', onEnd, opts);
+  }
+
   function bindBrowseChrome() {
     document.getElementById('scheduleBrowseTabs')?.addEventListener('click', e => {
       const btn = e.target.closest('.schedule-browse-tab');
@@ -176,8 +242,14 @@
         else if (typeof global.scheduleTimelineFlightSearch === 'function') {
           global.scheduleTimelineFlightSearch(q);
         }
+        syncBrowseClearSearchBtn();
       });
     }
+
+    document.getElementById('scheduleBrowseClearSearch')?.addEventListener('click', () => {
+      if (!isScheduleBrowseMode()) return;
+      clearBrowseSearch();
+    });
 
     document.getElementById('scheduleBrowseZoomOut')?.addEventListener('click', () => {
       if (!isScheduleBrowseMode()) return;
@@ -187,6 +259,8 @@
       if (!isScheduleBrowseMode()) return;
       adjustScheduleBrowseZoom(ZOOM_STEP);
     });
+
+    bindPinchZoom();
   }
 
   function initScheduleBrowseMode(initDeps) {
