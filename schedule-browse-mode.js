@@ -28,7 +28,7 @@
   const ZOOM_STEP = 0.1;
 
   let scheduleBrowseView = 'assignment';
-  let browseZoom = 1;
+  let browseZoom = 0.7;
   let deps = {
     openAssignmentPanel: null,
     clearAssignmentColumnUnlocks: null,
@@ -149,7 +149,7 @@
       return;
     }
     clearUnlocksIfNeeded();
-    setScheduleBrowseZoom(browseZoom || 1);
+    setScheduleBrowseZoom(browseZoom || 0.7);
     setScheduleBrowseView(scheduleBrowseView || 'assignment');
     if (scheduleBrowseView === 'assignment') openAssignmentIfNeeded(true);
     hideWorkspaceSplitter();

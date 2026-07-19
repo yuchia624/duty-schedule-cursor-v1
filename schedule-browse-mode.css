@@ -259,6 +259,9 @@ body.schedule-browse-mode.schedule-browse-view-assignment .assignment-scroll {
   /* 隱藏粗捲軸外觀（仍可滑動）；避免被誤認為高度拉桿 */
   scrollbar-width: thin;
   scrollbar-color: rgba(148, 163, 184, 0.55) transparent;
+  /* zoom 只套一次，避免主表／下方表各縮導致寬度對不齊、字擠在一起 */
+  zoom: var(--browse-zoom, 1);
+  transform-origin: top left;
 }
 
 body.schedule-browse-mode.schedule-browse-view-assignment .assignment-scroll::-webkit-scrollbar {
@@ -275,15 +278,50 @@ body.schedule-browse-mode.schedule-browse-view-assignment .assignment-scroll::-w
   background: transparent;
 }
 
-/* zoom 放在內容層；主表＋下方固定勤務表一併縮放 */
 body.schedule-browse-mode.schedule-browse-view-assignment .assignment-grid,
 body.schedule-browse-mode.schedule-browse-view-assignment .assign-fixed-section {
-  zoom: var(--browse-zoom, 1);
-  transform-origin: top left;
+  zoom: 1;
 }
 
 body.schedule-browse-mode.schedule-browse-view-assignment .assignment-grid {
   grid-template-columns: minmax(480px, 1fr) minmax(480px, 1fr);
+}
+
+/* 下方勤務／PRE／時段表：欄寬跟內容走，可左右滑，避免人名疊字 */
+body.schedule-browse-mode.schedule-browse-view-assignment .assign-fixed-block {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  max-width: 100%;
+}
+
+body.schedule-browse-mode.schedule-browse-view-assignment .assignment-table.assign-fixed-table--duties,
+body.schedule-browse-mode.schedule-browse-view-assignment .assignment-table.assign-fixed-table--prefiling {
+  table-layout: auto;
+  width: max-content;
+  min-width: 100%;
+}
+
+body.schedule-browse-mode.schedule-browse-view-assignment .assignment-table.assign-fixed-table--duties th:not(.assign-fixed-row-label),
+body.schedule-browse-mode.schedule-browse-view-assignment .assignment-table.assign-fixed-table--duties td[data-assignment-fixed-duty],
+body.schedule-browse-mode.schedule-browse-view-assignment .assignment-table.assign-fixed-table--prefiling th:not(.assign-fixed-row-label),
+body.schedule-browse-mode.schedule-browse-view-assignment .assignment-table.assign-fixed-table--prefiling td[data-assignment-prefiling] {
+  white-space: nowrap;
+  overflow: visible;
+  text-overflow: clip;
+  min-width: 3em;
+  padding: 4px 8px;
+  letter-spacing: 0;
+}
+
+body.schedule-browse-mode.schedule-browse-view-assignment .assignment-role-codes-inner.assignment-fixed-codes-inner,
+body.schedule-browse-mode.schedule-browse-view-assignment .assignment-role-codes-inner.assignment-prefiling-codes-inner {
+  width: max-content;
+  max-width: none;
+  gap: 0.35em;
+}
+
+body.schedule-browse-mode.schedule-browse-view-assignment .assignment-fixed-code-sep {
+  padding: 0 0.15em;
 }
 
 body.schedule-browse-mode.schedule-browse-view-control .assignment-overlay-panel {

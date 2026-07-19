@@ -28,8 +28,8 @@
 <link rel="stylesheet" href="duty-stats.css?v=20260712-v2">
 <link rel="stylesheet" href="schedule-level-control.css?v=20260712-v1">
 <link rel="stylesheet" href="schedule-diff.css?v=20260712-v9">
-<link rel="stylesheet" href="schedule-browse-mode.css?v=20260719-v17">
-<script src="schedule-browse-mode.js?v=20260719-v17"></script>
+<link rel="stylesheet" href="schedule-browse-mode.css?v=20260719-v19">
+<script src="schedule-browse-mode.js?v=20260719-v19"></script>
 <title>今天的完整拖拉管制表 v2</title>
 <style>
   :root {
@@ -7204,7 +7204,7 @@
       </button>
       <div class="schedule-browse-zoom" role="group" aria-label="畫面縮放">
         <button type="button" class="schedule-browse-zoom-btn" id="scheduleBrowseZoomOut" aria-label="縮小">−</button>
-        <span class="schedule-browse-zoom-label" id="scheduleBrowseZoomLabel">100%</span>
+        <span class="schedule-browse-zoom-label" id="scheduleBrowseZoomLabel">70%</span>
         <button type="button" class="schedule-browse-zoom-btn" id="scheduleBrowseZoomIn" aria-label="放大">+</button>
       </div>
     </div>
@@ -26136,9 +26136,14 @@ function renderAssignmentPrefilingColgroup(keys) {
 function syncAssignmentPrefilingColWidths() {
   const table = document.querySelector('.assign-fixed-table--prefiling');
   if (!table) return;
-  const labelCell = table.querySelector('th.assign-fixed-row-label');
   const cols = [...table.querySelectorAll('colgroup col:not(.assign-fixed-row-label-col)')];
   if (!cols.length) return;
+  // 手機瀏覽：不強制均分欄寬，改由 CSS max-content + 橫向捲動
+  if (typeof isScheduleBrowseMode === 'function' && isScheduleBrowseMode()) {
+    cols.forEach(col => { col.style.width = ''; });
+    return;
+  }
+  const labelCell = table.querySelector('th.assign-fixed-row-label');
   const tableW = table.clientWidth;
   if (tableW <= 0) return;
   const labelW = labelCell?.getBoundingClientRect().width || 64;
@@ -26230,9 +26235,14 @@ function renderAssignmentFixedDutyColgroup() {
 function syncAssignmentFixedDutyColWidths() {
   const table = document.querySelector('.assign-fixed-table--duties');
   if (!table) return;
-  const labelCell = table.querySelector('th.assign-fixed-row-label');
   const cols = [...table.querySelectorAll('colgroup col:not(.assign-fixed-row-label-col)')];
   if (!cols.length) return;
+  // 手機瀏覽：不把多欄硬塞進螢幕寬，避免代號疊字
+  if (typeof isScheduleBrowseMode === 'function' && isScheduleBrowseMode()) {
+    cols.forEach(col => { col.style.width = ''; });
+    return;
+  }
+  const labelCell = table.querySelector('th.assign-fixed-row-label');
   const tableW = table.clientWidth;
   if (tableW <= 0) return;
   const labelW = labelCell?.getBoundingClientRect().width || 64;
@@ -26362,7 +26372,8 @@ function syncAssignmentFixedSectionWidth() {
   const grid = document.querySelector('.assignment-grid');
   const section = document.getElementById('assignmentFixedSection');
   if (!grid || !section) return;
-  const w = grid.getBoundingClientRect().width;
+  // offsetWidth 不受 CSS zoom 視覺縮放影響，避免下方表被設成過窄寬度
+  const w = grid.offsetWidth || Math.ceil(grid.getBoundingClientRect().width);
   if (w > 0) section.style.width = `${Math.ceil(w)}px`;
   requestAnimationFrame(() => requestAnimationFrame(() => {
     syncAssignmentFixedDutyColWidths();
